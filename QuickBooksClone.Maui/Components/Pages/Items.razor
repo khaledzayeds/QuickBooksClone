@@ -1,0 +1,279 @@
+@page "/items"
+@inject ItemsApiClient ItemsApi
+
+<PageTitle>Items</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Inventory</p>
+            <h1>Items</h1>
+            <p class="muted">Products and services that will be used later in invoices and purchases.</p>
+        </div>
+        <button class="primary-button" @onclick="NewItem">New Item</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="qb-grid">
+        <div class="panel">
+            <div class="toolbar">
+                <input class="search-input" placeholder="Search by name, SKU, barcode, type" @bind="searchText" @bind:event="oninput" />
+                <label class="check-row">
+                    <input type="checkbox" @bind="includeInactive" />
+                    Include inactive
+                </label>
+                <button class="secondary-button" @onclick="LoadItemsAsync" disabled="@isLoading">Search</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <p class="muted">Loading items...</p>
+            }
+            else if (items.Count == 0)
+            {
+                <p class="muted">No items found.</p>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>SKU</th>
+                            <th>Sales</th>
+                            <th>Cost</th>
+                            <th>Qty</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            <tr class="@(selectedItem?.Id == item.Id ? "selected" : null)">
+                                <td>
+                                    <strong>@item.Name</strong>
+                                    <small>@item.Id.ToString()[..8]</small>
+                                </td>
+                                <td>@item.ItemType</td>
+                                <td>
+                                    <span>@item.Sku</span>
+                                    <small>@item.Barcode</small>
+                                </td>
+                                <td>@item.SalesPrice.ToString("N2")</td>
+                                <td>@item.PurchasePrice.ToString("N2")</td>
+                                <td>@item.QuantityOnHand.ToString("N2") @item.Unit</td>
+                                <td>
+                                    <span class="status @(item.IsActive ? "active" : "inactive")">
+                                        @(item.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <button class="link-button" @onclick="() => EditItem(item)">Edit</button>
+                                    <button class="link-button" @onclick="() => ToggleActiveAsync(item)">
+                                        @(item.IsActive ? "Deactivate" : "Activate")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <EditForm Model="form" OnValidSubmit="SaveItemAsync" class="panel form-panel">
+            <DataAnnotationsValidator />
+
+            <h2>@(selectedItem is null ? "New Item" : "Edit Item")</h2>
+            <p class="muted">This is the item foundation. Accounts, categories, and tax codes come after we connect EF Core.</p>
+
+            <label>
+                Name
+                <InputText class="form-control" @bind-Value="form.Name" />
+                <ValidationMessage For="@(() => form.Name)" />
+            </label>
+
+            <label>
+                Type
+                <InputSelect class="form-control" @bind-Value="form.ItemType">
+                    <option value="@ItemType.Inventory">Inventory</option>
+                    <option value="@ItemType.NonInventory">Non Inventory</option>
+                    <option value="@ItemType.Service">Service</option>
+                    <option value="@ItemType.Bundle">Bundle</option>
+                </InputSelect>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    SKU
+                    <InputText class="form-control" @bind-Value="form.Sku" />
+                </label>
+
+                <label>
+                    Barcode
+                    <InputText class="form-control" @bind-Value="form.Barcode" />
+                </label>
+            </div>
+
+            <div class="form-row">
+                <label>
+                    Sales price
+                    <InputNumber class="form-control" @bind-Value="form.SalesPrice" />
+                </label>
+
+                <label>
+                    Purchase price
+                    <InputNumber class="form-control" @bind-Value="form.PurchasePrice" />
+                </label>
+            </div>
+
+            <div class="form-row">
+                <label>
+                    Quantity on hand
+                    <InputNumber class="form-control" @bind-Value="form.QuantityOnHand" disabled="@(selectedItem is not null)" />
+                </label>
+
+                <label>
+                    Unit
+                    <InputText class="form-control" @bind-Value="form.Unit" />
+                </label>
+            </div>
+
+            @if (selectedItem is not null)
+            {
+                <label>
+                    Quick quantity adjustment
+                    <InputNumber class="form-control" @bind-Value="quantityAdjustment" />
+                </label>
+                <button class="secondary-button" type="button" @onclick="AdjustQuantityAsync">Apply Quantity</button>
+            }
+
+            <div class="form-actions">
+                <button class="primary-button" type="submit" disabled="@isSaving">
+                    @(isSaving ? "Saving..." : selectedItem is null ? "Create" : "Save")
+                </button>
+                <button class="secondary-button" type="button" @onclick="NewItem">Clear</button>
+            </div>
+        </EditForm>
+    </section>
+</div>
+
+@code {
+    private List<ItemDto> items = [];
+    private ItemDto? selectedItem;
+    private ItemFormModel form = new();
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeInactive;
+    private bool isLoading;
+    private bool isSaving;
+    private decimal quantityAdjustment;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItemsAsync();
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await ItemsApi.SearchAsync(searchText, includeInactive);
+            items = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load items. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewItem()
+    {
+        selectedItem = null;
+        form = new ItemFormModel();
+        quantityAdjustment = 0;
+        errorMessage = null;
+    }
+
+    private void EditItem(ItemDto item)
+    {
+        selectedItem = item;
+        form = ItemFormModel.FromItem(item);
+        quantityAdjustment = item.QuantityOnHand;
+        errorMessage = null;
+    }
+
+    private async Task SaveItemAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isSaving = true;
+
+            if (selectedItem is null)
+            {
+                await ItemsApi.CreateAsync(form);
+            }
+            else
+            {
+                await ItemsApi.UpdateAsync(selectedItem.Id, form);
+            }
+
+            NewItem();
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save item. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleActiveAsync(ItemDto item)
+    {
+        try
+        {
+            errorMessage = null;
+            await ItemsApi.SetActiveAsync(item.Id, !item.IsActive);
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not update item status. Details: {ex.Message}";
+        }
+    }
+
+    private async Task AdjustQuantityAsync()
+    {
+        if (selectedItem is null)
+        {
+            return;
+        }
+
+        try
+        {
+            errorMessage = null;
+            await ItemsApi.AdjustQuantityAsync(selectedItem.Id, quantityAdjustment);
+            NewItem();
+            await LoadItemsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not adjust quantity. Details: {ex.Message}";
+        }
+    }
+}

@@ -1,5 +1,7 @@
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.Items;
 using QuickBooksClone.Infrastructure.Customers;
+using QuickBooksClone.Infrastructure.Items;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +11,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
+builder.Services.AddSingleton<IItemRepository, InMemoryItemRepository>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>
