@@ -1,0 +1,226 @@
+@page "/customers"
+@inject CustomersApiClient CustomersApi
+
+<PageTitle>Customers</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Sales</p>
+            <h1>Customers</h1>
+            <p class="muted">Create, edit, search, and deactivate customers from the desktop app.</p>
+        </div>
+        <button class="primary-button" @onclick="NewCustomer">New Customer</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="qb-grid">
+        <div class="panel">
+            <div class="toolbar">
+                <input class="search-input" placeholder="Search by name, company, email, phone" @bind="searchText" @bind:event="oninput" />
+                <label class="check-row">
+                    <input type="checkbox" @bind="includeInactive" />
+                    Include inactive
+                </label>
+                <button class="secondary-button" @onclick="LoadCustomersAsync" disabled="@isLoading">Search</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <p class="muted">Loading customers...</p>
+            }
+            else if (customers.Count == 0)
+            {
+                <p class="muted">No customers found.</p>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>Contact</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var customer in customers)
+                        {
+                            <tr class="@(selectedCustomer?.Id == customer.Id ? "selected" : null)">
+                                <td>
+                                    <strong>@customer.DisplayName</strong>
+                                    <small>@customer.Id.ToString()[..8]</small>
+                                </td>
+                                <td>@customer.CompanyName</td>
+                                <td>
+                                    <span>@customer.Email</span>
+                                    <small>@customer.Phone</small>
+                                </td>
+                                <td>@customer.Balance.ToString("N2") @customer.Currency</td>
+                                <td>
+                                    <span class="status @(customer.IsActive ? "active" : "inactive")">
+                                        @(customer.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <button class="link-button" @onclick="() => EditCustomer(customer)">Edit</button>
+                                    <button class="link-button" @onclick="() => ToggleActiveAsync(customer)">
+                                        @(customer.IsActive ? "Deactivate" : "Activate")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <EditForm Model="form" OnValidSubmit="SaveCustomerAsync" class="panel form-panel">
+            <DataAnnotationsValidator />
+
+            <h2>@(selectedCustomer is null ? "New Customer" : "Edit Customer")</h2>
+            <p class="muted">These fields are enough for the first working slice. We will expand addresses and terms next.</p>
+
+            <label>
+                Display name
+                <InputText class="form-control" @bind-Value="form.DisplayName" />
+                <ValidationMessage For="@(() => form.DisplayName)" />
+            </label>
+
+            <label>
+                Company name
+                <InputText class="form-control" @bind-Value="form.CompanyName" />
+            </label>
+
+            <label>
+                Email
+                <InputText class="form-control" @bind-Value="form.Email" />
+                <ValidationMessage For="@(() => form.Email)" />
+            </label>
+
+            <label>
+                Phone
+                <InputText class="form-control" @bind-Value="form.Phone" />
+            </label>
+
+            <div class="form-row">
+                <label>
+                    Currency
+                    <InputText class="form-control" @bind-Value="form.Currency" />
+                    <ValidationMessage For="@(() => form.Currency)" />
+                </label>
+
+                <label>
+                    Opening balance
+                    <InputNumber class="form-control" @bind-Value="form.OpeningBalance" disabled="@(selectedCustomer is not null)" />
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button class="primary-button" type="submit" disabled="@isSaving">
+                    @(isSaving ? "Saving..." : selectedCustomer is null ? "Create" : "Save")
+                </button>
+                <button class="secondary-button" type="button" @onclick="NewCustomer">Clear</button>
+            </div>
+        </EditForm>
+    </section>
+</div>
+
+@code {
+    private List<CustomerDto> customers = [];
+    private CustomerDto? selectedCustomer;
+    private CustomerFormModel form = new();
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeInactive;
+    private bool isLoading;
+    private bool isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomersAsync();
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await CustomersApi.SearchAsync(searchText, includeInactive);
+            customers = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load customers. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewCustomer()
+    {
+        selectedCustomer = null;
+        form = new CustomerFormModel();
+        errorMessage = null;
+    }
+
+    private void EditCustomer(CustomerDto customer)
+    {
+        selectedCustomer = customer;
+        form = CustomerFormModel.FromCustomer(customer);
+        errorMessage = null;
+    }
+
+    private async Task SaveCustomerAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isSaving = true;
+
+            if (selectedCustomer is null)
+            {
+                await CustomersApi.CreateAsync(form);
+            }
+            else
+            {
+                await CustomersApi.UpdateAsync(selectedCustomer.Id, form);
+            }
+
+            NewCustomer();
+            await LoadCustomersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save customer. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleActiveAsync(CustomerDto customer)
+    {
+        try
+        {
+            errorMessage = null;
+            await CustomersApi.SetActiveAsync(customer.Id, !customer.IsActive);
+            await LoadCustomersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not update customer status. Details: {ex.Message}";
+        }
+    }
+}

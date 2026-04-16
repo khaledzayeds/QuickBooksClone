@@ -1,0 +1,6 @@
+@QuickBooksClone.Api_HostAddress = http://localhost:5014
+
+GET {{QuickBooksClone.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

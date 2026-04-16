@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="QuickBooksClone.Api/QuickBooksClone.Api.csproj" />
+  <Project Path="QuickBooksClone.Core/QuickBooksClone.Core.csproj" />
+  <Project Path="QuickBooksClone.Infrastructure/QuickBooksClone.Infrastructure.csproj" />
+  <Project Path="QuickBooksClone.Maui/QuickBooksClone.Maui.csproj" />
+</Solution>
