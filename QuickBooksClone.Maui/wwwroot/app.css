@@ -154,6 +154,10 @@ h1:focus {
     width: 100%;
 }
 
+.narrow-control {
+    max-width: 220px;
+}
+
 .check-row {
     align-items: center;
     display: flex;
