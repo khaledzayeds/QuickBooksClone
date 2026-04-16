@@ -1,6 +1,8 @@
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Infrastructure.Customers;
+using QuickBooksClone.Infrastructure.Invoices;
 using QuickBooksClone.Infrastructure.Items;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
 builder.Services.AddSingleton<IItemRepository, InMemoryItemRepository>();
+builder.Services.AddSingleton<IInvoiceRepository, InMemoryInvoiceRepository>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>
