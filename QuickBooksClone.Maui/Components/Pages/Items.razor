@@ -1,6 +1,6 @@
 @page "/items"
 @inject ItemsApiClient ItemsApi
-@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
 
 <PageTitle>Items</PageTitle>
 
@@ -9,7 +9,7 @@
         <div>
             <p class="eyebrow">Inventory</p>
             <h1>Items</h1>
-            <p class="muted">Products and services that will be used later in invoices and purchases.</p>
+            <p class="muted">Products and services used by invoices and posting.</p>
         </div>
         <button class="primary-button" @onclick="NewItem">New Item</button>
     </section>
@@ -19,233 +19,84 @@
         <div class="alert error">@errorMessage</div>
     }
 
-    <section class="qb-grid">
-        <div class="panel">
-            <div class="toolbar">
-                <input class="search-input" placeholder="Search by name, SKU, barcode, type" @bind="searchText" @bind:event="oninput" />
-                <label class="check-row">
-                    <input type="checkbox" @bind="includeInactive" />
-                    Include inactive
-                </label>
-                <button class="secondary-button" @onclick="LoadItemsAsync" disabled="@isLoading">Search</button>
-            </div>
-
-            @if (isLoading)
-            {
-                <p class="muted">Loading items...</p>
-            }
-            else if (items.Count == 0)
-            {
-                <p class="muted">No items found.</p>
-            }
-            else
-            {
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Type</th>
-                            <th>SKU</th>
-                            <th>Sales</th>
-                            <th>Cost</th>
-                            <th>Qty</th>
-                            <th>Status</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in items)
-                        {
-                            <tr class="@(selectedItem?.Id == item.Id ? "selected" : null)">
-                                <td>
-                                    <strong>@item.Name</strong>
-                                    <small>@item.Id.ToString()[..8]</small>
-                                </td>
-                                <td>@item.ItemType</td>
-                                <td>
-                                    <span>@item.Sku</span>
-                                    <small>@item.Barcode</small>
-                                </td>
-                                <td>@item.SalesPrice.ToString("N2")</td>
-                                <td>@item.PurchasePrice.ToString("N2")</td>
-                                <td>@item.QuantityOnHand.ToString("N2") @item.Unit</td>
-                                <td>
-                                    <span class="status @(item.IsActive ? "active" : "inactive")">
-                                        @(item.IsActive ? "Active" : "Inactive")
-                                    </span>
-                                </td>
-                                <td class="actions">
-                                    <button class="link-button" @onclick="() => EditItem(item)">Edit</button>
-                                    <button class="link-button" @onclick="() => ToggleActiveAsync(item)">
-                                        @(item.IsActive ? "Deactivate" : "Activate")
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search by name, SKU, barcode, type" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeInactive" />
+                Include inactive
+            </label>
+            <button class="secondary-button" @onclick="LoadItemsAsync" disabled="@isLoading">Search</button>
         </div>
 
-        <EditForm Model="form" OnValidSubmit="SaveItemAsync" class="panel form-panel">
-            <DataAnnotationsValidator />
-
-            <h2>@(selectedItem is null ? "New Item" : "Edit Item")</h2>
-            <p class="muted">Account links prepare items for invoice posting. Tax codes and categories come later.</p>
-
-            <label>
-                Name
-                <InputText class="form-control" @bind-Value="form.Name" />
-                <ValidationMessage For="@(() => form.Name)" />
-            </label>
-
-            <label>
-                Type
-                <InputSelect class="form-control" @bind-Value="form.ItemType">
-                    <option value="@ItemType.Inventory">Inventory</option>
-                    <option value="@ItemType.NonInventory">Non Inventory</option>
-                    <option value="@ItemType.Service">Service</option>
-                    <option value="@ItemType.Bundle">Bundle</option>
-                </InputSelect>
-            </label>
-
-            <div class="form-row">
-                <label>
-                    SKU
-                    <InputText class="form-control" @bind-Value="form.Sku" />
-                    <ValidationMessage For="@(() => form.Sku)" />
-                </label>
-
-                <label>
-                    Barcode
-                    <InputText class="form-control" @bind-Value="form.Barcode" />
-                    <ValidationMessage For="@(() => form.Barcode)" />
-                </label>
-            </div>
-
-            <div class="form-row">
-                <label>
-                    Sales price
-                    <InputNumber class="form-control" @bind-Value="form.SalesPrice" />
-                    <ValidationMessage For="@(() => form.SalesPrice)" />
-                </label>
-
-                <label>
-                    Purchase price
-                    <InputNumber class="form-control" @bind-Value="form.PurchasePrice" />
-                    <ValidationMessage For="@(() => form.PurchasePrice)" />
-                </label>
-            </div>
-
-            <div class="form-row">
-                <label>
-                    Quantity on hand
-                    <InputNumber class="form-control" @bind-Value="form.QuantityOnHand" disabled="@(selectedItem is not null)" />
-                    <ValidationMessage For="@(() => form.QuantityOnHand)" />
-                </label>
-
-                <label>
-                    Unit
-                    <InputText class="form-control" @bind-Value="form.Unit" />
-                    <ValidationMessage For="@(() => form.Unit)" />
-                </label>
-            </div>
-
-            <h3>Accounting</h3>
-            <div class="form-row">
-                <label>
-                    Income account
-                    <InputSelect class="form-control" @bind-Value="form.IncomeAccountId">
-                        <option value="">None</option>
-                        @foreach (var account in IncomeAccounts)
-                        {
-                            <option value="@account.Id">@account.Code - @account.Name</option>
-                        }
-                    </InputSelect>
-                </label>
-
-                <label>
-                    Expense account
-                    <InputSelect class="form-control" @bind-Value="form.ExpenseAccountId">
-                        <option value="">None</option>
-                        @foreach (var account in ExpenseAccounts)
-                        {
-                            <option value="@account.Id">@account.Code - @account.Name</option>
-                        }
-                    </InputSelect>
-                </label>
-            </div>
-
-            <div class="form-row">
-                <label>
-                    Inventory asset account
-                    <InputSelect class="form-control" @bind-Value="form.InventoryAssetAccountId">
-                        <option value="">None</option>
-                        @foreach (var account in InventoryAssetAccounts)
-                        {
-                            <option value="@account.Id">@account.Code - @account.Name</option>
-                        }
-                    </InputSelect>
-                </label>
-
-                <label>
-                    COGS account
-                    <InputSelect class="form-control" @bind-Value="form.CogsAccountId">
-                        <option value="">None</option>
-                        @foreach (var account in CogsAccounts)
-                        {
-                            <option value="@account.Id">@account.Code - @account.Name</option>
-                        }
-                    </InputSelect>
-                </label>
-            </div>
-
-            @if (selectedItem is not null)
-            {
-                <label>
-                    Quick quantity adjustment
-                    <InputNumber class="form-control" @bind-Value="quantityAdjustment" />
-                </label>
-                <button class="secondary-button" type="button" @onclick="AdjustQuantityAsync">Apply Quantity</button>
-            }
-
-            <div class="form-actions">
-                <button class="primary-button" type="submit" disabled="@isSaving">
-                    @(isSaving ? "Saving..." : selectedItem is null ? "Create" : "Save")
-                </button>
-                <button class="secondary-button" type="button" @onclick="NewItem">Clear</button>
-            </div>
-        </EditForm>
+        @if (isLoading)
+        {
+            <p class="muted">Loading items...</p>
+        }
+        else if (items.Count == 0)
+        {
+            <p class="muted">No items found.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>SKU</th>
+                        <th>Sales</th>
+                        <th>Cost</th>
+                        <th>Qty</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in items)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@item.Name</strong>
+                                <small>@item.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@item.ItemType</td>
+                            <td>
+                                <span>@item.Sku</span>
+                                <small>@item.Barcode</small>
+                            </td>
+                            <td>@item.SalesPrice.ToString("N2")</td>
+                            <td>@item.PurchasePrice.ToString("N2")</td>
+                            <td>@item.QuantityOnHand.ToString("N2") @item.Unit</td>
+                            <td>
+                                <span class="status @(item.IsActive ? "active" : "inactive")">
+                                    @(item.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td class="actions">
+                                <button class="link-button" @onclick="() => EditItem(item.Id)">Edit</button>
+                                <button class="link-button" @onclick="() => ToggleActiveAsync(item)">
+                                    @(item.IsActive ? "Deactivate" : "Activate")
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     </section>
 </div>
 
 @code {
     private List<ItemDto> items = [];
-    private List<AccountDto> accounts = [];
-    private ItemDto? selectedItem;
-    private ItemFormModel form = new();
     private string? searchText;
     private string? errorMessage;
     private bool includeInactive;
     private bool isLoading;
-    private bool isSaving;
-    private decimal quantityAdjustment;
-
-    private IEnumerable<AccountDto> IncomeAccounts => accounts.Where(account => account.AccountType is AccountType.Income or AccountType.OtherIncome);
-    private IEnumerable<AccountDto> ExpenseAccounts => accounts.Where(account => account.AccountType is AccountType.Expense or AccountType.OtherExpense);
-    private IEnumerable<AccountDto> InventoryAssetAccounts => accounts.Where(account => account.AccountType is AccountType.InventoryAsset or AccountType.OtherCurrentAsset);
-    private IEnumerable<AccountDto> CogsAccounts => accounts.Where(account => account.AccountType == AccountType.CostOfGoodsSold);
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAccountsAsync();
         await LoadItemsAsync();
-    }
-
-    private async Task LoadAccountsAsync()
-    {
-        var result = await AccountsApi.SearchAsync(null, null, false);
-        accounts = result.Items.ToList();
     }
 
     private async Task LoadItemsAsync()
@@ -267,51 +118,6 @@
         }
     }
 
-    private void NewItem()
-    {
-        selectedItem = null;
-        form = new ItemFormModel();
-        quantityAdjustment = 0;
-        errorMessage = null;
-    }
-
-    private void EditItem(ItemDto item)
-    {
-        selectedItem = item;
-        form = ItemFormModel.FromItem(item);
-        quantityAdjustment = item.QuantityOnHand;
-        errorMessage = null;
-    }
-
-    private async Task SaveItemAsync()
-    {
-        try
-        {
-            errorMessage = null;
-            isSaving = true;
-
-            if (selectedItem is null)
-            {
-                await ItemsApi.CreateAsync(form);
-            }
-            else
-            {
-                await ItemsApi.UpdateAsync(selectedItem.Id, form);
-            }
-
-            NewItem();
-            await LoadItemsAsync();
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Could not save item. Details: {ex.Message}";
-        }
-        finally
-        {
-            isSaving = false;
-        }
-    }
-
     private async Task ToggleActiveAsync(ItemDto item)
     {
         try
@@ -326,23 +132,13 @@
         }
     }
 
-    private async Task AdjustQuantityAsync()
+    private void NewItem()
     {
-        if (selectedItem is null)
-        {
-            return;
-        }
+        Navigation.NavigateTo("items/new");
+    }
 
-        try
-        {
-            errorMessage = null;
-            await ItemsApi.AdjustQuantityAsync(selectedItem.Id, quantityAdjustment);
-            NewItem();
-            await LoadItemsAsync();
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Could not adjust quantity. Details: {ex.Message}";
-        }
+    private void EditItem(Guid itemId)
+    {
+        Navigation.NavigateTo($"items/{itemId}/edit");
     }
 }

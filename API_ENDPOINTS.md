@@ -113,6 +113,13 @@ PATCH /api/customers/{id}/active
 
 ## Accounts
 
+Account responses include `balance`. It is calculated from posted accounting transactions:
+
+- Asset and expense accounts use debit minus credit.
+- Liability, equity, and income accounts use credit minus debit.
+- Posting an invoice should increase Accounts Receivable and Sales Income.
+- Inventory invoices should also increase COGS and decrease Inventory Asset.
+
 ### List Accounts
 
 ```http
@@ -165,6 +172,20 @@ Validation:
 
 ```http
 PUT /api/accounts/{id}
+```
+
+## MAUI Entry Routes
+
+Current MAUI entry screens are separate from list screens:
+
+```text
+/accounts/new
+/accounts/{id}/edit
+/customers/new
+/customers/{id}/edit
+/items/new
+/items/{id}/edit
+/invoices/new
 ```
 
 ### Activate / Deactivate Account

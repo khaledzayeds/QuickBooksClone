@@ -25,6 +25,15 @@ public sealed class ItemsApiClient
             ?? new ItemListResponse([], 0, 1, 50);
     }
 
+    public async Task<ItemDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"api/items/{id}", cancellationToken);
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<ItemDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty item response.");
+    }
+
     public async Task<ItemDto> CreateAsync(ItemFormModel form, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync("api/items", new

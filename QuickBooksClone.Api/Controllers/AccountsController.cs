@@ -9,10 +9,12 @@ namespace QuickBooksClone.Api.Controllers;
 public sealed class AccountsController : ControllerBase
 {
     private readonly IAccountRepository _accounts;
+    private readonly IAccountingTransactionRepository _transactions;
 
-    public AccountsController(IAccountRepository accounts)
+    public AccountsController(IAccountRepository accounts, IAccountingTransactionRepository transactions)
     {
         _accounts = accounts;
+        _transactions = transactions;
     }
 
     [HttpGet]
@@ -26,9 +28,10 @@ public sealed class AccountsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _accounts.SearchAsync(new AccountSearch(search, accountType, includeInactive, page, pageSize), cancellationToken);
+        var balances = await GetAccountBalancesAsync(cancellationToken);
 
         return Ok(new AccountListResponse(
-            result.Items.Select(ToDto).ToList(),
+            result.Items.Select(account => ToDto(account, balances)).ToList(),
             result.TotalCount,
             result.Page,
             result.PageSize));
@@ -40,7 +43,8 @@ public sealed class AccountsController : ControllerBase
     public async Task<ActionResult<AccountDto>> Get(Guid id, CancellationToken cancellationToken = default)
     {
         var account = await _accounts.GetByIdAsync(id, cancellationToken);
-        return account is null ? NotFound() : Ok(ToDto(account));
+        var balances = await GetAccountBalancesAsync(cancellationToken);
+        return account is null ? NotFound() : Ok(ToDto(account, balances));
     }
 
     [HttpPost]
@@ -63,7 +67,8 @@ public sealed class AccountsController : ControllerBase
         var account = new Account(request.Code, request.Name, request.AccountType, request.Description, request.ParentId);
         await _accounts.AddAsync(account, cancellationToken);
 
-        return CreatedAtAction(nameof(Get), new { id = account.Id }, ToDto(account));
+        var balances = await GetAccountBalancesAsync(cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = account.Id }, ToDto(account, balances));
     }
 
     [HttpPut("{id:guid}")]
@@ -90,7 +95,8 @@ public sealed class AccountsController : ControllerBase
         }
 
         var account = await _accounts.UpdateAsync(id, request.Code, request.Name, request.AccountType, request.Description, request.ParentId, cancellationToken);
-        return account is null ? NotFound() : Ok(ToDto(account));
+        var balances = await GetAccountBalancesAsync(cancellationToken);
+        return account is null ? NotFound() : Ok(ToDto(account, balances));
     }
 
     [HttpPatch("{id:guid}/active")]
@@ -121,7 +127,42 @@ public sealed class AccountsController : ControllerBase
         return null;
     }
 
-    private static AccountDto ToDto(Account account)
+    private async Task<Dictionary<Guid, decimal>> GetAccountBalancesAsync(CancellationToken cancellationToken)
+    {
+        var result = await _transactions.SearchAsync(new AccountingTransactionSearch(null, IncludeVoided: false, PageSize: 200), cancellationToken);
+        var accounts = await _accounts.SearchAsync(new AccountSearch(null, null, true, 1, 200), cancellationToken);
+        var accountTypes = accounts.Items.ToDictionary(account => account.Id, account => account.AccountType);
+        var balances = new Dictionary<Guid, decimal>();
+
+        foreach (var transaction in result.Items)
+        {
+            foreach (var line in transaction.Lines)
+            {
+                accountTypes.TryGetValue(line.AccountId, out var accountType);
+                var signedAmount = IsDebitNormal(accountType)
+                    ? line.Debit - line.Credit
+                    : line.Credit - line.Debit;
+
+                balances[line.AccountId] = balances.GetValueOrDefault(line.AccountId) + signedAmount;
+            }
+        }
+
+        return balances;
+    }
+
+    private static bool IsDebitNormal(AccountType accountType)
+    {
+        return accountType is AccountType.Bank
+            or AccountType.AccountsReceivable
+            or AccountType.OtherCurrentAsset
+            or AccountType.InventoryAsset
+            or AccountType.FixedAsset
+            or AccountType.CostOfGoodsSold
+            or AccountType.Expense
+            or AccountType.OtherExpense;
+    }
+
+    private static AccountDto ToDto(Account account, IReadOnlyDictionary<Guid, decimal> balances)
     {
         return new AccountDto(
             account.Id,
@@ -130,6 +171,7 @@ public sealed class AccountsController : ControllerBase
             account.AccountType,
             account.Description,
             account.ParentId,
-            account.IsActive);
+            account.IsActive,
+            balances.GetValueOrDefault(account.Id));
     }
 }

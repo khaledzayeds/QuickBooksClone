@@ -9,4 +9,5 @@ public sealed record AccountDto(
     AccountType AccountType,
     string? Description,
     Guid? ParentId,
-    bool IsActive);
+    bool IsActive,
+    decimal Balance);

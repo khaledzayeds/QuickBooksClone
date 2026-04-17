@@ -30,6 +30,15 @@ public sealed class AccountsApiClient
             ?? new AccountListResponse([], 0, 1, 200);
     }
 
+    public async Task<AccountDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"api/accounts/{id}", cancellationToken);
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<AccountDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty account response.");
+    }
+
     public async Task<AccountDto> CreateAsync(AccountFormModel form, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync("api/accounts", new

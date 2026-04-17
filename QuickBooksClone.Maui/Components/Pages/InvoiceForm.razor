@@ -1,0 +1,226 @@
+@page "/invoices/new"
+@inject InvoicesApiClient InvoicesApi
+@inject CustomersApiClient CustomersApi
+@inject ItemsApiClient ItemsApi
+@inject NavigationManager Navigation
+
+<PageTitle>New Invoice</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Sales</p>
+            <h1>New Invoice</h1>
+            <p class="muted">Build the invoice here, then post it from the invoice list.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Invoices</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" OnValidSubmit="SaveInvoiceAsync" class="panel form-panel page-form page-form-wide">
+        <DataAnnotationsValidator />
+
+        <label>
+            Customer
+            <InputSelect class="form-control" @bind-Value="form.CustomerId">
+                <option value="@Guid.Empty">Select customer</option>
+                @foreach (var customer in customers)
+                {
+                    <option value="@customer.Id">@customer.DisplayName</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Invoice date
+                <InputDate class="form-control" @bind-Value="invoiceDate" />
+            </label>
+
+            <label>
+                Due date
+                <InputDate class="form-control" @bind-Value="dueDate" />
+            </label>
+        </div>
+
+        <h3>Lines</h3>
+        <div class="form-row">
+            <label>
+                Item
+                <InputSelect class="form-control" @bind-Value="draftLine.ItemId">
+                    <option value="@Guid.Empty">Select item</option>
+                    @foreach (var item in items)
+                    {
+                        <option value="@item.Id">@item.Name (@item.SalesPrice.ToString("N2"))</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Quantity
+                <InputNumber class="form-control" @bind-Value="draftLine.Quantity" />
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Unit price
+                <InputNumber class="form-control" @bind-Value="draftLine.UnitPrice" />
+            </label>
+
+            <label>
+                Discount %
+                <InputNumber class="form-control" @bind-Value="draftLine.DiscountPercent" />
+            </label>
+        </div>
+
+        <label>
+            Description
+            <InputText class="form-control" @bind-Value="draftLine.Description" />
+        </label>
+
+        <button class="secondary-button" type="button" @onclick="AddLine">Add Line</button>
+
+        @if (form.Lines.Count > 0)
+        {
+            <table class="data-table compact-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in form.Lines)
+                    {
+                        <tr>
+                            <td>@GetItemName(line.ItemId)</td>
+                            <td>@line.Quantity</td>
+                            <td>@line.UnitPrice.ToString("N2")</td>
+                            <td>@((line.Quantity * line.UnitPrice * (1 - line.DiscountPercent / 100)).ToString("N2"))</td>
+                            <td><button class="link-button" type="button" @onclick="() => RemoveLine(line)">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="totals-box">
+            Draft total: @DraftTotal.ToString("N2")
+        </div>
+
+        <div class="form-actions">
+            <button class="primary-button" type="submit" disabled="@isSaving">
+                @(isSaving ? "Saving..." : "Create Invoice")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<CustomerDto> customers = [];
+    private List<ItemDto> items = [];
+    private InvoiceFormModel form = new();
+    private InvoiceLineFormModel draftLine = new();
+    private DateTime invoiceDate = DateTime.Today;
+    private DateTime dueDate = DateTime.Today.AddDays(30);
+    private string? errorMessage;
+    private bool isSaving;
+
+    private decimal DraftTotal => form.Lines.Sum(line => line.Quantity * line.UnitPrice * (1 - line.DiscountPercent / 100));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var customerResult = await CustomersApi.SearchAsync(null, false);
+        customers = customerResult.Items.ToList();
+
+        var itemResult = await ItemsApi.SearchAsync(null, false);
+        items = itemResult.Items.ToList();
+    }
+
+    private void AddLine()
+    {
+        if (draftLine.ItemId == Guid.Empty || draftLine.Quantity <= 0)
+        {
+            errorMessage = "Select an item and enter a quantity greater than zero.";
+            return;
+        }
+
+        var item = items.FirstOrDefault(current => current.Id == draftLine.ItemId);
+        var unitPrice = draftLine.UnitPrice > 0 ? draftLine.UnitPrice : item?.SalesPrice ?? 0;
+
+        form.Lines.Add(new InvoiceLineFormModel
+        {
+            ItemId = draftLine.ItemId,
+            Description = string.IsNullOrWhiteSpace(draftLine.Description) ? item?.Name : draftLine.Description,
+            Quantity = draftLine.Quantity,
+            UnitPrice = unitPrice,
+            DiscountPercent = draftLine.DiscountPercent
+        });
+
+        draftLine = new InvoiceLineFormModel();
+        errorMessage = null;
+    }
+
+    private void RemoveLine(InvoiceLineFormModel line)
+    {
+        form.Lines.Remove(line);
+    }
+
+    private async Task SaveInvoiceAsync()
+    {
+        try
+        {
+            if (form.CustomerId == Guid.Empty)
+            {
+                errorMessage = "Select a customer first.";
+                return;
+            }
+
+            if (form.Lines.Count == 0)
+            {
+                errorMessage = "Add at least one invoice line.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.InvoiceDate = DateOnly.FromDateTime(invoiceDate);
+            form.DueDate = DateOnly.FromDateTime(dueDate);
+
+            await InvoicesApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save invoice. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string GetItemName(Guid itemId)
+    {
+        return items.FirstOrDefault(item => item.Id == itemId)?.Name ?? itemId.ToString()[..8];
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("invoices");
+    }
+}

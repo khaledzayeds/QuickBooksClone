@@ -86,6 +86,13 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Transaction detail debit/credit lines
   - [x] Source type and voided filters
   - [x] Navigation menu link
+- [x] Desktop navigation cleanup slice
+  - [x] Accounts list separated from account form
+  - [x] Customers list separated from customer form
+  - [x] Items list separated from item form
+  - [x] Invoices list separated from invoice creation form
+  - [x] Chart of Accounts shows calculated balances
+  - [x] Added API watch helper script
 
 ## In Progress
 

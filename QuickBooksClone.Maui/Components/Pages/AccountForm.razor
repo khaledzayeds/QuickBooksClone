@@ -1,0 +1,139 @@
+@page "/accounts/new"
+@page "/accounts/{AccountId:guid}/edit"
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>@(IsEdit ? "Edit Account" : "New Account")</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Accounting</p>
+            <h1>@(IsEdit ? "Edit Account" : "New Account")</h1>
+            <p class="muted">Keep account setup focused here, then return to the chart to review balances.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Chart</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" OnValidSubmit="SaveAccountAsync" class="panel form-panel page-form">
+        <DataAnnotationsValidator />
+
+        <div class="form-row">
+            <label>
+                Code
+                <InputText class="form-control" @bind-Value="form.Code" />
+                <ValidationMessage For="@(() => form.Code)" />
+            </label>
+
+            <label>
+                Type
+                <InputSelect class="form-control" @bind-Value="form.AccountType">
+                    @foreach (var type in AccountTypes)
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+            </label>
+        </div>
+
+        <label>
+            Name
+            <InputText class="form-control" @bind-Value="form.Name" />
+            <ValidationMessage For="@(() => form.Name)" />
+        </label>
+
+        <label>
+            Parent account
+            <InputSelect class="form-control" @bind-Value="form.ParentId">
+                <option value="">None</option>
+                @foreach (var account in accounts.Where(account => AccountId is null || account.Id != AccountId))
+                {
+                    <option value="@account.Id">@account.Code - @account.Name</option>
+                }
+            </InputSelect>
+        </label>
+
+        <label>
+            Description
+            <InputTextArea class="form-control" @bind-Value="form.Description" />
+        </label>
+
+        <div class="form-actions">
+            <button class="primary-button" type="submit" disabled="@isSaving">
+                @(isSaving ? "Saving..." : IsEdit ? "Save Account" : "Create Account")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public Guid? AccountId { get; set; }
+
+    private static readonly AccountType[] AccountTypes = Enum.GetValues<AccountType>();
+    private readonly AccountFormModel form = new();
+    private List<AccountDto> accounts = [];
+    private string? errorMessage;
+    private bool isSaving;
+    private bool IsEdit => AccountId is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+
+        if (AccountId is not null)
+        {
+            var account = await AccountsApi.GetAsync(AccountId.Value);
+            var loaded = AccountFormModel.FromAccount(account);
+            form.Code = loaded.Code;
+            form.Name = loaded.Name;
+            form.AccountType = loaded.AccountType;
+            form.Description = loaded.Description;
+            form.ParentId = loaded.ParentId;
+        }
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        var result = await AccountsApi.SearchAsync(null, null, true);
+        accounts = result.Items.ToList();
+    }
+
+    private async Task SaveAccountAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isSaving = true;
+
+            if (AccountId is null)
+            {
+                await AccountsApi.CreateAsync(form);
+            }
+            else
+            {
+                await AccountsApi.UpdateAsync(AccountId.Value, form);
+            }
+
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save account. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("accounts");
+    }
+}

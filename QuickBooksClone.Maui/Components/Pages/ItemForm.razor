@@ -1,0 +1,248 @@
+@page "/items/new"
+@page "/items/{ItemId:guid}/edit"
+@inject ItemsApiClient ItemsApi
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>@(IsEdit ? "Edit Item" : "New Item")</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Inventory</p>
+            <h1>@(IsEdit ? "Edit Item" : "New Item")</h1>
+            <p class="muted">Set item pricing and accounting links in one focused screen.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Items</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" OnValidSubmit="SaveItemAsync" class="panel form-panel page-form">
+        <DataAnnotationsValidator />
+
+        <label>
+            Name
+            <InputText class="form-control" @bind-Value="form.Name" />
+            <ValidationMessage For="@(() => form.Name)" />
+        </label>
+
+        <label>
+            Type
+            <InputSelect class="form-control" @bind-Value="form.ItemType">
+                <option value="@ItemType.Inventory">Inventory</option>
+                <option value="@ItemType.NonInventory">Non Inventory</option>
+                <option value="@ItemType.Service">Service</option>
+                <option value="@ItemType.Bundle">Bundle</option>
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                SKU
+                <InputText class="form-control" @bind-Value="form.Sku" />
+                <ValidationMessage For="@(() => form.Sku)" />
+            </label>
+
+            <label>
+                Barcode
+                <InputText class="form-control" @bind-Value="form.Barcode" />
+                <ValidationMessage For="@(() => form.Barcode)" />
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Sales price
+                <InputNumber class="form-control" @bind-Value="form.SalesPrice" />
+                <ValidationMessage For="@(() => form.SalesPrice)" />
+            </label>
+
+            <label>
+                Purchase price
+                <InputNumber class="form-control" @bind-Value="form.PurchasePrice" />
+                <ValidationMessage For="@(() => form.PurchasePrice)" />
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Quantity on hand
+                <InputNumber class="form-control" @bind-Value="form.QuantityOnHand" disabled="@IsEdit" />
+                <ValidationMessage For="@(() => form.QuantityOnHand)" />
+            </label>
+
+            <label>
+                Unit
+                <InputText class="form-control" @bind-Value="form.Unit" />
+                <ValidationMessage For="@(() => form.Unit)" />
+            </label>
+        </div>
+
+        <h3>Accounting</h3>
+        <div class="form-row">
+            <label>
+                Income account
+                <InputSelect class="form-control" @bind-Value="form.IncomeAccountId">
+                    <option value="">None</option>
+                    @foreach (var account in IncomeAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Expense account
+                <InputSelect class="form-control" @bind-Value="form.ExpenseAccountId">
+                    <option value="">None</option>
+                    @foreach (var account in ExpenseAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Inventory asset account
+                <InputSelect class="form-control" @bind-Value="form.InventoryAssetAccountId">
+                    <option value="">None</option>
+                    @foreach (var account in InventoryAssetAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                COGS account
+                <InputSelect class="form-control" @bind-Value="form.CogsAccountId">
+                    <option value="">None</option>
+                    @foreach (var account in CogsAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
+            </label>
+        </div>
+
+        @if (IsEdit)
+        {
+            <label>
+                Quick quantity adjustment
+                <InputNumber class="form-control" @bind-Value="quantityAdjustment" />
+            </label>
+            <button class="secondary-button" type="button" @onclick="AdjustQuantityAsync">Apply Quantity</button>
+        }
+
+        <div class="form-actions">
+            <button class="primary-button" type="submit" disabled="@isSaving">
+                @(isSaving ? "Saving..." : IsEdit ? "Save Item" : "Create Item")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public Guid? ItemId { get; set; }
+
+    private readonly ItemFormModel form = new();
+    private List<AccountDto> accounts = [];
+    private string? errorMessage;
+    private bool isSaving;
+    private decimal quantityAdjustment;
+    private bool IsEdit => ItemId is not null;
+
+    private IEnumerable<AccountDto> IncomeAccounts => accounts.Where(account => account.AccountType is AccountType.Income or AccountType.OtherIncome);
+    private IEnumerable<AccountDto> ExpenseAccounts => accounts.Where(account => account.AccountType is AccountType.Expense or AccountType.OtherExpense);
+    private IEnumerable<AccountDto> InventoryAssetAccounts => accounts.Where(account => account.AccountType is AccountType.InventoryAsset or AccountType.OtherCurrentAsset);
+    private IEnumerable<AccountDto> CogsAccounts => accounts.Where(account => account.AccountType == AccountType.CostOfGoodsSold);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+
+        if (ItemId is not null)
+        {
+            var item = await ItemsApi.GetAsync(ItemId.Value);
+            var loaded = ItemFormModel.FromItem(item);
+            form.Name = loaded.Name;
+            form.ItemType = loaded.ItemType;
+            form.Sku = loaded.Sku;
+            form.Barcode = loaded.Barcode;
+            form.SalesPrice = loaded.SalesPrice;
+            form.PurchasePrice = loaded.PurchasePrice;
+            form.QuantityOnHand = loaded.QuantityOnHand;
+            form.Unit = loaded.Unit;
+            form.IncomeAccountId = loaded.IncomeAccountId;
+            form.InventoryAssetAccountId = loaded.InventoryAssetAccountId;
+            form.CogsAccountId = loaded.CogsAccountId;
+            form.ExpenseAccountId = loaded.ExpenseAccountId;
+            quantityAdjustment = item.QuantityOnHand;
+        }
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        var result = await AccountsApi.SearchAsync(null, null, false);
+        accounts = result.Items.ToList();
+    }
+
+    private async Task SaveItemAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isSaving = true;
+
+            if (ItemId is null)
+            {
+                await ItemsApi.CreateAsync(form);
+            }
+            else
+            {
+                await ItemsApi.UpdateAsync(ItemId.Value, form);
+            }
+
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save item. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task AdjustQuantityAsync()
+    {
+        if (ItemId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            errorMessage = null;
+            await ItemsApi.AdjustQuantityAsync(ItemId.Value, quantityAdjustment);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not adjust quantity. Details: {ex.Message}";
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("items");
+    }
+}

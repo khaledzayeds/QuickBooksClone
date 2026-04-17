@@ -25,6 +25,15 @@ public sealed class CustomersApiClient
             ?? new CustomerListResponse([], 0, 1, 50);
     }
 
+    public async Task<CustomerDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"api/customers/{id}", cancellationToken);
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<CustomerDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty customer response.");
+    }
+
     public async Task<CustomerDto> CreateAsync(CustomerFormModel form, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync("api/customers", new

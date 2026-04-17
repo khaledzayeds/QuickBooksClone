@@ -258,6 +258,16 @@ h1:focus {
     gap: 0.85rem;
 }
 
+.page-form {
+    margin: 0 auto;
+    max-width: 760px;
+    width: 100%;
+}
+
+.page-form-wide {
+    max-width: 980px;
+}
+
 .form-panel label {
     color: #1f2d3d;
     display: grid;
