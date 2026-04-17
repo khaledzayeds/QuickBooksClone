@@ -30,6 +30,7 @@ public static class MauiProgram
             };
         });
         builder.Services.AddScoped<AccountsApiClient>();
+        builder.Services.AddScoped<TransactionsApiClient>();
         builder.Services.AddScoped<CustomersApiClient>();
         builder.Services.AddScoped<ItemsApiClient>();
         builder.Services.AddScoped<InvoicesApiClient>();

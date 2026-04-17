@@ -1,0 +1,196 @@
+@page "/transactions"
+@inject TransactionsApiClient TransactionsApi
+
+<PageTitle>Transactions</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Accounting</p>
+            <h1>Transactions</h1>
+            <p class="muted">Posted accounting entries created by invoices and future payment workflows.</p>
+        </div>
+        <button class="secondary-button" @onclick="LoadTransactionsAsync" disabled="@isLoading">Refresh</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="qb-grid">
+        <div class="panel">
+            <div class="toolbar">
+                <input class="search-input" placeholder="Search reference or type" @bind="searchText" @bind:event="oninput" />
+                <select class="form-control narrow-control" @bind="sourceEntityTypeFilter">
+                    <option value="">All sources</option>
+                    <option value="Invoice">Invoice</option>
+                    <option value="Payment">Payment</option>
+                    <option value="JournalEntry">Journal Entry</option>
+                </select>
+                <label class="check-row">
+                    <input type="checkbox" @bind="includeVoided" />
+                    Include voided
+                </label>
+                <button class="secondary-button" @onclick="LoadTransactionsAsync" disabled="@isLoading">Search</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <p class="muted">Loading transactions...</p>
+            }
+            else if (transactions.Count == 0)
+            {
+                <p class="muted">No transactions found. Post an invoice to create the first accounting entry.</p>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th>Source</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var transaction in transactions)
+                        {
+                            <tr class="@(selectedTransaction?.Id == transaction.Id ? "selected" : null)" @onclick="() => SelectTransaction(transaction)">
+                                <td>@transaction.TransactionDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    <strong>@transaction.ReferenceNumber</strong>
+                                    <small>@transaction.TransactionType</small>
+                                </td>
+                                <td>
+                                    @(transaction.SourceEntityType ?? "Manual")
+                                    <small>@transaction.Id.ToString()[..8]</small>
+                                </td>
+                                <td>@transaction.TotalDebit.ToString("N2")</td>
+                                <td>@transaction.TotalCredit.ToString("N2")</td>
+                                <td>
+                                    <span class="status @(transaction.Status == AccountingTransactionStatus.Posted ? "active" : "inactive")">
+                                        @transaction.Status
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <section class="panel form-panel">
+            @if (selectedTransaction is null)
+            {
+                <h2>Transaction Details</h2>
+                <p class="muted">Select a transaction to review its debit and credit lines.</p>
+            }
+            else
+            {
+                <div class="detail-heading">
+                    <div>
+                        <p class="eyebrow">@selectedTransaction.TransactionType</p>
+                        <h2>@selectedTransaction.ReferenceNumber</h2>
+                        <p class="muted">@selectedTransaction.TransactionDate.ToString("yyyy-MM-dd")</p>
+                    </div>
+                    <span class="status @(selectedTransaction.Status == AccountingTransactionStatus.Posted ? "active" : "inactive")">
+                        @selectedTransaction.Status
+                    </span>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <span>Total debit</span>
+                        <strong>@selectedTransaction.TotalDebit.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Total credit</span>
+                        <strong>@selectedTransaction.TotalCredit.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Balance</span>
+                        <strong>@(selectedTransaction.TotalDebit - selectedTransaction.TotalCredit).ToString("N2")</strong>
+                    </div>
+                </div>
+
+                <div class="totals-box">
+                    Source: @(selectedTransaction.SourceEntityType ?? "Manual")
+                    @if (selectedTransaction.SourceEntityId is not null)
+                    {
+                        <small>@selectedTransaction.SourceEntityId</small>
+                    }
+                </div>
+
+                <table class="data-table compact-table">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Description</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in selectedTransaction.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@line.AccountCode</strong>
+                                    <small>@line.AccountName</small>
+                                </td>
+                                <td>@line.Description</td>
+                                <td>@line.Debit.ToString("N2")</td>
+                                <td>@line.Credit.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </section>
+    </section>
+</div>
+
+@code {
+    private List<AccountingTransactionDto> transactions = [];
+    private AccountingTransactionDto? selectedTransaction;
+    private string? searchText;
+    private string? sourceEntityTypeFilter;
+    private string? errorMessage;
+    private bool includeVoided;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTransactionsAsync();
+    }
+
+    private async Task LoadTransactionsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await TransactionsApi.SearchAsync(searchText, sourceEntityTypeFilter, includeVoided);
+            transactions = result.Items.ToList();
+            selectedTransaction = transactions.FirstOrDefault(transaction => transaction.Id == selectedTransaction?.Id)
+                ?? transactions.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load transactions. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectTransaction(AccountingTransactionDto transaction)
+    {
+        selectedTransaction = transaction;
+    }
+}

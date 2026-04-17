@@ -329,6 +329,12 @@ PATCH /api/invoices/{id}/void
 
 ## Transactions
 
+The MAUI app has a read-only Transactions screen at:
+
+```text
+/transactions
+```
+
 ### List Transactions
 
 ```http

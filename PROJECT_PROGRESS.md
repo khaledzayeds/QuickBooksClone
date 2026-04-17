@@ -80,6 +80,12 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Reject invalid invoice line quantities, prices, and discounts
   - [x] Show clearer API validation/conflict messages in MAUI
   - [x] Restore a 50/50 desktop list/form layout for early screens
+- [x] Transaction list screen slice
+  - [x] MAUI transaction DTOs and API client
+  - [x] Desktop Transactions page
+  - [x] Transaction detail debit/credit lines
+  - [x] Source type and voided filters
+  - [x] Navigation menu link
 
 ## In Progress
 
@@ -89,7 +95,6 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Transaction list screen
 - [ ] Payments slice
   - [ ] Receive payment
   - [ ] Apply payment to invoice
