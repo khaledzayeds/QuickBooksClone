@@ -63,6 +63,16 @@ public sealed class InMemoryAccountRepository : IAccountRepository
         return Task.FromResult(account);
     }
 
+    public Task<bool> CodeExistsAsync(string code, Guid? excludingId = null, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Exists(account => Same(account.Code, code), excludingId));
+    }
+
+    public Task<bool> NameExistsAsync(string name, Guid? excludingId = null, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Exists(account => Same(account.Name, name), excludingId));
+    }
+
     public Task<Account> AddAsync(Account account, CancellationToken cancellationToken = default)
     {
         _accounts[account.Id] = account;
@@ -94,5 +104,15 @@ public sealed class InMemoryAccountRepository : IAccountRepository
     private void Seed(Account account)
     {
         _accounts[account.Id] = account;
+    }
+
+    private bool Exists(Func<Account, bool> predicate, Guid? excludingId)
+    {
+        return _accounts.Values.Any(account => account.Id != excludingId && predicate(account));
+    }
+
+    private static bool Same(string left, string right)
+    {
+        return string.Equals(left.Trim(), right.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 }

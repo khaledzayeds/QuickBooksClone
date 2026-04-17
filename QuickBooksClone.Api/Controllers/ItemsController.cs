@@ -48,8 +48,15 @@ public sealed class ItemsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(ItemDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ItemDto>> Create(CreateItemRequest request, CancellationToken cancellationToken = default)
     {
+        var duplicateValidation = await ValidateUniqueItemAsync(request.Name, request.Sku, request.Barcode, null, cancellationToken);
+        if (duplicateValidation is not null)
+        {
+            return Conflict(duplicateValidation);
+        }
+
         var accountValidation = await ValidateAccountLinksAsync(
             request.IncomeAccountId,
             request.InventoryAssetAccountId,
@@ -84,8 +91,16 @@ public sealed class ItemsController : ControllerBase
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ItemDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ItemDto>> Update(Guid id, UpdateItemRequest request, CancellationToken cancellationToken = default)
     {
+        var duplicateValidation = await ValidateUniqueItemAsync(request.Name, request.Sku, request.Barcode, id, cancellationToken);
+        if (duplicateValidation is not null)
+        {
+            return Conflict(duplicateValidation);
+        }
+
         var accountValidation = await ValidateAccountLinksAsync(
             request.IncomeAccountId,
             request.InventoryAssetAccountId,
@@ -132,6 +147,31 @@ public sealed class ItemsController : ControllerBase
     {
         var updated = await _items.AdjustQuantityAsync(id, request.QuantityOnHand, cancellationToken);
         return updated ? NoContent() : NotFound();
+    }
+
+    private async Task<string?> ValidateUniqueItemAsync(
+        string name,
+        string? sku,
+        string? barcode,
+        Guid? excludingId,
+        CancellationToken cancellationToken)
+    {
+        if (await _items.NameExistsAsync(name, excludingId, cancellationToken))
+        {
+            return "Item name already exists.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(sku) && await _items.SkuExistsAsync(sku, excludingId, cancellationToken))
+        {
+            return "Item SKU already exists.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(barcode) && await _items.BarcodeExistsAsync(barcode, excludingId, cancellationToken))
+        {
+            return "Item barcode already exists.";
+        }
+
+        return null;
     }
 
     private static ItemDto ToDto(Item item)

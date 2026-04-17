@@ -8,7 +8,9 @@ public sealed record UpdateItemRequest(
     ItemType ItemType,
     [MaxLength(80)] string? Sku,
     [MaxLength(100)] string? Barcode,
+    [Range(0, 999999999)]
     decimal SalesPrice,
+    [Range(0, 999999999)]
     decimal PurchasePrice,
     [MaxLength(20)] string? Unit,
     Guid? IncomeAccountId,

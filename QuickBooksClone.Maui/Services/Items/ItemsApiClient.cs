@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using QuickBooksClone.Maui.Services;
 
 namespace QuickBooksClone.Maui.Services.Items;
 
@@ -42,7 +43,7 @@ public sealed class ItemsApiClient
             form.ExpenseAccountId
         }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
         return await response.Content.ReadFromJsonAsync<ItemDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty item response.");
     }
@@ -64,7 +65,7 @@ public sealed class ItemsApiClient
             form.ExpenseAccountId
         }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
         return await response.Content.ReadFromJsonAsync<ItemDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty item response.");
     }
@@ -72,12 +73,12 @@ public sealed class ItemsApiClient
     public async Task SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PatchAsJsonAsync($"api/items/{id}/active", new { IsActive = isActive }, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
     }
 
     public async Task AdjustQuantityAsync(Guid id, decimal quantityOnHand, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PatchAsJsonAsync($"api/items/{id}/quantity", new { QuantityOnHand = quantityOnHand }, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
     }
 }

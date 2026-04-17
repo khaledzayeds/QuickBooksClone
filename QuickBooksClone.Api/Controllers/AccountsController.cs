@@ -46,8 +46,15 @@ public sealed class AccountsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(AccountDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AccountDto>> Create(CreateAccountRequest request, CancellationToken cancellationToken = default)
     {
+        var duplicateValidation = await ValidateUniqueAccountAsync(request.Code, request.Name, null, cancellationToken);
+        if (duplicateValidation is not null)
+        {
+            return Conflict(duplicateValidation);
+        }
+
         if (request.ParentId is not null && await _accounts.GetByIdAsync(request.ParentId.Value, cancellationToken) is null)
         {
             return BadRequest("Parent account does not exist.");
@@ -63,8 +70,15 @@ public sealed class AccountsController : ControllerBase
     [ProducesResponseType(typeof(AccountDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AccountDto>> Update(Guid id, UpdateAccountRequest request, CancellationToken cancellationToken = default)
     {
+        var duplicateValidation = await ValidateUniqueAccountAsync(request.Code, request.Name, id, cancellationToken);
+        if (duplicateValidation is not null)
+        {
+            return Conflict(duplicateValidation);
+        }
+
         if (request.ParentId == id)
         {
             return BadRequest("Account cannot be its own parent.");
@@ -86,6 +100,25 @@ public sealed class AccountsController : ControllerBase
     {
         var updated = await _accounts.SetActiveAsync(id, request.IsActive, cancellationToken);
         return updated ? NoContent() : NotFound();
+    }
+
+    private async Task<string?> ValidateUniqueAccountAsync(
+        string code,
+        string name,
+        Guid? excludingId,
+        CancellationToken cancellationToken)
+    {
+        if (await _accounts.CodeExistsAsync(code, excludingId, cancellationToken))
+        {
+            return "Account code already exists.";
+        }
+
+        if (await _accounts.NameExistsAsync(name, excludingId, cancellationToken))
+        {
+            return "Account name already exists.";
+        }
+
+        return null;
     }
 
     private static AccountDto ToDto(Account account)

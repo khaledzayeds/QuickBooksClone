@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using QuickBooksClone.Maui.Services;
 
 namespace QuickBooksClone.Maui.Services.Accounting;
 
@@ -40,7 +41,7 @@ public sealed class AccountsApiClient
             form.ParentId
         }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
         return await response.Content.ReadFromJsonAsync<AccountDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty account response.");
     }
@@ -56,7 +57,7 @@ public sealed class AccountsApiClient
             form.ParentId
         }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
         return await response.Content.ReadFromJsonAsync<AccountDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty account response.");
     }
@@ -64,6 +65,6 @@ public sealed class AccountsApiClient
     public async Task SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PatchAsJsonAsync($"api/accounts/{id}/active", new { IsActive = isActive }, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
     }
 }

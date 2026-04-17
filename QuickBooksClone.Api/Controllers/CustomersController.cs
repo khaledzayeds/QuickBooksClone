@@ -45,8 +45,15 @@ public sealed class CustomersController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CustomerDto>> Create(CreateCustomerRequest request, CancellationToken cancellationToken = default)
     {
+        var duplicateValidation = await ValidateUniqueCustomerAsync(request.DisplayName, request.Email, null, cancellationToken);
+        if (duplicateValidation is not null)
+        {
+            return Conflict(duplicateValidation);
+        }
+
         var customer = new Customer(
             request.DisplayName,
             request.CompanyName,
@@ -63,8 +70,15 @@ public sealed class CustomersController : ControllerBase
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CustomerDto>> Update(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken = default)
     {
+        var duplicateValidation = await ValidateUniqueCustomerAsync(request.DisplayName, request.Email, id, cancellationToken);
+        if (duplicateValidation is not null)
+        {
+            return Conflict(duplicateValidation);
+        }
+
         var customer = await _customers.UpdateAsync(
             id,
             request.DisplayName,
@@ -84,6 +98,25 @@ public sealed class CustomersController : ControllerBase
     {
         var updated = await _customers.SetActiveAsync(id, request.IsActive, cancellationToken);
         return updated ? NoContent() : NotFound();
+    }
+
+    private async Task<string?> ValidateUniqueCustomerAsync(
+        string displayName,
+        string? email,
+        Guid? excludingId,
+        CancellationToken cancellationToken)
+    {
+        if (await _customers.DisplayNameExistsAsync(displayName, excludingId, cancellationToken))
+        {
+            return "Customer display name already exists.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(email) && await _customers.EmailExistsAsync(email, excludingId, cancellationToken))
+        {
+            return "Customer email already exists.";
+        }
+
+        return null;
     }
 
     private static CustomerDto ToDto(Customer customer)

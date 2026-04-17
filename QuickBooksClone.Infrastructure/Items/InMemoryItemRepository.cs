@@ -47,6 +47,21 @@ public sealed class InMemoryItemRepository : IItemRepository
         return Task.FromResult(item);
     }
 
+    public Task<bool> NameExistsAsync(string name, Guid? excludingId = null, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Exists(item => Same(item.Name, name), excludingId));
+    }
+
+    public Task<bool> SkuExistsAsync(string sku, Guid? excludingId = null, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Exists(item => Same(item.Sku, sku), excludingId));
+    }
+
+    public Task<bool> BarcodeExistsAsync(string barcode, Guid? excludingId = null, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Exists(item => Same(item.Barcode, barcode), excludingId));
+    }
+
     public Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default)
     {
         _items[item.Id] = item;
@@ -102,6 +117,16 @@ public sealed class InMemoryItemRepository : IItemRepository
     private static bool Contains(string? value, string term)
     {
         return value?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private bool Exists(Func<Item, bool> predicate, Guid? excludingId)
+    {
+        return _items.Values.Any(item => item.Id != excludingId && predicate(item));
+    }
+
+    private static bool Same(string? left, string right)
+    {
+        return string.Equals(left?.Trim(), right.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     private void Seed(Item item)

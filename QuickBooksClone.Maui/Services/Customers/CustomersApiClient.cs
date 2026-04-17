@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using QuickBooksClone.Maui.Services;
 
 namespace QuickBooksClone.Maui.Services.Customers;
 
@@ -36,7 +37,7 @@ public sealed class CustomersApiClient
             form.OpeningBalance
         }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
         return await response.Content.ReadFromJsonAsync<CustomerDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty customer response.");
     }
@@ -52,7 +53,7 @@ public sealed class CustomersApiClient
             form.Currency
         }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
         return await response.Content.ReadFromJsonAsync<CustomerDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty customer response.");
     }
@@ -60,6 +61,6 @@ public sealed class CustomersApiClient
     public async Task SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PatchAsJsonAsync($"api/customers/{id}/active", new { IsActive = isActive }, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
     }
 }

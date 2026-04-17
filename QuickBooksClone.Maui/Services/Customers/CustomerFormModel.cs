@@ -21,6 +21,7 @@ public sealed class CustomerFormModel
     [StringLength(3, MinimumLength = 3)]
     public string Currency { get; set; } = "EGP";
 
+    [Range(0, 999999999, ErrorMessage = "Opening balance cannot be negative")]
     public decimal OpeningBalance { get; set; }
 
     public static CustomerFormModel FromCustomer(CustomerDto customer)

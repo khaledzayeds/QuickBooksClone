@@ -53,6 +53,16 @@ public sealed class InMemoryCustomerRepository : ICustomerRepository
         return Task.FromResult(customer);
     }
 
+    public Task<bool> DisplayNameExistsAsync(string displayName, Guid? excludingId = null, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Exists(customer => Same(customer.DisplayName, displayName), excludingId));
+    }
+
+    public Task<bool> EmailExistsAsync(string email, Guid? excludingId = null, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Exists(customer => Same(customer.Email, email), excludingId));
+    }
+
     public Task<Customer> AddAsync(Customer customer, CancellationToken cancellationToken = default)
     {
         _customers[customer.Id] = customer;
@@ -84,6 +94,16 @@ public sealed class InMemoryCustomerRepository : ICustomerRepository
     private static bool Contains(string? value, string term)
     {
         return value?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private bool Exists(Func<Customer, bool> predicate, Guid? excludingId)
+    {
+        return _customers.Values.Any(customer => customer.Id != excludingId && predicate(customer));
+    }
+
+    private static bool Same(string? left, string right)
+    {
+        return string.Equals(left?.Trim(), right.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     private void Seed(Customer customer)

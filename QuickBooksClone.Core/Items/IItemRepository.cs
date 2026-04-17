@@ -4,6 +4,9 @@ public interface IItemRepository
 {
     Task<ItemListResult> SearchAsync(ItemSearch search, CancellationToken cancellationToken = default);
     Task<Item?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<bool> NameExistsAsync(string name, Guid? excludingId = null, CancellationToken cancellationToken = default);
+    Task<bool> SkuExistsAsync(string sku, Guid? excludingId = null, CancellationToken cancellationToken = default);
+    Task<bool> BarcodeExistsAsync(string barcode, Guid? excludingId = null, CancellationToken cancellationToken = default);
     Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default);
     Task<Item?> UpdateAsync(
         Guid id,

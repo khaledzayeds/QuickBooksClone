@@ -72,6 +72,14 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Basic AR / income posting
   - [x] Basic inventory COGS / inventory asset posting
   - [x] Post Invoice button in MAUI
+- [x] Validation hardening slice
+  - [x] Prevent duplicate item name, SKU, and barcode
+  - [x] Prevent duplicate customer display name and email
+  - [x] Prevent duplicate account code and name
+  - [x] Reject negative item prices, quantities, and opening balances
+  - [x] Reject invalid invoice line quantities, prices, and discounts
+  - [x] Show clearer API validation/conflict messages in MAUI
+  - [x] Restore a 50/50 desktop list/form layout for early screens
 
 ## In Progress
 

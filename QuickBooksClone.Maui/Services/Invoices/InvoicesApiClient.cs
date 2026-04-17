@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using QuickBooksClone.Maui.Services;
 
 namespace QuickBooksClone.Maui.Services.Invoices;
 
@@ -41,7 +42,7 @@ public sealed class InvoicesApiClient
             }).ToList()
         }, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
         return await response.Content.ReadFromJsonAsync<InvoiceDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty invoice response.");
     }
@@ -49,13 +50,13 @@ public sealed class InvoicesApiClient
     public async Task MarkSentAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PatchAsync($"api/invoices/{id}/sent", null, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
     }
 
     public async Task<InvoiceDto> PostAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsync($"api/invoices/{id}/post", null, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
 
         return await response.Content.ReadFromJsonAsync<InvoiceDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty invoice response.");
@@ -64,6 +65,6 @@ public sealed class InvoicesApiClient
     public async Task VoidAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PatchAsync($"api/invoices/{id}/void", null, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
     }
 }

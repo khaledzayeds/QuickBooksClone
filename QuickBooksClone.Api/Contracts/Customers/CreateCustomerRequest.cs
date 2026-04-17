@@ -8,4 +8,5 @@ public sealed record CreateCustomerRequest(
     [EmailAddress, MaxLength(150)] string? Email,
     [MaxLength(30)] string? Phone,
     [MaxLength(3)] string? Currency,
+    [Range(0, 999999999)]
     decimal OpeningBalance);

@@ -108,6 +108,7 @@
             <label>
                 Phone
                 <InputText class="form-control" @bind-Value="form.Phone" />
+                <ValidationMessage For="@(() => form.Phone)" />
             </label>
 
             <div class="form-row">
@@ -120,6 +121,7 @@
                 <label>
                     Opening balance
                     <InputNumber class="form-control" @bind-Value="form.OpeningBalance" disabled="@(selectedCustomer is not null)" />
+                    <ValidationMessage For="@(() => form.OpeningBalance)" />
                 </label>
             </div>
 

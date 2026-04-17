@@ -20,7 +20,8 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - All JSON uses camelCase.
 - Current data store is in-memory, so data resets when the API restarts.
 - Current authentication is not enabled yet.
-- Current validation errors usually return `400 Bad Request` with a simple message or model validation payload.
+- Model validation errors return `400 Bad Request`.
+- Duplicate business keys return `409 Conflict` with a simple message.
 
 ## Customers
 
@@ -75,6 +76,12 @@ Content-Type: application/json
   "openingBalance": 0
 }
 ```
+
+Validation:
+
+- `displayName` is required and must be unique.
+- `email`, when supplied, must be a valid email and unique.
+- `openingBalance` cannot be negative.
 
 ### Update Customer
 
@@ -148,6 +155,12 @@ POST /api/accounts
 }
 ```
 
+Validation:
+
+- `code` is required and must be unique.
+- `name` is required and must be unique.
+- `parentId`, when supplied, must point to an existing account.
+
 ### Update Account
 
 ```http
@@ -208,6 +221,13 @@ POST /api/items
 
 Account IDs are optional today, but if supplied they must point to existing accounts.
 
+Validation:
+
+- `name` is required and must be unique.
+- `sku`, when supplied, must be unique.
+- `barcode`, when supplied, must be unique.
+- `salesPrice`, `purchasePrice`, and `quantityOnHand` cannot be negative.
+
 ### Update Item
 
 ```http
@@ -264,6 +284,14 @@ POST /api/invoices
 ```
 
 If `unitPrice` is `0`, the API uses the selected item's sales price.
+
+Validation:
+
+- `customerId` must point to an existing customer.
+- Invoices must have at least one line.
+- `quantity` must be greater than zero.
+- `unitPrice` cannot be negative.
+- `discountPercent` must be between 0 and 100.
 
 ### Mark Invoice Sent
 

@@ -16,8 +16,13 @@ public sealed class ItemFormModel
     [StringLength(100)]
     public string? Barcode { get; set; }
 
+    [Range(0, 999999999, ErrorMessage = "Sales price cannot be negative")]
     public decimal SalesPrice { get; set; }
+
+    [Range(0, 999999999, ErrorMessage = "Purchase price cannot be negative")]
     public decimal PurchasePrice { get; set; }
+
+    [Range(0, 999999999, ErrorMessage = "Quantity cannot be negative")]
     public decimal QuantityOnHand { get; set; }
 
     [StringLength(20)]

@@ -113,11 +113,13 @@
                 <label>
                     SKU
                     <InputText class="form-control" @bind-Value="form.Sku" />
+                    <ValidationMessage For="@(() => form.Sku)" />
                 </label>
 
                 <label>
                     Barcode
                     <InputText class="form-control" @bind-Value="form.Barcode" />
+                    <ValidationMessage For="@(() => form.Barcode)" />
                 </label>
             </div>
 
@@ -125,11 +127,13 @@
                 <label>
                     Sales price
                     <InputNumber class="form-control" @bind-Value="form.SalesPrice" />
+                    <ValidationMessage For="@(() => form.SalesPrice)" />
                 </label>
 
                 <label>
                     Purchase price
                     <InputNumber class="form-control" @bind-Value="form.PurchasePrice" />
+                    <ValidationMessage For="@(() => form.PurchasePrice)" />
                 </label>
             </div>
 
@@ -137,11 +141,13 @@
                 <label>
                     Quantity on hand
                     <InputNumber class="form-control" @bind-Value="form.QuantityOnHand" disabled="@(selectedItem is not null)" />
+                    <ValidationMessage For="@(() => form.QuantityOnHand)" />
                 </label>
 
                 <label>
                     Unit
                     <InputText class="form-control" @bind-Value="form.Unit" />
+                    <ValidationMessage For="@(() => form.Unit)" />
                 </label>
             </div>
 
