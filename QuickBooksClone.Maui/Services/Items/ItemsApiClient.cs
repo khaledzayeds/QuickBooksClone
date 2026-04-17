@@ -35,7 +35,11 @@ public sealed class ItemsApiClient
             form.SalesPrice,
             form.PurchasePrice,
             form.QuantityOnHand,
-            form.Unit
+            form.Unit,
+            form.IncomeAccountId,
+            form.InventoryAssetAccountId,
+            form.CogsAccountId,
+            form.ExpenseAccountId
         }, cancellationToken);
 
         response.EnsureSuccessStatusCode();
@@ -53,7 +57,11 @@ public sealed class ItemsApiClient
             form.Barcode,
             form.SalesPrice,
             form.PurchasePrice,
-            form.Unit
+            form.Unit,
+            form.IncomeAccountId,
+            form.InventoryAssetAccountId,
+            form.CogsAccountId,
+            form.ExpenseAccountId
         }, cancellationToken);
 
         response.EnsureSuccessStatusCode();

@@ -12,4 +12,8 @@ public sealed record ItemDto(
     decimal PurchasePrice,
     decimal QuantityOnHand,
     string Unit,
+    Guid? IncomeAccountId,
+    Guid? InventoryAssetAccountId,
+    Guid? CogsAccountId,
+    Guid? ExpenseAccountId,
     bool IsActive);

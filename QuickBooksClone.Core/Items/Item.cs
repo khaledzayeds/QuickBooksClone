@@ -13,6 +13,10 @@ public sealed class Item : EntityBase, ITenantEntity
         decimal purchasePrice,
         decimal quantityOnHand,
         string unit,
+        Guid? incomeAccountId = null,
+        Guid? inventoryAssetAccountId = null,
+        Guid? cogsAccountId = null,
+        Guid? expenseAccountId = null,
         Guid? companyId = null)
     {
         CompanyId = companyId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -24,6 +28,10 @@ public sealed class Item : EntityBase, ITenantEntity
         PurchasePrice = purchasePrice;
         QuantityOnHand = quantityOnHand;
         Unit = string.IsNullOrWhiteSpace(unit) ? "pcs" : unit.Trim();
+        IncomeAccountId = incomeAccountId;
+        InventoryAssetAccountId = inventoryAssetAccountId;
+        CogsAccountId = cogsAccountId;
+        ExpenseAccountId = expenseAccountId;
         IsActive = true;
     }
 
@@ -36,9 +44,24 @@ public sealed class Item : EntityBase, ITenantEntity
     public decimal PurchasePrice { get; private set; }
     public decimal QuantityOnHand { get; private set; }
     public string Unit { get; private set; }
+    public Guid? IncomeAccountId { get; private set; }
+    public Guid? InventoryAssetAccountId { get; private set; }
+    public Guid? CogsAccountId { get; private set; }
+    public Guid? ExpenseAccountId { get; private set; }
     public bool IsActive { get; private set; }
 
-    public void Update(string name, ItemType itemType, string? sku, string? barcode, decimal salesPrice, decimal purchasePrice, string unit)
+    public void Update(
+        string name,
+        ItemType itemType,
+        string? sku,
+        string? barcode,
+        decimal salesPrice,
+        decimal purchasePrice,
+        string unit,
+        Guid? incomeAccountId,
+        Guid? inventoryAssetAccountId,
+        Guid? cogsAccountId,
+        Guid? expenseAccountId)
     {
         Name = NormalizeRequired(name, nameof(name));
         ItemType = itemType;
@@ -47,6 +70,19 @@ public sealed class Item : EntityBase, ITenantEntity
         SalesPrice = salesPrice;
         PurchasePrice = purchasePrice;
         Unit = string.IsNullOrWhiteSpace(unit) ? "pcs" : unit.Trim();
+        IncomeAccountId = incomeAccountId;
+        InventoryAssetAccountId = inventoryAssetAccountId;
+        CogsAccountId = cogsAccountId;
+        ExpenseAccountId = expenseAccountId;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetAccountLinks(Guid? incomeAccountId, Guid? inventoryAssetAccountId, Guid? cogsAccountId, Guid? expenseAccountId)
+    {
+        IncomeAccountId = incomeAccountId;
+        InventoryAssetAccountId = inventoryAssetAccountId;
+        CogsAccountId = cogsAccountId;
+        ExpenseAccountId = expenseAccountId;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

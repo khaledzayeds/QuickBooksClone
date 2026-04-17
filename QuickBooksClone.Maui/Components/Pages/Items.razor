@@ -1,5 +1,6 @@
 @page "/items"
 @inject ItemsApiClient ItemsApi
+@inject AccountsApiClient AccountsApi
 
 <PageTitle>Items</PageTitle>
 
@@ -90,7 +91,7 @@
             <DataAnnotationsValidator />
 
             <h2>@(selectedItem is null ? "New Item" : "Edit Item")</h2>
-            <p class="muted">This is the item foundation. Accounts, categories, and tax codes come after we connect EF Core.</p>
+            <p class="muted">Account links prepare items for invoice posting. Tax codes and categories come later.</p>
 
             <label>
                 Name
@@ -144,6 +145,55 @@
                 </label>
             </div>
 
+            <h3>Accounting</h3>
+            <div class="form-row">
+                <label>
+                    Income account
+                    <InputSelect class="form-control" @bind-Value="form.IncomeAccountId">
+                        <option value="">None</option>
+                        @foreach (var account in IncomeAccounts)
+                        {
+                            <option value="@account.Id">@account.Code - @account.Name</option>
+                        }
+                    </InputSelect>
+                </label>
+
+                <label>
+                    Expense account
+                    <InputSelect class="form-control" @bind-Value="form.ExpenseAccountId">
+                        <option value="">None</option>
+                        @foreach (var account in ExpenseAccounts)
+                        {
+                            <option value="@account.Id">@account.Code - @account.Name</option>
+                        }
+                    </InputSelect>
+                </label>
+            </div>
+
+            <div class="form-row">
+                <label>
+                    Inventory asset account
+                    <InputSelect class="form-control" @bind-Value="form.InventoryAssetAccountId">
+                        <option value="">None</option>
+                        @foreach (var account in InventoryAssetAccounts)
+                        {
+                            <option value="@account.Id">@account.Code - @account.Name</option>
+                        }
+                    </InputSelect>
+                </label>
+
+                <label>
+                    COGS account
+                    <InputSelect class="form-control" @bind-Value="form.CogsAccountId">
+                        <option value="">None</option>
+                        @foreach (var account in CogsAccounts)
+                        {
+                            <option value="@account.Id">@account.Code - @account.Name</option>
+                        }
+                    </InputSelect>
+                </label>
+            </div>
+
             @if (selectedItem is not null)
             {
                 <label>
@@ -165,6 +215,7 @@
 
 @code {
     private List<ItemDto> items = [];
+    private List<AccountDto> accounts = [];
     private ItemDto? selectedItem;
     private ItemFormModel form = new();
     private string? searchText;
@@ -174,9 +225,21 @@
     private bool isSaving;
     private decimal quantityAdjustment;
 
+    private IEnumerable<AccountDto> IncomeAccounts => accounts.Where(account => account.AccountType is AccountType.Income or AccountType.OtherIncome);
+    private IEnumerable<AccountDto> ExpenseAccounts => accounts.Where(account => account.AccountType is AccountType.Expense or AccountType.OtherExpense);
+    private IEnumerable<AccountDto> InventoryAssetAccounts => accounts.Where(account => account.AccountType is AccountType.InventoryAsset or AccountType.OtherCurrentAsset);
+    private IEnumerable<AccountDto> CogsAccounts => accounts.Where(account => account.AccountType == AccountType.CostOfGoodsSold);
+
     protected override async Task OnInitializedAsync()
     {
+        await LoadAccountsAsync();
         await LoadItemsAsync();
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        var result = await AccountsApi.SearchAsync(null, null, false);
+        accounts = result.Items.ToList();
     }
 
     private async Task LoadItemsAsync()

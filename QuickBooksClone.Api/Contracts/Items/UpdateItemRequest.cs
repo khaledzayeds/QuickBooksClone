@@ -10,4 +10,8 @@ public sealed record UpdateItemRequest(
     [MaxLength(100)] string? Barcode,
     decimal SalesPrice,
     decimal PurchasePrice,
-    [MaxLength(20)] string? Unit);
+    [MaxLength(20)] string? Unit,
+    Guid? IncomeAccountId,
+    Guid? InventoryAssetAccountId,
+    Guid? CogsAccountId,
+    Guid? ExpenseAccountId);

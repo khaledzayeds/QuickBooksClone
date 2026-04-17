@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Items;
+using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Items;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -9,10 +10,12 @@ namespace QuickBooksClone.Api.Controllers;
 public sealed class ItemsController : ControllerBase
 {
     private readonly IItemRepository _items;
+    private readonly IAccountRepository _accounts;
 
-    public ItemsController(IItemRepository items)
+    public ItemsController(IItemRepository items, IAccountRepository accounts)
     {
         _items = items;
+        _accounts = accounts;
     }
 
     [HttpGet]
@@ -47,6 +50,18 @@ public sealed class ItemsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ItemDto>> Create(CreateItemRequest request, CancellationToken cancellationToken = default)
     {
+        var accountValidation = await ValidateAccountLinksAsync(
+            request.IncomeAccountId,
+            request.InventoryAssetAccountId,
+            request.CogsAccountId,
+            request.ExpenseAccountId,
+            cancellationToken);
+
+        if (accountValidation is not null)
+        {
+            return BadRequest(accountValidation);
+        }
+
         var item = new Item(
             request.Name,
             request.ItemType,
@@ -55,7 +70,11 @@ public sealed class ItemsController : ControllerBase
             request.SalesPrice,
             request.PurchasePrice,
             request.QuantityOnHand,
-            request.Unit ?? "pcs");
+            request.Unit ?? "pcs",
+            request.IncomeAccountId,
+            request.InventoryAssetAccountId,
+            request.CogsAccountId,
+            request.ExpenseAccountId);
 
         await _items.AddAsync(item, cancellationToken);
 
@@ -67,6 +86,18 @@ public sealed class ItemsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ItemDto>> Update(Guid id, UpdateItemRequest request, CancellationToken cancellationToken = default)
     {
+        var accountValidation = await ValidateAccountLinksAsync(
+            request.IncomeAccountId,
+            request.InventoryAssetAccountId,
+            request.CogsAccountId,
+            request.ExpenseAccountId,
+            cancellationToken);
+
+        if (accountValidation is not null)
+        {
+            return BadRequest(accountValidation);
+        }
+
         var item = await _items.UpdateAsync(
             id,
             request.Name,
@@ -76,6 +107,10 @@ public sealed class ItemsController : ControllerBase
             request.SalesPrice,
             request.PurchasePrice,
             request.Unit ?? "pcs",
+            request.IncomeAccountId,
+            request.InventoryAssetAccountId,
+            request.CogsAccountId,
+            request.ExpenseAccountId,
             cancellationToken);
 
         return item is null ? NotFound() : Ok(ToDto(item));
@@ -111,6 +146,28 @@ public sealed class ItemsController : ControllerBase
             item.PurchasePrice,
             item.QuantityOnHand,
             item.Unit,
+            item.IncomeAccountId,
+            item.InventoryAssetAccountId,
+            item.CogsAccountId,
+            item.ExpenseAccountId,
             item.IsActive);
+    }
+
+    private async Task<string?> ValidateAccountLinksAsync(
+        Guid? incomeAccountId,
+        Guid? inventoryAssetAccountId,
+        Guid? cogsAccountId,
+        Guid? expenseAccountId,
+        CancellationToken cancellationToken)
+    {
+        foreach (var accountId in new[] { incomeAccountId, inventoryAssetAccountId, cogsAccountId, expenseAccountId }.Where(id => id is not null))
+        {
+            if (await _accounts.GetByIdAsync(accountId!.Value, cancellationToken) is null)
+            {
+                return $"Account does not exist: {accountId}";
+            }
+        }
+
+        return null;
     }
 }

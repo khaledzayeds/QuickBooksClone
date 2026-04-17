@@ -53,14 +53,27 @@ public sealed class InMemoryItemRepository : IItemRepository
         return Task.FromResult(item);
     }
 
-    public Task<Item?> UpdateAsync(Guid id, string name, ItemType itemType, string? sku, string? barcode, decimal salesPrice, decimal purchasePrice, string unit, CancellationToken cancellationToken = default)
+    public Task<Item?> UpdateAsync(
+        Guid id,
+        string name,
+        ItemType itemType,
+        string? sku,
+        string? barcode,
+        decimal salesPrice,
+        decimal purchasePrice,
+        string unit,
+        Guid? incomeAccountId,
+        Guid? inventoryAssetAccountId,
+        Guid? cogsAccountId,
+        Guid? expenseAccountId,
+        CancellationToken cancellationToken = default)
     {
         if (!_items.TryGetValue(id, out var item))
         {
             return Task.FromResult<Item?>(null);
         }
 
-        item.Update(name, itemType, sku, barcode, salesPrice, purchasePrice, unit);
+        item.Update(name, itemType, sku, barcode, salesPrice, purchasePrice, unit, incomeAccountId, inventoryAssetAccountId, cogsAccountId, expenseAccountId);
         return Task.FromResult<Item?>(item);
     }
 

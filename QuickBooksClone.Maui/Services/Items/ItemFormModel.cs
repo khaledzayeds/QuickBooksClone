@@ -23,6 +23,11 @@ public sealed class ItemFormModel
     [StringLength(20)]
     public string Unit { get; set; } = "pcs";
 
+    public Guid? IncomeAccountId { get; set; }
+    public Guid? InventoryAssetAccountId { get; set; }
+    public Guid? CogsAccountId { get; set; }
+    public Guid? ExpenseAccountId { get; set; }
+
     public static ItemFormModel FromItem(ItemDto item)
     {
         return new ItemFormModel
@@ -34,7 +39,11 @@ public sealed class ItemFormModel
             SalesPrice = item.SalesPrice,
             PurchasePrice = item.PurchasePrice,
             QuantityOnHand = item.QuantityOnHand,
-            Unit = item.Unit
+            Unit = item.Unit,
+            IncomeAccountId = item.IncomeAccountId,
+            InventoryAssetAccountId = item.InventoryAssetAccountId,
+            CogsAccountId = item.CogsAccountId,
+            ExpenseAccountId = item.ExpenseAccountId
         };
     }
 }

@@ -11,4 +11,8 @@ public sealed record CreateItemRequest(
     decimal SalesPrice,
     decimal PurchasePrice,
     decimal QuantityOnHand,
-    [MaxLength(20)] string? Unit);
+    [MaxLength(20)] string? Unit,
+    Guid? IncomeAccountId,
+    Guid? InventoryAssetAccountId,
+    Guid? CogsAccountId,
+    Guid? ExpenseAccountId);
