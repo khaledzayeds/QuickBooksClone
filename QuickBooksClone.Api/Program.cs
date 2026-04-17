@@ -10,11 +10,15 @@ using QuickBooksClone.Infrastructure.Items;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<IAccountRepository, InMemoryAccountRepository>();
+builder.Services.AddSingleton<IAccountingTransactionRepository, InMemoryAccountingTransactionRepository>();
 builder.Services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
 builder.Services.AddSingleton<IItemRepository, InMemoryItemRepository>();
 builder.Services.AddSingleton<IInvoiceRepository, InMemoryInvoiceRepository>();
@@ -37,7 +41,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("DesktopClient");
 
 app.UseAuthorization();

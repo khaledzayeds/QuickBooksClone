@@ -34,12 +34,14 @@ public sealed class Invoice : EntityBase, ITenantEntity
     public decimal TotalAmount => Subtotal - DiscountAmount + TaxAmount;
     public decimal PaidAmount { get; private set; }
     public decimal BalanceDue => TotalAmount - PaidAmount;
+    public Guid? PostedTransactionId { get; private set; }
+    public DateTimeOffset? PostedAt { get; private set; }
 
     public void AddLine(InvoiceLine line)
     {
-        if (Status == InvoiceStatus.Void)
+        if (Status is InvoiceStatus.Void or InvoiceStatus.Posted)
         {
-            throw new InvalidOperationException("Cannot change a void invoice.");
+            throw new InvalidOperationException("Cannot change a void or posted invoice.");
         }
 
         _lines.Add(line);
@@ -58,6 +60,24 @@ public sealed class Invoice : EntityBase, ITenantEntity
     public void Void()
     {
         Status = InvoiceStatus.Void;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void MarkPosted(Guid transactionId)
+    {
+        if (Status == InvoiceStatus.Void)
+        {
+            throw new InvalidOperationException("Cannot post a void invoice.");
+        }
+
+        if (PostedTransactionId is not null)
+        {
+            throw new InvalidOperationException("Invoice is already posted.");
+        }
+
+        PostedTransactionId = transactionId;
+        PostedAt = DateTimeOffset.UtcNow;
+        Status = InvoiceStatus.Posted;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

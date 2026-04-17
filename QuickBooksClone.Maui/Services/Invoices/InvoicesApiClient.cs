@@ -52,6 +52,15 @@ public sealed class InvoicesApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<InvoiceDto> PostAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync($"api/invoices/{id}/post", null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<InvoiceDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty invoice response.");
+    }
+
     public async Task VoidAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PatchAsync($"api/invoices/{id}/void", null, cancellationToken);

@@ -65,6 +65,17 @@ public sealed class InMemoryInvoiceRepository : IInvoiceRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default)
+    {
+        if (!_invoices.TryGetValue(id, out var invoice))
+        {
+            return Task.FromResult(false);
+        }
+
+        invoice.MarkPosted(transactionId);
+        return Task.FromResult(true);
+    }
+
     public Task<bool> VoidAsync(Guid id, CancellationToken cancellationToken = default)
     {
         if (!_invoices.TryGetValue(id, out var invoice))

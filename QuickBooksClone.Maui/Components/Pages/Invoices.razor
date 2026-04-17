@@ -68,6 +68,7 @@
                                 <td><span class="status active">@invoice.Status</span></td>
                                 <td class="actions">
                                     <button class="link-button" @onclick="() => MarkSentAsync(invoice)">Mark sent</button>
+                                    <button class="link-button" @onclick="() => PostAsync(invoice)">Post</button>
                                     <button class="link-button" @onclick="() => VoidAsync(invoice)">Void</button>
                                 </td>
                             </tr>
@@ -310,14 +311,44 @@
 
     private async Task MarkSentAsync(InvoiceDto invoice)
     {
-        await InvoicesApi.MarkSentAsync(invoice.Id);
-        await LoadInvoicesAsync();
+        try
+        {
+            errorMessage = null;
+            await InvoicesApi.MarkSentAsync(invoice.Id);
+            await LoadInvoicesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not mark invoice as sent. Details: {ex.Message}";
+        }
+    }
+
+    private async Task PostAsync(InvoiceDto invoice)
+    {
+        try
+        {
+            errorMessage = null;
+            await InvoicesApi.PostAsync(invoice.Id);
+            await LoadInvoicesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not post invoice. Details: {ex.Message}";
+        }
     }
 
     private async Task VoidAsync(InvoiceDto invoice)
     {
-        await InvoicesApi.VoidAsync(invoice.Id);
-        await LoadInvoicesAsync();
+        try
+        {
+            errorMessage = null;
+            await InvoicesApi.VoidAsync(invoice.Id);
+            await LoadInvoicesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not void invoice. Details: {ex.Message}";
+        }
     }
 
     private string GetItemName(Guid itemId)

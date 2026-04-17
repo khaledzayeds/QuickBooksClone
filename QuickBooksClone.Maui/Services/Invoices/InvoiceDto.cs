@@ -13,4 +13,6 @@ public sealed record InvoiceDto(
     decimal TaxAmount,
     decimal TotalAmount,
     decimal BalanceDue,
+    Guid? PostedTransactionId,
+    DateTimeOffset? PostedAt,
     IReadOnlyList<InvoiceLineDto> Lines);

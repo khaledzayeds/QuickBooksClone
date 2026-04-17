@@ -60,22 +60,28 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Expense account
   - [x] MAUI account selectors on Items screen
   - [x] API account existence validation
+- [x] API endpoints documentation
+  - [x] `API_ENDPOINTS.md`
+- [x] Accounting transactions slice
+  - [x] Transaction header
+  - [x] Transaction lines
+  - [x] Debit/credit validation
+  - [x] Read-only transaction API
+- [x] Invoice posting engine
+  - [x] Posted invoice creates accounting transaction
+  - [x] Basic AR / income posting
+  - [x] Basic inventory COGS / inventory asset posting
+  - [x] Post Invoice button in MAUI
 
 ## In Progress
 
-- [ ] Invoice posting engine
-  - [ ] Draft invoice stays editable
-  - [ ] Posted invoice creates accounting transaction
-  - [ ] Posted invoice cannot be edited directly
+- [ ] Invoice posting hardening
+  - [ ] Posted invoice cannot be edited directly across all paths
   - [ ] Void/reversal rules
 
 ## Next
 
-- [ ] Accounting transactions slice
-  - [ ] Transaction header
-  - [ ] Transaction lines
-  - [ ] Debit/credit validation
-  - [ ] Transaction list screen
+- [ ] Transaction list screen
 - [ ] Payments slice
   - [ ] Receive payment
   - [ ] Apply payment to invoice
