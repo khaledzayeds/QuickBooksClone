@@ -11,7 +11,7 @@
         <div>
             <p class="eyebrow">Sales</p>
             <h1>New Invoice</h1>
-            <p class="muted">Build the invoice here, then post it from the invoice list.</p>
+            <p class="muted">Create and post for daily sales, or save as draft when the invoice needs review.</p>
         </div>
         <button class="secondary-button" @onclick="BackToList">Back to Invoices</button>
     </section>
@@ -21,7 +21,7 @@
         <div class="alert error">@errorMessage</div>
     }
 
-    <EditForm Model="form" OnValidSubmit="SaveInvoiceAsync" class="panel form-panel page-form page-form-wide">
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
         <DataAnnotationsValidator />
 
         <label>
@@ -117,9 +117,10 @@
         </div>
 
         <div class="form-actions">
-            <button class="primary-button" type="submit" disabled="@isSaving">
-                @(isSaving ? "Saving..." : "Create Invoice")
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="() => SaveInvoiceAsync(InvoiceSaveMode.SaveAndPost)">
+                @(isSaving ? "Saving..." : "Create and Post")
             </button>
+            <button class="secondary-button" type="button" disabled="@isSaving" @onclick="() => SaveInvoiceAsync(InvoiceSaveMode.Draft)">Save Draft</button>
             <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
         </div>
     </EditForm>
@@ -180,7 +181,7 @@
         form.Lines.Remove(line);
     }
 
-    private async Task SaveInvoiceAsync()
+    private async Task SaveInvoiceAsync(InvoiceSaveMode saveMode)
     {
         try
         {
@@ -200,6 +201,7 @@
             isSaving = true;
             form.InvoiceDate = DateOnly.FromDateTime(invoiceDate);
             form.DueDate = DateOnly.FromDateTime(dueDate);
+            form.SaveMode = saveMode;
 
             await InvoicesApi.CreateAsync(form);
             BackToList();

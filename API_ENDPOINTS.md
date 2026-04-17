@@ -292,6 +292,7 @@ POST /api/invoices
   "customerId": "guid",
   "invoiceDate": "2026-04-17",
   "dueDate": "2026-05-17",
+  "saveMode": 2,
   "lines": [
     {
       "itemId": "guid",
@@ -305,6 +306,15 @@ POST /api/invoices
 ```
 
 If `unitPrice` is `0`, the API uses the selected item's sales price.
+
+`saveMode` is numeric:
+
+```text
+1 Draft
+2 SaveAndPost
+```
+
+If `saveMode` is omitted, the API defaults to `SaveAndPost` for daily sales behavior.
 
 Validation:
 
@@ -326,7 +336,7 @@ PATCH /api/invoices/{id}/sent
 POST /api/invoices/{id}/post
 ```
 
-Creates a balanced accounting transaction.
+Creates a balanced accounting transaction and applies inventory effects. Posting is idempotent; posting an already posted invoice returns the existing posted invoice instead of creating duplicate effects.
 
 Current posting rules:
 
@@ -335,12 +345,14 @@ Current posting rules:
 - For inventory items:
   - Debit COGS using `purchasePrice * quantity`.
   - Credit Inventory Asset using `purchasePrice * quantity`.
+  - Decrease item quantity on hand by sold quantity.
 
 Required before posting:
 
 - At least one active Accounts Receivable account exists.
 - Every invoice item has an income account.
 - Inventory items also need inventory asset and COGS accounts.
+- Inventory items must have enough quantity on hand.
 
 ### Void Invoice
 

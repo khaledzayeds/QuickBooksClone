@@ -24,4 +24,5 @@ public interface IItemRepository
         CancellationToken cancellationToken = default);
     Task<bool> SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default);
     Task<bool> AdjustQuantityAsync(Guid id, decimal quantityOnHand, CancellationToken cancellationToken = default);
+    Task<bool> DecreaseQuantityAsync(Guid id, decimal quantity, CancellationToken cancellationToken = default);
 }

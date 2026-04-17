@@ -32,6 +32,7 @@ public sealed class InvoicesApiClient
             form.CustomerId,
             form.InvoiceDate,
             form.DueDate,
+            form.SaveMode,
             Lines = form.Lines.Select(line => new
             {
                 line.ItemId,

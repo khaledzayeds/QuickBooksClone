@@ -94,7 +94,28 @@ public sealed class Item : EntityBase, ITenantEntity
 
     public void AdjustQuantity(decimal quantityOnHand)
     {
+        if (quantityOnHand < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(quantityOnHand), "Quantity cannot be negative.");
+        }
+
         QuantityOnHand = quantityOnHand;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void DecreaseQuantity(decimal quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be greater than zero.");
+        }
+
+        if (QuantityOnHand < quantity)
+        {
+            throw new InvalidOperationException("Not enough quantity on hand.");
+        }
+
+        QuantityOnHand -= quantity;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

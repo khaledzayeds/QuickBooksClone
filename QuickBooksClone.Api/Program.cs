@@ -22,6 +22,7 @@ builder.Services.AddSingleton<IAccountingTransactionRepository, InMemoryAccounti
 builder.Services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
 builder.Services.AddSingleton<IItemRepository, InMemoryItemRepository>();
 builder.Services.AddSingleton<IInvoiceRepository, InMemoryInvoiceRepository>();
+builder.Services.AddSingleton<ISalesInvoicePostingService, SalesInvoicePostingService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>

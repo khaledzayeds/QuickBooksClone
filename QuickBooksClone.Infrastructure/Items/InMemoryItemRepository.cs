@@ -114,6 +114,17 @@ public sealed class InMemoryItemRepository : IItemRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> DecreaseQuantityAsync(Guid id, decimal quantity, CancellationToken cancellationToken = default)
+    {
+        if (!_items.TryGetValue(id, out var item))
+        {
+            return Task.FromResult(false);
+        }
+
+        item.DecreaseQuantity(quantity);
+        return Task.FromResult(true);
+    }
+
     private static bool Contains(string? value, string term)
     {
         return value?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;

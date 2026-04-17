@@ -93,12 +93,21 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Invoices list separated from invoice creation form
   - [x] Chart of Accounts shows calculated balances
   - [x] Added API watch helper script
+- [x] Sales invoice posting workflow hardening
+  - [x] Dedicated sales invoice posting service
+  - [x] Save Draft / Create and Post workflow
+  - [x] Auto-post support for daily sales invoices
+  - [x] Posting is idempotent
+  - [x] Inventory stock is reduced when posted
+  - [x] Posting blocks insufficient stock
+  - [x] Accounting transaction remains balanced
 
 ## In Progress
 
-- [ ] Invoice posting hardening
+- [ ] Invoice reversal hardening
+  - [ ] Void posted invoice should create reversal transaction
+  - [ ] Void posted invoice should return inventory quantities
   - [ ] Posted invoice cannot be edited directly across all paths
-  - [ ] Void/reversal rules
 
 ## Next
 

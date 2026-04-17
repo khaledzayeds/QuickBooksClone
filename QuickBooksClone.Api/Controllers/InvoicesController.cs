@@ -14,21 +14,18 @@ public sealed class InvoicesController : ControllerBase
     private readonly IInvoiceRepository _invoices;
     private readonly ICustomerRepository _customers;
     private readonly IItemRepository _items;
-    private readonly IAccountRepository _accounts;
-    private readonly IAccountingTransactionRepository _transactions;
+    private readonly ISalesInvoicePostingService _postingService;
 
     public InvoicesController(
         IInvoiceRepository invoices,
         ICustomerRepository customers,
         IItemRepository items,
-        IAccountRepository accounts,
-        IAccountingTransactionRepository transactions)
+        ISalesInvoicePostingService postingService)
     {
         _invoices = invoices;
         _customers = customers;
         _items = items;
-        _accounts = accounts;
-        _transactions = transactions;
+        _postingService = postingService;
     }
 
     [HttpGet]
@@ -66,6 +63,12 @@ public sealed class InvoicesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<InvoiceDto>> Create(CreateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
+        var saveMode = request.SaveMode == 0 ? InvoiceSaveMode.SaveAndPost : request.SaveMode;
+        if (!Enum.IsDefined(saveMode))
+        {
+            return BadRequest("Invalid invoice save mode.");
+        }
+
         var customer = await _customers.GetByIdAsync(request.CustomerId, cancellationToken);
         if (customer is null)
         {
@@ -94,7 +97,17 @@ public sealed class InvoicesController : ControllerBase
 
         await _invoices.AddAsync(invoice, cancellationToken);
 
-        return CreatedAtAction(nameof(Get), new { id = invoice.Id }, await ToDtoAsync(invoice, cancellationToken));
+        if (saveMode == InvoiceSaveMode.SaveAndPost)
+        {
+            var postingResult = await _postingService.PostAsync(invoice.Id, cancellationToken);
+            if (!postingResult.Succeeded)
+            {
+                return BadRequest(postingResult.ErrorMessage);
+            }
+        }
+
+        var savedInvoice = await _invoices.GetByIdAsync(invoice.Id, cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = invoice.Id }, await ToDtoAsync(savedInvoice!, cancellationToken));
     }
 
     [HttpPatch("{id:guid}/sent")]
@@ -127,86 +140,11 @@ public sealed class InvoicesController : ControllerBase
             return NotFound();
         }
 
-        if (invoice.PostedTransactionId is not null)
+        var postingResult = await _postingService.PostAsync(invoice.Id, cancellationToken);
+        if (!postingResult.Succeeded)
         {
-            return BadRequest("Invoice is already posted.");
+            return BadRequest(postingResult.ErrorMessage);
         }
-
-        if (invoice.Status == InvoiceStatus.Void)
-        {
-            return BadRequest("Cannot post a void invoice.");
-        }
-
-        if (await _transactions.GetBySourceAsync("Invoice", invoice.Id, cancellationToken) is not null)
-        {
-            return BadRequest("Invoice already has a posted transaction.");
-        }
-
-        var arAccount = await FindFirstAccountAsync(AccountType.AccountsReceivable, cancellationToken);
-        if (arAccount is null)
-        {
-            return BadRequest("Accounts Receivable account is missing.");
-        }
-
-        var transaction = new AccountingTransaction(
-            "Invoice",
-            invoice.InvoiceDate,
-            invoice.InvoiceNumber,
-            "Invoice",
-            invoice.Id);
-
-        transaction.AddLine(new AccountingTransactionLine(
-            arAccount.Id,
-            $"Invoice {invoice.InvoiceNumber}",
-            invoice.TotalAmount,
-            0));
-
-        foreach (var line in invoice.Lines)
-        {
-            var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
-            if (item is null)
-            {
-                return BadRequest($"Item does not exist: {line.ItemId}");
-            }
-
-            if (item.IncomeAccountId is null)
-            {
-                return BadRequest($"Item '{item.Name}' is missing an income account.");
-            }
-
-            transaction.AddLine(new AccountingTransactionLine(
-                item.IncomeAccountId.Value,
-                line.Description,
-                0,
-                line.LineTotal));
-
-            if (item.ItemType == ItemType.Inventory)
-            {
-                if (item.CogsAccountId is null || item.InventoryAssetAccountId is null)
-                {
-                    return BadRequest($"Inventory item '{item.Name}' is missing COGS or inventory asset account.");
-                }
-
-                var costAmount = item.PurchasePrice * line.Quantity;
-                if (costAmount > 0)
-                {
-                    transaction.AddLine(new AccountingTransactionLine(
-                        item.CogsAccountId.Value,
-                        $"COGS - {line.Description}",
-                        costAmount,
-                        0));
-
-                    transaction.AddLine(new AccountingTransactionLine(
-                        item.InventoryAssetAccountId.Value,
-                        $"Inventory relief - {line.Description}",
-                        0,
-                        costAmount));
-                }
-            }
-        }
-
-        var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
-        await _invoices.MarkPostedAsync(invoice.Id, savedTransaction.Id, cancellationToken);
 
         var updatedInvoice = await _invoices.GetByIdAsync(invoice.Id, cancellationToken);
         return Ok(await ToDtoAsync(updatedInvoice!, cancellationToken));
@@ -239,11 +177,5 @@ public sealed class InvoicesController : ControllerBase
                 line.UnitPrice,
                 line.DiscountPercent,
                 line.LineTotal)).ToList());
-    }
-
-    private async Task<Account?> FindFirstAccountAsync(AccountType accountType, CancellationToken cancellationToken)
-    {
-        var result = await _accounts.SearchAsync(new AccountSearch(null, accountType, false, 1, 1), cancellationToken);
-        return result.Items.FirstOrDefault();
     }
 }
