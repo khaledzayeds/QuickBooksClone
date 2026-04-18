@@ -146,6 +146,13 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Void reverses vendor balance
   - [x] Purchase bill void is idempotent
   - [x] Desktop Purchase Bills screen can void bills
+- [x] Opening balances posting slice
+  - [x] Customer opening balances post to Accounts Receivable
+  - [x] Vendor opening balances post to Accounts Payable
+  - [x] Inventory item opening quantities post to Inventory Asset
+  - [x] Opening balance offset posts to Equity
+  - [x] Opening balance posting is idempotent by source document
+  - [x] Inventory opening quantity requires purchase price and inventory asset account
 
 ## In Progress
 
@@ -155,11 +162,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Opening balances posting slice
-  - [ ] Customer opening balances post to Accounts Receivable
-  - [ ] Vendor opening balances post to Accounts Payable
-  - [ ] Item opening quantities post to Inventory Asset
-  - [ ] Balanced opening equity offset
+- [ ] Vendor payments slice
+  - [ ] Pay vendor bill
+  - [ ] Debit Accounts Payable and credit bank/cash
+  - [ ] Apply payment to vendor balance
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

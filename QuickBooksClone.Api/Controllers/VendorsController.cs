@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Vendors;
+using QuickBooksClone.Core.OpeningBalances;
 using QuickBooksClone.Core.Vendors;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -9,10 +10,12 @@ namespace QuickBooksClone.Api.Controllers;
 public sealed class VendorsController : ControllerBase
 {
     private readonly IVendorRepository _vendors;
+    private readonly IOpeningBalancePostingService _openingBalances;
 
-    public VendorsController(IVendorRepository vendors)
+    public VendorsController(IVendorRepository vendors, IOpeningBalancePostingService openingBalances)
     {
         _vendors = vendors;
+        _openingBalances = openingBalances;
     }
 
     [HttpGet]
@@ -63,6 +66,11 @@ public sealed class VendorsController : ControllerBase
             request.OpeningBalance);
 
         await _vendors.AddAsync(vendor, cancellationToken);
+        var openingBalanceResult = await _openingBalances.PostVendorOpeningBalanceAsync(vendor, cancellationToken);
+        if (!openingBalanceResult.Succeeded)
+        {
+            return BadRequest(openingBalanceResult.ErrorMessage);
+        }
 
         return CreatedAtAction(nameof(Get), new { id = vendor.Id }, ToDto(vendor));
     }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Items;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Items;
+using QuickBooksClone.Core.OpeningBalances;
 
 namespace QuickBooksClone.Api.Controllers;
 
@@ -11,11 +12,13 @@ public sealed class ItemsController : ControllerBase
 {
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
+    private readonly IOpeningBalancePostingService _openingBalances;
 
-    public ItemsController(IItemRepository items, IAccountRepository accounts)
+    public ItemsController(IItemRepository items, IAccountRepository accounts, IOpeningBalancePostingService openingBalances)
     {
         _items = items;
         _accounts = accounts;
+        _openingBalances = openingBalances;
     }
 
     [HttpGet]
@@ -69,6 +72,12 @@ public sealed class ItemsController : ControllerBase
             return BadRequest(accountValidation);
         }
 
+        var openingBalanceValidation = ValidateInventoryOpeningBalance(request);
+        if (openingBalanceValidation is not null)
+        {
+            return BadRequest(openingBalanceValidation);
+        }
+
         var item = new Item(
             request.Name,
             request.ItemType,
@@ -84,6 +93,11 @@ public sealed class ItemsController : ControllerBase
             request.ExpenseAccountId);
 
         await _items.AddAsync(item, cancellationToken);
+        var openingBalanceResult = await _openingBalances.PostItemOpeningBalanceAsync(item, cancellationToken);
+        if (!openingBalanceResult.Succeeded)
+        {
+            return BadRequest(openingBalanceResult.ErrorMessage);
+        }
 
         return CreatedAtAction(nameof(Get), new { id = item.Id }, ToDto(item));
     }
@@ -206,6 +220,26 @@ public sealed class ItemsController : ControllerBase
             {
                 return $"Account does not exist: {accountId}";
             }
+        }
+
+        return null;
+    }
+
+    private static string? ValidateInventoryOpeningBalance(CreateItemRequest request)
+    {
+        if (request.ItemType != ItemType.Inventory || request.QuantityOnHand <= 0)
+        {
+            return null;
+        }
+
+        if (request.PurchasePrice <= 0)
+        {
+            return "Inventory opening quantity requires a purchase price to create an opening inventory value.";
+        }
+
+        if (request.InventoryAssetAccountId is null)
+        {
+            return "Inventory opening quantity requires an inventory asset account.";
         }
 
         return null;

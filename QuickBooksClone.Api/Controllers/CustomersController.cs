@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Customers;
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.OpeningBalances;
 
 namespace QuickBooksClone.Api.Controllers;
 
@@ -9,10 +10,12 @@ namespace QuickBooksClone.Api.Controllers;
 public sealed class CustomersController : ControllerBase
 {
     private readonly ICustomerRepository _customers;
+    private readonly IOpeningBalancePostingService _openingBalances;
 
-    public CustomersController(ICustomerRepository customers)
+    public CustomersController(ICustomerRepository customers, IOpeningBalancePostingService openingBalances)
     {
         _customers = customers;
+        _openingBalances = openingBalances;
     }
 
     [HttpGet]
@@ -63,6 +66,11 @@ public sealed class CustomersController : ControllerBase
             request.OpeningBalance);
 
         await _customers.AddAsync(customer, cancellationToken);
+        var openingBalanceResult = await _openingBalances.PostCustomerOpeningBalanceAsync(customer, cancellationToken);
+        if (!openingBalanceResult.Succeeded)
+        {
+            return BadRequest(openingBalanceResult.ErrorMessage);
+        }
 
         return CreatedAtAction(nameof(Get), new { id = customer.Id }, ToDto(customer));
     }

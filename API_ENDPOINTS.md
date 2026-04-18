@@ -83,6 +83,13 @@ Validation:
 - `email`, when supplied, must be a valid email and unique.
 - `openingBalance` cannot be negative.
 
+Accounting:
+
+- If `openingBalance` is greater than zero, the API creates an opening balance transaction.
+- Debit Accounts Receivable.
+- Credit Equity.
+- The transaction uses `sourceEntityType=CustomerOpeningBalance`.
+
 ### Update Customer
 
 ```http
@@ -172,6 +179,13 @@ Validation:
 - `displayName` is required and must be unique.
 - `email`, when supplied, must be a valid email and unique.
 - `openingBalance` cannot be negative.
+
+Accounting:
+
+- If `openingBalance` is greater than zero, the API creates an opening balance transaction.
+- Debit Equity.
+- Credit Accounts Payable.
+- The transaction uses `sourceEntityType=VendorOpeningBalance`.
 
 ### Update Vendor
 
@@ -444,6 +458,14 @@ Validation:
 - `sku`, when supplied, must be unique.
 - `barcode`, when supplied, must be unique.
 - `salesPrice`, `purchasePrice`, and `quantityOnHand` cannot be negative.
+
+Accounting:
+
+- For inventory items, if `quantityOnHand` and `purchasePrice` are greater than zero, the API creates an opening inventory transaction.
+- Debit Inventory Asset for `quantityOnHand * purchasePrice`.
+- Credit Equity for the same amount.
+- Opening inventory quantity requires `inventoryAssetAccountId`.
+- The transaction uses `sourceEntityType=ItemOpeningBalance`.
 
 ### Update Item
 
