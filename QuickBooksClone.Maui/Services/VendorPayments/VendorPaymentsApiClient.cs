@@ -33,4 +33,13 @@ public sealed class VendorPaymentsApiClient
         return await response.Content.ReadFromJsonAsync<VendorPaymentDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty vendor payment response.");
     }
+
+    public async Task<VendorPaymentDto> VoidAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PatchAsync($"api/vendor-payments/{id}/void", null, cancellationToken);
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<VendorPaymentDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty vendor payment response.");
+    }
 }

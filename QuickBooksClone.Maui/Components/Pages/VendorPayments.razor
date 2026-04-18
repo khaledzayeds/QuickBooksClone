@@ -49,6 +49,7 @@
                         <th>Date</th>
                         <th>Amount</th>
                         <th>Status</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -66,6 +67,12 @@
                             <td>@payment.Amount.ToString("N2")</td>
                             <td>
                                 <span class="status @(payment.Status == VendorPaymentStatus.Posted ? "active" : "inactive")">@payment.Status</span>
+                            </td>
+                            <td class="actions">
+                                @if (payment.Status is not VendorPaymentStatus.Void)
+                                {
+                                    <button class="link-button" @onclick="() => VoidAsync(payment)">Void</button>
+                                }
                             </td>
                         </tr>
                     }
@@ -109,5 +116,19 @@
     private void NewPayment()
     {
         Navigation.NavigateTo("vendor-payments/new");
+    }
+
+    private async Task VoidAsync(VendorPaymentDto payment)
+    {
+        try
+        {
+            errorMessage = null;
+            await VendorPaymentsApi.VoidAsync(payment.Id);
+            await LoadPaymentsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not void vendor payment. Details: {ex.Message}";
+        }
     }
 }

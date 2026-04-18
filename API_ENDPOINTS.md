@@ -378,6 +378,30 @@ sourceEntityId={vendorPaymentId}
 transactionType=VendorPayment
 ```
 
+### Void Vendor Payment
+
+```http
+PATCH /api/vendor-payments/{id}/void
+```
+
+Voids a vendor payment and returns the updated payment.
+
+Rules:
+
+- Posted vendor payments create a balanced reversal transaction.
+- The purchase bill paid amount is reduced by the payment amount.
+- Purchase bill status returns to `Posted` when no payments remain, or `PartiallyPaid` when some payment remains.
+- Vendor balance is increased by the payment amount.
+- Void is idempotent; calling it more than once does not duplicate reversal transactions or change balances twice.
+
+Vendor payment reversal transactions use:
+
+```text
+sourceEntityType=VendorPaymentReversal
+sourceEntityId={vendorPaymentId}
+transactionType=VendorPaymentReversal
+```
+
 ## Accounts
 
 Account responses include `balance`. It is calculated from posted accounting transactions:

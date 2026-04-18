@@ -124,6 +124,17 @@ public sealed class InMemoryVendorRepository : IVendorRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_vendors.TryGetValue(id, out var vendor))
+        {
+            return Task.FromResult(false);
+        }
+
+        vendor.ReversePayment(amount);
+        return Task.FromResult(true);
+    }
+
     private static bool Contains(string? value, string term)
     {
         return value?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;

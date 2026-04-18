@@ -14,4 +14,6 @@ public sealed record VendorPaymentDto(
     string PaymentMethod,
     VendorPaymentStatus Status,
     Guid? PostedTransactionId,
-    DateTimeOffset? PostedAt);
+    DateTimeOffset? PostedAt,
+    Guid? ReversalTransactionId,
+    DateTimeOffset? VoidedAt);

@@ -161,6 +161,13 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Reduce vendor balance
   - [x] Vendor payment API endpoints
   - [x] Desktop Vendor Payments list and Pay Vendor form
+- [x] Vendor payment reversal hardening
+  - [x] Void posted vendor payment creates balanced reversal transaction
+  - [x] Void posted vendor payment restores purchase bill balance
+  - [x] Void posted vendor payment restores vendor balance
+  - [x] Purchase bill status returns to Posted or PartiallyPaid after reversal
+  - [x] Vendor payment void is idempotent
+  - [x] Desktop Vendor Payments screen can void payments
 
 ## In Progress
 
@@ -170,10 +177,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Vendor payment reversal hardening
-  - [ ] Void posted vendor payment
-  - [ ] Restore purchase bill balance and vendor balance
-  - [ ] Create balanced reversal transaction
+- [ ] Cash sale / invoice payment mode
+  - [ ] Support cash vs credit sales workflow
+  - [ ] Auto-create receipt payment for cash invoices
+  - [ ] Show payment mode on invoice screens
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

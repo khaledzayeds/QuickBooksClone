@@ -8,6 +8,7 @@ namespace QuickBooksClone.Infrastructure.VendorPayments;
 public sealed class VendorPaymentPostingService : IVendorPaymentPostingService
 {
     private const string VendorPaymentSourceEntityType = "VendorPayment";
+    private const string VendorPaymentReversalSourceEntityType = "VendorPaymentReversal";
 
     private readonly IVendorPaymentRepository _payments;
     private readonly IPurchaseBillRepository _bills;
@@ -127,6 +128,87 @@ public sealed class VendorPaymentPostingService : IVendorPaymentPostingService
         await _vendors.ApplyPaymentAsync(vendor.Id, payment.Amount, cancellationToken);
         await _payments.MarkPostedAsync(payment.Id, savedTransaction.Id, cancellationToken);
         return VendorPaymentPostingResult.Success(savedTransaction.Id);
+    }
+
+    public async Task<VendorPaymentPostingResult> VoidAsync(Guid vendorPaymentId, CancellationToken cancellationToken = default)
+    {
+        var payment = await _payments.GetByIdAsync(vendorPaymentId, cancellationToken);
+        if (payment is null)
+        {
+            return VendorPaymentPostingResult.Failure("Vendor payment does not exist.");
+        }
+
+        if (payment.Status == VendorPaymentStatus.Void)
+        {
+            return VendorPaymentPostingResult.Success(payment.ReversalTransactionId);
+        }
+
+        if (payment.PostedTransactionId is null)
+        {
+            await _payments.VoidAsync(payment.Id, null, cancellationToken);
+            return VendorPaymentPostingResult.Success();
+        }
+
+        var bill = await _bills.GetByIdAsync(payment.PurchaseBillId, cancellationToken);
+        if (bill is null)
+        {
+            return VendorPaymentPostingResult.Failure("Purchase bill does not exist.");
+        }
+
+        var vendor = await _vendors.GetByIdAsync(payment.VendorId, cancellationToken);
+        if (vendor is null)
+        {
+            return VendorPaymentPostingResult.Failure("Vendor does not exist.");
+        }
+
+        var existingReversal = await _transactions.GetBySourceAsync(VendorPaymentReversalSourceEntityType, payment.Id, cancellationToken);
+        if (existingReversal is not null)
+        {
+            await _payments.VoidAsync(payment.Id, existingReversal.Id, cancellationToken);
+            return VendorPaymentPostingResult.Success(existingReversal.Id);
+        }
+
+        var originalTransaction = await _transactions.GetByIdAsync(payment.PostedTransactionId.Value, cancellationToken);
+        if (originalTransaction is null)
+        {
+            return VendorPaymentPostingResult.Failure("Posted vendor payment transaction is missing.");
+        }
+
+        if (payment.Amount > bill.PaidAmount)
+        {
+            return VendorPaymentPostingResult.Failure("Vendor payment reversal amount exceeds purchase bill paid amount.");
+        }
+
+        var reversalTransaction = BuildReversalTransaction(payment, originalTransaction);
+        var savedReversal = await _transactions.AddAsync(reversalTransaction, cancellationToken);
+
+        await _bills.ReversePaymentAsync(bill.Id, payment.Amount, cancellationToken);
+        await _vendors.ReversePaymentAsync(vendor.Id, payment.Amount, cancellationToken);
+        await _payments.VoidAsync(payment.Id, savedReversal.Id, cancellationToken);
+        return VendorPaymentPostingResult.Success(savedReversal.Id);
+    }
+
+    private static AccountingTransaction BuildReversalTransaction(
+        VendorPayment payment,
+        AccountingTransaction originalTransaction)
+    {
+        var transaction = new AccountingTransaction(
+            "VendorPaymentReversal",
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            $"{payment.PaymentNumber}-VOID",
+            VendorPaymentReversalSourceEntityType,
+            payment.Id);
+
+        foreach (var line in originalTransaction.Lines)
+        {
+            transaction.AddLine(new AccountingTransactionLine(
+                line.AccountId,
+                $"Reversal - {line.Description}",
+                line.Credit,
+                line.Debit));
+        }
+
+        return transaction;
     }
 
     private async Task<Account?> FindFirstAccountAsync(AccountType accountType, CancellationToken cancellationToken)

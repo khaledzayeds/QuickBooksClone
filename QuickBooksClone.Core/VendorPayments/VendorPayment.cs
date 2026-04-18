@@ -76,4 +76,23 @@ public sealed class VendorPayment : EntityBase, ITenantEntity
         Status = VendorPaymentStatus.Posted;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    public void Void(Guid? reversalTransactionId = null)
+    {
+        if (Status == VendorPaymentStatus.Void)
+        {
+            if (ReversalTransactionId is null && reversalTransactionId is not null)
+            {
+                ReversalTransactionId = reversalTransactionId;
+                UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            return;
+        }
+
+        ReversalTransactionId = reversalTransactionId;
+        VoidedAt = DateTimeOffset.UtcNow;
+        Status = VendorPaymentStatus.Void;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }
