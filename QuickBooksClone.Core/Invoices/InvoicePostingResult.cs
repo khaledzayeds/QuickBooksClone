@@ -5,7 +5,7 @@ public sealed record InvoicePostingResult(
     Guid? TransactionId,
     string? ErrorMessage)
 {
-    public static InvoicePostingResult Success(Guid transactionId)
+    public static InvoicePostingResult Success(Guid? transactionId = null)
     {
         return new InvoicePostingResult(true, transactionId, null);
     }

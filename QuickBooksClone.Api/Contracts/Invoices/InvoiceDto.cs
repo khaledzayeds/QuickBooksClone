@@ -17,4 +17,6 @@ public sealed record InvoiceDto(
     decimal BalanceDue,
     Guid? PostedTransactionId,
     DateTimeOffset? PostedAt,
+    Guid? ReversalTransactionId,
+    DateTimeOffset? VoidedAt,
     IReadOnlyList<InvoiceLineDto> Lines);

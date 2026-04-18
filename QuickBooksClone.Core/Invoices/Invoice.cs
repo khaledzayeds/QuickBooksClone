@@ -36,6 +36,8 @@ public sealed class Invoice : EntityBase, ITenantEntity
     public decimal BalanceDue => TotalAmount - PaidAmount;
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
+    public Guid? ReversalTransactionId { get; private set; }
+    public DateTimeOffset? VoidedAt { get; private set; }
 
     public void AddLine(InvoiceLine line)
     {
@@ -57,8 +59,21 @@ public sealed class Invoice : EntityBase, ITenantEntity
         }
     }
 
-    public void Void()
+    public void Void(Guid? reversalTransactionId = null)
     {
+        if (Status == InvoiceStatus.Void)
+        {
+            if (ReversalTransactionId is null && reversalTransactionId is not null)
+            {
+                ReversalTransactionId = reversalTransactionId;
+                UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            return;
+        }
+
+        ReversalTransactionId = reversalTransactionId;
+        VoidedAt = DateTimeOffset.UtcNow;
         Status = InvoiceStatus.Void;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

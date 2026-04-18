@@ -76,14 +76,14 @@ public sealed class InMemoryInvoiceRepository : IInvoiceRepository
         return Task.FromResult(true);
     }
 
-    public Task<bool> VoidAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default)
     {
         if (!_invoices.TryGetValue(id, out var invoice))
         {
             return Task.FromResult(false);
         }
 
-        invoice.Void();
+        invoice.Void(reversalTransactionId);
         return Task.FromResult(true);
     }
 }

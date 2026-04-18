@@ -360,6 +360,28 @@ Required before posting:
 PATCH /api/invoices/{id}/void
 ```
 
+Voids an invoice and returns the updated invoice.
+
+Rules:
+
+- Draft or unposted invoices are marked `Void` with no accounting transaction.
+- Posted invoices create a balanced reversal transaction.
+- Inventory quantities sold by the posted invoice are returned.
+- Void is idempotent; calling it more than once does not create duplicate reversal transactions or return stock twice.
+- The invoice response includes:
+  - `postedTransactionId`
+  - `postedAt`
+  - `reversalTransactionId`
+  - `voidedAt`
+
+Posted invoice reversal transactions use:
+
+```text
+sourceEntityType=InvoiceReversal
+sourceEntityId={invoiceId}
+transactionType=InvoiceReversal
+```
+
 ## Transactions
 
 The MAUI app has a read-only Transactions screen at:

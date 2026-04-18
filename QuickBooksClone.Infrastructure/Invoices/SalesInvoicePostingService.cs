@@ -6,6 +6,9 @@ namespace QuickBooksClone.Infrastructure.Invoices;
 
 public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
 {
+    private const string InvoiceSourceEntityType = "Invoice";
+    private const string InvoiceReversalSourceEntityType = "InvoiceReversal";
+
     private readonly IInvoiceRepository _invoices;
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
@@ -41,7 +44,7 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
             return InvoicePostingResult.Failure("Cannot post a void invoice.");
         }
 
-        var existingTransaction = await _transactions.GetBySourceAsync("Invoice", invoice.Id, cancellationToken);
+        var existingTransaction = await _transactions.GetBySourceAsync(InvoiceSourceEntityType, invoice.Id, cancellationToken);
         if (existingTransaction is not null)
         {
             await _invoices.MarkPostedAsync(invoice.Id, existingTransaction.Id, cancellationToken);
@@ -101,6 +104,65 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
         return InvoicePostingResult.Success(savedTransaction.Id);
     }
 
+    public async Task<InvoicePostingResult> VoidAsync(Guid invoiceId, CancellationToken cancellationToken = default)
+    {
+        var invoice = await _invoices.GetByIdAsync(invoiceId, cancellationToken);
+        if (invoice is null)
+        {
+            return InvoicePostingResult.Failure("Invoice does not exist.");
+        }
+
+        if (invoice.Status == InvoiceStatus.Void)
+        {
+            return InvoicePostingResult.Success(invoice.ReversalTransactionId);
+        }
+
+        if (invoice.PostedTransactionId is null)
+        {
+            await _invoices.VoidAsync(invoice.Id, null, cancellationToken);
+            return InvoicePostingResult.Success();
+        }
+
+        var existingReversal = await _transactions.GetBySourceAsync(InvoiceReversalSourceEntityType, invoice.Id, cancellationToken);
+        if (existingReversal is not null)
+        {
+            await _invoices.VoidAsync(invoice.Id, existingReversal.Id, cancellationToken);
+            return InvoicePostingResult.Success(existingReversal.Id);
+        }
+
+        var originalTransaction = await _transactions.GetByIdAsync(invoice.PostedTransactionId.Value, cancellationToken);
+        if (originalTransaction is null)
+        {
+            return InvoicePostingResult.Failure("Posted invoice transaction is missing.");
+        }
+
+        var inventoryItems = new List<(InvoiceLine Line, Item Item)>();
+        foreach (var line in invoice.Lines)
+        {
+            var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
+            if (item is null)
+            {
+                return InvoicePostingResult.Failure($"Item does not exist: {line.ItemId}");
+            }
+
+            if (item.ItemType == ItemType.Inventory)
+            {
+                inventoryItems.Add((line, item));
+            }
+        }
+
+        var reversalTransaction = BuildReversalTransaction(invoice, originalTransaction);
+        var savedReversal = await _transactions.AddAsync(reversalTransaction, cancellationToken);
+
+        foreach (var (line, item) in inventoryItems)
+        {
+            await _items.IncreaseQuantityAsync(item.Id, line.Quantity, cancellationToken);
+        }
+
+        await _invoices.VoidAsync(invoice.Id, savedReversal.Id, cancellationToken);
+        return InvoicePostingResult.Success(savedReversal.Id);
+    }
+
     private static AccountingTransaction BuildAccountingTransaction(
         Invoice invoice,
         Guid accountsReceivableAccountId,
@@ -110,7 +172,7 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
             "Invoice",
             invoice.InvoiceDate,
             invoice.InvoiceNumber,
-            "Invoice",
+            InvoiceSourceEntityType,
             invoice.Id);
 
         transaction.AddLine(new AccountingTransactionLine(
@@ -149,6 +211,29 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
                 $"Inventory relief - {line.Description}",
                 0,
                 costAmount));
+        }
+
+        return transaction;
+    }
+
+    private static AccountingTransaction BuildReversalTransaction(
+        Invoice invoice,
+        AccountingTransaction originalTransaction)
+    {
+        var transaction = new AccountingTransaction(
+            "InvoiceReversal",
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            $"{invoice.InvoiceNumber}-VOID",
+            InvoiceReversalSourceEntityType,
+            invoice.Id);
+
+        foreach (var line in originalTransaction.Lines)
+        {
+            transaction.AddLine(new AccountingTransactionLine(
+                line.AccountId,
+                $"Reversal - {line.Description}",
+                line.Credit,
+                line.Debit));
         }
 
         return transaction;

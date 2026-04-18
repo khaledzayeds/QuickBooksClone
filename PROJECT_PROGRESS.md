@@ -101,13 +101,18 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Inventory stock is reduced when posted
   - [x] Posting blocks insufficient stock
   - [x] Accounting transaction remains balanced
+- [x] Invoice reversal hardening
+  - [x] Void draft/saved invoice marks it void without accounting impact
+  - [x] Void posted invoice creates a balanced reversal transaction
+  - [x] Void posted invoice returns inventory quantities
+  - [x] Void is idempotent and does not double-create reversal effects
+  - [x] Invoice responses expose posted and reversal transaction links
 
 ## In Progress
 
-- [ ] Invoice reversal hardening
-  - [ ] Void posted invoice should create reversal transaction
-  - [ ] Void posted invoice should return inventory quantities
-  - [ ] Posted invoice cannot be edited directly across all paths
+- [ ] Posted invoice edit protection review
+  - [x] Core invoice lines cannot be changed after posting
+  - [ ] Confirm every future edit path respects posted/void status
 
 ## Next
 

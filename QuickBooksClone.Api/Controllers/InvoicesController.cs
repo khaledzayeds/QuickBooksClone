@@ -120,12 +120,25 @@ public sealed class InvoicesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/void")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(InvoiceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Void(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<InvoiceDto>> Void(Guid id, CancellationToken cancellationToken = default)
     {
-        var updated = await _invoices.VoidAsync(id, cancellationToken);
-        return updated ? NoContent() : NotFound();
+        var invoice = await _invoices.GetByIdAsync(id, cancellationToken);
+        if (invoice is null)
+        {
+            return NotFound();
+        }
+
+        var voidResult = await _postingService.VoidAsync(invoice.Id, cancellationToken);
+        if (!voidResult.Succeeded)
+        {
+            return BadRequest(voidResult.ErrorMessage);
+        }
+
+        var updatedInvoice = await _invoices.GetByIdAsync(invoice.Id, cancellationToken);
+        return Ok(await ToDtoAsync(updatedInvoice!, cancellationToken));
     }
 
     [HttpPost("{id:guid}/post")]
@@ -169,6 +182,8 @@ public sealed class InvoicesController : ControllerBase
             invoice.BalanceDue,
             invoice.PostedTransactionId,
             invoice.PostedAt,
+            invoice.ReversalTransactionId,
+            invoice.VoidedAt,
             invoice.Lines.Select(line => new InvoiceLineDto(
                 line.Id,
                 line.ItemId,
