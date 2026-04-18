@@ -168,6 +168,12 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Purchase bill status returns to Posted or PartiallyPaid after reversal
   - [x] Vendor payment void is idempotent
   - [x] Desktop Vendor Payments screen can void payments
+- [x] Cash sale / invoice payment mode
+  - [x] Support cash vs credit sales workflow
+  - [x] Auto-create receipt payment for cash invoices
+  - [x] Link generated receipt payment back to the invoice
+  - [x] Show payment mode, paid amount, balance, and deposit account on invoice screens
+  - [x] Keep invoice and payment posting logic in dedicated services
 
 ## In Progress
 
@@ -177,10 +183,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Cash sale / invoice payment mode
-  - [ ] Support cash vs credit sales workflow
-  - [ ] Auto-create receipt payment for cash invoices
-  - [ ] Show payment mode on invoice screens
+- [ ] Sales return / credit memo workflow
+  - [ ] Reverse sold quantities safely
+  - [ ] Reverse AR / income / COGS effects
+  - [ ] Support refund or customer credit balance handling
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

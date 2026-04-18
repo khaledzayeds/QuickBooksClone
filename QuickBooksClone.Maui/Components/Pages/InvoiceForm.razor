@@ -2,6 +2,7 @@
 @inject InvoicesApiClient InvoicesApi
 @inject CustomersApiClient CustomersApi
 @inject ItemsApiClient ItemsApi
+@inject AccountsApiClient AccountsApi
 @inject NavigationManager Navigation
 
 <PageTitle>New Invoice</PageTitle>
@@ -46,6 +47,38 @@
                 <InputDate class="form-control" @bind-Value="dueDate" />
             </label>
         </div>
+
+        <div class="form-row">
+            <label>
+                Payment mode
+                <InputSelect class="form-control" @bind-Value="form.PaymentMode">
+                    <option value="@InvoicePaymentMode.Credit">Credit / Accounts Receivable</option>
+                    <option value="@InvoicePaymentMode.Cash">Cash / Paid now</option>
+                </InputSelect>
+            </label>
+
+            @if (form.PaymentMode == InvoicePaymentMode.Cash)
+            {
+                <label>
+                    Deposit account
+                    <InputSelect class="form-control" @bind-Value="form.DepositAccountId">
+                        <option value="">Select cash or bank account</option>
+                        @foreach (var account in depositAccounts)
+                        {
+                            <option value="@account.Id">@account.Code - @account.Name</option>
+                        }
+                    </InputSelect>
+                </label>
+            }
+        </div>
+
+        @if (form.PaymentMode == InvoicePaymentMode.Cash)
+        {
+            <label>
+                Payment method
+                <InputText class="form-control" @bind-Value="form.PaymentMethod" />
+            </label>
+        }
 
         <h3>Lines</h3>
         <div class="form-row">
@@ -129,6 +162,7 @@
 @code {
     private List<CustomerDto> customers = [];
     private List<ItemDto> items = [];
+    private List<AccountDto> depositAccounts = [];
     private InvoiceFormModel form = new();
     private InvoiceLineFormModel draftLine = new();
     private DateTime invoiceDate = DateTime.Today;
@@ -150,6 +184,14 @@
 
         var itemResult = await ItemsApi.SearchAsync(null, false);
         items = itemResult.Items.ToList();
+
+        var bankAccounts = await AccountsApi.SearchAsync(null, AccountType.Bank, false);
+        var otherCurrentAssets = await AccountsApi.SearchAsync(null, AccountType.OtherCurrentAsset, false);
+        depositAccounts = bankAccounts.Items.Concat(otherCurrentAssets.Items)
+            .OrderBy(account => account.Code)
+            .ToList();
+
+        form.DepositAccountId ??= depositAccounts.FirstOrDefault()?.Id;
     }
 
     private void AddLine()
@@ -197,11 +239,18 @@
                 return;
             }
 
+            if (form.PaymentMode == InvoicePaymentMode.Cash && form.DepositAccountId is null)
+            {
+                errorMessage = "Select a deposit account for cash invoices.";
+                return;
+            }
+
             errorMessage = null;
             isSaving = true;
             form.InvoiceDate = DateOnly.FromDateTime(invoiceDate);
             form.DueDate = DateOnly.FromDateTime(dueDate);
             form.SaveMode = saveMode;
+            form.PaymentMethod = form.PaymentMode == InvoicePaymentMode.Cash ? form.PaymentMethod : null;
 
             await InvoicesApi.CreateAsync(form);
             BackToList();

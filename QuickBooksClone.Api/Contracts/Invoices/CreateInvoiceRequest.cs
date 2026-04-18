@@ -8,4 +8,7 @@ public sealed record CreateInvoiceRequest(
     DateOnly InvoiceDate,
     DateOnly DueDate,
     InvoiceSaveMode SaveMode,
+    InvoicePaymentMode PaymentMode,
+    Guid? DepositAccountId,
+    string? PaymentMethod,
     [MinLength(1)] IReadOnlyList<CreateInvoiceLineRequest> Lines);

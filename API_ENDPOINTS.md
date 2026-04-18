@@ -592,6 +592,9 @@ POST /api/invoices
   "invoiceDate": "2026-04-17",
   "dueDate": "2026-05-17",
   "saveMode": 2,
+  "paymentMode": 1,
+  "depositAccountId": null,
+  "paymentMethod": null,
   "lines": [
     {
       "itemId": "guid",
@@ -614,6 +617,22 @@ If `unitPrice` is `0`, the API uses the selected item's sales price.
 ```
 
 If `saveMode` is omitted, the API defaults to `SaveAndPost` for daily sales behavior.
+
+`paymentMode` is numeric:
+
+```text
+1 Credit
+2 Cash
+```
+
+Cash invoice behavior:
+
+- Cash invoices require `depositAccountId`.
+- The deposit account must be a Bank or Other Current Asset account.
+- When a cash invoice is saved and posted, the API posts the invoice first, then auto-creates and posts a customer payment for the remaining invoice balance.
+- The generated receipt payment uses `paymentNumber=RCPT-{invoiceNumber}`.
+- The invoice response includes `paymentMode`, `depositAccountId`, `depositAccountName`, `paymentMethod`, and `receiptPaymentId`.
+- Cash invoices normally return as `Paid` with `balanceDue=0`.
 
 Validation:
 
@@ -652,6 +671,8 @@ Required before posting:
 - Every invoice item has an income account.
 - Inventory items also need inventory asset and COGS accounts.
 - Inventory items must have enough quantity on hand.
+
+For cash invoices, the `POST /api/invoices/{id}/post` workflow also creates the linked customer payment if it has not already been created. This keeps posting idempotent and avoids duplicate receipt payments.
 
 ### Void Invoice
 
