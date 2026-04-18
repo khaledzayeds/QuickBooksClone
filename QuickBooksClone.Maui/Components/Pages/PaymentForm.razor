@@ -1,0 +1,158 @@
+@page "/payments/new"
+@inject PaymentsApiClient PaymentsApi
+@inject InvoicesApiClient InvoicesApi
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Receive Payment</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Customers</p>
+            <h1>Receive Payment</h1>
+            <p class="muted">Apply a customer payment to one posted invoice and create the accounting transaction automatically.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Payments</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form">
+        <DataAnnotationsValidator />
+
+        <label>
+            Invoice
+            <InputSelect class="form-control" @bind-Value="form.InvoiceId">
+                <option value="@Guid.Empty">Select posted invoice</option>
+                @foreach (var invoice in payableInvoices)
+                {
+                    <option value="@invoice.Id">@invoice.InvoiceNumber - @invoice.CustomerName - Balance @invoice.BalanceDue.ToString("N2")</option>
+                }
+            </InputSelect>
+        </label>
+
+        <label>
+            Deposit to
+            <InputSelect class="form-control" @bind-Value="form.DepositAccountId">
+                <option value="@Guid.Empty">Select bank/cash account</option>
+                @foreach (var account in depositAccounts)
+                {
+                    <option value="@account.Id">@account.Code - @account.Name</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Payment date
+                <InputDate class="form-control" @bind-Value="paymentDate" />
+            </label>
+
+            <label>
+                Amount
+                <InputNumber class="form-control" @bind-Value="form.Amount" />
+            </label>
+        </div>
+
+        <label>
+            Payment method
+            <InputText class="form-control" @bind-Value="form.PaymentMethod" />
+        </label>
+
+        @if (SelectedInvoice is not null)
+        {
+            <div class="totals-box">
+                Invoice balance: @SelectedInvoice.BalanceDue.ToString("N2")
+            </div>
+        }
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SavePaymentAsync">
+                @(isSaving ? "Saving..." : "Receive Payment")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<InvoiceDto> payableInvoices = [];
+    private List<AccountDto> depositAccounts = [];
+    private PaymentFormModel form = new();
+    private InvoiceDto? SelectedInvoice => payableInvoices.FirstOrDefault(invoice => invoice.Id == form.InvoiceId);
+    private DateTime paymentDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var invoiceResult = await InvoicesApi.SearchAsync(null, false);
+        payableInvoices = invoiceResult.Items
+            .Where(invoice => (invoice.Status == InvoiceStatus.Posted || invoice.Status == InvoiceStatus.PartiallyPaid) && invoice.BalanceDue > 0)
+            .ToList();
+
+        var accountResult = await AccountsApi.SearchAsync(null, null, false);
+        depositAccounts = accountResult.Items
+            .Where(account => account.AccountType is AccountType.Bank or AccountType.OtherCurrentAsset)
+            .ToList();
+    }
+
+    private async Task SavePaymentAsync()
+    {
+        try
+        {
+            if (form.InvoiceId == Guid.Empty)
+            {
+                errorMessage = "Select an invoice first.";
+                return;
+            }
+
+            if (form.DepositAccountId == Guid.Empty)
+            {
+                errorMessage = "Select a deposit account.";
+                return;
+            }
+
+            if (form.Amount <= 0)
+            {
+                errorMessage = "Enter an amount greater than zero.";
+                return;
+            }
+
+            if (SelectedInvoice is not null && form.Amount > SelectedInvoice.BalanceDue)
+            {
+                errorMessage = "Payment amount cannot exceed invoice balance.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.PaymentDate = DateOnly.FromDateTime(paymentDate);
+
+            await PaymentsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not receive payment. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("payments");
+    }
+}

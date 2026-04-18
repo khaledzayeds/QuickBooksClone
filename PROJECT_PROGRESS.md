@@ -107,6 +107,14 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Void posted invoice returns inventory quantities
   - [x] Void is idempotent and does not double-create reversal effects
   - [x] Invoice responses expose posted and reversal transaction links
+- [x] Payments slice
+  - [x] Receive customer payment for posted invoices
+  - [x] Auto-post payment accounting transaction
+  - [x] Debit bank/cash and credit Accounts Receivable
+  - [x] Apply payment to invoice balance
+  - [x] Update invoice status to PartiallyPaid or Paid
+  - [x] Payments API endpoints
+  - [x] Desktop Payments list and Receive Payment form
 
 ## In Progress
 
@@ -116,10 +124,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Payments slice
-  - [ ] Receive payment
-  - [ ] Apply payment to invoice
-  - [ ] Update invoice balance
+- [ ] Payment reversal hardening
+  - [ ] Void/reverse posted payment
+  - [ ] Restore invoice balance after payment reversal
+  - [ ] Create balanced payment reversal transaction
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

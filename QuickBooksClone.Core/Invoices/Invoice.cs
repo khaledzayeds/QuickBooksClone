@@ -72,6 +72,11 @@ public sealed class Invoice : EntityBase, ITenantEntity
             return;
         }
 
+        if (PaidAmount > 0)
+        {
+            throw new InvalidOperationException("Cannot void an invoice with applied payments.");
+        }
+
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = InvoiceStatus.Void;
@@ -93,6 +98,28 @@ public sealed class Invoice : EntityBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = InvoiceStatus.Posted;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyPayment(decimal amount)
+    {
+        if (Status is InvoiceStatus.Void or InvoiceStatus.Draft)
+        {
+            throw new InvalidOperationException("Cannot apply a payment to a draft or void invoice.");
+        }
+
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Payment amount must be greater than zero.");
+        }
+
+        if (amount > BalanceDue)
+        {
+            throw new InvalidOperationException("Payment amount cannot exceed invoice balance.");
+        }
+
+        PaidAmount += amount;
+        Status = BalanceDue == 0 ? InvoiceStatus.Paid : InvoiceStatus.PartiallyPaid;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

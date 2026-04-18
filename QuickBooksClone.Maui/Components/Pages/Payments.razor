@@ -1,0 +1,113 @@
+@page "/payments"
+@inject PaymentsApiClient PaymentsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Payments</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Customers</p>
+            <h1>Payments</h1>
+            <p class="muted">Review customer payments and confirm the accounting transaction created for each receipt.</p>
+        </div>
+        <button class="primary-button" @onclick="NewPayment">Receive Payment</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search payment number or method" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeVoid" />
+                Include void
+            </label>
+            <button class="secondary-button" @onclick="LoadPaymentsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading payments...</p>
+        }
+        else if (payments.Count == 0)
+        {
+            <p class="muted">No payments yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Customer</th>
+                        <th>Invoice</th>
+                        <th>Deposit To</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in payments)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@payment.PaymentNumber</strong>
+                                <small>@payment.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@payment.CustomerName</td>
+                            <td>@payment.InvoiceNumber</td>
+                            <td>@payment.DepositAccountName</td>
+                            <td>@payment.PaymentDate</td>
+                            <td>@payment.Amount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(payment.Status == PaymentStatus.Posted ? "active" : "inactive")">@payment.Status</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<PaymentDto> payments = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPaymentsAsync();
+    }
+
+    private async Task LoadPaymentsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await PaymentsApi.SearchAsync(searchText, includeVoid);
+            payments = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load payments. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewPayment()
+    {
+        Navigation.NavigateTo("payments/new");
+    }
+}

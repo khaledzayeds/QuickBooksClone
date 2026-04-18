@@ -123,6 +123,11 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
             return InvoicePostingResult.Success();
         }
 
+        if (invoice.PaidAmount > 0)
+        {
+            return InvoicePostingResult.Failure("Cannot void an invoice with applied payments. Void or reverse the payment first.");
+        }
+
         var existingReversal = await _transactions.GetBySourceAsync(InvoiceReversalSourceEntityType, invoice.Id, cancellationToken);
         if (existingReversal is not null)
         {

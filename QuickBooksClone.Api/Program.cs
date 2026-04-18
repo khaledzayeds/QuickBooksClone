@@ -2,10 +2,12 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
+using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Infrastructure.Accounting;
 using QuickBooksClone.Infrastructure.Customers;
 using QuickBooksClone.Infrastructure.Invoices;
 using QuickBooksClone.Infrastructure.Items;
+using QuickBooksClone.Infrastructure.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,8 @@ builder.Services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>()
 builder.Services.AddSingleton<IItemRepository, InMemoryItemRepository>();
 builder.Services.AddSingleton<IInvoiceRepository, InMemoryInvoiceRepository>();
 builder.Services.AddSingleton<ISalesInvoicePostingService, SalesInvoicePostingService>();
+builder.Services.AddSingleton<IPaymentRepository, InMemoryPaymentRepository>();
+builder.Services.AddSingleton<IPaymentPostingService, PaymentPostingService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>

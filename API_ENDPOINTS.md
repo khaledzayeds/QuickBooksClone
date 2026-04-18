@@ -382,6 +382,62 @@ sourceEntityId={invoiceId}
 transactionType=InvoiceReversal
 ```
 
+Invoices with applied payments cannot be voided directly. Reverse the payment first, then void the invoice.
+
+## Payments
+
+Payments are auto-posted after creation. They create a balanced accounting transaction:
+
+- Debit selected bank/cash account.
+- Credit Accounts Receivable.
+- Apply the amount to the target invoice.
+- Update invoice status to `PartiallyPaid` or `Paid`.
+
+### List Payments
+
+```http
+GET /api/payments?search=&customerId=&invoiceId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Payment
+
+```http
+GET /api/payments/{id}
+```
+
+### Receive Payment
+
+```http
+POST /api/payments
+Content-Type: application/json
+```
+
+```json
+{
+  "invoiceId": "guid",
+  "depositAccountId": "guid",
+  "paymentDate": "2026-04-18",
+  "amount": 100,
+  "paymentMethod": "Cash"
+}
+```
+
+Validation:
+
+- `invoiceId` must point to an existing posted or partially paid invoice.
+- `amount` must be greater than zero.
+- `amount` cannot exceed invoice balance due.
+- `depositAccountId` must point to a Bank or Other Current Asset account.
+- Accounts Receivable must exist.
+
+Payment transactions use:
+
+```text
+sourceEntityType=Payment
+sourceEntityId={paymentId}
+transactionType=Payment
+```
+
 ## Transactions
 
 The MAUI app has a read-only Transactions screen at:
