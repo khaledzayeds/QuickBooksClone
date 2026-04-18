@@ -33,4 +33,13 @@ public sealed class PaymentsApiClient
         return await response.Content.ReadFromJsonAsync<PaymentDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty payment response.");
     }
+
+    public async Task<PaymentDto> VoidAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PatchAsync($"api/payments/{id}/void", null, cancellationToken);
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<PaymentDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty payment response.");
+    }
 }

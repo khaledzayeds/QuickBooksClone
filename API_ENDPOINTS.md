@@ -438,6 +438,29 @@ sourceEntityId={paymentId}
 transactionType=Payment
 ```
 
+### Void Payment
+
+```http
+PATCH /api/payments/{id}/void
+```
+
+Voids a payment and returns the updated payment.
+
+Rules:
+
+- Posted payments create a balanced reversal transaction.
+- The target invoice paid amount is reduced by the payment amount.
+- Invoice status returns to `Posted` when no payments remain, or `PartiallyPaid` when some payment remains.
+- Void is idempotent; calling it more than once does not duplicate reversal transactions or reduce paid amount twice.
+
+Payment reversal transactions use:
+
+```text
+sourceEntityType=PaymentReversal
+sourceEntityId={paymentId}
+transactionType=PaymentReversal
+```
+
 ## Transactions
 
 The MAUI app has a read-only Transactions screen at:

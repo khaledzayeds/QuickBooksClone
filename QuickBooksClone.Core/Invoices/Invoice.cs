@@ -122,4 +122,21 @@ public sealed class Invoice : EntityBase, ITenantEntity
         Status = BalanceDue == 0 ? InvoiceStatus.Paid : InvoiceStatus.PartiallyPaid;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    public void ReversePayment(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Payment amount must be greater than zero.");
+        }
+
+        if (amount > PaidAmount)
+        {
+            throw new InvalidOperationException("Payment reversal amount cannot exceed paid amount.");
+        }
+
+        PaidAmount -= amount;
+        Status = PaidAmount == 0 ? InvoiceStatus.Posted : InvoiceStatus.PartiallyPaid;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

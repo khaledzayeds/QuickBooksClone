@@ -119,6 +119,28 @@ public sealed class PaymentsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = payment.Id }, await ToDtoAsync(savedPayment!, cancellationToken));
     }
 
+    [HttpPatch("{id:guid}/void")]
+    [ProducesResponseType(typeof(PaymentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PaymentDto>> Void(Guid id, CancellationToken cancellationToken = default)
+    {
+        var payment = await _payments.GetByIdAsync(id, cancellationToken);
+        if (payment is null)
+        {
+            return NotFound();
+        }
+
+        var voidResult = await _postingService.VoidAsync(payment.Id, cancellationToken);
+        if (!voidResult.Succeeded)
+        {
+            return BadRequest(voidResult.ErrorMessage);
+        }
+
+        var updatedPayment = await _payments.GetByIdAsync(payment.Id, cancellationToken);
+        return Ok(await ToDtoAsync(updatedPayment!, cancellationToken));
+    }
+
     private async Task<PaymentDto> ToDtoAsync(Payment payment, CancellationToken cancellationToken)
     {
         var customer = await _customers.GetByIdAsync(payment.CustomerId, cancellationToken);
@@ -139,6 +161,8 @@ public sealed class PaymentsController : ControllerBase
             payment.PaymentMethod,
             payment.Status,
             payment.PostedTransactionId,
-            payment.PostedAt);
+            payment.PostedAt,
+            payment.ReversalTransactionId,
+            payment.VoidedAt);
     }
 }

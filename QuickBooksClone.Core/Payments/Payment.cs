@@ -56,6 +56,8 @@ public sealed class Payment : EntityBase, ITenantEntity
     public PaymentStatus Status { get; private set; }
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
+    public Guid? ReversalTransactionId { get; private set; }
+    public DateTimeOffset? VoidedAt { get; private set; }
 
     public void MarkPosted(Guid transactionId)
     {
@@ -72,6 +74,25 @@ public sealed class Payment : EntityBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = PaymentStatus.Posted;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Void(Guid? reversalTransactionId = null)
+    {
+        if (Status == PaymentStatus.Void)
+        {
+            if (ReversalTransactionId is null && reversalTransactionId is not null)
+            {
+                ReversalTransactionId = reversalTransactionId;
+                UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            return;
+        }
+
+        ReversalTransactionId = reversalTransactionId;
+        VoidedAt = DateTimeOffset.UtcNow;
+        Status = PaymentStatus.Void;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

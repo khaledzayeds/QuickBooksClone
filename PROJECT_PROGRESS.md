@@ -115,6 +115,12 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Update invoice status to PartiallyPaid or Paid
   - [x] Payments API endpoints
   - [x] Desktop Payments list and Receive Payment form
+- [x] Payment reversal hardening
+  - [x] Void posted payment creates balanced reversal transaction
+  - [x] Void posted payment restores invoice balance
+  - [x] Invoice status returns to Posted or PartiallyPaid after reversal
+  - [x] Payment void is idempotent
+  - [x] Desktop Payments screen can void payments
 
 ## In Progress
 
@@ -124,10 +130,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Payment reversal hardening
-  - [ ] Void/reverse posted payment
-  - [ ] Restore invoice balance after payment reversal
-  - [ ] Create balanced payment reversal transaction
+- [ ] Vendors and purchases foundation
+  - [ ] Vendor entity and endpoints
+  - [ ] Vendor bills / purchase invoices
+  - [ ] Receive inventory against purchases
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

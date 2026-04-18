@@ -71,4 +71,15 @@ public sealed class InMemoryPaymentRepository : IPaymentRepository
         payment.MarkPosted(transactionId);
         return Task.FromResult(true);
     }
+
+    public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default)
+    {
+        if (!_payments.TryGetValue(id, out var payment))
+        {
+            return Task.FromResult(false);
+        }
+
+        payment.Void(reversalTransactionId);
+        return Task.FromResult(true);
+    }
 }

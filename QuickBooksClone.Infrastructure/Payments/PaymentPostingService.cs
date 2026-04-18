@@ -7,6 +7,7 @@ namespace QuickBooksClone.Infrastructure.Payments;
 public sealed class PaymentPostingService : IPaymentPostingService
 {
     private const string PaymentSourceEntityType = "Payment";
+    private const string PaymentReversalSourceEntityType = "PaymentReversal";
 
     private readonly IPaymentRepository _payments;
     private readonly IInvoiceRepository _invoices;
@@ -31,6 +32,11 @@ public sealed class PaymentPostingService : IPaymentPostingService
         if (payment is null)
         {
             return PaymentPostingResult.Failure("Payment does not exist.");
+        }
+
+        if (payment.Status == PaymentStatus.Void)
+        {
+            return PaymentPostingResult.Failure("Cannot post a void payment.");
         }
 
         if (payment.PostedTransactionId is not null)
@@ -106,6 +112,80 @@ public sealed class PaymentPostingService : IPaymentPostingService
         await _invoices.ApplyPaymentAsync(invoice.Id, payment.Amount, cancellationToken);
         await _payments.MarkPostedAsync(payment.Id, savedTransaction.Id, cancellationToken);
         return PaymentPostingResult.Success(savedTransaction.Id);
+    }
+
+    public async Task<PaymentPostingResult> VoidAsync(Guid paymentId, CancellationToken cancellationToken = default)
+    {
+        var payment = await _payments.GetByIdAsync(paymentId, cancellationToken);
+        if (payment is null)
+        {
+            return PaymentPostingResult.Failure("Payment does not exist.");
+        }
+
+        if (payment.Status == PaymentStatus.Void)
+        {
+            return PaymentPostingResult.Success(payment.ReversalTransactionId);
+        }
+
+        if (payment.PostedTransactionId is null)
+        {
+            await _payments.VoidAsync(payment.Id, null, cancellationToken);
+            return PaymentPostingResult.Success();
+        }
+
+        var invoice = await _invoices.GetByIdAsync(payment.InvoiceId, cancellationToken);
+        if (invoice is null)
+        {
+            return PaymentPostingResult.Failure("Invoice does not exist.");
+        }
+
+        var existingReversal = await _transactions.GetBySourceAsync(PaymentReversalSourceEntityType, payment.Id, cancellationToken);
+        if (existingReversal is not null)
+        {
+            await _payments.VoidAsync(payment.Id, existingReversal.Id, cancellationToken);
+            return PaymentPostingResult.Success(existingReversal.Id);
+        }
+
+        var originalTransaction = await _transactions.GetByIdAsync(payment.PostedTransactionId.Value, cancellationToken);
+        if (originalTransaction is null)
+        {
+            return PaymentPostingResult.Failure("Posted payment transaction is missing.");
+        }
+
+        if (payment.Amount > invoice.PaidAmount)
+        {
+            return PaymentPostingResult.Failure("Payment reversal amount exceeds the invoice paid amount.");
+        }
+
+        var reversalTransaction = BuildReversalTransaction(payment, originalTransaction);
+        var savedReversal = await _transactions.AddAsync(reversalTransaction, cancellationToken);
+
+        await _invoices.ReversePaymentAsync(invoice.Id, payment.Amount, cancellationToken);
+        await _payments.VoidAsync(payment.Id, savedReversal.Id, cancellationToken);
+        return PaymentPostingResult.Success(savedReversal.Id);
+    }
+
+    private static AccountingTransaction BuildReversalTransaction(
+        Payment payment,
+        AccountingTransaction originalTransaction)
+    {
+        var transaction = new AccountingTransaction(
+            "PaymentReversal",
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            $"{payment.PaymentNumber}-VOID",
+            PaymentReversalSourceEntityType,
+            payment.Id);
+
+        foreach (var line in originalTransaction.Lines)
+        {
+            transaction.AddLine(new AccountingTransactionLine(
+                line.AccountId,
+                $"Reversal - {line.Description}",
+                line.Credit,
+                line.Debit));
+        }
+
+        return transaction;
     }
 
     private async Task<Account?> FindFirstAccountAsync(AccountType accountType, CancellationToken cancellationToken)
