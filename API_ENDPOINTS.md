@@ -201,6 +201,87 @@ PATCH /api/vendors/{id}/active
 }
 ```
 
+## Purchase Bills
+
+Purchase bills are posted through a dedicated posting service. Posted purchase bills:
+
+- Debit Inventory Asset for inventory items.
+- Debit the item expense account for service/non-inventory items.
+- Credit Accounts Payable.
+- Increase inventory item quantity on hand.
+- Increase vendor balance.
+
+### List Purchase Bills
+
+```http
+GET /api/purchase-bills?search=&vendorId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Purchase Bill
+
+```http
+GET /api/purchase-bills/{id}
+```
+
+### Create Purchase Bill
+
+```http
+POST /api/purchase-bills
+Content-Type: application/json
+```
+
+```json
+{
+  "vendorId": "guid",
+  "billDate": "2026-04-18",
+  "dueDate": "2026-05-18",
+  "saveMode": 2,
+  "lines": [
+    {
+      "itemId": "guid",
+      "description": "Line description",
+      "quantity": 2,
+      "unitCost": 40
+    }
+  ]
+}
+```
+
+If `unitCost` is `0`, the API uses the selected item's purchase price.
+
+`saveMode` is numeric:
+
+```text
+1 Draft
+2 SaveAndPost
+```
+
+Validation:
+
+- `vendorId` must point to an active vendor.
+- Bills must have at least one line.
+- `quantity` must be greater than zero.
+- `unitCost` cannot be negative.
+- Inventory items need an inventory asset account before posting.
+- Service/non-inventory items need an expense account before posting.
+- Accounts Payable must exist before posting.
+
+### Post Purchase Bill
+
+```http
+POST /api/purchase-bills/{id}/post
+```
+
+Posting is idempotent; posting an already posted purchase bill returns the existing posted bill instead of creating duplicate accounting or inventory effects.
+
+Purchase bill transactions use:
+
+```text
+sourceEntityType=PurchaseBill
+sourceEntityId={purchaseBillId}
+transactionType=PurchaseBill
+```
+
 ## Accounts
 
 Account responses include `balance`. It is calculated from posted accounting transactions:

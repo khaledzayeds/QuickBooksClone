@@ -1,0 +1,132 @@
+@page "/purchase-bills"
+@inject PurchaseBillsApiClient PurchaseBillsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Purchase Bills</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>Purchase Bills</h1>
+            <p class="muted">Record vendor bills, post inventory receipts, and review their Accounts Payable effect.</p>
+        </div>
+        <button class="primary-button" @onclick="NewBill">New Bill</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search bill number" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeVoid" />
+                Include void
+            </label>
+            <button class="secondary-button" @onclick="LoadBillsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading purchase bills...</p>
+        }
+        else if (bills.Count == 0)
+        {
+            <p class="muted">No purchase bills yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Vendor</th>
+                        <th>Date</th>
+                        <th>Due</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bill in bills)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@bill.BillNumber</strong>
+                                <small>@bill.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@bill.VendorName</td>
+                            <td>@bill.BillDate</td>
+                            <td>@bill.DueDate</td>
+                            <td>@bill.TotalAmount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(bill.Status == PurchaseBillStatus.Posted ? "active" : "inactive")">@bill.Status</span>
+                            </td>
+                            <td class="actions">
+                                @if (bill.Status is PurchaseBillStatus.Draft)
+                                {
+                                    <button class="link-button" @onclick="() => PostAsync(bill)">Post</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<PurchaseBillDto> bills = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBillsAsync();
+    }
+
+    private async Task LoadBillsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await PurchaseBillsApi.SearchAsync(searchText, includeVoid);
+            bills = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load purchase bills. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task PostAsync(PurchaseBillDto bill)
+    {
+        try
+        {
+            errorMessage = null;
+            await PurchaseBillsApi.PostAsync(bill.Id);
+            await LoadBillsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not post purchase bill. Details: {ex.Message}";
+        }
+    }
+
+    private void NewBill()
+    {
+        Navigation.NavigateTo("purchase-bills/new");
+    }
+}

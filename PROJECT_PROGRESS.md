@@ -128,6 +128,16 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Duplicate display name and email validation
   - [x] Desktop Vendors list and vendor form
   - [x] Vendor navigation link
+- [x] Purchase bills foundation
+  - [x] Purchase bill header and lines
+  - [x] Save Draft / Create and Post workflow
+  - [x] Purchase bill posting service
+  - [x] Post inventory receipts into stock
+  - [x] Debit Inventory Asset or Expense
+  - [x] Credit Accounts Payable
+  - [x] Update vendor balance
+  - [x] Purchase bill API endpoints
+  - [x] Desktop Purchase Bills list and creation form
 
 ## In Progress
 
@@ -137,11 +147,15 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Purchase bills foundation
-  - [ ] Purchase bill header and lines
-  - [ ] Save draft / create and post workflow
-  - [ ] Post inventory receipts and Accounts Payable
-  - [ ] Vendor bill desktop screen
+- [ ] Purchase bill reversal hardening
+  - [ ] Void posted purchase bill with reversal transaction
+  - [ ] Reduce inventory quantities safely
+  - [ ] Reverse vendor balance
+- [ ] Opening balances posting slice
+  - [ ] Customer opening balances post to Accounts Receivable
+  - [ ] Vendor opening balances post to Accounts Payable
+  - [ ] Item opening quantities post to Inventory Asset
+  - [ ] Balanced opening equity offset
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations
