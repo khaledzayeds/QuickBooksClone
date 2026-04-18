@@ -1,0 +1,210 @@
+@page "/vendor-credits/new"
+@inject VendorCreditsApiClient VendorCreditsApi
+@inject VendorsApiClient VendorsApi
+@inject PurchaseBillsApiClient PurchaseBillsApi
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>New Vendor Credit Activity</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>New Vendor Credit Activity</h1>
+            <p class="muted">Use vendor credit on a bill or receive the refund into cash or bank.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Vendor Credits</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <label>
+            Vendor
+            <InputSelect class="form-control" @bind-Value="form.VendorId" @bind-Value:after="OnVendorChangedAsync">
+                <option value="@Guid.Empty">Select vendor with credit</option>
+                @foreach (var vendor in vendors)
+                {
+                    <option value="@vendor.Id">@vendor.DisplayName - Credit @vendor.CreditBalance.ToString("N2")</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Date
+                <InputDate class="form-control" @bind-Value="activityDate" />
+            </label>
+
+            <label>
+                Action
+                <InputSelect class="form-control" @bind-Value="form.Action" @bind-Value:after="OnActionChangedAsync">
+                    <option value="@VendorCreditAction.ApplyToBill">Apply to bill</option>
+                    <option value="@VendorCreditAction.RefundReceipt">Refund receipt</option>
+                </InputSelect>
+            </label>
+        </div>
+
+        @if (SelectedVendor is not null)
+        {
+            <div class="totals-box">Available credit: @SelectedVendor.CreditBalance.ToString("N2") @SelectedVendor.Currency</div>
+        }
+
+        @if (form.Action == VendorCreditAction.ApplyToBill)
+        {
+            <label>
+                Purchase bill
+                <InputSelect class="form-control" @bind-Value="form.PurchaseBillId">
+                    <option value="">Select bill with balance</option>
+                    @foreach (var bill in vendorBills)
+                    {
+                        <option value="@bill.Id">@bill.BillNumber - Balance @bill.BalanceDue.ToString("N2")</option>
+                    }
+                </InputSelect>
+            </label>
+        }
+        else
+        {
+            <label>
+                Deposit account
+                <InputSelect class="form-control" @bind-Value="form.DepositAccountId">
+                    <option value="">Select cash or bank account</option>
+                    @foreach (var account in depositAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Payment method
+                <InputText class="form-control" @bind-Value="form.PaymentMethod" />
+            </label>
+        }
+
+        <label>
+            Amount
+            <InputNumber class="form-control" @bind-Value="form.Amount" />
+        </label>
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SaveActivityAsync">
+                @(isSaving ? "Saving..." : "Create and Post")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<VendorDto> vendors = [];
+    private List<PurchaseBillDto> vendorBills = [];
+    private List<AccountDto> depositAccounts = [];
+    private VendorCreditActivityFormModel form = new();
+    private DateTime activityDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+
+    private VendorDto? SelectedVendor => vendors.FirstOrDefault(vendor => vendor.Id == form.VendorId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var vendorResult = await VendorsApi.SearchAsync(null, false);
+        vendors = vendorResult.Items.Where(vendor => vendor.CreditBalance > 0).OrderBy(vendor => vendor.DisplayName).ToList();
+
+        var bankAccounts = await AccountsApi.SearchAsync(null, AccountType.Bank, false);
+        var otherCurrentAssets = await AccountsApi.SearchAsync(null, AccountType.OtherCurrentAsset, false);
+        depositAccounts = bankAccounts.Items.Concat(otherCurrentAssets.Items).OrderBy(account => account.Code).ToList();
+    }
+
+    private async Task OnVendorChangedAsync()
+    {
+        vendorBills.Clear();
+        form.PurchaseBillId = null;
+        if (form.VendorId == Guid.Empty) return;
+
+        var billResult = await PurchaseBillsApi.SearchAsync(null, false);
+        vendorBills = billResult.Items
+            .Where(bill => bill.VendorId == form.VendorId && bill.BalanceDue > 0 && bill.Status is not PurchaseBillStatus.Draft and not PurchaseBillStatus.Void)
+            .OrderBy(bill => bill.BillDate)
+            .ToList();
+    }
+
+    private Task OnActionChangedAsync()
+    {
+        form.PurchaseBillId = null;
+        form.DepositAccountId ??= depositAccounts.FirstOrDefault()?.Id;
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveActivityAsync()
+    {
+        try
+        {
+            if (SelectedVendor is null)
+            {
+                errorMessage = "Select a vendor with available credit.";
+                return;
+            }
+
+            if (form.Amount <= 0)
+            {
+                errorMessage = "Amount must be greater than zero.";
+                return;
+            }
+
+            if (form.Amount > SelectedVendor.CreditBalance)
+            {
+                errorMessage = "Amount cannot exceed available vendor credit.";
+                return;
+            }
+
+            if (form.Action == VendorCreditAction.ApplyToBill)
+            {
+                if (form.PurchaseBillId is null || form.PurchaseBillId == Guid.Empty)
+                {
+                    errorMessage = "Select a purchase bill.";
+                    return;
+                }
+
+                var bill = vendorBills.FirstOrDefault(current => current.Id == form.PurchaseBillId);
+                if (bill is not null && form.Amount > bill.BalanceDue)
+                {
+                    errorMessage = "Amount cannot exceed bill balance.";
+                    return;
+                }
+
+                form.DepositAccountId = null;
+                form.PaymentMethod = null;
+            }
+            else if (form.DepositAccountId is null || form.DepositAccountId == Guid.Empty)
+            {
+                errorMessage = "Select a deposit account.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.ActivityDate = DateOnly.FromDateTime(activityDate);
+            await VendorCreditsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save vendor credit activity. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("vendor-credits");
+    }
+}

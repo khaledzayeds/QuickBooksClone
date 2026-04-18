@@ -30,8 +30,9 @@ public sealed class PurchaseBill : EntityBase, ITenantEntity
     public IReadOnlyList<PurchaseBillLine> Lines => _lines;
     public decimal TotalAmount => _lines.Sum(line => line.LineTotal);
     public decimal PaidAmount { get; private set; }
+    public decimal CreditAppliedAmount { get; private set; }
     public decimal ReturnedAmount { get; private set; }
-    public decimal BalanceDue => Math.Max(0, TotalAmount - ReturnedAmount - PaidAmount);
+    public decimal BalanceDue => Math.Max(0, TotalAmount - ReturnedAmount - PaidAmount - CreditAppliedAmount);
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversalTransactionId { get; private set; }
@@ -164,6 +165,28 @@ public sealed class PurchaseBill : EntityBase, ITenantEntity
             Status = PurchaseBillStatus.Posted;
         }
 
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyCredit(decimal amount)
+    {
+        if (Status is PurchaseBillStatus.Void or PurchaseBillStatus.Draft)
+        {
+            throw new InvalidOperationException("Cannot apply vendor credit to a draft or void purchase bill.");
+        }
+
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Credit amount must be greater than zero.");
+        }
+
+        if (amount > BalanceDue)
+        {
+            throw new InvalidOperationException("Credit amount cannot exceed purchase bill balance.");
+        }
+
+        CreditAppliedAmount += amount;
+        Status = BalanceDue == 0 ? PurchaseBillStatus.Paid : PurchaseBillStatus.PartiallyPaid;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

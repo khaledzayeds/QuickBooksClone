@@ -121,6 +121,22 @@ public sealed class Vendor : EntityBase, ITenantEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    public void UseCredit(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Credit amount must be greater than zero.");
+        }
+
+        if (amount > CreditBalance)
+        {
+            throw new InvalidOperationException("Credit amount exceeds vendor available credit.");
+        }
+
+        CreditBalance -= amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     private static string NormalizeRequired(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))

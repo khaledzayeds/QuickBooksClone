@@ -10,6 +10,7 @@ public sealed record PurchaseBillDto(
     PurchaseBillStatus Status,
     decimal TotalAmount,
     decimal PaidAmount,
+    decimal CreditAppliedAmount,
     decimal ReturnedAmount,
     decimal BalanceDue,
     Guid? PostedTransactionId,

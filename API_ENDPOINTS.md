@@ -396,6 +396,95 @@ sourceEntityId={purchaseReturnId}
 transactionType=PurchaseReturn
 ```
 
+## Vendor Credits
+
+Vendor credits are created automatically when a purchase return exceeds the purchase bill balance due, such as returning goods from a fully paid vendor bill.
+
+Vendor credit workflows:
+
+- Apply vendor credit to another purchase bill.
+- Receive a vendor refund into a Bank or Other Current Asset account.
+
+Applying vendor credit to a bill is a vendor subledger allocation. It reduces vendor `creditBalance`, increases the target bill `creditAppliedAmount`, and reduces `balanceDue`. It does not create a new general-ledger transaction because the original purchase return already debited Accounts Payable.
+
+Receiving a refund creates a general-ledger transaction:
+
+- Debit selected bank/cash account.
+- Credit Accounts Payable.
+- Reduce vendor `creditBalance`.
+
+### List Vendor Credit Activities
+
+```http
+GET /api/vendor-credits?search=&vendorId=&action=&includeVoid=false&page=1&pageSize=25
+```
+
+`action` is numeric:
+
+```text
+1 ApplyToBill
+2 RefundReceipt
+```
+
+### Get Vendor Credit Activity
+
+```http
+GET /api/vendor-credits/{id}
+```
+
+### Create Vendor Credit Activity
+
+```http
+POST /api/vendor-credits
+Content-Type: application/json
+```
+
+Apply credit to bill:
+
+```json
+{
+  "vendorId": "guid",
+  "activityDate": "2026-04-18",
+  "amount": 60,
+  "action": 1,
+  "purchaseBillId": "guid",
+  "depositAccountId": null,
+  "paymentMethod": null
+}
+```
+
+Receive refund:
+
+```json
+{
+  "vendorId": "guid",
+  "activityDate": "2026-04-18",
+  "amount": 40,
+  "action": 2,
+  "purchaseBillId": null,
+  "depositAccountId": "guid",
+  "paymentMethod": "Cash"
+}
+```
+
+Validation:
+
+- `vendorId` must point to an existing vendor.
+- `amount` must be greater than zero.
+- `amount` cannot exceed vendor `creditBalance`.
+- Applying credit requires a purchase bill for the same vendor.
+- Applying credit cannot exceed the target bill `balanceDue`.
+- Refund receipts require `depositAccountId`.
+- Deposit account must be Bank or Other Current Asset.
+
+Refund receipt transactions use:
+
+```text
+sourceEntityType=VendorCreditRefund
+sourceEntityId={vendorCreditActivityId}
+transactionType=VendorCreditRefund
+```
+
 ## Vendor Payments
 
 Vendor payments are auto-posted after creation. They create a balanced accounting transaction:

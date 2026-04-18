@@ -9,6 +9,7 @@ using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.Vendors;
+using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.VendorPayments;
 using QuickBooksClone.Infrastructure.Accounting;
 using QuickBooksClone.Infrastructure.CustomerCredits;
@@ -21,6 +22,7 @@ using QuickBooksClone.Infrastructure.PurchaseBills;
 using QuickBooksClone.Infrastructure.PurchaseReturns;
 using QuickBooksClone.Infrastructure.SalesReturns;
 using QuickBooksClone.Infrastructure.Vendors;
+using QuickBooksClone.Infrastructure.VendorCredits;
 using QuickBooksClone.Infrastructure.VendorPayments;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,6 +53,8 @@ builder.Services.AddSingleton<IPurchaseReturnPostingService, PurchaseReturnPosti
 builder.Services.AddSingleton<IOpeningBalancePostingService, OpeningBalancePostingService>();
 builder.Services.AddSingleton<IVendorPaymentRepository, InMemoryVendorPaymentRepository>();
 builder.Services.AddSingleton<IVendorPaymentPostingService, VendorPaymentPostingService>();
+builder.Services.AddSingleton<IVendorCreditActivityRepository, InMemoryVendorCreditActivityRepository>();
+builder.Services.AddSingleton<IVendorCreditPostingService, VendorCreditPostingService>();
 builder.Services.AddSingleton<ISalesReturnRepository, InMemorySalesReturnRepository>();
 builder.Services.AddSingleton<ISalesReturnPostingService, SalesReturnPostingService>();
 builder.Services.AddCors(options =>

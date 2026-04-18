@@ -48,6 +48,7 @@
                         <th>Due</th>
                         <th>Total</th>
                         <th>Paid</th>
+                        <th>Credit</th>
                         <th>Returned</th>
                         <th>Balance</th>
                         <th>Status</th>
@@ -67,6 +68,7 @@
                             <td>@bill.DueDate</td>
                             <td>@bill.TotalAmount.ToString("N2")</td>
                             <td>@bill.PaidAmount.ToString("N2")</td>
+                            <td>@bill.CreditAppliedAmount.ToString("N2")</td>
                             <td>@bill.ReturnedAmount.ToString("N2")</td>
                             <td>@bill.BalanceDue.ToString("N2")</td>
                             <td>
