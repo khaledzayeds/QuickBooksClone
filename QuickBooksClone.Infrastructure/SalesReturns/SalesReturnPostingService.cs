@@ -132,7 +132,6 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
 
         var transaction = BuildAccountingTransaction(salesReturn, arAccount.Id, returnLines);
         var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
-        var creditAmount = Math.Max(0, salesReturn.TotalAmount - invoice.BalanceDue);
 
         foreach (var (returnLine, _, item) in returnLines.Where(current => current.Item.ItemType == ItemType.Inventory))
         {
@@ -140,11 +139,7 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
         }
 
         await _invoices.ApplyReturnAsync(invoice.Id, salesReturn.TotalAmount, cancellationToken);
-        if (creditAmount > 0)
-        {
-            await _customers.AddCreditAsync(invoice.CustomerId, creditAmount, cancellationToken);
-        }
-
+        await _customers.ApplySalesReturnAsync(invoice.CustomerId, salesReturn.TotalAmount, cancellationToken);
         await _salesReturns.MarkPostedAsync(salesReturn.Id, savedTransaction.Id, cancellationToken);
         return SalesReturnPostingResult.Success(savedTransaction.Id);
     }

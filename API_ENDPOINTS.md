@@ -28,6 +28,29 @@ Customer responses include:
 - `balance`: current regular customer balance field.
 - `creditBalance`: available customer credit created by paid/cash sales returns and consumed by customer-credit workflows.
 
+Customer balance rules:
+
+- Posted credit invoices increase `balance`.
+- Posted customer payments decrease `balance`.
+- Voided posted payments restore `balance`.
+- Sales returns decrease `balance` first; any excess becomes `creditBalance`.
+- Applying customer credit to an invoice decreases both `balance` and `creditBalance`.
+- Refunding customer credit decreases `creditBalance`; the refund transaction clears the Accounts Receivable credit in the general ledger.
+
+Vendor responses include:
+
+- `balance`: current regular vendor payable balance.
+- `creditBalance`: available vendor credit created by paid purchase returns and consumed by vendor-credit workflows.
+
+Vendor balance rules:
+
+- Posted purchase bills increase `balance`.
+- Posted vendor payments decrease `balance`.
+- Voided posted vendor payments restore `balance`.
+- Purchase returns decrease `balance` first; any excess becomes `creditBalance`.
+- Applying vendor credit to a bill decreases both `balance` and `creditBalance`.
+- Receiving a vendor refund decreases `creditBalance`; the refund receipt transaction clears the Accounts Payable debit in the general ledger.
+
 ## Customers
 
 ### List Customers

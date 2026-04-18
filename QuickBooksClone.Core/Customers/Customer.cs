@@ -51,6 +51,73 @@ public sealed class Customer : EntityBase, ITenantEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    public void ApplyInvoice(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Invoice amount must be greater than zero.");
+        }
+
+        Balance += amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ReverseInvoice(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Invoice amount must be greater than zero.");
+        }
+
+        if (amount > Balance)
+        {
+            throw new InvalidOperationException("Invoice reversal amount cannot exceed customer balance.");
+        }
+
+        Balance -= amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyPayment(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Payment amount must be greater than zero.");
+        }
+
+        if (amount > Balance)
+        {
+            throw new InvalidOperationException("Payment amount cannot exceed customer balance.");
+        }
+
+        Balance -= amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ReversePayment(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Payment amount must be greater than zero.");
+        }
+
+        Balance += amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplySalesReturn(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Return amount must be greater than zero.");
+        }
+
+        var receivableReduction = Math.Min(Balance, amount);
+        Balance -= receivableReduction;
+        CreditBalance += amount - receivableReduction;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void AddCredit(decimal amount)
     {
         if (amount <= 0)
@@ -75,6 +142,28 @@ public sealed class Customer : EntityBase, ITenantEntity
         }
 
         CreditBalance -= amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyCreditToInvoice(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Credit amount must be greater than zero.");
+        }
+
+        if (amount > CreditBalance)
+        {
+            throw new InvalidOperationException("Credit amount exceeds customer available credit.");
+        }
+
+        if (amount > Balance)
+        {
+            throw new InvalidOperationException("Credit amount cannot exceed customer balance.");
+        }
+
+        CreditBalance -= amount;
+        Balance -= amount;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

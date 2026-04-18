@@ -95,7 +95,7 @@ public sealed class CustomerCreditPostingService : ICustomerCreditPostingService
         }
 
         await _invoices.ApplyCreditAsync(invoice.Id, activity.Amount, cancellationToken);
-        await _customers.UseCreditAsync(activity.CustomerId, activity.Amount, cancellationToken);
+        await _customers.ApplyCreditToInvoiceAsync(activity.CustomerId, activity.Amount, cancellationToken);
         await _activities.MarkPostedAsync(activity.Id, null, cancellationToken);
         return CustomerCreditPostingResult.Success();
     }

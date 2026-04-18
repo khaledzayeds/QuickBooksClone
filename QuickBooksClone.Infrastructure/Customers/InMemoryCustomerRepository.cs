@@ -91,6 +91,61 @@ public sealed class InMemoryCustomerRepository : ICustomerRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ApplyInvoiceAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.ApplyInvoice(amount);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ReverseInvoiceAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.ReverseInvoice(amount);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.ApplyPayment(amount);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.ReversePayment(amount);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ApplySalesReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.ApplySalesReturn(amount);
+        return Task.FromResult(true);
+    }
+
     public Task<bool> AddCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
     {
         if (!_customers.TryGetValue(id, out var customer))
@@ -110,6 +165,17 @@ public sealed class InMemoryCustomerRepository : ICustomerRepository
         }
 
         customer.UseCredit(amount);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ApplyCreditToInvoiceAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.ApplyCreditToInvoice(amount);
         return Task.FromResult(true);
     }
 

@@ -202,6 +202,12 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Refund receipt creates balanced accounting transaction
   - [x] Purchase bill exposes vendor credit applied amount
   - [x] Desktop Vendor Credits list and activity form
+- [x] Customer/vendor subledger balance review
+  - [x] Credit invoice posting increases customer balance
+  - [x] Customer payments reduce customer balance
+  - [x] Sales returns reduce customer balance before creating customer credit
+  - [x] Customer credit application reduces customer balance and credit balance
+  - [x] Verified vendor balance rules already move through bills, payments, returns, and credits
 
 ## In Progress
 

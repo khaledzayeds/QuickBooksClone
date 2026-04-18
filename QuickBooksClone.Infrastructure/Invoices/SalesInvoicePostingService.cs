@@ -1,4 +1,5 @@
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
 
@@ -10,17 +11,20 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
     private const string InvoiceReversalSourceEntityType = "InvoiceReversal";
 
     private readonly IInvoiceRepository _invoices;
+    private readonly ICustomerRepository _customers;
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
     private readonly IAccountingTransactionRepository _transactions;
 
     public SalesInvoicePostingService(
         IInvoiceRepository invoices,
+        ICustomerRepository customers,
         IItemRepository items,
         IAccountRepository accounts,
         IAccountingTransactionRepository transactions)
     {
         _invoices = invoices;
+        _customers = customers;
         _items = items;
         _accounts = accounts;
         _transactions = transactions;
@@ -101,6 +105,7 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
         }
 
         await _invoices.MarkPostedAsync(invoice.Id, savedTransaction.Id, cancellationToken);
+        await _customers.ApplyInvoiceAsync(invoice.CustomerId, invoice.TotalAmount, cancellationToken);
         return InvoicePostingResult.Success(savedTransaction.Id);
     }
 
@@ -164,6 +169,7 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
             await _items.IncreaseQuantityAsync(item.Id, line.Quantity, cancellationToken);
         }
 
+        await _customers.ReverseInvoiceAsync(invoice.CustomerId, invoice.TotalAmount, cancellationToken);
         await _invoices.VoidAsync(invoice.Id, savedReversal.Id, cancellationToken);
         return InvoicePostingResult.Success(savedReversal.Id);
     }

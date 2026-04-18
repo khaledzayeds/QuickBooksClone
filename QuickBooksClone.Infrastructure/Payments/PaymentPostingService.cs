@@ -1,4 +1,5 @@
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Payments;
 
@@ -11,17 +12,20 @@ public sealed class PaymentPostingService : IPaymentPostingService
 
     private readonly IPaymentRepository _payments;
     private readonly IInvoiceRepository _invoices;
+    private readonly ICustomerRepository _customers;
     private readonly IAccountRepository _accounts;
     private readonly IAccountingTransactionRepository _transactions;
 
     public PaymentPostingService(
         IPaymentRepository payments,
         IInvoiceRepository invoices,
+        ICustomerRepository customers,
         IAccountRepository accounts,
         IAccountingTransactionRepository transactions)
     {
         _payments = payments;
         _invoices = invoices;
+        _customers = customers;
         _accounts = accounts;
         _transactions = transactions;
     }
@@ -110,6 +114,7 @@ public sealed class PaymentPostingService : IPaymentPostingService
 
         var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
         await _invoices.ApplyPaymentAsync(invoice.Id, payment.Amount, cancellationToken);
+        await _customers.ApplyPaymentAsync(payment.CustomerId, payment.Amount, cancellationToken);
         await _payments.MarkPostedAsync(payment.Id, savedTransaction.Id, cancellationToken);
         return PaymentPostingResult.Success(savedTransaction.Id);
     }
@@ -161,6 +166,7 @@ public sealed class PaymentPostingService : IPaymentPostingService
         var savedReversal = await _transactions.AddAsync(reversalTransaction, cancellationToken);
 
         await _invoices.ReversePaymentAsync(invoice.Id, payment.Amount, cancellationToken);
+        await _customers.ReversePaymentAsync(payment.CustomerId, payment.Amount, cancellationToken);
         await _payments.VoidAsync(payment.Id, savedReversal.Id, cancellationToken);
         return PaymentPostingResult.Success(savedReversal.Id);
     }
