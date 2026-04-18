@@ -136,6 +136,28 @@ public sealed class PurchaseBillsController : ControllerBase
         return Ok(await ToDtoAsync(updatedBill!, cancellationToken));
     }
 
+    [HttpPatch("{id:guid}/void")]
+    [ProducesResponseType(typeof(PurchaseBillDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PurchaseBillDto>> Void(Guid id, CancellationToken cancellationToken = default)
+    {
+        var bill = await _bills.GetByIdAsync(id, cancellationToken);
+        if (bill is null)
+        {
+            return NotFound();
+        }
+
+        var voidResult = await _postingService.VoidAsync(bill.Id, cancellationToken);
+        if (!voidResult.Succeeded)
+        {
+            return BadRequest(voidResult.ErrorMessage);
+        }
+
+        var updatedBill = await _bills.GetByIdAsync(bill.Id, cancellationToken);
+        return Ok(await ToDtoAsync(updatedBill!, cancellationToken));
+    }
+
     private async Task<PurchaseBillDto> ToDtoAsync(PurchaseBill bill, CancellationToken cancellationToken)
     {
         var vendor = await _vendors.GetByIdAsync(bill.VendorId, cancellationToken);
@@ -151,6 +173,8 @@ public sealed class PurchaseBillsController : ControllerBase
             bill.TotalAmount,
             bill.PostedTransactionId,
             bill.PostedAt,
+            bill.ReversalTransactionId,
+            bill.VoidedAt,
             bill.Lines.Select(line => new PurchaseBillLineDto(
                 line.Id,
                 line.ItemId,

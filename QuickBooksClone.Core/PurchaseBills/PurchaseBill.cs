@@ -31,6 +31,8 @@ public sealed class PurchaseBill : EntityBase, ITenantEntity
     public decimal TotalAmount => _lines.Sum(line => line.LineTotal);
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
+    public Guid? ReversalTransactionId { get; private set; }
+    public DateTimeOffset? VoidedAt { get; private set; }
 
     public void AddLine(PurchaseBillLine line)
     {
@@ -58,6 +60,25 @@ public sealed class PurchaseBill : EntityBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = PurchaseBillStatus.Posted;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Void(Guid? reversalTransactionId = null)
+    {
+        if (Status == PurchaseBillStatus.Void)
+        {
+            if (ReversalTransactionId is null && reversalTransactionId is not null)
+            {
+                ReversalTransactionId = reversalTransactionId;
+                UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            return;
+        }
+
+        ReversalTransactionId = reversalTransactionId;
+        VoidedAt = DateTimeOffset.UtcNow;
+        Status = PurchaseBillStatus.Void;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

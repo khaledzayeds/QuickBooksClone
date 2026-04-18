@@ -55,4 +55,13 @@ public sealed class PurchaseBillsApiClient
         return await response.Content.ReadFromJsonAsync<PurchaseBillDto>(cancellationToken)
             ?? throw new InvalidOperationException("API returned an empty purchase bill response.");
     }
+
+    public async Task<PurchaseBillDto> VoidAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PatchAsync($"api/purchase-bills/{id}/void", null, cancellationToken);
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<PurchaseBillDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty purchase bill response.");
+    }
 }

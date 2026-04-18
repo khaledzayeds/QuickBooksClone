@@ -71,6 +71,10 @@
                                 {
                                     <button class="link-button" @onclick="() => PostAsync(bill)">Post</button>
                                 }
+                                @if (bill.Status is not PurchaseBillStatus.Void)
+                                {
+                                    <button class="link-button" @onclick="() => VoidAsync(bill)">Void</button>
+                                }
                             </td>
                         </tr>
                     }
@@ -122,6 +126,20 @@
         catch (Exception ex)
         {
             errorMessage = $"Could not post purchase bill. Details: {ex.Message}";
+        }
+    }
+
+    private async Task VoidAsync(PurchaseBillDto bill)
+    {
+        try
+        {
+            errorMessage = null;
+            await PurchaseBillsApi.VoidAsync(bill.Id);
+            await LoadBillsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not void purchase bill. Details: {ex.Message}";
         }
     }
 

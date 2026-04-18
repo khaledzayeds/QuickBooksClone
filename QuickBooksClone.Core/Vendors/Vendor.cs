@@ -64,6 +64,22 @@ public sealed class Vendor : EntityBase, ITenantEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    public void ReverseBill(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Bill amount must be greater than zero.");
+        }
+
+        if (amount > Balance)
+        {
+            throw new InvalidOperationException("Bill reversal amount cannot exceed vendor balance.");
+        }
+
+        Balance -= amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     private static string NormalizeRequired(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))

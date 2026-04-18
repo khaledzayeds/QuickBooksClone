@@ -64,4 +64,15 @@ public sealed class InMemoryPurchaseBillRepository : IPurchaseBillRepository
         bill.MarkPosted(transactionId);
         return Task.FromResult(true);
     }
+
+    public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default)
+    {
+        if (!_bills.TryGetValue(id, out var bill))
+        {
+            return Task.FromResult(false);
+        }
+
+        bill.Void(reversalTransactionId);
+        return Task.FromResult(true);
+    }
 }

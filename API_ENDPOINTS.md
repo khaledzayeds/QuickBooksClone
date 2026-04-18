@@ -282,6 +282,31 @@ sourceEntityId={purchaseBillId}
 transactionType=PurchaseBill
 ```
 
+### Void Purchase Bill
+
+```http
+PATCH /api/purchase-bills/{id}/void
+```
+
+Voids a purchase bill and returns the updated bill.
+
+Rules:
+
+- Draft bills are marked `Void` with no accounting or inventory impact.
+- Posted bills create a balanced reversal transaction.
+- Inventory quantities received by the posted bill are removed from stock.
+- Void is blocked if current stock is lower than the quantity that must be reversed.
+- Vendor balance is reduced by the bill total.
+- Void is idempotent; calling it more than once does not duplicate reversal transactions, inventory movements, or vendor balance changes.
+
+Purchase bill reversal transactions use:
+
+```text
+sourceEntityType=PurchaseBillReversal
+sourceEntityId={purchaseBillId}
+transactionType=PurchaseBillReversal
+```
+
 ## Accounts
 
 Account responses include `balance`. It is calculated from posted accounting transactions:

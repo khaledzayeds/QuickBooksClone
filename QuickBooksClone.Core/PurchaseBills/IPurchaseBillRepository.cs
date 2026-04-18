@@ -6,4 +6,5 @@ public interface IPurchaseBillRepository
     Task<PurchaseBill?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PurchaseBill> AddAsync(PurchaseBill bill, CancellationToken cancellationToken = default);
     Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default);
+    Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default);
 }

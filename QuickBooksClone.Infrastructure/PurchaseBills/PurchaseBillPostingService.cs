@@ -8,6 +8,7 @@ namespace QuickBooksClone.Infrastructure.PurchaseBills;
 public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
 {
     private const string PurchaseBillSourceEntityType = "PurchaseBill";
+    private const string PurchaseBillReversalSourceEntityType = "PurchaseBillReversal";
 
     private readonly IPurchaseBillRepository _bills;
     private readonly IVendorRepository _vendors;
@@ -113,6 +114,84 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
         return PurchaseBillPostingResult.Success(savedTransaction.Id);
     }
 
+    public async Task<PurchaseBillPostingResult> VoidAsync(Guid purchaseBillId, CancellationToken cancellationToken = default)
+    {
+        var bill = await _bills.GetByIdAsync(purchaseBillId, cancellationToken);
+        if (bill is null)
+        {
+            return PurchaseBillPostingResult.Failure("Purchase bill does not exist.");
+        }
+
+        if (bill.Status == PurchaseBillStatus.Void)
+        {
+            return PurchaseBillPostingResult.Success(bill.ReversalTransactionId);
+        }
+
+        if (bill.PostedTransactionId is null)
+        {
+            await _bills.VoidAsync(bill.Id, null, cancellationToken);
+            return PurchaseBillPostingResult.Success();
+        }
+
+        var vendor = await _vendors.GetByIdAsync(bill.VendorId, cancellationToken);
+        if (vendor is null)
+        {
+            return PurchaseBillPostingResult.Failure("Vendor does not exist.");
+        }
+
+        if (bill.TotalAmount > vendor.Balance)
+        {
+            return PurchaseBillPostingResult.Failure("Purchase bill reversal amount exceeds vendor balance.");
+        }
+
+        var existingReversal = await _transactions.GetBySourceAsync(PurchaseBillReversalSourceEntityType, bill.Id, cancellationToken);
+        if (existingReversal is not null)
+        {
+            await _bills.VoidAsync(bill.Id, existingReversal.Id, cancellationToken);
+            return PurchaseBillPostingResult.Success(existingReversal.Id);
+        }
+
+        var originalTransaction = await _transactions.GetByIdAsync(bill.PostedTransactionId.Value, cancellationToken);
+        if (originalTransaction is null)
+        {
+            return PurchaseBillPostingResult.Failure("Posted purchase bill transaction is missing.");
+        }
+
+        var inventoryItems = new List<(PurchaseBillLine Line, Item Item)>();
+        foreach (var line in bill.Lines)
+        {
+            var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
+            if (item is null)
+            {
+                return PurchaseBillPostingResult.Failure($"Item does not exist: {line.ItemId}");
+            }
+
+            if (item.ItemType != ItemType.Inventory)
+            {
+                continue;
+            }
+
+            if (item.QuantityOnHand < line.Quantity)
+            {
+                return PurchaseBillPostingResult.Failure($"Cannot void purchase bill because '{item.Name}' has only {item.QuantityOnHand:N2} on hand, but {line.Quantity:N2} must be removed.");
+            }
+
+            inventoryItems.Add((line, item));
+        }
+
+        var reversalTransaction = BuildReversalTransaction(bill, originalTransaction);
+        var savedReversal = await _transactions.AddAsync(reversalTransaction, cancellationToken);
+
+        foreach (var (line, item) in inventoryItems)
+        {
+            await _items.DecreaseQuantityAsync(item.Id, line.Quantity, cancellationToken);
+        }
+
+        await _vendors.ReverseBillAsync(vendor.Id, bill.TotalAmount, cancellationToken);
+        await _bills.VoidAsync(bill.Id, savedReversal.Id, cancellationToken);
+        return PurchaseBillPostingResult.Success(savedReversal.Id);
+    }
+
     private static AccountingTransaction BuildAccountingTransaction(
         PurchaseBill bill,
         Guid accountsPayableAccountId,
@@ -143,6 +222,29 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
             $"Purchase bill {bill.BillNumber}",
             0,
             bill.TotalAmount));
+
+        return transaction;
+    }
+
+    private static AccountingTransaction BuildReversalTransaction(
+        PurchaseBill bill,
+        AccountingTransaction originalTransaction)
+    {
+        var transaction = new AccountingTransaction(
+            "PurchaseBillReversal",
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            $"{bill.BillNumber}-VOID",
+            PurchaseBillReversalSourceEntityType,
+            bill.Id);
+
+        foreach (var line in originalTransaction.Lines)
+        {
+            transaction.AddLine(new AccountingTransactionLine(
+                line.AccountId,
+                $"Reversal - {line.Description}",
+                line.Credit,
+                line.Debit));
+        }
 
         return transaction;
     }

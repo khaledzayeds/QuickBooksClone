@@ -138,6 +138,14 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Update vendor balance
   - [x] Purchase bill API endpoints
   - [x] Desktop Purchase Bills list and creation form
+- [x] Purchase bill reversal hardening
+  - [x] Void draft purchase bill without accounting impact
+  - [x] Void posted purchase bill creates balanced reversal transaction
+  - [x] Void posted purchase bill reduces received inventory safely
+  - [x] Void blocks when current stock is not enough to reverse receipt
+  - [x] Void reverses vendor balance
+  - [x] Purchase bill void is idempotent
+  - [x] Desktop Purchase Bills screen can void bills
 
 ## In Progress
 
@@ -147,10 +155,6 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Purchase bill reversal hardening
-  - [ ] Void posted purchase bill with reversal transaction
-  - [ ] Reduce inventory quantities safely
-  - [ ] Reverse vendor balance
 - [ ] Opening balances posting slice
   - [ ] Customer opening balances post to Accounts Receivable
   - [ ] Vendor opening balances post to Accounts Payable
