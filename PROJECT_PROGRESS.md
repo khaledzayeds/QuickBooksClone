@@ -121,6 +121,13 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Invoice status returns to Posted or PartiallyPaid after reversal
   - [x] Payment void is idempotent
   - [x] Desktop Payments screen can void payments
+- [x] Vendors foundation slice
+  - [x] Vendor entity and repository contract
+  - [x] In-memory vendor repository with seed data
+  - [x] Vendor API endpoints
+  - [x] Duplicate display name and email validation
+  - [x] Desktop Vendors list and vendor form
+  - [x] Vendor navigation link
 
 ## In Progress
 
@@ -130,10 +137,11 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Vendors and purchases foundation
-  - [ ] Vendor entity and endpoints
-  - [ ] Vendor bills / purchase invoices
-  - [ ] Receive inventory against purchases
+- [ ] Purchase bills foundation
+  - [ ] Purchase bill header and lines
+  - [ ] Save draft / create and post workflow
+  - [ ] Post inventory receipts and Accounts Payable
+  - [ ] Vendor bill desktop screen
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

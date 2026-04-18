@@ -1,0 +1,127 @@
+@page "/vendors/new"
+@page "/vendors/{VendorId:guid}/edit"
+@inject VendorsApiClient VendorsApi
+@inject NavigationManager Navigation
+
+<PageTitle>@(IsEdit ? "Edit Vendor" : "New Vendor")</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>@(IsEdit ? "Edit Vendor" : "New Vendor")</h1>
+            <p class="muted">Vendor setup lives here so purchase bills can use clean supplier records.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Vendors</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" OnValidSubmit="SaveVendorAsync" class="panel form-panel page-form">
+        <DataAnnotationsValidator />
+
+        <label>
+            Display name
+            <InputText class="form-control" @bind-Value="form.DisplayName" />
+            <ValidationMessage For="@(() => form.DisplayName)" />
+        </label>
+
+        <label>
+            Company name
+            <InputText class="form-control" @bind-Value="form.CompanyName" />
+        </label>
+
+        <label>
+            Email
+            <InputText class="form-control" @bind-Value="form.Email" />
+            <ValidationMessage For="@(() => form.Email)" />
+        </label>
+
+        <label>
+            Phone
+            <InputText class="form-control" @bind-Value="form.Phone" />
+            <ValidationMessage For="@(() => form.Phone)" />
+        </label>
+
+        <div class="form-row">
+            <label>
+                Currency
+                <InputText class="form-control" @bind-Value="form.Currency" />
+                <ValidationMessage For="@(() => form.Currency)" />
+            </label>
+
+            <label>
+                Opening balance
+                <InputNumber class="form-control" @bind-Value="form.OpeningBalance" disabled="@IsEdit" />
+                <ValidationMessage For="@(() => form.OpeningBalance)" />
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <button class="primary-button" type="submit" disabled="@isSaving">
+                @(isSaving ? "Saving..." : IsEdit ? "Save Vendor" : "Create Vendor")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public Guid? VendorId { get; set; }
+
+    private readonly VendorFormModel form = new();
+    private string? errorMessage;
+    private bool isSaving;
+    private bool IsEdit => VendorId is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (VendorId is not null)
+        {
+            var vendor = await VendorsApi.GetAsync(VendorId.Value);
+            var loaded = VendorFormModel.FromVendor(vendor);
+            form.DisplayName = loaded.DisplayName;
+            form.CompanyName = loaded.CompanyName;
+            form.Email = loaded.Email;
+            form.Phone = loaded.Phone;
+            form.Currency = loaded.Currency;
+            form.OpeningBalance = loaded.OpeningBalance;
+        }
+    }
+
+    private async Task SaveVendorAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isSaving = true;
+
+            if (VendorId is null)
+            {
+                await VendorsApi.CreateAsync(form);
+            }
+            else
+            {
+                await VendorsApi.UpdateAsync(VendorId.Value, form);
+            }
+
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save vendor. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("vendors");
+    }
+}

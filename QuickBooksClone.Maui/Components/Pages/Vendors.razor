@@ -1,0 +1,140 @@
+@page "/vendors"
+@inject VendorsApiClient VendorsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Vendors</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>Vendors</h1>
+            <p class="muted">Search and manage suppliers before purchase bills and inventory receipts start using them.</p>
+        </div>
+        <button class="primary-button" @onclick="NewVendor">New Vendor</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search by name, company, email, phone" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeInactive" />
+                Include inactive
+            </label>
+            <button class="secondary-button" @onclick="LoadVendorsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading vendors...</p>
+        }
+        else if (vendors.Count == 0)
+        {
+            <p class="muted">No vendors found.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Contact</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vendor in vendors)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@vendor.DisplayName</strong>
+                                <small>@vendor.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@vendor.CompanyName</td>
+                            <td>
+                                <span>@vendor.Email</span>
+                                <small>@vendor.Phone</small>
+                            </td>
+                            <td>@vendor.Balance.ToString("N2") @vendor.Currency</td>
+                            <td>
+                                <span class="status @(vendor.IsActive ? "active" : "inactive")">
+                                    @(vendor.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td class="actions">
+                                <button class="link-button" @onclick="() => EditVendor(vendor.Id)">Edit</button>
+                                <button class="link-button" @onclick="() => ToggleActiveAsync(vendor)">
+                                    @(vendor.IsActive ? "Deactivate" : "Activate")
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<VendorDto> vendors = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeInactive;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVendorsAsync();
+    }
+
+    private async Task LoadVendorsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await VendorsApi.SearchAsync(searchText, includeInactive);
+            vendors = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load vendors. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ToggleActiveAsync(VendorDto vendor)
+    {
+        try
+        {
+            errorMessage = null;
+            await VendorsApi.SetActiveAsync(vendor.Id, !vendor.IsActive);
+            await LoadVendorsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not update vendor status. Details: {ex.Message}";
+        }
+    }
+
+    private void NewVendor()
+    {
+        Navigation.NavigateTo("vendors/new");
+    }
+
+    private void EditVendor(Guid vendorId)
+    {
+        Navigation.NavigateTo($"vendors/{vendorId}/edit");
+    }
+}

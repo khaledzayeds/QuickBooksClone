@@ -111,6 +111,96 @@ PATCH /api/customers/{id}/active
 }
 ```
 
+## Vendors
+
+Vendors are the supplier foundation for purchase bills, receiving inventory, and Accounts Payable workflows.
+
+### List Vendors
+
+```http
+GET /api/vendors?search=&includeInactive=false&page=1&pageSize=25
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "id": "guid",
+      "displayName": "Cairo Office Supplies",
+      "companyName": "Cairo Office Supplies LLC",
+      "email": "orders@cairo-office.example",
+      "phone": "+20 100 111 2222",
+      "currency": "EGP",
+      "balance": 0,
+      "isActive": true
+    }
+  ],
+  "totalCount": 1,
+  "page": 1,
+  "pageSize": 25
+}
+```
+
+### Get Vendor
+
+```http
+GET /api/vendors/{id}
+```
+
+### Create Vendor
+
+```http
+POST /api/vendors
+Content-Type: application/json
+```
+
+```json
+{
+  "displayName": "New Vendor",
+  "companyName": "Vendor LLC",
+  "email": "vendor@example.com",
+  "phone": "01000000000",
+  "currency": "EGP",
+  "openingBalance": 0
+}
+```
+
+Validation:
+
+- `displayName` is required and must be unique.
+- `email`, when supplied, must be a valid email and unique.
+- `openingBalance` cannot be negative.
+
+### Update Vendor
+
+```http
+PUT /api/vendors/{id}
+```
+
+```json
+{
+  "displayName": "Updated Vendor",
+  "companyName": "Vendor LLC",
+  "email": "vendor@example.com",
+  "phone": "01000000000",
+  "currency": "EGP"
+}
+```
+
+### Activate / Deactivate Vendor
+
+```http
+PATCH /api/vendors/{id}/active
+```
+
+```json
+{
+  "isActive": false
+}
+```
+
 ## Accounts
 
 Account responses include `balance`. It is calculated from posted accounting transactions:

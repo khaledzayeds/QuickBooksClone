@@ -5,6 +5,7 @@ using QuickBooksClone.Maui.Services.Customers;
 using QuickBooksClone.Maui.Services.Invoices;
 using QuickBooksClone.Maui.Services.Items;
 using QuickBooksClone.Maui.Services.Payments;
+using QuickBooksClone.Maui.Services.Vendors;
 
 namespace QuickBooksClone.Maui;
 
@@ -36,6 +37,7 @@ public static class MauiProgram
         builder.Services.AddScoped<ItemsApiClient>();
         builder.Services.AddScoped<InvoicesApiClient>();
         builder.Services.AddScoped<PaymentsApiClient>();
+        builder.Services.AddScoped<VendorsApiClient>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
