@@ -144,8 +144,20 @@ public sealed class InvoicesController : ControllerBase
     [HttpPatch("{id:guid}/sent")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> MarkSent(Guid id, CancellationToken cancellationToken = default)
     {
+        var invoice = await _invoices.GetByIdAsync(id, cancellationToken);
+        if (invoice is null)
+        {
+            return NotFound();
+        }
+
+        if (invoice.Status != InvoiceStatus.Draft)
+        {
+            return BadRequest("Only draft invoices can be marked as sent.");
+        }
+
         var updated = await _invoices.MarkSentAsync(id, cancellationToken);
         return updated ? NoContent() : NotFound();
     }

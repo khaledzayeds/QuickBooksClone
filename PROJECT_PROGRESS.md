@@ -223,29 +223,44 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Void posted journal entries with balanced reversal transactions
   - [x] Desktop Journal Entries list and entry form
   - [x] Build and API accounting smoke test
+- [x] Posted invoice edit protection review
+  - [x] Core invoice lines cannot be changed after posting
+  - [x] Mark invoice sent is limited to draft invoices
+  - [x] Inventory quantity direct edit is blocked for inventory items
+  - [x] Item type changes are blocked while quantity on hand is not zero
+  - [x] API endpoint notes document immutable posted invoices and stock adjustment rules
+  - [x] Build and API protection smoke test
 
 ## In Progress
 
-- [ ] Posted invoice edit protection review
-  - [x] Core invoice lines cannot be changed after posting
-  - [ ] Confirm every future edit path respects posted/void status
-
 ## Next
 
-- [ ] Posted document edit protection review
-  - [ ] Audit edit endpoints for posted sales invoices, purchase bills, returns, payments, and journal entries
-  - [ ] Ensure posted documents can only be reversed/voided through their workflow
-  - [ ] Add endpoint notes for immutable posted documents
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations
   - [ ] Migrations
   - [ ] Replace in-memory repositories
+- [ ] Backup and restore
+  - [ ] Local database backup export
+  - [ ] Local database restore with validation
+  - [ ] Automatic backup schedule option
+  - [ ] Restore safety checks before replacing live company data
+- [ ] Program settings and startup configuration
+  - [ ] Company settings
+  - [ ] Currency, tax, and fiscal year settings
+  - [ ] API/server connection settings if frontend and backend run separately
+  - [ ] Desktop startup mode decision: embedded local API vs external server connection
+  - [ ] Environment/profile selection for local, LAN, or hosted deployments
 - [ ] Localization foundation
   - [ ] Arabic resources
   - [ ] English resources
   - [ ] Settings language switch
   - [ ] RTL/LTR behavior
+- [ ] Full UX/UI review after core workflows
+  - [ ] Review every Razor page and user flow
+  - [ ] Replace rough screens with consistent product UI
+  - [ ] Evaluate Tailwind adoption or keep/refactor current CSS intentionally
+  - [ ] Arabic/English UX pass with RTL/LTR behavior
 - [ ] GitHub remote
   - [ ] Create empty GitHub repository
   - [ ] Add `origin`

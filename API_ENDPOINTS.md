@@ -741,6 +741,13 @@ Accounting:
 PUT /api/items/{id}
 ```
 
+Rules:
+
+- Item identity, prices, unit, and account links can be updated.
+- Item type cannot be changed while quantity on hand is not zero.
+- Inventory items with quantity on hand require an inventory asset account.
+- Quantity on hand is not changed by this endpoint.
+
 ### Adjust Item Quantity
 
 ```http
@@ -752,6 +759,8 @@ PATCH /api/items/{id}/quantity
   "quantityOnHand": 10
 }
 ```
+
+This endpoint is blocked for inventory items. Use `POST /api/inventory-adjustments` instead so stock and accounting stay in sync.
 
 ### Activate / Deactivate Item
 
@@ -991,6 +1000,8 @@ Validation:
 PATCH /api/invoices/{id}/sent
 ```
 
+Only draft invoices can be marked as sent. Posted, paid, returned, and void invoices are immutable through this endpoint.
+
 ### Post Invoice
 
 ```http
@@ -1016,6 +1027,8 @@ Required before posting:
 - Inventory items must have enough quantity on hand.
 
 For cash invoices, the `POST /api/invoices/{id}/post` workflow also creates the linked customer payment if it has not already been created. This keeps posting idempotent and avoids duplicate receipt payments.
+
+Posted invoices are immutable. Change business meaning through void/reversal, payment, customer credit, or sales return workflows instead of editing the posted invoice.
 
 ### Void Invoice
 

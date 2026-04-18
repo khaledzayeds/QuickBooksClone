@@ -109,6 +109,22 @@ public sealed class ItemsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ItemDto>> Update(Guid id, UpdateItemRequest request, CancellationToken cancellationToken = default)
     {
+        var existingItem = await _items.GetByIdAsync(id, cancellationToken);
+        if (existingItem is null)
+        {
+            return NotFound();
+        }
+
+        if (existingItem.QuantityOnHand != 0 && existingItem.ItemType != request.ItemType)
+        {
+            return BadRequest("Cannot change item type while quantity on hand is not zero.");
+        }
+
+        if (request.ItemType == ItemType.Inventory && existingItem.QuantityOnHand > 0 && request.InventoryAssetAccountId is null)
+        {
+            return BadRequest("Inventory items with quantity on hand require an inventory asset account.");
+        }
+
         var duplicateValidation = await ValidateUniqueItemAsync(request.Name, request.Sku, request.Barcode, id, cancellationToken);
         if (duplicateValidation is not null)
         {
@@ -157,8 +173,20 @@ public sealed class ItemsController : ControllerBase
     [HttpPatch("{id:guid}/quantity")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AdjustQuantity(Guid id, AdjustItemQuantityRequest request, CancellationToken cancellationToken = default)
     {
+        var item = await _items.GetByIdAsync(id, cancellationToken);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        if (item.ItemType == ItemType.Inventory)
+        {
+            return BadRequest("Direct inventory quantity edits are disabled. Use inventory adjustments so stock and accounting stay in sync.");
+        }
+
         var updated = await _items.AdjustQuantityAsync(id, request.QuantityOnHand, cancellationToken);
         return updated ? NoContent() : NotFound();
     }
