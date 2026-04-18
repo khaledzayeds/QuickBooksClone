@@ -153,6 +153,14 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Opening balance offset posts to Equity
   - [x] Opening balance posting is idempotent by source document
   - [x] Inventory opening quantity requires purchase price and inventory asset account
+- [x] Vendor payments slice
+  - [x] Pay posted purchase bill
+  - [x] Debit Accounts Payable and credit bank/cash
+  - [x] Apply payment to purchase bill balance
+  - [x] Update purchase bill status to PartiallyPaid or Paid
+  - [x] Reduce vendor balance
+  - [x] Vendor payment API endpoints
+  - [x] Desktop Vendor Payments list and Pay Vendor form
 
 ## In Progress
 
@@ -162,10 +170,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Vendor payments slice
-  - [ ] Pay vendor bill
-  - [ ] Debit Accounts Payable and credit bank/cash
-  - [ ] Apply payment to vendor balance
+- [ ] Vendor payment reversal hardening
+  - [ ] Void posted vendor payment
+  - [ ] Restore purchase bill balance and vendor balance
+  - [ ] Create balanced reversal transaction
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

@@ -47,6 +47,7 @@
                         <th>Date</th>
                         <th>Due</th>
                         <th>Total</th>
+                        <th>Balance</th>
                         <th>Status</th>
                         <th></th>
                     </tr>
@@ -63,6 +64,7 @@
                             <td>@bill.BillDate</td>
                             <td>@bill.DueDate</td>
                             <td>@bill.TotalAmount.ToString("N2")</td>
+                            <td>@bill.BalanceDue.ToString("N2")</td>
                             <td>
                                 <span class="status @(bill.Status == PurchaseBillStatus.Posted ? "active" : "inactive")">@bill.Status</span>
                             </td>

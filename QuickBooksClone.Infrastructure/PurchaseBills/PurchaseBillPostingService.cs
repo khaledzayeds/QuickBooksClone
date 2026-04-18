@@ -133,6 +133,11 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
             return PurchaseBillPostingResult.Success();
         }
 
+        if (bill.PaidAmount > 0)
+        {
+            return PurchaseBillPostingResult.Failure("Cannot void a purchase bill with applied payments. Void or reverse the vendor payment first.");
+        }
+
         var vendor = await _vendors.GetByIdAsync(bill.VendorId, cancellationToken);
         if (vendor is null)
         {

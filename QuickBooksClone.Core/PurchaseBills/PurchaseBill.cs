@@ -29,6 +29,8 @@ public sealed class PurchaseBill : EntityBase, ITenantEntity
     public PurchaseBillStatus Status { get; private set; }
     public IReadOnlyList<PurchaseBillLine> Lines => _lines;
     public decimal TotalAmount => _lines.Sum(line => line.LineTotal);
+    public decimal PaidAmount { get; private set; }
+    public decimal BalanceDue => TotalAmount - PaidAmount;
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversalTransactionId { get; private set; }
@@ -76,9 +78,53 @@ public sealed class PurchaseBill : EntityBase, ITenantEntity
             return;
         }
 
+        if (PaidAmount > 0)
+        {
+            throw new InvalidOperationException("Cannot void a purchase bill with applied payments.");
+        }
+
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = PurchaseBillStatus.Void;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyPayment(decimal amount)
+    {
+        if (Status is PurchaseBillStatus.Void or PurchaseBillStatus.Draft)
+        {
+            throw new InvalidOperationException("Cannot apply a payment to a draft or void purchase bill.");
+        }
+
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Payment amount must be greater than zero.");
+        }
+
+        if (amount > BalanceDue)
+        {
+            throw new InvalidOperationException("Payment amount cannot exceed purchase bill balance.");
+        }
+
+        PaidAmount += amount;
+        Status = BalanceDue == 0 ? PurchaseBillStatus.Paid : PurchaseBillStatus.PartiallyPaid;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ReversePayment(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Payment amount must be greater than zero.");
+        }
+
+        if (amount > PaidAmount)
+        {
+            throw new InvalidOperationException("Payment reversal amount cannot exceed paid amount.");
+        }
+
+        PaidAmount -= amount;
+        Status = PaidAmount == 0 ? PurchaseBillStatus.Posted : PurchaseBillStatus.PartiallyPaid;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

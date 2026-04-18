@@ -11,4 +11,5 @@ public interface IVendorRepository
     Task<bool> SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default);
     Task<bool> ApplyBillAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> ReverseBillAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
+    Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
 }

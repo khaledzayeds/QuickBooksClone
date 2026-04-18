@@ -6,6 +6,7 @@ using QuickBooksClone.Core.OpeningBalances;
 using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.Vendors;
+using QuickBooksClone.Core.VendorPayments;
 using QuickBooksClone.Infrastructure.Accounting;
 using QuickBooksClone.Infrastructure.Customers;
 using QuickBooksClone.Infrastructure.Invoices;
@@ -14,6 +15,7 @@ using QuickBooksClone.Infrastructure.OpeningBalances;
 using QuickBooksClone.Infrastructure.Payments;
 using QuickBooksClone.Infrastructure.PurchaseBills;
 using QuickBooksClone.Infrastructure.Vendors;
+using QuickBooksClone.Infrastructure.VendorPayments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,8 @@ builder.Services.AddSingleton<IVendorRepository, InMemoryVendorRepository>();
 builder.Services.AddSingleton<IPurchaseBillRepository, InMemoryPurchaseBillRepository>();
 builder.Services.AddSingleton<IPurchaseBillPostingService, PurchaseBillPostingService>();
 builder.Services.AddSingleton<IOpeningBalancePostingService, OpeningBalancePostingService>();
+builder.Services.AddSingleton<IVendorPaymentRepository, InMemoryVendorPaymentRepository>();
+builder.Services.AddSingleton<IVendorPaymentPostingService, VendorPaymentPostingService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>

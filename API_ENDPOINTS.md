@@ -321,6 +321,63 @@ sourceEntityId={purchaseBillId}
 transactionType=PurchaseBillReversal
 ```
 
+Purchase bills with applied vendor payments cannot be voided directly. Reverse the vendor payment first, then void the purchase bill.
+
+## Vendor Payments
+
+Vendor payments are auto-posted after creation. They create a balanced accounting transaction:
+
+- Debit Accounts Payable.
+- Credit selected bank/cash account.
+- Apply the amount to the target purchase bill.
+- Reduce vendor balance.
+- Update purchase bill status to `PartiallyPaid` or `Paid`.
+
+### List Vendor Payments
+
+```http
+GET /api/vendor-payments?search=&vendorId=&purchaseBillId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Vendor Payment
+
+```http
+GET /api/vendor-payments/{id}
+```
+
+### Pay Vendor
+
+```http
+POST /api/vendor-payments
+Content-Type: application/json
+```
+
+```json
+{
+  "purchaseBillId": "guid",
+  "paymentAccountId": "guid",
+  "paymentDate": "2026-04-18",
+  "amount": 100,
+  "paymentMethod": "Cash"
+}
+```
+
+Validation:
+
+- `purchaseBillId` must point to an existing posted or partially paid purchase bill.
+- `amount` must be greater than zero.
+- `amount` cannot exceed purchase bill balance due.
+- `paymentAccountId` must point to a Bank or Other Current Asset account.
+- Accounts Payable must exist.
+
+Vendor payment transactions use:
+
+```text
+sourceEntityType=VendorPayment
+sourceEntityId={vendorPaymentId}
+transactionType=VendorPayment
+```
+
 ## Accounts
 
 Account responses include `balance`. It is calculated from posted accounting transactions:

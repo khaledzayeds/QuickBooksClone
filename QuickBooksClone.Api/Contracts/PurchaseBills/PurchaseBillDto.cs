@@ -11,6 +11,8 @@ public sealed record PurchaseBillDto(
     DateOnly DueDate,
     PurchaseBillStatus Status,
     decimal TotalAmount,
+    decimal PaidAmount,
+    decimal BalanceDue,
     Guid? PostedTransactionId,
     DateTimeOffset? PostedAt,
     Guid? ReversalTransactionId,

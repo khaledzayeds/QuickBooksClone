@@ -1,0 +1,113 @@
+@page "/vendor-payments"
+@inject VendorPaymentsApiClient VendorPaymentsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Vendor Payments</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>Vendor Payments</h1>
+            <p class="muted">Review payments made against vendor bills and their Accounts Payable effect.</p>
+        </div>
+        <button class="primary-button" @onclick="NewPayment">Pay Vendor</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search payment number or method" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeVoid" />
+                Include void
+            </label>
+            <button class="secondary-button" @onclick="LoadPaymentsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading vendor payments...</p>
+        }
+        else if (payments.Count == 0)
+        {
+            <p class="muted">No vendor payments yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Vendor</th>
+                        <th>Bill</th>
+                        <th>Paid From</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in payments)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@payment.PaymentNumber</strong>
+                                <small>@payment.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@payment.VendorName</td>
+                            <td>@payment.PurchaseBillNumber</td>
+                            <td>@payment.PaymentAccountName</td>
+                            <td>@payment.PaymentDate</td>
+                            <td>@payment.Amount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(payment.Status == VendorPaymentStatus.Posted ? "active" : "inactive")">@payment.Status</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<VendorPaymentDto> payments = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPaymentsAsync();
+    }
+
+    private async Task LoadPaymentsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await VendorPaymentsApi.SearchAsync(searchText, includeVoid);
+            payments = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load vendor payments. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewPayment()
+    {
+        Navigation.NavigateTo("vendor-payments/new");
+    }
+}

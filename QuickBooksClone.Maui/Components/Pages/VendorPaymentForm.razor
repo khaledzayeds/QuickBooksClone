@@ -1,0 +1,153 @@
+@page "/vendor-payments/new"
+@inject VendorPaymentsApiClient VendorPaymentsApi
+@inject PurchaseBillsApiClient PurchaseBillsApi
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Pay Vendor</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>Pay Vendor</h1>
+            <p class="muted">Apply a payment to one posted vendor bill and create the accounting transaction automatically.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Vendor Payments</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form">
+        <DataAnnotationsValidator />
+
+        <label>
+            Purchase bill
+            <InputSelect class="form-control" @bind-Value="form.PurchaseBillId">
+                <option value="@Guid.Empty">Select posted bill</option>
+                @foreach (var bill in payableBills)
+                {
+                    <option value="@bill.Id">@bill.BillNumber - @bill.VendorName - Balance @bill.BalanceDue.ToString("N2")</option>
+                }
+            </InputSelect>
+        </label>
+
+        <label>
+            Pay from
+            <InputSelect class="form-control" @bind-Value="form.PaymentAccountId">
+                <option value="@Guid.Empty">Select bank/cash account</option>
+                @foreach (var account in paymentAccounts)
+                {
+                    <option value="@account.Id">@account.Code - @account.Name</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Payment date
+                <InputDate class="form-control" @bind-Value="paymentDate" />
+            </label>
+
+            <label>
+                Amount
+                <InputNumber class="form-control" @bind-Value="form.Amount" />
+            </label>
+        </div>
+
+        <label>
+            Payment method
+            <InputText class="form-control" @bind-Value="form.PaymentMethod" />
+        </label>
+
+        @if (SelectedBill is not null)
+        {
+            <div class="totals-box">
+                Bill balance: @SelectedBill.BalanceDue.ToString("N2")
+            </div>
+        }
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SavePaymentAsync">
+                @(isSaving ? "Saving..." : "Pay Vendor")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<PurchaseBillDto> payableBills = [];
+    private List<AccountDto> paymentAccounts = [];
+    private VendorPaymentFormModel form = new();
+    private DateTime paymentDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+    private PurchaseBillDto? SelectedBill => payableBills.FirstOrDefault(bill => bill.Id == form.PurchaseBillId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var billResult = await PurchaseBillsApi.SearchAsync(null, false);
+        payableBills = billResult.Items
+            .Where(bill => (bill.Status == PurchaseBillStatus.Posted || bill.Status == PurchaseBillStatus.PartiallyPaid) && bill.BalanceDue > 0)
+            .ToList();
+
+        var accountResult = await AccountsApi.SearchAsync(null, null, false);
+        paymentAccounts = accountResult.Items
+            .Where(account => account.AccountType is AccountType.Bank or AccountType.OtherCurrentAsset)
+            .ToList();
+    }
+
+    private async Task SavePaymentAsync()
+    {
+        try
+        {
+            if (form.PurchaseBillId == Guid.Empty)
+            {
+                errorMessage = "Select a purchase bill first.";
+                return;
+            }
+
+            if (form.PaymentAccountId == Guid.Empty)
+            {
+                errorMessage = "Select a payment account.";
+                return;
+            }
+
+            if (form.Amount <= 0)
+            {
+                errorMessage = "Enter an amount greater than zero.";
+                return;
+            }
+
+            if (SelectedBill is not null && form.Amount > SelectedBill.BalanceDue)
+            {
+                errorMessage = "Payment amount cannot exceed bill balance.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.PaymentDate = DateOnly.FromDateTime(paymentDate);
+
+            await VendorPaymentsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not pay vendor. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("vendor-payments");
+    }
+}
