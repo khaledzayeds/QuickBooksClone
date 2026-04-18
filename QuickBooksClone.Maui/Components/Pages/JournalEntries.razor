@@ -1,0 +1,231 @@
+@page "/journal-entries"
+@inject JournalEntriesApiClient JournalEntriesApi
+@inject NavigationManager Navigation
+
+<PageTitle>Journal Entries</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Accounting</p>
+            <h1>Journal Entries</h1>
+            <p class="muted">Review manual entries, opening balance reclassifications, and their reversal trail.</p>
+        </div>
+        <button class="primary-button" @onclick="NewEntry">New Journal Entry</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="qb-grid">
+        <div class="panel">
+            <div class="toolbar">
+                <input class="search-input" placeholder="Search number or memo" @bind="searchText" @bind:event="oninput" />
+                <label class="check-row">
+                    <input type="checkbox" @bind="includeVoid" />
+                    Include void
+                </label>
+                <button class="secondary-button" @onclick="LoadEntriesAsync" disabled="@isLoading">Search</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <p class="muted">Loading journal entries...</p>
+            }
+            else if (entries.Count == 0)
+            {
+                <p class="muted">No journal entries yet.</p>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Number</th>
+                            <th>Date</th>
+                            <th>Memo</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in entries)
+                        {
+                            <tr class="@(selectedEntry?.Id == entry.Id ? "selected" : null)" @onclick="() => SelectEntry(entry)">
+                                <td><strong>@entry.EntryNumber</strong><small>@entry.Id.ToString()[..8]</small></td>
+                                <td>@entry.EntryDate.ToString("yyyy-MM-dd")</td>
+                                <td>@entry.Memo</td>
+                                <td>@entry.TotalDebit.ToString("N2")</td>
+                                <td>@entry.TotalCredit.ToString("N2")</td>
+                                <td><span class="status @(entry.Status == JournalEntryStatus.Posted ? "active" : "inactive")">@entry.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <section class="panel form-panel">
+            @if (selectedEntry is null)
+            {
+                <h2>Entry Details</h2>
+                <p class="muted">Select a journal entry to review its lines.</p>
+            }
+            else
+            {
+                <div class="detail-heading">
+                    <div>
+                        <p class="eyebrow">@selectedEntry.Status</p>
+                        <h2>@selectedEntry.EntryNumber</h2>
+                        <p class="muted">@selectedEntry.Memo</p>
+                    </div>
+                    <span class="status @(selectedEntry.Status == JournalEntryStatus.Posted ? "active" : "inactive")">@selectedEntry.Status</span>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <span>Total debit</span>
+                        <strong>@selectedEntry.TotalDebit.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Total credit</span>
+                        <strong>@selectedEntry.TotalCredit.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Balance</span>
+                        <strong>@(selectedEntry.TotalDebit - selectedEntry.TotalCredit).ToString("N2")</strong>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    @if (selectedEntry.Status == JournalEntryStatus.Draft)
+                    {
+                        <button class="primary-button" type="button" disabled="@isSaving" @onclick="PostSelectedAsync">Post</button>
+                    }
+                    @if (selectedEntry.Status != JournalEntryStatus.Void)
+                    {
+                        <button class="danger-button" type="button" disabled="@isSaving" @onclick="VoidSelectedAsync">Void</button>
+                    }
+                </div>
+
+                <table class="data-table compact-table">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Description</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in selectedEntry.Lines)
+                        {
+                            <tr>
+                                <td><strong>@line.AccountCode</strong><small>@line.AccountName</small></td>
+                                <td>@line.Description</td>
+                                <td>@line.Debit.ToString("N2")</td>
+                                <td>@line.Credit.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </section>
+    </section>
+</div>
+
+@code {
+    private List<JournalEntryDto> entries = [];
+    private JournalEntryDto? selectedEntry;
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+    private bool isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEntriesAsync();
+    }
+
+    private async Task LoadEntriesAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await JournalEntriesApi.SearchAsync(searchText, includeVoid);
+            entries = result.Items.ToList();
+            selectedEntry = entries.FirstOrDefault(entry => entry.Id == selectedEntry?.Id) ?? entries.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load journal entries. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectEntry(JournalEntryDto entry)
+    {
+        selectedEntry = entry;
+    }
+
+    private void NewEntry()
+    {
+        Navigation.NavigateTo("journal-entries/new");
+    }
+
+    private async Task PostSelectedAsync()
+    {
+        if (selectedEntry is null)
+        {
+            return;
+        }
+
+        try
+        {
+            errorMessage = null;
+            isSaving = true;
+            selectedEntry = await JournalEntriesApi.PostAsync(selectedEntry.Id);
+            await LoadEntriesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not post journal entry. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task VoidSelectedAsync()
+    {
+        if (selectedEntry is null)
+        {
+            return;
+        }
+
+        try
+        {
+            errorMessage = null;
+            isSaving = true;
+            selectedEntry = await JournalEntriesApi.VoidAsync(selectedEntry.Id);
+            await LoadEntriesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not void journal entry. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

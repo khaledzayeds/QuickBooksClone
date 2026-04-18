@@ -1,0 +1,193 @@
+@page "/journal-entries/new"
+@inject JournalEntriesApiClient JournalEntriesApi
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>New Journal Entry</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Accounting</p>
+            <h1>New Journal Entry</h1>
+            <p class="muted">Move balances between general ledger accounts with a balanced debit and credit entry.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Journal Entries</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <div class="form-row">
+            <label>
+                Entry date
+                <InputDate class="form-control" @bind-Value="entryDate" />
+            </label>
+
+            <label>
+                Save mode
+                <InputSelect class="form-control" @bind-Value="form.SaveMode">
+                    <option value="@JournalEntrySaveMode.SaveAndPost">Create and Post</option>
+                    <option value="@JournalEntrySaveMode.Draft">Save Draft</option>
+                </InputSelect>
+            </label>
+        </div>
+
+        <label>
+            Memo
+            <InputText class="form-control" @bind-Value="form.Memo" />
+        </label>
+
+        <div class="totals-box">
+            Total debit: @TotalDebit.ToString("N2") |
+            Total credit: @TotalCredit.ToString("N2") |
+            Difference: @(TotalDebit - TotalCredit).ToString("N2")
+        </div>
+
+        <table class="data-table compact-table">
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Description</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in form.Lines)
+                {
+                    <tr>
+                        <td>
+                            <InputSelect class="form-control" @bind-Value="line.AccountId">
+                                <option value="@Guid.Empty">Select account</option>
+                                @foreach (var account in allowedAccounts)
+                                {
+                                    <option value="@account.Id">@account.Code - @account.Name</option>
+                                }
+                            </InputSelect>
+                        </td>
+                        <td><InputText class="form-control" @bind-Value="line.Description" /></td>
+                        <td><InputNumber class="form-control" @bind-Value="line.Debit" /></td>
+                        <td><InputNumber class="form-control" @bind-Value="line.Credit" /></td>
+                        <td><button class="secondary-button" type="button" @onclick="() => RemoveLine(line)" disabled="@(form.Lines.Count <= 2)">Remove</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="form-actions">
+            <button class="secondary-button" type="button" @onclick="AddLine">Add Line</button>
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SaveEntryAsync">
+                @(isSaving ? "Saving..." : "Save Journal Entry")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<AccountDto> allowedAccounts = [];
+    private JournalEntryFormModel form = new();
+    private DateTime entryDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+
+    private decimal TotalDebit => form.Lines.Sum(line => line.Debit);
+    private decimal TotalCredit => form.Lines.Sum(line => line.Credit);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await AccountsApi.SearchAsync(null, null, false);
+        allowedAccounts = result.Items
+            .Where(account => account.AccountType is not AccountType.AccountsReceivable and not AccountType.AccountsPayable)
+            .OrderBy(account => account.Code)
+            .ToList();
+    }
+
+    private void AddLine()
+    {
+        form.Lines.Add(new JournalEntryLineFormModel());
+    }
+
+    private void RemoveLine(JournalEntryLineFormModel line)
+    {
+        if (form.Lines.Count <= 2)
+        {
+            return;
+        }
+
+        form.Lines.Remove(line);
+    }
+
+    private async Task SaveEntryAsync()
+    {
+        try
+        {
+            errorMessage = ValidateForm();
+            if (errorMessage is not null)
+            {
+                return;
+            }
+
+            isSaving = true;
+            form.EntryDate = DateOnly.FromDateTime(entryDate);
+            await JournalEntriesApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save journal entry. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string? ValidateForm()
+    {
+        if (form.Lines.Count < 2)
+        {
+            return "Journal entry must have at least two lines.";
+        }
+
+        foreach (var line in form.Lines)
+        {
+            if (line.AccountId == Guid.Empty)
+            {
+                return "Select an account for every line.";
+            }
+
+            if (line.Debit < 0 || line.Credit < 0)
+            {
+                return "Debit and credit cannot be negative.";
+            }
+
+            if (line.Debit == 0 && line.Credit == 0)
+            {
+                return "Every line must have debit or credit.";
+            }
+
+            if (line.Debit > 0 && line.Credit > 0)
+            {
+                return "A line cannot have both debit and credit.";
+            }
+        }
+
+        if (TotalDebit <= 0 || TotalCredit <= 0 || TotalDebit != TotalCredit)
+        {
+            return "Journal entry debits and credits must be balanced.";
+        }
+
+        return null;
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("journal-entries");
+    }
+}

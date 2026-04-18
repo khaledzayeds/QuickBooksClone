@@ -215,6 +215,14 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Block invalid negative stock adjustments before saving
   - [x] Desktop Inventory Adjustments list and creation form
   - [x] Build and API accounting smoke test
+- [x] Manual journal entries / opening balance reclassification
+  - [x] Create balanced manual journal entries
+  - [x] Move balances between Equity, Opening Balance Equity, owner capital, and other non-control accounts
+  - [x] Keep account creation itself balance-neutral
+  - [x] Block direct manual posting to Accounts Receivable and Accounts Payable until subledger dimensions exist
+  - [x] Void posted journal entries with balanced reversal transactions
+  - [x] Desktop Journal Entries list and entry form
+  - [x] Build and API accounting smoke test
 
 ## In Progress
 
@@ -224,11 +232,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Manual journal entries / opening balance reclassification
-  - [ ] Create balanced manual journal entries
-  - [ ] Move balances between Equity, Opening Balance Equity, and owner capital accounts
-  - [ ] Keep account creation itself balance-neutral
-  - [ ] Desktop journal entry list and entry form
+- [ ] Posted document edit protection review
+  - [ ] Audit edit endpoints for posted sales invoices, purchase bills, returns, payments, and journal entries
+  - [ ] Ensure posted documents can only be reversed/voided through their workflow
+  - [ ] Add endpoint notes for immutable posted documents
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

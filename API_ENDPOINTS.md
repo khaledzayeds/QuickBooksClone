@@ -662,6 +662,7 @@ Current MAUI entry screens are separate from list screens:
 /items/new
 /items/{id}/edit
 /inventory-adjustments/new
+/journal-entries/new
 /invoices/new
 ```
 
@@ -820,6 +821,99 @@ Accounting:
   - Credit Inventory Asset.
 - The transaction uses `sourceEntityType=InventoryAdjustment`.
 - Posting is idempotent by source adjustment.
+
+## Journal Entries
+
+Journal entries are manual general ledger documents for reclassification and adjustments, such as moving opening balance equity to an owner capital account.
+
+Important accounting rule:
+
+- Creating an account does not create a balance.
+- Balances move only through posted transactions.
+- Manual journal entries cannot post directly to Accounts Receivable or Accounts Payable yet, because those accounts require customer/vendor subledger links.
+
+### List Journal Entries
+
+```http
+GET /api/journal-entries?search=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Journal Entry
+
+```http
+GET /api/journal-entries/{id}
+```
+
+### Create Journal Entry
+
+```http
+POST /api/journal-entries
+Content-Type: application/json
+```
+
+```json
+{
+  "entryDate": "2026-04-18",
+  "memo": "Move opening balance equity to owner capital",
+  "saveMode": 2,
+  "lines": [
+    {
+      "accountId": "guid",
+      "description": "Debit opening balance equity",
+      "debit": 1000,
+      "credit": 0
+    },
+    {
+      "accountId": "guid",
+      "description": "Credit owner capital",
+      "debit": 0,
+      "credit": 1000
+    }
+  ]
+}
+```
+
+`saveMode` is numeric:
+
+```text
+1 Draft
+2 SaveAndPost
+```
+
+Validation:
+
+- Journal entries must have at least two lines.
+- Total debit must equal total credit.
+- Debit and credit cannot be negative.
+- A line must have either debit or credit, not both.
+- Every line account must exist and be active.
+- Accounts Receivable and Accounts Payable are blocked for manual entries until customer/vendor dimensions are added.
+
+Accounting:
+
+- `SaveAndPost` creates a posted accounting transaction immediately.
+- Draft entries can be posted later.
+- Posted journal entry transactions use `sourceEntityType=JournalEntry`.
+- Posting is idempotent by source journal entry.
+
+### Post Journal Entry
+
+```http
+POST /api/journal-entries/{id}/post
+```
+
+### Void Journal Entry
+
+```http
+PATCH /api/journal-entries/{id}/void
+```
+
+Rules:
+
+- Voiding a draft journal entry marks it `Void` with no accounting impact.
+- Voiding a posted journal entry creates a balanced reversal transaction.
+- Reversal transactions use `sourceEntityType=JournalEntryReversal`.
+- Void is idempotent and does not duplicate reversal transactions.
 
 ## Invoices
 
