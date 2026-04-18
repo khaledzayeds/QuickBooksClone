@@ -91,6 +91,28 @@ public sealed class InMemoryCustomerRepository : ICustomerRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> AddCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.AddCredit(amount);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> UseCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.UseCredit(amount);
+        return Task.FromResult(true);
+    }
+
     private static bool Contains(string? value, string term)
     {
         return value?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;

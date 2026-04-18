@@ -181,6 +181,13 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Inventory returns increase stock and reverse COGS
   - [x] Invoice exposes returned amount and updated balance
   - [x] Desktop Sales Returns list and creation form
+- [x] Customer credit / refund handling
+  - [x] Customer credit balance created from paid sales returns
+  - [x] Apply customer credit to another invoice
+  - [x] Refund customer credit through bank/cash account
+  - [x] Refund creates balanced accounting transaction
+  - [x] Invoice exposes credit applied amount
+  - [x] Desktop Customer Credits list and activity form
 
 ## In Progress
 
@@ -190,10 +197,11 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Customer credit / refund handling
-  - [ ] Track customer credit created by cash sales returns
-  - [ ] Apply customer credit to another invoice
-  - [ ] Refund customer credit through bank/cash account
+- [ ] Vendor credits / purchase returns
+  - [ ] Purchase return document linked to purchase bill
+  - [ ] Reduce inventory or expense safely
+  - [ ] Reverse Accounts Payable effect
+  - [ ] Track vendor credit for paid bills
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

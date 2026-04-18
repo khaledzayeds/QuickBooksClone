@@ -1,0 +1,223 @@
+@page "/customer-credits/new"
+@inject CustomerCreditsApiClient CustomerCreditsApi
+@inject CustomersApiClient CustomersApi
+@inject InvoicesApiClient InvoicesApi
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>New Customer Credit Activity</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Customers</p>
+            <h1>New Customer Credit Activity</h1>
+            <p class="muted">Use available customer credit on an invoice or refund it from a cash or bank account.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Customer Credits</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <DataAnnotationsValidator />
+
+        <label>
+            Customer
+            <InputSelect class="form-control" @bind-Value="form.CustomerId" @bind-Value:after="OnCustomerChangedAsync">
+                <option value="@Guid.Empty">Select customer with credit</option>
+                @foreach (var customer in customers)
+                {
+                    <option value="@customer.Id">@customer.DisplayName - Credit @customer.CreditBalance.ToString("N2")</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Date
+                <InputDate class="form-control" @bind-Value="activityDate" />
+            </label>
+
+            <label>
+                Action
+                <InputSelect class="form-control" @bind-Value="form.Action" @bind-Value:after="OnActionChangedAsync">
+                    <option value="@CustomerCreditAction.ApplyToInvoice">Apply to invoice</option>
+                    <option value="@CustomerCreditAction.Refund">Refund customer</option>
+                </InputSelect>
+            </label>
+        </div>
+
+        @if (SelectedCustomer is not null)
+        {
+            <div class="totals-box">
+                Available credit: @SelectedCustomer.CreditBalance.ToString("N2") @SelectedCustomer.Currency
+            </div>
+        }
+
+        @if (form.Action == CustomerCreditAction.ApplyToInvoice)
+        {
+            <label>
+                Invoice
+                <InputSelect class="form-control" @bind-Value="form.InvoiceId">
+                    <option value="">Select invoice with balance</option>
+                    @foreach (var invoice in customerInvoices)
+                    {
+                        <option value="@invoice.Id">@invoice.InvoiceNumber - Balance @invoice.BalanceDue.ToString("N2")</option>
+                    }
+                </InputSelect>
+            </label>
+        }
+        else
+        {
+            <label>
+                Refund account
+                <InputSelect class="form-control" @bind-Value="form.RefundAccountId">
+                    <option value="">Select cash or bank account</option>
+                    @foreach (var account in refundAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Payment method
+                <InputText class="form-control" @bind-Value="form.PaymentMethod" />
+            </label>
+        }
+
+        <label>
+            Amount
+            <InputNumber class="form-control" @bind-Value="form.Amount" />
+        </label>
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SaveActivityAsync">
+                @(isSaving ? "Saving..." : "Create and Post")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<CustomerDto> customers = [];
+    private List<InvoiceDto> customerInvoices = [];
+    private List<AccountDto> refundAccounts = [];
+    private CustomerCreditActivityFormModel form = new();
+    private DateTime activityDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+
+    private CustomerDto? SelectedCustomer => customers.FirstOrDefault(customer => customer.Id == form.CustomerId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var customerResult = await CustomersApi.SearchAsync(null, false);
+        customers = customerResult.Items
+            .Where(customer => customer.CreditBalance > 0)
+            .OrderBy(customer => customer.DisplayName)
+            .ToList();
+
+        var bankAccounts = await AccountsApi.SearchAsync(null, AccountType.Bank, false);
+        var otherCurrentAssets = await AccountsApi.SearchAsync(null, AccountType.OtherCurrentAsset, false);
+        refundAccounts = bankAccounts.Items.Concat(otherCurrentAssets.Items)
+            .OrderBy(account => account.Code)
+            .ToList();
+    }
+
+    private async Task OnCustomerChangedAsync()
+    {
+        customerInvoices.Clear();
+        form.InvoiceId = null;
+
+        if (form.CustomerId == Guid.Empty)
+        {
+            return;
+        }
+
+        var invoiceResult = await InvoicesApi.SearchAsync(null, false);
+        customerInvoices = invoiceResult.Items
+            .Where(invoice => invoice.CustomerId == form.CustomerId && invoice.BalanceDue > 0 && invoice.Status is not InvoiceStatus.Draft and not InvoiceStatus.Void)
+            .OrderBy(invoice => invoice.InvoiceDate)
+            .ToList();
+    }
+
+    private Task OnActionChangedAsync()
+    {
+        form.InvoiceId = null;
+        form.RefundAccountId ??= refundAccounts.FirstOrDefault()?.Id;
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveActivityAsync()
+    {
+        try
+        {
+            if (SelectedCustomer is null)
+            {
+                errorMessage = "Select a customer with available credit.";
+                return;
+            }
+
+            if (form.Amount <= 0)
+            {
+                errorMessage = "Amount must be greater than zero.";
+                return;
+            }
+
+            if (form.Amount > SelectedCustomer.CreditBalance)
+            {
+                errorMessage = "Amount cannot exceed available customer credit.";
+                return;
+            }
+
+            if (form.Action == CustomerCreditAction.ApplyToInvoice)
+            {
+                if (form.InvoiceId is null || form.InvoiceId == Guid.Empty)
+                {
+                    errorMessage = "Select an invoice.";
+                    return;
+                }
+
+                var invoice = customerInvoices.FirstOrDefault(current => current.Id == form.InvoiceId);
+                if (invoice is not null && form.Amount > invoice.BalanceDue)
+                {
+                    errorMessage = "Amount cannot exceed invoice balance.";
+                    return;
+                }
+
+                form.RefundAccountId = null;
+                form.PaymentMethod = null;
+            }
+            else if (form.RefundAccountId is null || form.RefundAccountId == Guid.Empty)
+            {
+                errorMessage = "Select a refund account.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.ActivityDate = DateOnly.FromDateTime(activityDate);
+            await CustomerCreditsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save customer credit activity. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("customer-credits");
+    }
+}

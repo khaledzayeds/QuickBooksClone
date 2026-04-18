@@ -23,6 +23,11 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.
 
+Customer responses include:
+
+- `balance`: current regular customer balance field.
+- `creditBalance`: available customer credit created by paid/cash sales returns and consumed by customer-credit workflows.
+
 ## Customers
 
 ### List Customers
@@ -717,7 +722,8 @@ Posting a sales return:
   - Credits COGS using `purchasePrice * returnedQuantity`.
   - Increases item quantity on hand by returned quantity.
 - Increases the invoice `returnedAmount`.
-- Reduces the invoice `balanceDue`; cash invoices can show a customer credit balance until refund/customer-credit workflow is added.
+- Reduces the invoice `balanceDue`; paid invoices can create customer credit that can be applied or refunded through Customer Credits.
+- If the return amount is greater than the invoice balance before the return, the excess becomes customer `creditBalance`.
 
 ### List Sales Returns
 
@@ -771,6 +777,95 @@ Sales return transactions use:
 sourceEntityType=SalesReturn
 sourceEntityId={salesReturnId}
 transactionType=SalesReturn
+```
+
+## Customer Credits
+
+Customer credits are created automatically when a sales return exceeds the invoice balance due, such as returning a fully-paid cash invoice.
+
+Customer credit workflows:
+
+- Apply customer credit to another invoice.
+- Refund customer credit through a Bank or Other Current Asset account.
+
+Applying credit to an invoice is a customer subledger allocation. It reduces customer `creditBalance`, increases the target invoice `creditAppliedAmount`, and reduces `balanceDue`. It does not create a new general-ledger transaction because the original sales return already credited Accounts Receivable.
+
+Refunding credit creates a general-ledger transaction:
+
+- Debit Accounts Receivable.
+- Credit selected bank/cash account.
+- Reduce customer `creditBalance`.
+
+### List Customer Credit Activities
+
+```http
+GET /api/customer-credits?search=&customerId=&action=&includeVoid=false&page=1&pageSize=25
+```
+
+`action` is numeric:
+
+```text
+1 ApplyToInvoice
+2 Refund
+```
+
+### Get Customer Credit Activity
+
+```http
+GET /api/customer-credits/{id}
+```
+
+### Create Customer Credit Activity
+
+```http
+POST /api/customer-credits
+Content-Type: application/json
+```
+
+Apply credit to invoice:
+
+```json
+{
+  "customerId": "guid",
+  "activityDate": "2026-04-18",
+  "amount": 60,
+  "action": 1,
+  "invoiceId": "guid",
+  "refundAccountId": null,
+  "paymentMethod": null
+}
+```
+
+Refund credit:
+
+```json
+{
+  "customerId": "guid",
+  "activityDate": "2026-04-18",
+  "amount": 40,
+  "action": 2,
+  "invoiceId": null,
+  "refundAccountId": "guid",
+  "paymentMethod": "Cash"
+}
+```
+
+Validation:
+
+- `customerId` must point to an existing customer.
+- `amount` must be greater than zero.
+- `amount` cannot exceed customer `creditBalance`.
+- Applying credit requires an invoice for the same customer.
+- Applying credit cannot exceed the target invoice `balanceDue`.
+- Refunds require `refundAccountId`.
+- Refund account must be Bank or Other Current Asset.
+
+Refund transactions use:
+
+```text
+sourceEntityType=CustomerCreditRefund
+sourceEntityId={customerCreditActivityId}
+transactionType=CustomerCreditRefund
 ```
 
 ## Payments

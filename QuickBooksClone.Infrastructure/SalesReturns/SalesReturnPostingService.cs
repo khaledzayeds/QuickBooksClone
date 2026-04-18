@@ -1,4 +1,5 @@
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.SalesReturns;
@@ -11,6 +12,7 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
 
     private readonly ISalesReturnRepository _salesReturns;
     private readonly IInvoiceRepository _invoices;
+    private readonly ICustomerRepository _customers;
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
     private readonly IAccountingTransactionRepository _transactions;
@@ -18,12 +20,14 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
     public SalesReturnPostingService(
         ISalesReturnRepository salesReturns,
         IInvoiceRepository invoices,
+        ICustomerRepository customers,
         IItemRepository items,
         IAccountRepository accounts,
         IAccountingTransactionRepository transactions)
     {
         _salesReturns = salesReturns;
         _invoices = invoices;
+        _customers = customers;
         _items = items;
         _accounts = accounts;
         _transactions = transactions;
@@ -128,6 +132,7 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
 
         var transaction = BuildAccountingTransaction(salesReturn, arAccount.Id, returnLines);
         var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
+        var creditAmount = Math.Max(0, salesReturn.TotalAmount - invoice.BalanceDue);
 
         foreach (var (returnLine, _, item) in returnLines.Where(current => current.Item.ItemType == ItemType.Inventory))
         {
@@ -135,6 +140,11 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
         }
 
         await _invoices.ApplyReturnAsync(invoice.Id, salesReturn.TotalAmount, cancellationToken);
+        if (creditAmount > 0)
+        {
+            await _customers.AddCreditAsync(invoice.CustomerId, creditAmount, cancellationToken);
+        }
+
         await _salesReturns.MarkPostedAsync(salesReturn.Id, savedTransaction.Id, cancellationToken);
         return SalesReturnPostingResult.Success(savedTransaction.Id);
     }

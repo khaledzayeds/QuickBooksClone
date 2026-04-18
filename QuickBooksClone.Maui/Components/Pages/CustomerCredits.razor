@@ -1,0 +1,106 @@
+@page "/customer-credits"
+@inject CustomerCreditsApiClient CustomerCreditsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Customer Credits</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Customers</p>
+            <h1>Customer Credits</h1>
+            <p class="muted">Apply customer credit to invoices or refund it through cash and bank accounts.</p>
+        </div>
+        <button class="primary-button" @onclick="NewCreditActivity">New Credit Activity</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search reference or method" @bind="searchText" @bind:event="oninput" />
+            <button class="secondary-button" @onclick="LoadActivitiesAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading customer credit activities...</p>
+        }
+        else if (activities.Count == 0)
+        {
+            <p class="muted">No customer credit activities yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var activity in activities)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@activity.ReferenceNumber</strong>
+                                <small>@activity.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@activity.CustomerName</td>
+                            <td>@activity.ActivityDate</td>
+                            <td>@activity.Action</td>
+                            <td>@(activity.InvoiceNumber ?? activity.RefundAccountName)</td>
+                            <td>@activity.Amount.ToString("N2")</td>
+                            <td><span class="status active">@activity.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<CustomerCreditActivityDto> activities = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadActivitiesAsync();
+    }
+
+    private async Task LoadActivitiesAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await CustomerCreditsApi.SearchAsync(searchText, null, null, false);
+            activities = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load customer credits. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewCreditActivity()
+    {
+        Navigation.NavigateTo("customer-credits/new");
+    }
+}

@@ -109,6 +109,17 @@ public sealed class InMemoryInvoiceRepository : IInvoiceRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ApplyCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_invoices.TryGetValue(id, out var invoice))
+        {
+            return Task.FromResult(false);
+        }
+
+        invoice.ApplyCredit(amount);
+        return Task.FromResult(true);
+    }
+
     public Task<bool> ApplyReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
     {
         if (!_invoices.TryGetValue(id, out var invoice))

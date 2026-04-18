@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using QuickBooksClone.Maui.Services.Accounting;
 using QuickBooksClone.Maui.Services;
+using QuickBooksClone.Maui.Services.CustomerCredits;
 using QuickBooksClone.Maui.Services.Customers;
 using QuickBooksClone.Maui.Services.Invoices;
 using QuickBooksClone.Maui.Services.Items;
@@ -36,6 +37,7 @@ public static class MauiProgram
         });
         builder.Services.AddScoped<AccountsApiClient>();
         builder.Services.AddScoped<TransactionsApiClient>();
+        builder.Services.AddScoped<CustomerCreditsApiClient>();
         builder.Services.AddScoped<CustomersApiClient>();
         builder.Services.AddScoped<ItemsApiClient>();
         builder.Services.AddScoped<InvoicesApiClient>();

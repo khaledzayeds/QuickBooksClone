@@ -137,6 +137,7 @@ public sealed class CustomersController : ControllerBase
             customer.Phone,
             customer.Currency,
             customer.Balance,
+            customer.CreditBalance,
             customer.IsActive);
     }
 }

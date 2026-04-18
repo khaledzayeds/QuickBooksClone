@@ -10,6 +10,7 @@ public interface IInvoiceRepository
     Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> LinkReceiptPaymentAsync(Guid id, Guid paymentId, CancellationToken cancellationToken = default);
     Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
+    Task<bool> ApplyCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> ApplyReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default);
 }

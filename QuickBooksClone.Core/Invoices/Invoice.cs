@@ -48,8 +48,9 @@ public sealed class Invoice : EntityBase, ITenantEntity
     public decimal TaxAmount { get; private set; }
     public decimal TotalAmount => Subtotal - DiscountAmount + TaxAmount;
     public decimal PaidAmount { get; private set; }
+    public decimal CreditAppliedAmount { get; private set; }
     public decimal ReturnedAmount { get; private set; }
-    public decimal BalanceDue => TotalAmount - ReturnedAmount - PaidAmount;
+    public decimal BalanceDue => TotalAmount - ReturnedAmount - PaidAmount - CreditAppliedAmount;
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversalTransactionId { get; private set; }
@@ -174,6 +175,28 @@ public sealed class Invoice : EntityBase, ITenantEntity
 
         PaidAmount -= amount;
         Status = PaidAmount == 0 ? InvoiceStatus.Posted : InvoiceStatus.PartiallyPaid;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyCredit(decimal amount)
+    {
+        if (Status is InvoiceStatus.Void or InvoiceStatus.Draft)
+        {
+            throw new InvalidOperationException("Cannot apply customer credit to a draft or void invoice.");
+        }
+
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Credit amount must be greater than zero.");
+        }
+
+        if (amount > BalanceDue)
+        {
+            throw new InvalidOperationException("Credit amount cannot exceed invoice balance.");
+        }
+
+        CreditAppliedAmount += amount;
+        Status = BalanceDue == 0 ? InvoiceStatus.Paid : InvoiceStatus.PartiallyPaid;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

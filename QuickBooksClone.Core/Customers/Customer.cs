@@ -32,6 +32,7 @@ public sealed class Customer : EntityBase, ITenantEntity
     public string? Phone { get; private set; }
     public string Currency { get; private set; }
     public decimal Balance { get; private set; }
+    public decimal CreditBalance { get; private set; }
     public bool IsActive { get; private set; }
 
     public void Update(string displayName, string? companyName, string? email, string? phone, string currency)
@@ -47,6 +48,33 @@ public sealed class Customer : EntityBase, ITenantEntity
     public void SetActive(bool isActive)
     {
         IsActive = isActive;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void AddCredit(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Credit amount must be greater than zero.");
+        }
+
+        CreditBalance += amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void UseCredit(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Credit amount must be greater than zero.");
+        }
+
+        if (amount > CreditBalance)
+        {
+            throw new InvalidOperationException("Credit amount exceeds customer available credit.");
+        }
+
+        CreditBalance -= amount;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
