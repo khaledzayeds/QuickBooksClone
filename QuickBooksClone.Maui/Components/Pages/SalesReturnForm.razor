@@ -1,0 +1,199 @@
+@page "/sales-returns/new"
+@inject SalesReturnsApiClient SalesReturnsApi
+@inject InvoicesApiClient InvoicesApi
+@inject NavigationManager Navigation
+
+<PageTitle>New Sales Return</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Customers</p>
+            <h1>New Sales Return</h1>
+            <p class="muted">Pick a posted invoice, choose returned lines, and post the credit memo.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Sales Returns</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <DataAnnotationsValidator />
+
+        <label>
+            Invoice
+            <InputSelect class="form-control" @bind-Value="form.InvoiceId" @bind-Value:after="OnInvoiceChangedAsync">
+                <option value="@Guid.Empty">Select posted invoice</option>
+                @foreach (var invoice in returnableInvoices)
+                {
+                    <option value="@invoice.Id">@invoice.InvoiceNumber - @invoice.CustomerName - Balance @invoice.BalanceDue.ToString("N2")</option>
+                }
+            </InputSelect>
+        </label>
+
+        <label>
+            Return date
+            <InputDate class="form-control" @bind-Value="returnDate" />
+        </label>
+
+        @if (SelectedInvoice is not null)
+        {
+            <div class="totals-box">
+                Invoice total: @SelectedInvoice.TotalAmount.ToString("N2") |
+                Paid: @SelectedInvoice.PaidAmount.ToString("N2") |
+                Returned: @SelectedInvoice.ReturnedAmount.ToString("N2") |
+                Balance: @SelectedInvoice.BalanceDue.ToString("N2")
+            </div>
+
+            <table class="data-table compact-table">
+                <thead>
+                    <tr>
+                        <th>Line</th>
+                        <th>Sold Qty</th>
+                        <th>Return Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in SelectedInvoice.Lines)
+                    {
+                        var draftLine = GetOrCreateLine(line);
+                        <tr>
+                            <td>
+                                <strong>@line.Description</strong>
+                                <small>@line.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@line.Quantity</td>
+                            <td><InputNumber class="form-control" @bind-Value="draftLine.Quantity" /></td>
+                            <td><InputNumber class="form-control" @bind-Value="draftLine.UnitPrice" /></td>
+                            <td>@((draftLine.Quantity * (draftLine.UnitPrice ?? line.UnitPrice)).ToString("N2"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="totals-box">
+                Return total: @ReturnTotal.ToString("N2")
+            </div>
+        }
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SaveReturnAsync">
+                @(isSaving ? "Saving..." : "Create and Post Return")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<InvoiceDto> returnableInvoices = [];
+    private SalesReturnFormModel form = new();
+    private DateTime returnDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+
+    private InvoiceDto? SelectedInvoice => returnableInvoices.FirstOrDefault(invoice => invoice.Id == form.InvoiceId);
+
+    private decimal ReturnTotal => form.Lines.Sum(line => line.Quantity * (line.UnitPrice ?? 0));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var invoiceResult = await InvoicesApi.SearchAsync(null, false);
+        returnableInvoices = invoiceResult.Items
+            .Where(invoice => invoice.Status is InvoiceStatus.Posted or InvoiceStatus.PartiallyPaid or InvoiceStatus.Paid)
+            .ToList();
+    }
+
+    private Task OnInvoiceChangedAsync()
+    {
+        form.Lines.Clear();
+        if (SelectedInvoice is not null)
+        {
+            foreach (var line in SelectedInvoice.Lines)
+            {
+                form.Lines.Add(new SalesReturnLineFormModel
+                {
+                    InvoiceLineId = line.Id,
+                    Quantity = 0,
+                    UnitPrice = line.UnitPrice,
+                    DiscountPercent = line.DiscountPercent
+                });
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private SalesReturnLineFormModel GetOrCreateLine(InvoiceLineDto invoiceLine)
+    {
+        var existing = form.Lines.FirstOrDefault(line => line.InvoiceLineId == invoiceLine.Id);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var created = new SalesReturnLineFormModel
+        {
+            InvoiceLineId = invoiceLine.Id,
+            Quantity = 0,
+            UnitPrice = invoiceLine.UnitPrice,
+            DiscountPercent = invoiceLine.DiscountPercent
+        };
+        form.Lines.Add(created);
+        return created;
+    }
+
+    private async Task SaveReturnAsync()
+    {
+        try
+        {
+            if (form.InvoiceId == Guid.Empty || SelectedInvoice is null)
+            {
+                errorMessage = "Select an invoice first.";
+                return;
+            }
+
+            form.Lines.RemoveAll(line => line.Quantity <= 0);
+            if (form.Lines.Count == 0)
+            {
+                errorMessage = "Enter a return quantity for at least one line.";
+                await OnInvoiceChangedAsync();
+                return;
+            }
+
+            foreach (var line in form.Lines)
+            {
+                var invoiceLine = SelectedInvoice.Lines.First(current => current.Id == line.InvoiceLineId);
+                if (line.Quantity > invoiceLine.Quantity)
+                {
+                    errorMessage = $"Return quantity for {invoiceLine.Description} cannot exceed sold quantity.";
+                    return;
+                }
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.ReturnDate = DateOnly.FromDateTime(returnDate);
+            await SalesReturnsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save sales return. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("sales-returns");
+    }
+}

@@ -704,6 +704,75 @@ transactionType=InvoiceReversal
 
 Invoices with applied payments cannot be voided directly. Reverse the payment first, then void the invoice.
 
+## Sales Returns
+
+Sales returns are posted as independent credit memo documents against posted invoices. They are not the same as voiding an invoice.
+
+Posting a sales return:
+
+- Debits each returned item's income account.
+- Credits Accounts Receivable for the return total.
+- For inventory items:
+  - Debits Inventory Asset using `purchasePrice * returnedQuantity`.
+  - Credits COGS using `purchasePrice * returnedQuantity`.
+  - Increases item quantity on hand by returned quantity.
+- Increases the invoice `returnedAmount`.
+- Reduces the invoice `balanceDue`; cash invoices can show a customer credit balance until refund/customer-credit workflow is added.
+
+### List Sales Returns
+
+```http
+GET /api/sales-returns?search=&invoiceId=&customerId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Sales Return
+
+```http
+GET /api/sales-returns/{id}
+```
+
+### Create Sales Return
+
+```http
+POST /api/sales-returns
+Content-Type: application/json
+```
+
+```json
+{
+  "invoiceId": "guid",
+  "returnDate": "2026-04-18",
+  "lines": [
+    {
+      "invoiceLineId": "guid",
+      "quantity": 1,
+      "unitPrice": 100,
+      "discountPercent": 0
+    }
+  ]
+}
+```
+
+If `unitPrice` is `null` or `0`, the API uses the original invoice line unit price.
+
+Validation:
+
+- `invoiceId` must point to a posted/paid/partially-paid invoice.
+- Draft and void invoices cannot be returned.
+- At least one return line is required.
+- Each return line must reference an existing invoice line from the selected invoice.
+- Returned item must match the original invoice line item.
+- Return quantity cannot exceed the original sold quantity minus quantities already returned by posted sales returns.
+- Returned items must still have the same accounting links required by invoice posting.
+
+Sales return transactions use:
+
+```text
+sourceEntityType=SalesReturn
+sourceEntityId={salesReturnId}
+transactionType=SalesReturn
+```
+
 ## Payments
 
 Payments are auto-posted after creation. They create a balanced accounting transaction:

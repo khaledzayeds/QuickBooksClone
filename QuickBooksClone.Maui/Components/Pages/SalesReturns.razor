@@ -1,0 +1,110 @@
+@page "/sales-returns"
+@inject SalesReturnsApiClient SalesReturnsApi
+@inject InvoicesApiClient InvoicesApi
+@inject NavigationManager Navigation
+
+<PageTitle>Sales Returns</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Customers</p>
+            <h1>Sales Returns</h1>
+            <p class="muted">Create credit memos from posted invoices and return sold inventory into stock.</p>
+        </div>
+        <button class="primary-button" @onclick="NewReturn">New Sales Return</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search return number" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeVoid" />
+                Include void
+            </label>
+            <button class="secondary-button" @onclick="LoadReturnsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading sales returns...</p>
+        }
+        else if (salesReturns.Count == 0)
+        {
+            <p class="muted">No sales returns yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Invoice</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var salesReturn in salesReturns)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@salesReturn.ReturnNumber</strong>
+                                <small>@salesReturn.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@salesReturn.InvoiceNumber</td>
+                            <td>@salesReturn.CustomerName</td>
+                            <td>@salesReturn.ReturnDate</td>
+                            <td>@salesReturn.TotalAmount.ToString("N2")</td>
+                            <td><span class="status active">@salesReturn.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<SalesReturnDto> salesReturns = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReturnsAsync();
+    }
+
+    private async Task LoadReturnsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await SalesReturnsApi.SearchAsync(searchText, null, includeVoid);
+            salesReturns = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load sales returns. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewReturn()
+    {
+        Navigation.NavigateTo("sales-returns/new");
+    }
+}

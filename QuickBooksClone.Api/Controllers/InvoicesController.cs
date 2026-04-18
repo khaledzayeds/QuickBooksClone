@@ -219,6 +219,7 @@ public sealed class InvoicesController : ControllerBase
             invoice.TaxAmount,
             invoice.TotalAmount,
             invoice.PaidAmount,
+            invoice.ReturnedAmount,
             invoice.BalanceDue,
             invoice.PostedTransactionId,
             invoice.PostedAt,

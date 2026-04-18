@@ -48,7 +48,8 @@ public sealed class Invoice : EntityBase, ITenantEntity
     public decimal TaxAmount { get; private set; }
     public decimal TotalAmount => Subtotal - DiscountAmount + TaxAmount;
     public decimal PaidAmount { get; private set; }
-    public decimal BalanceDue => TotalAmount - PaidAmount;
+    public decimal ReturnedAmount { get; private set; }
+    public decimal BalanceDue => TotalAmount - ReturnedAmount - PaidAmount;
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversalTransactionId { get; private set; }
@@ -173,6 +174,44 @@ public sealed class Invoice : EntityBase, ITenantEntity
 
         PaidAmount -= amount;
         Status = PaidAmount == 0 ? InvoiceStatus.Posted : InvoiceStatus.PartiallyPaid;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyReturn(decimal amount)
+    {
+        if (Status is InvoiceStatus.Draft or InvoiceStatus.Void)
+        {
+            throw new InvalidOperationException("Cannot apply a return to a draft or void invoice.");
+        }
+
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Return amount must be greater than zero.");
+        }
+
+        if (ReturnedAmount + amount > TotalAmount)
+        {
+            throw new InvalidOperationException("Return amount cannot exceed invoice total.");
+        }
+
+        ReturnedAmount += amount;
+        if (ReturnedAmount == TotalAmount)
+        {
+            Status = InvoiceStatus.Returned;
+        }
+        else if (BalanceDue == 0)
+        {
+            Status = InvoiceStatus.Paid;
+        }
+        else if (PaidAmount > 0 || ReturnedAmount > 0)
+        {
+            Status = InvoiceStatus.PartiallyPaid;
+        }
+        else
+        {
+            Status = InvoiceStatus.Posted;
+        }
+
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

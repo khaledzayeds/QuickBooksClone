@@ -49,6 +49,7 @@
                         <th>Due</th>
                         <th>Total</th>
                         <th>Paid</th>
+                        <th>Returned</th>
                         <th>Balance</th>
                         <th>Status</th>
                         <th></th>
@@ -74,6 +75,7 @@
                             <td>@invoice.DueDate</td>
                             <td>@invoice.TotalAmount.ToString("N2")</td>
                             <td>@invoice.PaidAmount.ToString("N2")</td>
+                            <td>@invoice.ReturnedAmount.ToString("N2")</td>
                             <td>@invoice.BalanceDue.ToString("N2")</td>
                             <td>
                                 <span class="status @(invoice.Status == InvoiceStatus.Posted ? "active" : "inactive")">@invoice.Status</span>

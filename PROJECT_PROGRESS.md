@@ -174,6 +174,13 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Link generated receipt payment back to the invoice
   - [x] Show payment mode, paid amount, balance, and deposit account on invoice screens
   - [x] Keep invoice and payment posting logic in dedicated services
+- [x] Sales return / credit memo workflow
+  - [x] Sales return document linked to posted invoice
+  - [x] Return quantities validated against original invoice lines
+  - [x] Posted sales return reverses income and Accounts Receivable
+  - [x] Inventory returns increase stock and reverse COGS
+  - [x] Invoice exposes returned amount and updated balance
+  - [x] Desktop Sales Returns list and creation form
 
 ## In Progress
 
@@ -183,10 +190,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Sales return / credit memo workflow
-  - [ ] Reverse sold quantities safely
-  - [ ] Reverse AR / income / COGS effects
-  - [ ] Support refund or customer credit balance handling
+- [ ] Customer credit / refund handling
+  - [ ] Track customer credit created by cash sales returns
+  - [ ] Apply customer credit to another invoice
+  - [ ] Refund customer credit through bank/cash account
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

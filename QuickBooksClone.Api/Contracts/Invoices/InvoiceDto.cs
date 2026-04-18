@@ -20,6 +20,7 @@ public sealed record InvoiceDto(
     decimal TaxAmount,
     decimal TotalAmount,
     decimal PaidAmount,
+    decimal ReturnedAmount,
     decimal BalanceDue,
     Guid? PostedTransactionId,
     DateTimeOffset? PostedAt,

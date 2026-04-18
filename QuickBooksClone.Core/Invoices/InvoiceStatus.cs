@@ -7,5 +7,6 @@ public enum InvoiceStatus
     PartiallyPaid = 3,
     Paid = 4,
     Void = 5,
-    Posted = 6
+    Posted = 6,
+    Returned = 7
 }
