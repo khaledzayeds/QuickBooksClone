@@ -1,0 +1,182 @@
+@page "/purchase-returns/new"
+@inject PurchaseReturnsApiClient PurchaseReturnsApi
+@inject PurchaseBillsApiClient PurchaseBillsApi
+@inject NavigationManager Navigation
+
+<PageTitle>New Purchase Return</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>New Purchase Return</h1>
+            <p class="muted">Pick a posted bill, enter returned quantities, and post the vendor credit.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Purchase Returns</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <DataAnnotationsValidator />
+
+        <label>
+            Purchase bill
+            <InputSelect class="form-control" @bind-Value="form.PurchaseBillId" @bind-Value:after="OnBillChangedAsync">
+                <option value="@Guid.Empty">Select posted bill</option>
+                @foreach (var bill in returnableBills)
+                {
+                    <option value="@bill.Id">@bill.BillNumber - @bill.VendorName - Balance @bill.BalanceDue.ToString("N2")</option>
+                }
+            </InputSelect>
+        </label>
+
+        <label>
+            Return date
+            <InputDate class="form-control" @bind-Value="returnDate" />
+        </label>
+
+        @if (SelectedBill is not null)
+        {
+            <div class="totals-box">
+                Bill total: @SelectedBill.TotalAmount.ToString("N2") |
+                Paid: @SelectedBill.PaidAmount.ToString("N2") |
+                Returned: @SelectedBill.ReturnedAmount.ToString("N2") |
+                Balance: @SelectedBill.BalanceDue.ToString("N2")
+            </div>
+
+            <table class="data-table compact-table">
+                <thead>
+                    <tr>
+                        <th>Line</th>
+                        <th>Purchased Qty</th>
+                        <th>Return Qty</th>
+                        <th>Cost</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in SelectedBill.Lines)
+                    {
+                        var draftLine = GetOrCreateLine(line);
+                        <tr>
+                            <td><strong>@line.Description</strong><small>@line.Id.ToString()[..8]</small></td>
+                            <td>@line.Quantity</td>
+                            <td><InputNumber class="form-control" @bind-Value="draftLine.Quantity" /></td>
+                            <td><InputNumber class="form-control" @bind-Value="draftLine.UnitCost" /></td>
+                            <td>@((draftLine.Quantity * (draftLine.UnitCost ?? line.UnitCost)).ToString("N2"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="totals-box">Return total: @ReturnTotal.ToString("N2")</div>
+        }
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SaveReturnAsync">
+                @(isSaving ? "Saving..." : "Create and Post Return")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<PurchaseBillDto> returnableBills = [];
+    private PurchaseReturnFormModel form = new();
+    private DateTime returnDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+
+    private PurchaseBillDto? SelectedBill => returnableBills.FirstOrDefault(bill => bill.Id == form.PurchaseBillId);
+    private decimal ReturnTotal => form.Lines.Sum(line => line.Quantity * (line.UnitCost ?? 0));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var billResult = await PurchaseBillsApi.SearchAsync(null, false);
+        returnableBills = billResult.Items
+            .Where(bill => bill.Status is PurchaseBillStatus.Posted or PurchaseBillStatus.PartiallyPaid or PurchaseBillStatus.Paid)
+            .ToList();
+    }
+
+    private Task OnBillChangedAsync()
+    {
+        form.Lines.Clear();
+        if (SelectedBill is not null)
+        {
+            foreach (var line in SelectedBill.Lines)
+            {
+                form.Lines.Add(new PurchaseReturnLineFormModel
+                {
+                    PurchaseBillLineId = line.Id,
+                    Quantity = 0,
+                    UnitCost = line.UnitCost
+                });
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private PurchaseReturnLineFormModel GetOrCreateLine(PurchaseBillLineDto billLine)
+    {
+        var existing = form.Lines.FirstOrDefault(line => line.PurchaseBillLineId == billLine.Id);
+        if (existing is not null) return existing;
+        var created = new PurchaseReturnLineFormModel { PurchaseBillLineId = billLine.Id, UnitCost = billLine.UnitCost };
+        form.Lines.Add(created);
+        return created;
+    }
+
+    private async Task SaveReturnAsync()
+    {
+        try
+        {
+            if (form.PurchaseBillId == Guid.Empty || SelectedBill is null)
+            {
+                errorMessage = "Select a purchase bill first.";
+                return;
+            }
+
+            form.Lines.RemoveAll(line => line.Quantity <= 0);
+            if (form.Lines.Count == 0)
+            {
+                errorMessage = "Enter a return quantity for at least one line.";
+                await OnBillChangedAsync();
+                return;
+            }
+
+            foreach (var line in form.Lines)
+            {
+                var billLine = SelectedBill.Lines.First(current => current.Id == line.PurchaseBillLineId);
+                if (line.Quantity > billLine.Quantity)
+                {
+                    errorMessage = $"Return quantity for {billLine.Description} cannot exceed purchased quantity.";
+                    return;
+                }
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.ReturnDate = DateOnly.FromDateTime(returnDate);
+            await PurchaseReturnsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save purchase return. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("purchase-returns");
+    }
+}

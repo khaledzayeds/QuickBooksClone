@@ -87,6 +87,17 @@ public sealed class InMemoryPurchaseBillRepository : IPurchaseBillRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ApplyReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_bills.TryGetValue(id, out var bill))
+        {
+            return Task.FromResult(false);
+        }
+
+        bill.ApplyReturn(amount);
+        return Task.FromResult(true);
+    }
+
     public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default)
     {
         if (!_bills.TryGetValue(id, out var bill))

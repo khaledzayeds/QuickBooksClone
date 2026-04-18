@@ -328,6 +328,74 @@ transactionType=PurchaseBillReversal
 
 Purchase bills with applied vendor payments cannot be voided directly. Reverse the vendor payment first, then void the purchase bill.
 
+## Purchase Returns
+
+Purchase returns are posted as independent vendor credit documents against posted purchase bills. They are not the same as voiding a bill.
+
+Posting a purchase return:
+
+- Debits Accounts Payable for the return total.
+- Credits Inventory Asset for returned inventory items.
+- Credits the item expense account for returned service/non-inventory items.
+- Decreases inventory item quantity on hand by returned quantity.
+- Increases the purchase bill `returnedAmount`.
+- Reduces the bill `balanceDue` down to zero.
+- If the bill has already been paid beyond the remaining bill balance, the excess becomes vendor `creditBalance`.
+
+### List Purchase Returns
+
+```http
+GET /api/purchase-returns?search=&purchaseBillId=&vendorId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Purchase Return
+
+```http
+GET /api/purchase-returns/{id}
+```
+
+### Create Purchase Return
+
+```http
+POST /api/purchase-returns
+Content-Type: application/json
+```
+
+```json
+{
+  "purchaseBillId": "guid",
+  "returnDate": "2026-04-18",
+  "lines": [
+    {
+      "purchaseBillLineId": "guid",
+      "quantity": 1,
+      "unitCost": 50
+    }
+  ]
+}
+```
+
+If `unitCost` is `null` or `0`, the API uses the original purchase bill line unit cost.
+
+Validation:
+
+- `purchaseBillId` must point to a posted/paid/partially-paid purchase bill.
+- Draft and void bills cannot be returned.
+- At least one return line is required.
+- Each return line must reference an existing line from the selected purchase bill.
+- Returned item must match the original bill line item.
+- Return quantity cannot exceed the original purchased quantity minus quantities already returned by posted purchase returns.
+- Inventory returns are blocked if current stock on hand is lower than the quantity being returned.
+- Returned items must still have the same accounting links required by purchase bill posting.
+
+Purchase return transactions use:
+
+```text
+sourceEntityType=PurchaseReturn
+sourceEntityId={purchaseReturnId}
+transactionType=PurchaseReturn
+```
+
 ## Vendor Payments
 
 Vendor payments are auto-posted after creation. They create a balanced accounting transaction:

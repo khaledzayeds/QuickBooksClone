@@ -137,6 +137,7 @@ public sealed class VendorsController : ControllerBase
             vendor.Phone,
             vendor.Currency,
             vendor.Balance,
+            vendor.CreditBalance,
             vendor.IsActive);
     }
 }

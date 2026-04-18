@@ -172,6 +172,7 @@ public sealed class PurchaseBillsController : ControllerBase
             bill.Status,
             bill.TotalAmount,
             bill.PaidAmount,
+            bill.ReturnedAmount,
             bill.BalanceDue,
             bill.PostedTransactionId,
             bill.PostedAt,

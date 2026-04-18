@@ -50,7 +50,7 @@ public sealed class Invoice : EntityBase, ITenantEntity
     public decimal PaidAmount { get; private set; }
     public decimal CreditAppliedAmount { get; private set; }
     public decimal ReturnedAmount { get; private set; }
-    public decimal BalanceDue => TotalAmount - ReturnedAmount - PaidAmount - CreditAppliedAmount;
+    public decimal BalanceDue => Math.Max(0, TotalAmount - ReturnedAmount - PaidAmount - CreditAppliedAmount);
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversalTransactionId { get; private set; }

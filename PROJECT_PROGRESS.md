@@ -188,6 +188,14 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Refund creates balanced accounting transaction
   - [x] Invoice exposes credit applied amount
   - [x] Desktop Customer Credits list and activity form
+- [x] Vendor credits / purchase returns
+  - [x] Purchase return document linked to posted purchase bill
+  - [x] Return quantities validated against original purchase bill lines
+  - [x] Posted purchase return reverses Accounts Payable and inventory/expense
+  - [x] Inventory returns reduce stock safely
+  - [x] Purchase bill exposes returned amount and zero-floor balance due
+  - [x] Paid bill returns create vendor credit balance
+  - [x] Desktop Purchase Returns list and creation form
 
 ## In Progress
 
@@ -197,11 +205,10 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Vendor credits / purchase returns
-  - [ ] Purchase return document linked to purchase bill
-  - [ ] Reduce inventory or expense safely
-  - [ ] Reverse Accounts Payable effect
-  - [ ] Track vendor credit for paid bills
+- [ ] Vendor credit application / refund receipt
+  - [ ] Apply vendor credit to another purchase bill
+  - [ ] Receive vendor refund into bank/cash account
+  - [ ] Post balanced refund receipt transaction
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

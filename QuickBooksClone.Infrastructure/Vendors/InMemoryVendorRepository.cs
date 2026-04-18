@@ -135,6 +135,17 @@ public sealed class InMemoryVendorRepository : IVendorRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ApplyPurchaseReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_vendors.TryGetValue(id, out var vendor))
+        {
+            return Task.FromResult(false);
+        }
+
+        vendor.ApplyPurchaseReturn(amount);
+        return Task.FromResult(true);
+    }
+
     private static bool Contains(string? value, string term)
     {
         return value?.Contains(term, StringComparison.OrdinalIgnoreCase) == true;

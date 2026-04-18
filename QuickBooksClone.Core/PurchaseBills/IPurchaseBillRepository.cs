@@ -8,5 +8,6 @@ public interface IPurchaseBillRepository
     Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default);
     Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
+    Task<bool> ApplyReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default);
 }

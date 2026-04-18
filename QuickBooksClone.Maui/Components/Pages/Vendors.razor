@@ -46,6 +46,7 @@
                         <th>Company</th>
                         <th>Contact</th>
                         <th>Balance</th>
+                        <th>Credit</th>
                         <th>Status</th>
                         <th></th>
                     </tr>
@@ -64,6 +65,7 @@
                                 <small>@vendor.Phone</small>
                             </td>
                             <td>@vendor.Balance.ToString("N2") @vendor.Currency</td>
+                            <td>@vendor.CreditBalance.ToString("N2") @vendor.Currency</td>
                             <td>
                                 <span class="status @(vendor.IsActive ? "active" : "inactive")">
                                     @(vendor.IsActive ? "Active" : "Inactive")

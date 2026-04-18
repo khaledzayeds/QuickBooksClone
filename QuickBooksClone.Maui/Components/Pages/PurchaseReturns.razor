@@ -1,0 +1,101 @@
+@page "/purchase-returns"
+@inject PurchaseReturnsApiClient PurchaseReturnsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Purchase Returns</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>Purchase Returns</h1>
+            <p class="muted">Return vendor bill lines and reduce inventory, expenses, and Accounts Payable.</p>
+        </div>
+        <button class="primary-button" @onclick="NewReturn">New Purchase Return</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search return number" @bind="searchText" @bind:event="oninput" />
+            <button class="secondary-button" @onclick="LoadReturnsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading purchase returns...</p>
+        }
+        else if (returns.Count == 0)
+        {
+            <p class="muted">No purchase returns yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Bill</th>
+                        <th>Vendor</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in returns)
+                    {
+                        <tr>
+                            <td><strong>@item.ReturnNumber</strong><small>@item.Id.ToString()[..8]</small></td>
+                            <td>@item.PurchaseBillNumber</td>
+                            <td>@item.VendorName</td>
+                            <td>@item.ReturnDate</td>
+                            <td>@item.TotalAmount.ToString("N2")</td>
+                            <td><span class="status active">@item.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<PurchaseReturnDto> returns = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReturnsAsync();
+    }
+
+    private async Task LoadReturnsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await PurchaseReturnsApi.SearchAsync(searchText, false);
+            returns = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load purchase returns. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewReturn()
+    {
+        Navigation.NavigateTo("purchase-returns/new");
+    }
+}

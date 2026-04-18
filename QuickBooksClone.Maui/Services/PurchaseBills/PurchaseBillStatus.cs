@@ -6,5 +6,6 @@ public enum PurchaseBillStatus
     Posted = 2,
     Void = 3,
     PartiallyPaid = 4,
-    Paid = 5
+    Paid = 5,
+    Returned = 6
 }

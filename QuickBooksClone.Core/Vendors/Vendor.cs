@@ -35,6 +35,7 @@ public sealed class Vendor : EntityBase, ITenantEntity
     public string? Phone { get; private set; }
     public string Currency { get; private set; }
     public decimal Balance { get; private set; }
+    public decimal CreditBalance { get; private set; }
     public bool IsActive { get; private set; }
 
     public void Update(string displayName, string? companyName, string? email, string? phone, string currency)
@@ -104,6 +105,19 @@ public sealed class Vendor : EntityBase, ITenantEntity
         }
 
         Balance += amount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ApplyPurchaseReturn(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Return amount must be greater than zero.");
+        }
+
+        var payableReduction = Math.Min(Balance, amount);
+        Balance -= payableReduction;
+        CreditBalance += amount - payableReduction;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

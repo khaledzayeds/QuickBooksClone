@@ -8,4 +8,5 @@ public sealed record VendorDto(
     string? Phone,
     string Currency,
     decimal Balance,
+    decimal CreditBalance,
     bool IsActive);
