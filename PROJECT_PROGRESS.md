@@ -208,6 +208,13 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Sales returns reduce customer balance before creating customer credit
   - [x] Customer credit application reduces customer balance and credit balance
   - [x] Verified vendor balance rules already move through bills, payments, returns, and credits
+- [x] Inventory adjustment workflow
+  - [x] Increase/decrease inventory with reason
+  - [x] Auto-post inventory adjustment documents
+  - [x] Post inventory asset and adjustment gain/loss
+  - [x] Block invalid negative stock adjustments before saving
+  - [x] Desktop Inventory Adjustments list and creation form
+  - [x] Build and API accounting smoke test
 
 ## In Progress
 
@@ -217,10 +224,11 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 
 ## Next
 
-- [ ] Inventory adjustment workflow
-  - [ ] Increase/decrease inventory with reason
-  - [ ] Post inventory asset and adjustment gain/loss
-  - [ ] Block invalid negative stock adjustments
+- [ ] Manual journal entries / opening balance reclassification
+  - [ ] Create balanced manual journal entries
+  - [ ] Move balances between Equity, Opening Balance Equity, and owner capital accounts
+  - [ ] Keep account creation itself balance-neutral
+  - [ ] Desktop journal entry list and entry form
 - [ ] EF Core persistence
   - [ ] AppDbContext
   - [ ] Entity configurations

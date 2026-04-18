@@ -1,0 +1,108 @@
+@page "/inventory-adjustments"
+@inject InventoryAdjustmentsApiClient AdjustmentsApi
+@inject NavigationManager Navigation
+
+<PageTitle>Inventory Adjustments</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Inventory</p>
+            <h1>Inventory Adjustments</h1>
+            <p class="muted">Post quantity corrections for shrinkage, recounts, damage, and stock gains.</p>
+        </div>
+        <button class="primary-button" @onclick="NewAdjustment">New Adjustment</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search number or reason" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeVoid" />
+                Include void
+            </label>
+            <button class="secondary-button" @onclick="LoadAdjustmentsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading inventory adjustments...</p>
+        }
+        else if (adjustments.Count == 0)
+        {
+            <p class="muted">No inventory adjustments yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Item</th>
+                        <th>Date</th>
+                        <th>Qty Change</th>
+                        <th>Total Cost</th>
+                        <th>Account</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var adjustment in adjustments)
+                    {
+                        <tr>
+                            <td><strong>@adjustment.AdjustmentNumber</strong><small>@adjustment.Id.ToString()[..8]</small></td>
+                            <td>@adjustment.ItemName</td>
+                            <td>@adjustment.AdjustmentDate</td>
+                            <td>@adjustment.QuantityChange.ToString("N2")</td>
+                            <td>@adjustment.TotalCost.ToString("N2")</td>
+                            <td>@adjustment.AdjustmentAccountName</td>
+                            <td><span class="status active">@adjustment.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<InventoryAdjustmentDto> adjustments = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAdjustmentsAsync();
+    }
+
+    private async Task LoadAdjustmentsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await AdjustmentsApi.SearchAsync(searchText, includeVoid);
+            adjustments = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load inventory adjustments. Make sure the API is running on http://localhost:5014. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void NewAdjustment()
+    {
+        Navigation.NavigateTo("inventory-adjustments/new");
+    }
+}

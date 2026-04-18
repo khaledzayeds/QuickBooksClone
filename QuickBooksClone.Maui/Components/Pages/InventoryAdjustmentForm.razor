@@ -1,0 +1,174 @@
+@page "/inventory-adjustments/new"
+@inject InventoryAdjustmentsApiClient AdjustmentsApi
+@inject ItemsApiClient ItemsApi
+@inject AccountsApiClient AccountsApi
+@inject NavigationManager Navigation
+
+<PageTitle>New Inventory Adjustment</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Inventory</p>
+            <h1>New Inventory Adjustment</h1>
+            <p class="muted">Enter a positive quantity for stock gains or a negative quantity for shrinkage and damage.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Inventory Adjustments</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <label>
+            Inventory item
+            <InputSelect class="form-control" @bind-Value="form.ItemId" @bind-Value:after="OnItemChanged">
+                <option value="@Guid.Empty">Select item</option>
+                @foreach (var item in inventoryItems)
+                {
+                    <option value="@item.Id">@item.Name - On hand @item.QuantityOnHand.ToString("N2")</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Adjustment date
+                <InputDate class="form-control" @bind-Value="adjustmentDate" />
+            </label>
+
+            <label>
+                Quantity change
+                <InputNumber class="form-control" @bind-Value="form.QuantityChange" />
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Unit cost
+                <InputNumber class="form-control" @bind-Value="form.UnitCost" />
+            </label>
+
+            <label>
+                Adjustment account
+                <InputSelect class="form-control" @bind-Value="form.AdjustmentAccountId">
+                    <option value="@Guid.Empty">Select adjustment account</option>
+                    @foreach (var account in adjustmentAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
+            </label>
+        </div>
+
+        <label>
+            Reason
+            <InputText class="form-control" @bind-Value="form.Reason" />
+        </label>
+
+        @if (SelectedItem is not null)
+        {
+            <div class="totals-box">
+                Current on hand: @SelectedItem.QuantityOnHand.ToString("N2") |
+                New on hand: @(SelectedItem.QuantityOnHand + form.QuantityChange).ToString("N2") |
+                Adjustment value: @(Math.Abs(form.QuantityChange) * (form.UnitCost ?? 0)).ToString("N2")
+            </div>
+        }
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SaveAdjustmentAsync">
+                @(isSaving ? "Saving..." : "Create and Post")
+            </button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<ItemDto> inventoryItems = [];
+    private List<AccountDto> adjustmentAccounts = [];
+    private InventoryAdjustmentFormModel form = new();
+    private DateTime adjustmentDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+
+    private ItemDto? SelectedItem => inventoryItems.FirstOrDefault(item => item.Id == form.ItemId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var itemResult = await ItemsApi.SearchAsync(null, false);
+        inventoryItems = itemResult.Items.Where(item => item.ItemType == ItemType.Inventory).ToList();
+
+        var expenses = await AccountsApi.SearchAsync(null, AccountType.Expense, false);
+        var cogs = await AccountsApi.SearchAsync(null, AccountType.CostOfGoodsSold, false);
+        var income = await AccountsApi.SearchAsync(null, AccountType.Income, false);
+        var otherIncome = await AccountsApi.SearchAsync(null, AccountType.OtherIncome, false);
+        adjustmentAccounts = expenses.Items.Concat(cogs.Items).Concat(income.Items).Concat(otherIncome.Items)
+            .OrderBy(account => account.Code)
+            .ToList();
+
+        form.AdjustmentAccountId = adjustmentAccounts.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private void OnItemChanged()
+    {
+        form.UnitCost = SelectedItem?.PurchasePrice;
+    }
+
+    private async Task SaveAdjustmentAsync()
+    {
+        try
+        {
+            if (SelectedItem is null)
+            {
+                errorMessage = "Select an inventory item.";
+                return;
+            }
+
+            if (form.AdjustmentAccountId == Guid.Empty)
+            {
+                errorMessage = "Select an adjustment account.";
+                return;
+            }
+
+            if (form.QuantityChange == 0)
+            {
+                errorMessage = "Quantity change cannot be zero.";
+                return;
+            }
+
+            if (SelectedItem.QuantityOnHand + form.QuantityChange < 0)
+            {
+                errorMessage = "Adjustment cannot make stock negative.";
+                return;
+            }
+
+            if ((form.UnitCost ?? 0) <= 0)
+            {
+                errorMessage = "Unit cost must be greater than zero.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.AdjustmentDate = DateOnly.FromDateTime(adjustmentDate);
+            await AdjustmentsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save inventory adjustment. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("inventory-adjustments");
+    }
+}

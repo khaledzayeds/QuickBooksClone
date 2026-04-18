@@ -661,6 +661,7 @@ Current MAUI entry screens are separate from list screens:
 /customers/{id}/edit
 /items/new
 /items/{id}/edit
+/inventory-adjustments/new
 /invoices/new
 ```
 
@@ -756,6 +757,69 @@ PATCH /api/items/{id}/quantity
 ```http
 PATCH /api/items/{id}/active
 ```
+
+## Inventory Adjustments
+
+Inventory adjustments are used for stock count corrections, shrinkage, damage, and found stock.
+
+Current behavior:
+
+- The API saves the adjustment document and auto-posts it immediately.
+- Posting creates inventory movement and a balanced accounting transaction.
+- Invalid negative stock adjustments are rejected before saving the adjustment document.
+
+### List Inventory Adjustments
+
+```http
+GET /api/inventory-adjustments?search=&itemId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Inventory Adjustment
+
+```http
+GET /api/inventory-adjustments/{id}
+```
+
+### Create Inventory Adjustment
+
+```http
+POST /api/inventory-adjustments
+Content-Type: application/json
+```
+
+```json
+{
+  "itemId": "guid",
+  "adjustmentAccountId": "guid",
+  "adjustmentDate": "2026-04-18",
+  "quantityChange": -2,
+  "unitCost": 20,
+  "reason": "Damaged stock"
+}
+```
+
+Rules:
+
+- `quantityChange` cannot be zero.
+- Positive `quantityChange` increases stock.
+- Negative `quantityChange` decreases stock.
+- Only inventory items can be adjusted.
+- Inventory items must have an inventory asset account before adjustment.
+- Negative adjustments cannot reduce quantity on hand below zero.
+- If `unitCost` is missing or zero, the API uses the item purchase price.
+- Unit cost must be greater than zero after fallback.
+- `adjustmentAccountId` must be an Expense, Cost of Goods Sold, Other Expense, Income, or Other Income account.
+
+Accounting:
+
+- Positive adjustment:
+  - Debit Inventory Asset.
+  - Credit the selected adjustment account.
+- Negative adjustment:
+  - Debit the selected adjustment account.
+  - Credit Inventory Asset.
+- The transaction uses `sourceEntityType=InventoryAdjustment`.
+- Posting is idempotent by source adjustment.
 
 ## Invoices
 
