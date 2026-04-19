@@ -237,17 +237,23 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Add SQLite connection strings for app and development
   - [x] Ensure database is created at API startup
   - [x] Runtime smoke test created SQLite schema successfully
-  - [x] Keep current repositories in-memory until repository replacement is done as a safe follow-up
+- [x] EF Core repository replacement
+  - [x] Replace in-memory repositories with EF repositories for current workflows
+  - [x] Switch repository and posting service DI registrations to scoped services
+  - [x] Add startup seed data for default accounts, zero-balance sample customers/vendors, and linked sample items
+  - [x] Preserve posting idempotency and subledger balance rules through repository methods
+  - [x] Build and API persistence smoke test
+  - [x] Restart smoke test confirms invoices, inventory quantity, customer balance, and accounting transactions persist in SQLite
 
 ## In Progress
 
 ## Next
 
-- [ ] EF Core repository replacement
-  - [ ] Replace in-memory repositories with EF repositories in coherent workflow groups
-  - [ ] Preserve posting idempotency and subledger balance rules
-  - [ ] Add startup seed data for default accounts/items without duplicate creation
-  - [ ] Add migrations after the model settles
+- [ ] EF Core migrations and persistence hardening
+  - [ ] Add initial migration instead of relying only on `EnsureCreated`
+  - [ ] Review transaction boundaries around multi-repository posting workflows
+  - [ ] Add repository-level smoke coverage for key posting workflows
+  - [ ] Add provider switch setting for SQLite vs future SQL Server mode
 - [ ] Backup and restore
   - [ ] Local database backup export
   - [ ] Local database restore with validation

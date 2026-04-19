@@ -18,7 +18,9 @@ Iterative contract. Stable enough for current frontend work, but not final.
 
 - All IDs are `Guid`.
 - All JSON uses camelCase.
-- Current data store is in-memory, so data resets when the API restarts.
+- Current data store is EF Core over SQLite.
+- Default local database files are `quickbooksclone.db` and `quickbooksclone-dev.db`.
+- Initial schema is currently created with `EnsureCreated`; migrations are the next persistence hardening step.
 - Current authentication is not enabled yet.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.

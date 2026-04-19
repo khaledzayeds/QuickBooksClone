@@ -83,8 +83,10 @@ public sealed class QuickBooksCloneDbContext : DbContext
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
             entity.Property(transaction => transaction.TransactionType).HasMaxLength(80).IsRequired();
+            entity.Property(transaction => transaction.TransactionDate).IsRequired();
             entity.Property(transaction => transaction.ReferenceNumber).HasMaxLength(80).IsRequired();
             entity.Property(transaction => transaction.SourceEntityType).HasMaxLength(80);
+            entity.Property(transaction => transaction.SourceEntityId);
             entity.Property(transaction => transaction.Status).HasConversion<int>().IsRequired();
             entity.Ignore(transaction => transaction.TotalDebit);
             entity.Ignore(transaction => transaction.TotalCredit);
@@ -133,6 +135,10 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("customer_credit_activities");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(activity => activity.CustomerId).IsRequired();
+            entity.Property(activity => activity.ActivityDate).IsRequired();
+            entity.Property(activity => activity.InvoiceId);
+            entity.Property(activity => activity.RefundAccountId);
             entity.Property(activity => activity.Action).HasConversion<int>().IsRequired();
             entity.Property(activity => activity.PaymentMethod).HasMaxLength(50);
             entity.Property(activity => activity.ReferenceNumber).HasMaxLength(80).IsRequired();
@@ -149,6 +155,9 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("inventory_adjustments");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(adjustment => adjustment.ItemId).IsRequired();
+            entity.Property(adjustment => adjustment.AdjustmentAccountId).IsRequired();
+            entity.Property(adjustment => adjustment.AdjustmentDate).IsRequired();
             entity.Property(adjustment => adjustment.AdjustmentNumber).HasMaxLength(80).IsRequired();
             entity.Property(adjustment => adjustment.Reason).HasMaxLength(300).IsRequired();
             entity.Property(adjustment => adjustment.Status).HasConversion<int>().IsRequired();
@@ -166,6 +175,13 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("invoices");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(invoice => invoice.CustomerId).IsRequired();
+            entity.Property(invoice => invoice.InvoiceDate).IsRequired();
+            entity.Property(invoice => invoice.DueDate).IsRequired();
+            entity.Property(invoice => invoice.DepositAccountId);
+            entity.Property(invoice => invoice.ReceiptPaymentId);
+            entity.Property(invoice => invoice.PostedTransactionId);
+            entity.Property(invoice => invoice.ReversalTransactionId);
             entity.Property(invoice => invoice.InvoiceNumber).HasMaxLength(80).IsRequired();
             entity.Property(invoice => invoice.PaymentMode).HasConversion<int>().IsRequired();
             entity.Property(invoice => invoice.PaymentMethod).HasMaxLength(50);
@@ -185,6 +201,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.ToTable("invoice_lines");
                 line.WithOwner().HasForeignKey("InvoiceId");
                 line.HasKey(current => current.Id);
+                line.Property(current => current.ItemId).IsRequired();
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitPrice));
@@ -227,6 +244,9 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("journal_entries");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(entry => entry.EntryDate).IsRequired();
+            entity.Property(entry => entry.PostedTransactionId);
+            entity.Property(entry => entry.ReversalTransactionId);
             entity.Property(entry => entry.EntryNumber).HasMaxLength(80).IsRequired();
             entity.Property(entry => entry.Memo).HasMaxLength(500).IsRequired();
             entity.Property(entry => entry.Status).HasConversion<int>().IsRequired();
@@ -239,6 +259,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.ToTable("journal_entry_lines");
                 line.WithOwner().HasForeignKey("JournalEntryId");
                 line.HasKey(current => current.Id);
+                line.Property(current => current.AccountId).IsRequired();
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Debit));
                 ConfigureMoney(line.Property(current => current.Credit));
@@ -255,6 +276,12 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("payments");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(payment => payment.CustomerId).IsRequired();
+            entity.Property(payment => payment.InvoiceId).IsRequired();
+            entity.Property(payment => payment.DepositAccountId).IsRequired();
+            entity.Property(payment => payment.PaymentDate).IsRequired();
+            entity.Property(payment => payment.PostedTransactionId);
+            entity.Property(payment => payment.ReversalTransactionId);
             entity.Property(payment => payment.PaymentMethod).HasMaxLength(50).IsRequired();
             entity.Property(payment => payment.PaymentNumber).HasMaxLength(80).IsRequired();
             entity.Property(payment => payment.Status).HasConversion<int>().IsRequired();
@@ -270,6 +297,11 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("purchase_bills");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(bill => bill.VendorId).IsRequired();
+            entity.Property(bill => bill.BillDate).IsRequired();
+            entity.Property(bill => bill.DueDate).IsRequired();
+            entity.Property(bill => bill.PostedTransactionId);
+            entity.Property(bill => bill.ReversalTransactionId);
             entity.Property(bill => bill.BillNumber).HasMaxLength(80).IsRequired();
             entity.Property(bill => bill.Status).HasConversion<int>().IsRequired();
             ConfigureMoney(entity.Property(bill => bill.PaidAmount));
@@ -284,6 +316,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.ToTable("purchase_bill_lines");
                 line.WithOwner().HasForeignKey("PurchaseBillId");
                 line.HasKey(current => current.Id);
+                line.Property(current => current.ItemId).IsRequired();
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitCost));
@@ -301,6 +334,10 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("purchase_returns");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(purchaseReturn => purchaseReturn.PurchaseBillId).IsRequired();
+            entity.Property(purchaseReturn => purchaseReturn.VendorId).IsRequired();
+            entity.Property(purchaseReturn => purchaseReturn.ReturnDate).IsRequired();
+            entity.Property(purchaseReturn => purchaseReturn.PostedTransactionId);
             entity.Property(purchaseReturn => purchaseReturn.ReturnNumber).HasMaxLength(80).IsRequired();
             entity.Property(purchaseReturn => purchaseReturn.Status).HasConversion<int>().IsRequired();
             entity.Ignore(purchaseReturn => purchaseReturn.TotalAmount);
@@ -311,6 +348,8 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.ToTable("purchase_return_lines");
                 line.WithOwner().HasForeignKey("PurchaseReturnId");
                 line.HasKey(current => current.Id);
+                line.Property(current => current.PurchaseBillLineId).IsRequired();
+                line.Property(current => current.ItemId).IsRequired();
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitCost));
@@ -328,6 +367,10 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("sales_returns");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(salesReturn => salesReturn.InvoiceId).IsRequired();
+            entity.Property(salesReturn => salesReturn.CustomerId).IsRequired();
+            entity.Property(salesReturn => salesReturn.ReturnDate).IsRequired();
+            entity.Property(salesReturn => salesReturn.PostedTransactionId);
             entity.Property(salesReturn => salesReturn.ReturnNumber).HasMaxLength(80).IsRequired();
             entity.Property(salesReturn => salesReturn.Status).HasConversion<int>().IsRequired();
             entity.Ignore(salesReturn => salesReturn.TotalAmount);
@@ -338,6 +381,8 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.ToTable("sales_return_lines");
                 line.WithOwner().HasForeignKey("SalesReturnId");
                 line.HasKey(current => current.Id);
+                line.Property(current => current.InvoiceLineId).IsRequired();
+                line.Property(current => current.ItemId).IsRequired();
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitPrice));
@@ -378,6 +423,10 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("vendor_credit_activities");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(activity => activity.VendorId).IsRequired();
+            entity.Property(activity => activity.ActivityDate).IsRequired();
+            entity.Property(activity => activity.PurchaseBillId);
+            entity.Property(activity => activity.DepositAccountId);
             entity.Property(activity => activity.Action).HasConversion<int>().IsRequired();
             entity.Property(activity => activity.PaymentMethod).HasMaxLength(50);
             entity.Property(activity => activity.ReferenceNumber).HasMaxLength(80).IsRequired();
@@ -394,6 +443,12 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("vendor_payments");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            entity.Property(payment => payment.VendorId).IsRequired();
+            entity.Property(payment => payment.PurchaseBillId).IsRequired();
+            entity.Property(payment => payment.PaymentAccountId).IsRequired();
+            entity.Property(payment => payment.PaymentDate).IsRequired();
+            entity.Property(payment => payment.PostedTransactionId);
+            entity.Property(payment => payment.ReversalTransactionId);
             entity.Property(payment => payment.PaymentMethod).HasMaxLength(50).IsRequired();
             entity.Property(payment => payment.PaymentNumber).HasMaxLength(80).IsRequired();
             entity.Property(payment => payment.Status).HasConversion<int>().IsRequired();
