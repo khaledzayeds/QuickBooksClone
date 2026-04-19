@@ -4,6 +4,12 @@ namespace QuickBooksClone.Core.VendorCredits;
 
 public sealed class VendorCreditActivity : EntityBase, ITenantEntity
 {
+    private VendorCreditActivity()
+    {
+        CompanyId = Guid.Empty;
+        ReferenceNumber = string.Empty;
+    }
+
     public VendorCreditActivity(Guid vendorId, DateOnly activityDate, decimal amount, VendorCreditAction action, Guid? purchaseBillId = null, Guid? depositAccountId = null, string? paymentMethod = null, string? referenceNumber = null, Guid? companyId = null)
     {
         if (vendorId == Guid.Empty) throw new ArgumentException("Vendor is required.", nameof(vendorId));

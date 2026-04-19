@@ -21,6 +21,7 @@ using QuickBooksClone.Infrastructure.InventoryAdjustments;
 using QuickBooksClone.Infrastructure.Items;
 using QuickBooksClone.Infrastructure.JournalEntries;
 using QuickBooksClone.Infrastructure.OpeningBalances;
+using QuickBooksClone.Infrastructure.Persistence;
 using QuickBooksClone.Infrastructure.Payments;
 using QuickBooksClone.Infrastructure.PurchaseBills;
 using QuickBooksClone.Infrastructure.PurchaseReturns;
@@ -39,6 +40,7 @@ builder.Logging.AddDebug();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddQuickBooksPersistence(builder.Configuration);
 builder.Services.AddSingleton<IAccountRepository, InMemoryAccountRepository>();
 builder.Services.AddSingleton<IAccountingTransactionRepository, InMemoryAccountingTransactionRepository>();
 builder.Services.AddSingleton<ICustomerCreditActivityRepository, InMemoryCustomerCreditActivityRepository>();
@@ -89,5 +91,7 @@ app.UseCors("DesktopClient");
 app.UseAuthorization();
 
 app.MapControllers();
+
+await app.Services.EnsureQuickBooksDatabaseCreatedAsync();
 
 app.Run();

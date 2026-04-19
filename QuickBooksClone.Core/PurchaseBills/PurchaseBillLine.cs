@@ -2,6 +2,11 @@ namespace QuickBooksClone.Core.PurchaseBills;
 
 public sealed class PurchaseBillLine
 {
+    private PurchaseBillLine()
+    {
+        Description = string.Empty;
+    }
+
     public PurchaseBillLine(Guid itemId, string description, decimal quantity, decimal unitCost)
     {
         if (itemId == Guid.Empty)

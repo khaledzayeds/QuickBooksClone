@@ -2,6 +2,11 @@ namespace QuickBooksClone.Core.SalesReturns;
 
 public sealed class SalesReturnLine
 {
+    private SalesReturnLine()
+    {
+        Description = string.Empty;
+    }
+
     public SalesReturnLine(Guid invoiceLineId, Guid itemId, string description, decimal quantity, decimal unitPrice, decimal discountPercent = 0)
     {
         if (invoiceLineId == Guid.Empty)

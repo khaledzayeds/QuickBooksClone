@@ -4,6 +4,13 @@ namespace QuickBooksClone.Core.Vendors;
 
 public sealed class Vendor : EntityBase, ITenantEntity
 {
+    private Vendor()
+    {
+        CompanyId = Guid.Empty;
+        DisplayName = string.Empty;
+        Currency = string.Empty;
+    }
+
     public Vendor(
         string displayName,
         string? companyName,

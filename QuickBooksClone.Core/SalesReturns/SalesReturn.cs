@@ -6,6 +6,12 @@ public sealed class SalesReturn : EntityBase, ITenantEntity
 {
     private readonly List<SalesReturnLine> _lines = [];
 
+    private SalesReturn()
+    {
+        CompanyId = Guid.Empty;
+        ReturnNumber = string.Empty;
+    }
+
     public SalesReturn(Guid invoiceId, Guid customerId, DateOnly returnDate, string? returnNumber = null, Guid? companyId = null)
     {
         if (invoiceId == Guid.Empty)

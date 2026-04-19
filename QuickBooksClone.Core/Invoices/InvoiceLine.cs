@@ -2,6 +2,11 @@ namespace QuickBooksClone.Core.Invoices;
 
 public sealed class InvoiceLine
 {
+    private InvoiceLine()
+    {
+        Description = string.Empty;
+    }
+
     public InvoiceLine(Guid itemId, string description, decimal quantity, decimal unitPrice, decimal discountPercent = 0)
     {
         if (itemId == Guid.Empty)

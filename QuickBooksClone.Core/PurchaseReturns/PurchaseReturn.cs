@@ -6,6 +6,12 @@ public sealed class PurchaseReturn : EntityBase, ITenantEntity
 {
     private readonly List<PurchaseReturnLine> _lines = [];
 
+    private PurchaseReturn()
+    {
+        CompanyId = Guid.Empty;
+        ReturnNumber = string.Empty;
+    }
+
     public PurchaseReturn(Guid purchaseBillId, Guid vendorId, DateOnly returnDate, string? returnNumber = null, Guid? companyId = null)
     {
         if (purchaseBillId == Guid.Empty) throw new ArgumentException("Purchase bill is required.", nameof(purchaseBillId));

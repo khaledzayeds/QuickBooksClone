@@ -6,6 +6,13 @@ public sealed class AccountingTransaction : EntityBase, ITenantEntity
 {
     private readonly List<AccountingTransactionLine> _lines = [];
 
+    private AccountingTransaction()
+    {
+        CompanyId = Guid.Empty;
+        TransactionType = string.Empty;
+        ReferenceNumber = string.Empty;
+    }
+
     public AccountingTransaction(
         string transactionType,
         DateOnly transactionDate,

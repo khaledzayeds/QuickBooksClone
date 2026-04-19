@@ -4,6 +4,13 @@ namespace QuickBooksClone.Core.InventoryAdjustments;
 
 public sealed class InventoryAdjustment : EntityBase, ITenantEntity
 {
+    private InventoryAdjustment()
+    {
+        CompanyId = Guid.Empty;
+        Reason = string.Empty;
+        AdjustmentNumber = string.Empty;
+    }
+
     public InventoryAdjustment(
         Guid itemId,
         Guid adjustmentAccountId,

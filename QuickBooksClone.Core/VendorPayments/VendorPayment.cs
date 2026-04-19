@@ -4,6 +4,13 @@ namespace QuickBooksClone.Core.VendorPayments;
 
 public sealed class VendorPayment : EntityBase, ITenantEntity
 {
+    private VendorPayment()
+    {
+        CompanyId = Guid.Empty;
+        PaymentMethod = string.Empty;
+        PaymentNumber = string.Empty;
+    }
+
     public VendorPayment(
         Guid vendorId,
         Guid purchaseBillId,

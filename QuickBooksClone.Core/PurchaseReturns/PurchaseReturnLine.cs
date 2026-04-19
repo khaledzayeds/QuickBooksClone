@@ -2,6 +2,11 @@ namespace QuickBooksClone.Core.PurchaseReturns;
 
 public sealed class PurchaseReturnLine
 {
+    private PurchaseReturnLine()
+    {
+        Description = string.Empty;
+    }
+
     public PurchaseReturnLine(Guid purchaseBillLineId, Guid itemId, string description, decimal quantity, decimal unitCost)
     {
         if (purchaseBillLineId == Guid.Empty) throw new ArgumentException("Purchase bill line is required.", nameof(purchaseBillLineId));

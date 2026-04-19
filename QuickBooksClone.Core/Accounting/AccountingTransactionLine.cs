@@ -2,6 +2,11 @@ namespace QuickBooksClone.Core.Accounting;
 
 public sealed class AccountingTransactionLine
 {
+    private AccountingTransactionLine()
+    {
+        Description = string.Empty;
+    }
+
     public AccountingTransactionLine(Guid accountId, string description, decimal debit, decimal credit)
     {
         if (accountId == Guid.Empty)

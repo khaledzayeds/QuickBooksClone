@@ -6,6 +6,13 @@ public sealed class Customer : EntityBase, ITenantEntity
 {
     public static readonly Guid DefaultCompanyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
+    private Customer()
+    {
+        CompanyId = Guid.Empty;
+        DisplayName = string.Empty;
+        Currency = string.Empty;
+    }
+
     public Customer(
         string displayName,
         string? companyName,

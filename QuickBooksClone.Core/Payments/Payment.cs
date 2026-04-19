@@ -4,6 +4,13 @@ namespace QuickBooksClone.Core.Payments;
 
 public sealed class Payment : EntityBase, ITenantEntity
 {
+    private Payment()
+    {
+        CompanyId = Guid.Empty;
+        PaymentMethod = string.Empty;
+        PaymentNumber = string.Empty;
+    }
+
     public Payment(
         Guid customerId,
         Guid invoiceId,

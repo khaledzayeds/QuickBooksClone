@@ -6,6 +6,12 @@ public sealed class PurchaseBill : EntityBase, ITenantEntity
 {
     private readonly List<PurchaseBillLine> _lines = [];
 
+    private PurchaseBill()
+    {
+        CompanyId = Guid.Empty;
+        BillNumber = string.Empty;
+    }
+
     public PurchaseBill(Guid vendorId, DateOnly billDate, DateOnly dueDate, string? billNumber = null, Guid? companyId = null)
     {
         if (vendorId == Guid.Empty)

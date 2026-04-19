@@ -230,16 +230,24 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Item type changes are blocked while quantity on hand is not zero
   - [x] API endpoint notes document immutable posted invoices and stock adjustment rules
   - [x] Build and API protection smoke test
+- [x] EF Core persistence foundation
+  - [x] Add EF Core SQLite packages
+  - [x] Add `QuickBooksCloneDbContext`
+  - [x] Map current accounting, customer, vendor, item, inventory, invoice, purchase, return, payment, credit, and journal entry entities
+  - [x] Add SQLite connection strings for app and development
+  - [x] Ensure database is created at API startup
+  - [x] Runtime smoke test created SQLite schema successfully
+  - [x] Keep current repositories in-memory until repository replacement is done as a safe follow-up
 
 ## In Progress
 
 ## Next
 
-- [ ] EF Core persistence
-  - [ ] AppDbContext
-  - [ ] Entity configurations
-  - [ ] Migrations
-  - [ ] Replace in-memory repositories
+- [ ] EF Core repository replacement
+  - [ ] Replace in-memory repositories with EF repositories in coherent workflow groups
+  - [ ] Preserve posting idempotency and subledger balance rules
+  - [ ] Add startup seed data for default accounts/items without duplicate creation
+  - [ ] Add migrations after the model settles
 - [ ] Backup and restore
   - [ ] Local database backup export
   - [ ] Local database restore with validation

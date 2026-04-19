@@ -6,6 +6,12 @@ public sealed class Invoice : EntityBase, ITenantEntity
 {
     private readonly List<InvoiceLine> _lines = [];
 
+    private Invoice()
+    {
+        CompanyId = Guid.Empty;
+        InvoiceNumber = string.Empty;
+    }
+
     public Invoice(
         Guid customerId,
         DateOnly invoiceDate,

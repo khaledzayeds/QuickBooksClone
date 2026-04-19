@@ -2,6 +2,11 @@ namespace QuickBooksClone.Core.JournalEntries;
 
 public sealed class JournalEntryLine
 {
+    private JournalEntryLine()
+    {
+        Description = string.Empty;
+    }
+
     public JournalEntryLine(Guid accountId, string description, decimal debit, decimal credit)
     {
         if (accountId == Guid.Empty)

@@ -4,6 +4,12 @@ namespace QuickBooksClone.Core.CustomerCredits;
 
 public sealed class CustomerCreditActivity : EntityBase, ITenantEntity
 {
+    private CustomerCreditActivity()
+    {
+        CompanyId = Guid.Empty;
+        ReferenceNumber = string.Empty;
+    }
+
     public CustomerCreditActivity(
         Guid customerId,
         DateOnly activityDate,

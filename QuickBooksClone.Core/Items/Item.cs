@@ -4,6 +4,13 @@ namespace QuickBooksClone.Core.Items;
 
 public sealed class Item : EntityBase, ITenantEntity
 {
+    private Item()
+    {
+        CompanyId = Guid.Empty;
+        Name = string.Empty;
+        Unit = string.Empty;
+    }
+
     public Item(
         string name,
         ItemType itemType,

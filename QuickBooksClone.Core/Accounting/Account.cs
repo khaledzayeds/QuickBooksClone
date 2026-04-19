@@ -4,6 +4,13 @@ namespace QuickBooksClone.Core.Accounting;
 
 public sealed class Account : EntityBase, ITenantEntity
 {
+    private Account()
+    {
+        CompanyId = Guid.Empty;
+        Code = string.Empty;
+        Name = string.Empty;
+    }
+
     public Account(
         string code,
         string name,

@@ -6,6 +6,13 @@ public sealed class JournalEntry : EntityBase, ITenantEntity
 {
     private readonly List<JournalEntryLine> _lines = [];
 
+    private JournalEntry()
+    {
+        CompanyId = Guid.Empty;
+        EntryNumber = string.Empty;
+        Memo = string.Empty;
+    }
+
     public JournalEntry(
         DateOnly entryDate,
         string memo,
