@@ -8,5 +8,6 @@ public interface IDatabaseMaintenanceService
     Task<IReadOnlyList<DatabaseBackupFile>> ListBackupsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DatabaseRestoreAudit>> ListRestoreAuditsAsync(CancellationToken cancellationToken = default);
     Task<DatabaseBackupFile> CreateBackupAsync(string? label, string? requestedBy, string? reason, CancellationToken cancellationToken = default);
+    Task<DatabaseBackupFile> ImportBackupAsync(string originalFileName, Stream backupStream, string? label, string? requestedBy, string? reason, CancellationToken cancellationToken = default);
     Task<RestoreDatabaseBackupResult> RestoreBackupAsync(string fileName, bool createSafetyBackup, string? requestedBy, string? reason, CancellationToken cancellationToken = default);
 }

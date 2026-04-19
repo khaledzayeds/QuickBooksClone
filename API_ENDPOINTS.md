@@ -193,6 +193,44 @@ Notes:
 - Restore requires explicit confirmation through `confirmRestore=true`.
 - Backup metadata and restore audits are stored alongside the SQLite backup files.
 
+### Import External Database Backup
+
+```http
+POST /api/database/backups/import
+Content-Type: multipart/form-data
+```
+
+Form fields:
+
+- `file`: required SQLite backup file
+- `label`: optional import label
+- `requestedBy`: optional operator name
+- `reason`: optional import reason
+
+Response:
+
+```json
+{
+  "fileName": "quickbooksclone-imported-backup-20260419120000-client-copy.db",
+  "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-imported-backup-20260419120000-client-copy.db",
+  "sizeBytes": 389120,
+  "createdAt": "2026-04-19T12:00:00+00:00",
+  "createdSafetyBackup": false,
+  "backupKind": "Imported",
+  "label": "client-copy",
+  "requestedBy": "admin",
+  "reason": "Import from customer machine",
+  "safetyBackupFileName": null,
+  "restoredAt": null
+}
+```
+
+Notes:
+
+- Import validates that the uploaded file looks like a QuickBooksClone SQLite database before it is accepted.
+- Imported backups become available through `GET /api/database/backups`.
+- Imported backups are not auto-restored; restoring them still requires the explicit restore endpoint and confirmation.
+
 ### Get Database Maintenance Settings
 
 ```http

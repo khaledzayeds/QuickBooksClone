@@ -108,6 +108,51 @@ public sealed class DatabaseController : ControllerBase
         }
     }
 
+    [HttpPost("backups/import")]
+    [ProducesResponseType(typeof(DatabaseBackupOperationResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [RequestSizeLimit(250_000_000)]
+    public async Task<ActionResult<DatabaseBackupOperationResultDto>> ImportBackup(
+        [FromForm] ImportDatabaseBackupRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.File is null || request.File.Length == 0)
+        {
+            return BadRequest("A backup file is required.");
+        }
+
+        try
+        {
+            await using var stream = request.File.OpenReadStream();
+            var importedBackup = await _databaseMaintenance.ImportBackupAsync(
+                request.File.FileName,
+                stream,
+                request.Label,
+                request.RequestedBy,
+                request.Reason,
+                cancellationToken);
+
+            return StatusCode(
+                StatusCodes.Status201Created,
+                new DatabaseBackupOperationResultDto(
+                    importedBackup.FileName,
+                    importedBackup.FullPath,
+                    importedBackup.SizeBytes,
+                    importedBackup.CreatedAt,
+                    false,
+                    importedBackup.BackupKind,
+                    importedBackup.Label,
+                    importedBackup.RequestedBy,
+                    importedBackup.Reason,
+                    null,
+                    null));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+    }
+
     [HttpPost("backups/restore")]
     [ProducesResponseType(typeof(DatabaseBackupOperationResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -184,6 +184,6 @@ try {
 finally {
     if ($process -and -not $process.HasExited) {
         $process.Kill()
-        $process.WaitForExit(3000)
+        $null = $process.WaitForExit(3000)
     }
 }

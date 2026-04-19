@@ -10,6 +10,7 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
     private const string SqliteProvider = "Sqlite";
     private const string ManualBackupKind = "Manual";
     private const string SafetyBackupKind = "Safety";
+    private const string ImportedBackupKind = "Imported";
 
     private readonly QuickBooksCloneDbContext _dbContext;
     private readonly string _provider;
@@ -118,6 +119,61 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         await WriteBackupMetadataAsync(backupFile, cancellationToken);
         await ApplyRetentionAsync(settings.RetentionCount, cancellationToken);
         return backupFile;
+    }
+
+    public async Task<DatabaseBackupFile> ImportBackupAsync(
+        string originalFileName,
+        Stream backupStream,
+        string? label,
+        string? requestedBy,
+        string? reason,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureSqliteSupported();
+
+        if (string.IsNullOrWhiteSpace(originalFileName))
+        {
+            throw new InvalidOperationException("Backup file name is required.");
+        }
+
+        Directory.CreateDirectory(_backupDirectory);
+
+        var importedLabel = string.IsNullOrWhiteSpace(label)
+            ? Path.GetFileNameWithoutExtension(originalFileName)
+            : label;
+
+        var importedPath = BuildBackupPath(importedLabel, ImportedBackupKind);
+        var tempPath = $"{importedPath}.uploading";
+
+        try
+        {
+            await using (var destination = File.Create(tempPath))
+            {
+                await backupStream.CopyToAsync(destination, cancellationToken);
+            }
+
+            ValidateBackupFile(tempPath);
+            File.Move(tempPath, importedPath, overwrite: true);
+
+            var importedBackup = ToBackupFile(
+                new FileInfo(importedPath),
+                new BackupMetadata(
+                    Label: NormalizeText(importedLabel),
+                    RequestedBy: NormalizeText(requestedBy),
+                    Reason: NormalizeText(reason),
+                    BackupKind: ImportedBackupKind,
+                    CreatedAt: DateTimeOffset.UtcNow));
+
+            await WriteBackupMetadataAsync(importedBackup, cancellationToken);
+            return importedBackup;
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
     }
 
     public async Task<RestoreDatabaseBackupResult> RestoreBackupAsync(string fileName, bool createSafetyBackup, string? requestedBy, string? reason, CancellationToken cancellationToken = default)

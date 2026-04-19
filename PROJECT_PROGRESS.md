@@ -305,6 +305,7 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Require explicit restore confirmation in the API contract
   - [x] Record restore audit history with safety-backup trace
   - [x] Apply retention policy to manual SQLite backups
+  - [x] Add external SQLite backup import endpoint
   - [x] Add repeatable `scripts/smoke-backup-policy.ps1`
 
 ## In Progress
@@ -314,7 +315,7 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
   - [x] Add restore confirmation/audit metadata
-  - [ ] Decide whether restore should support uploaded external backup files
+  - [x] Decide whether restore should support uploaded external backup files
 - [ ] Localization foundation
   - [ ] Arabic resources
   - [ ] English resources
