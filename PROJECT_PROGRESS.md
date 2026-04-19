@@ -307,11 +307,21 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Apply retention policy to manual SQLite backups
   - [x] Add external SQLite backup import endpoint
   - [x] Add repeatable `scripts/smoke-backup-policy.ps1`
+- [x] Home workflow map foundation
+  - [x] Replace the placeholder home page with a QuickBooks-style workflow map
+  - [x] Split the home map into Vendors, Customers, Banking, and Company areas
+  - [x] Link all currently live workflows directly from Home
+  - [x] Show planned workflows in-app with clear "planned next" messaging
+  - [x] Keep the current backend coverage visible from the Home screen
 
 ## In Progress
 
 ## Next
 
+- [ ] Purchase workflow expansion
+  - [ ] Purchase Orders
+  - [ ] Receive Inventory before bill workflow
+  - [ ] Bills against received inventory workflow
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
   - [x] Add restore confirmation/audit metadata

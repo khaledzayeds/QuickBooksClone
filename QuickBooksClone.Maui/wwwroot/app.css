@@ -389,6 +389,126 @@ h1:focus {
     font-size: 1.1rem;
 }
 
+.home-header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.home-overview-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.home-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 320px);
+}
+
+.home-band {
+    background: #f7fafc;
+    border: 1px solid #d9e2ec;
+    border-radius: 8px;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.home-band-header h2 {
+    font-size: 1.35rem;
+    margin: 0 0 0.35rem;
+}
+
+.home-band-header p:last-child {
+    margin-bottom: 0;
+}
+
+.home-side-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.workflow-lane {
+    align-items: stretch;
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+}
+
+.workflow-arrow {
+    align-items: center;
+    color: #8a98a8;
+    display: flex;
+    font-size: 1.2rem;
+    font-weight: 700;
+    justify-content: center;
+}
+
+.workflow-step {
+    align-content: start;
+    background: #fff;
+    border: 1px solid #d9e2ec;
+    border-radius: 8px;
+    color: #1f2d3d;
+    cursor: pointer;
+    display: grid;
+    gap: 0.35rem;
+    min-height: 140px;
+    padding: 0.9rem;
+    text-align: left;
+}
+
+.workflow-step strong {
+    font-size: 1rem;
+}
+
+.workflow-step small {
+    color: #5d6978;
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.workflow-step-state {
+    font-size: 0.77rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.workflow-step-live {
+    border-color: #9fc7de;
+    box-shadow: 0 6px 18px rgba(11, 111, 174, 0.08);
+}
+
+.workflow-step-live .workflow-step-state {
+    color: #0b6fae;
+}
+
+.workflow-step-planned {
+    background: #f5f7fa;
+    border-style: dashed;
+}
+
+.workflow-step-planned .workflow-step-state {
+    color: #7b8794;
+}
+
+.home-shortcuts {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.home-checklist {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.home-checklist li {
+    color: #334155;
+}
+
 .alert.error {
     background: #fff1f1;
     border: 1px solid #ffc9c9;
@@ -400,5 +520,36 @@ h1:focus {
 @media (max-width: 1100px) {
     .qb-grid {
         grid-template-columns: 1fr;
+    }
+
+    .home-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .home-overview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .home-header-actions {
+        width: 100%;
+    }
+
+    .home-header-actions a {
+        flex: 1 1 0;
+        text-align: center;
+    }
+
+    .home-overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .workflow-lane {
+        grid-template-columns: 1fr;
+    }
+
+    .workflow-arrow {
+        display: none;
     }
 }
