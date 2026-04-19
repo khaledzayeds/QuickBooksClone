@@ -164,7 +164,7 @@
 
     private IReadOnlyList<WorkflowStep> VendorSteps => new[]
     {
-        new WorkflowStep("Purchase Orders", "Plan what will be ordered before stock or payables move.", null, false, "Next planned workflow after the home map."),
+        new WorkflowStep("Purchase Orders", "Plan what will be ordered before stock or payables move.", "purchase-orders", true, null),
         new WorkflowStep("Receive Inventory", "Receive stock into inventory before the final vendor bill arrives.", null, false, "Will follow purchase orders and inventory receiving logic."),
         new WorkflowStep("Enter Bills", "Record vendor bills and post inventory/expense into Accounts Payable.", "purchase-bills", true, null),
         new WorkflowStep("Pay Bills", "Pay posted bills and reduce vendor balances from cash or bank.", "vendor-payments", true, null),

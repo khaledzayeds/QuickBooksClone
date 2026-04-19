@@ -8,6 +8,7 @@ using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.JournalEntries;
 using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Core.PurchaseBills;
+using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.Settings;
@@ -34,6 +35,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<PurchaseBill> PurchaseBills => Set<PurchaseBill>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
@@ -53,6 +55,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigureJournalEntries(modelBuilder);
         ConfigurePayments(modelBuilder);
         ConfigurePurchaseBills(modelBuilder);
+        ConfigurePurchaseOrders(modelBuilder);
         ConfigurePurchaseReturns(modelBuilder);
         ConfigureSalesReturns(modelBuilder);
         ConfigureSettings(modelBuilder);
@@ -327,6 +330,37 @@ public sealed class QuickBooksCloneDbContext : DbContext
             });
 
             entity.Navigation(bill => bill.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+    }
+
+    private static void ConfigurePurchaseOrders(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PurchaseOrder>(entity =>
+        {
+            entity.ToTable("purchase_orders");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(order => order.VendorId).IsRequired();
+            entity.Property(order => order.OrderDate).IsRequired();
+            entity.Property(order => order.ExpectedDate).IsRequired();
+            entity.Property(order => order.OrderNumber).HasMaxLength(80).IsRequired();
+            entity.Property(order => order.Status).HasConversion<int>().IsRequired();
+            entity.Ignore(order => order.TotalAmount);
+            entity.HasIndex(order => order.OrderNumber).IsUnique();
+
+            entity.OwnsMany(order => order.Lines, line =>
+            {
+                line.ToTable("purchase_order_lines");
+                line.WithOwner().HasForeignKey("PurchaseOrderId");
+                line.HasKey(current => current.Id);
+                line.Property(current => current.ItemId).IsRequired();
+                line.Property(current => current.Description).HasMaxLength(300).IsRequired();
+                ConfigureMoney(line.Property(current => current.Quantity));
+                ConfigureMoney(line.Property(current => current.UnitCost));
+                line.Ignore(current => current.LineTotal);
+            });
+
+            entity.Navigation(order => order.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
     }
 

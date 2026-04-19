@@ -578,6 +578,96 @@ PATCH /api/vendors/{id}/active
 }
 ```
 
+## Purchase Orders
+
+Purchase orders are operational planning documents only.
+
+They do not:
+
+- create Accounts Payable
+- move inventory quantity
+- create general-ledger transactions
+- change vendor balance
+
+That financial effect starts later in Receive Inventory and Purchase Bills.
+
+### List Purchase Orders
+
+```http
+GET /api/purchase-orders?search=&vendorId=&includeClosed=false&includeCancelled=false&page=1&pageSize=25
+```
+
+### Get Purchase Order
+
+```http
+GET /api/purchase-orders/{id}
+```
+
+### Create Purchase Order
+
+```http
+POST /api/purchase-orders
+Content-Type: application/json
+```
+
+```json
+{
+  "vendorId": "guid",
+  "orderDate": "2026-04-19",
+  "expectedDate": "2026-04-26",
+  "saveMode": 2,
+  "lines": [
+    {
+      "itemId": "guid",
+      "description": "Planned receipt",
+      "quantity": 5,
+      "unitCost": 40
+    }
+  ]
+}
+```
+
+If `unitCost` is `0`, the API uses the selected item's purchase price.
+
+`saveMode` is numeric:
+
+```text
+1 Draft
+2 SaveAsOpen
+```
+
+Validation:
+
+- `vendorId` must point to an active vendor.
+- Purchase orders must have at least one line.
+- `quantity` must be greater than zero.
+- `unitCost` cannot be negative.
+- Every line item must exist and be active.
+
+### Open Purchase Order
+
+```http
+POST /api/purchase-orders/{id}/open
+```
+
+Moves a draft purchase order to `Open`.
+
+### Close Purchase Order
+
+```http
+POST /api/purchase-orders/{id}/close
+```
+
+Marks an open purchase order as `Closed` after the operational work is done.
+
+### Cancel Purchase Order
+
+```http
+PATCH /api/purchase-orders/{id}/cancel
+```
+
+Marks a draft/open purchase order as `Cancelled`.
+
 ## Purchase Bills
 
 Purchase bills are posted through a dedicated posting service. Posted purchase bills:
@@ -999,6 +1089,7 @@ Current MAUI entry screens are separate from list screens:
 /inventory-adjustments/new
 /journal-entries/new
 /invoices/new
+/purchase-orders/new
 ```
 
 ### Activate / Deactivate Account

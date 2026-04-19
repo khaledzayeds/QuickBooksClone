@@ -1,0 +1,227 @@
+@page "/purchase-orders/new"
+@inject PurchaseOrdersApiClient PurchaseOrdersApi
+@inject VendorsApiClient VendorsApi
+@inject ItemsApiClient ItemsApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.PurchaseOrders
+@using QuickBooksClone.Maui.Services.Vendors
+@using QuickBooksClone.Maui.Services.Items
+
+<PageTitle>New Purchase Order</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>New Purchase Order</h1>
+            <p class="muted">Reserve the intended vendor purchase now, then receive inventory and bill it later.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Orders</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <DataAnnotationsValidator />
+
+        <label>
+            Vendor
+            <InputSelect class="form-control" @bind-Value="form.VendorId">
+                <option value="@Guid.Empty">Select vendor</option>
+                @foreach (var vendor in vendors)
+                {
+                    <option value="@vendor.Id">@vendor.DisplayName</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Order date
+                <InputDate class="form-control" @bind-Value="orderDate" />
+            </label>
+
+            <label>
+                Expected date
+                <InputDate class="form-control" @bind-Value="expectedDate" />
+            </label>
+        </div>
+
+        <h3>Lines</h3>
+        <div class="form-row">
+            <label>
+                Item
+                <InputSelect class="form-control" @bind-Value="draftLine.ItemId">
+                    <option value="@Guid.Empty">Select item</option>
+                    @foreach (var item in items)
+                    {
+                        <option value="@item.Id">@item.Name (@item.PurchasePrice.ToString("N2"))</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Quantity
+                <InputNumber class="form-control" @bind-Value="draftLine.Quantity" />
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Unit cost
+                <InputNumber class="form-control" @bind-Value="draftLine.UnitCost" />
+            </label>
+
+            <label>
+                Description
+                <InputText class="form-control" @bind-Value="draftLine.Description" />
+            </label>
+        </div>
+
+        <button class="secondary-button" type="button" @onclick="AddLine">Add Line</button>
+
+        @if (form.Lines.Count > 0)
+        {
+            <table class="data-table compact-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Cost</th>
+                        <th>Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in form.Lines)
+                    {
+                        <tr>
+                            <td>@GetItemName(line.ItemId)</td>
+                            <td>@line.Quantity</td>
+                            <td>@line.UnitCost.ToString("N2")</td>
+                            <td>@((line.Quantity * line.UnitCost).ToString("N2"))</td>
+                            <td><button class="link-button" type="button" @onclick="() => RemoveLine(line)">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="totals-box">
+            Draft total: @DraftTotal.ToString("N2")
+            <small>Purchase orders do not hit inventory or Accounts Payable until the later receiving/billing steps.</small>
+        </div>
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="() => SaveOrderAsync(PurchaseOrderSaveMode.SaveAsOpen)">
+                @(isSaving ? "Saving..." : "Save as Open")
+            </button>
+            <button class="secondary-button" type="button" disabled="@isSaving" @onclick="() => SaveOrderAsync(PurchaseOrderSaveMode.Draft)">Save Draft</button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<VendorDto> vendors = [];
+    private List<ItemDto> items = [];
+    private PurchaseOrderFormModel form = new();
+    private PurchaseOrderLineFormModel draftLine = new();
+    private DateTime orderDate = DateTime.Today;
+    private DateTime expectedDate = DateTime.Today.AddDays(7);
+    private string? errorMessage;
+    private bool isSaving;
+    private decimal DraftTotal => form.Lines.Sum(line => line.Quantity * line.UnitCost);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var vendorResult = await VendorsApi.SearchAsync(null, false);
+        vendors = vendorResult.Items.ToList();
+
+        var itemResult = await ItemsApi.SearchAsync(null, false);
+        items = itemResult.Items.ToList();
+    }
+
+    private void AddLine()
+    {
+        if (draftLine.ItemId == Guid.Empty || draftLine.Quantity <= 0)
+        {
+            errorMessage = "Select an item and enter a quantity greater than zero.";
+            return;
+        }
+
+        var item = items.FirstOrDefault(current => current.Id == draftLine.ItemId);
+        var unitCost = draftLine.UnitCost > 0 ? draftLine.UnitCost : item?.PurchasePrice ?? 0;
+
+        form.Lines.Add(new PurchaseOrderLineFormModel
+        {
+            ItemId = draftLine.ItemId,
+            Description = string.IsNullOrWhiteSpace(draftLine.Description) ? item?.Name : draftLine.Description,
+            Quantity = draftLine.Quantity,
+            UnitCost = unitCost
+        });
+
+        draftLine = new PurchaseOrderLineFormModel();
+        errorMessage = null;
+    }
+
+    private void RemoveLine(PurchaseOrderLineFormModel line)
+    {
+        form.Lines.Remove(line);
+    }
+
+    private async Task SaveOrderAsync(PurchaseOrderSaveMode saveMode)
+    {
+        try
+        {
+            if (form.VendorId == Guid.Empty)
+            {
+                errorMessage = "Select a vendor first.";
+                return;
+            }
+
+            if (form.Lines.Count == 0)
+            {
+                errorMessage = "Add at least one purchase order line.";
+                return;
+            }
+
+            if (expectedDate.Date < orderDate.Date)
+            {
+                errorMessage = "Expected date cannot be earlier than order date.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.OrderDate = DateOnly.FromDateTime(orderDate);
+            form.ExpectedDate = DateOnly.FromDateTime(expectedDate);
+            form.SaveMode = saveMode;
+            await PurchaseOrdersApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save purchase order. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string GetItemName(Guid itemId) => items.FirstOrDefault(item => item.Id == itemId)?.Name ?? itemId.ToString()[..8];
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("purchase-orders");
+    }
+}

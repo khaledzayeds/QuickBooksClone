@@ -1,0 +1,174 @@
+@page "/purchase-orders"
+@inject PurchaseOrdersApiClient PurchaseOrdersApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.PurchaseOrders
+
+<PageTitle>Purchase Orders</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>Purchase Orders</h1>
+            <p class="muted">Plan vendor purchases before inventory receipt and before Accounts Payable is created.</p>
+        </div>
+        <button class="primary-button" @onclick="NewOrder">New Purchase Order</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search order number" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeClosed" />
+                Include closed
+            </label>
+            <label class="check-row">
+                <input type="checkbox" @bind="includeCancelled" />
+                Include cancelled
+            </label>
+            <button class="secondary-button" @onclick="LoadOrdersAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading purchase orders...</p>
+        }
+        else if (orders.Count == 0)
+        {
+            <p class="muted">No purchase orders yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Vendor</th>
+                        <th>Order Date</th>
+                        <th>Expected</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in orders)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@order.OrderNumber</strong>
+                                <small>@order.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@order.VendorName</td>
+                            <td>@order.OrderDate</td>
+                            <td>@order.ExpectedDate</td>
+                            <td>@order.TotalAmount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(order.Status is PurchaseOrderStatus.Open or PurchaseOrderStatus.Closed ? "active" : "inactive")">@order.Status</span>
+                            </td>
+                            <td class="actions">
+                                @if (order.Status == PurchaseOrderStatus.Draft)
+                                {
+                                    <button class="link-button" @onclick="() => OpenAsync(order)">Open</button>
+                                }
+                                @if (order.Status == PurchaseOrderStatus.Open)
+                                {
+                                    <button class="link-button" @onclick="() => CloseAsync(order)">Close</button>
+                                }
+                                @if (order.Status is PurchaseOrderStatus.Draft or PurchaseOrderStatus.Open)
+                                {
+                                    <button class="link-button" @onclick="() => CancelAsync(order)">Cancel</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<PurchaseOrderDto> orders = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeClosed;
+    private bool includeCancelled;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await PurchaseOrdersApi.SearchAsync(searchText, includeClosed, includeCancelled);
+            orders = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load purchase orders. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OpenAsync(PurchaseOrderDto order)
+    {
+        try
+        {
+            errorMessage = null;
+            await PurchaseOrdersApi.OpenAsync(order.Id);
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not open purchase order. Details: {ex.Message}";
+        }
+    }
+
+    private async Task CloseAsync(PurchaseOrderDto order)
+    {
+        try
+        {
+            errorMessage = null;
+            await PurchaseOrdersApi.CloseAsync(order.Id);
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not close purchase order. Details: {ex.Message}";
+        }
+    }
+
+    private async Task CancelAsync(PurchaseOrderDto order)
+    {
+        try
+        {
+            errorMessage = null;
+            await PurchaseOrdersApi.CancelAsync(order.Id);
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not cancel purchase order. Details: {ex.Message}";
+        }
+    }
+
+    private void NewOrder()
+    {
+        Navigation.NavigateTo("purchase-orders/new");
+    }
+}

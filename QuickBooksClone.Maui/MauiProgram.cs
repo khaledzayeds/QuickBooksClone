@@ -9,6 +9,7 @@ using QuickBooksClone.Maui.Services.Items;
 using QuickBooksClone.Maui.Services.JournalEntries;
 using QuickBooksClone.Maui.Services.Payments;
 using QuickBooksClone.Maui.Services.PurchaseBills;
+using QuickBooksClone.Maui.Services.PurchaseOrders;
 using QuickBooksClone.Maui.Services.PurchaseReturns;
 using QuickBooksClone.Maui.Services.SalesReturns;
 using QuickBooksClone.Maui.Services.Settings;
@@ -53,6 +54,7 @@ public static class MauiProgram
         builder.Services.AddScoped<JournalEntriesApiClient>();
         builder.Services.AddScoped<PaymentsApiClient>();
         builder.Services.AddScoped<PurchaseBillsApiClient>();
+        builder.Services.AddScoped<PurchaseOrdersApiClient>();
         builder.Services.AddScoped<PurchaseReturnsApiClient>();
         builder.Services.AddScoped<SalesReturnsApiClient>();
         builder.Services.AddScoped<ApiConnectivityService>();

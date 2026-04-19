@@ -8,6 +8,7 @@ using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.JournalEntries;
 using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Core.PurchaseBills;
+using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.VendorCredits;
@@ -238,6 +239,20 @@ public sealed class EfPurchaseBillRepository : IPurchaseBillRepository
     public Task<bool> ApplyReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.ApplyReturn(amount), cancellationToken);
     public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.Void(reversalTransactionId), cancellationToken);
     private async Task<bool> MutateAsync(Guid id, Action<PurchaseBill> mutation, CancellationToken cancellationToken) { var bill = await GetByIdAsync(id, cancellationToken); if (bill is null) return false; mutation(bill); await _db.SaveChangesAsync(cancellationToken); return true; }
+}
+
+public sealed class EfPurchaseOrderRepository : IPurchaseOrderRepository
+{
+    private readonly QuickBooksCloneDbContext _db;
+    public EfPurchaseOrderRepository(QuickBooksCloneDbContext db) => _db = db;
+    private IQueryable<PurchaseOrder> Query() => _db.PurchaseOrders.Include(order => order.Lines);
+    public async Task<PurchaseOrderListResult> SearchAsync(PurchaseOrderSearch search, CancellationToken cancellationToken = default) { var page = Math.Max(search.Page, 1); var pageSize = Math.Clamp(search.PageSize, 1, 100); var query = Query(); if (!search.IncludeClosed) query = query.Where(order => order.Status != PurchaseOrderStatus.Closed); if (!search.IncludeCancelled) query = query.Where(order => order.Status != PurchaseOrderStatus.Cancelled); if (search.VendorId is not null) query = query.Where(order => order.VendorId == search.VendorId); if (!string.IsNullOrWhiteSpace(search.Search)) { var term = EfAccountRepository.Like(search.Search); query = query.Where(order => EF.Functions.Like(order.OrderNumber, term)); } var total = await query.CountAsync(cancellationToken); var items = await query.OrderByDescending(order => order.OrderDate).ThenByDescending(order => order.OrderNumber).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken); return new PurchaseOrderListResult(items, total, page, pageSize); }
+    public Task<PurchaseOrder?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Query().FirstOrDefaultAsync(order => order.Id == id, cancellationToken);
+    public async Task<PurchaseOrder> AddAsync(PurchaseOrder order, CancellationToken cancellationToken = default) { _db.PurchaseOrders.Add(order); await _db.SaveChangesAsync(cancellationToken); return order; }
+    public Task<bool> MarkOpenAsync(Guid id, CancellationToken cancellationToken = default) => MutateAsync(id, order => order.MarkOpen(), cancellationToken);
+    public Task<bool> CloseAsync(Guid id, CancellationToken cancellationToken = default) => MutateAsync(id, order => order.Close(), cancellationToken);
+    public Task<bool> CancelAsync(Guid id, CancellationToken cancellationToken = default) => MutateAsync(id, order => order.Cancel(), cancellationToken);
+    private async Task<bool> MutateAsync(Guid id, Action<PurchaseOrder> mutation, CancellationToken cancellationToken) { var order = await GetByIdAsync(id, cancellationToken); if (order is null) return false; mutation(order); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
 
 public sealed class EfVendorPaymentRepository : IVendorPaymentRepository

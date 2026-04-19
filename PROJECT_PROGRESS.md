@@ -319,7 +319,7 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
 ## Next
 
 - [ ] Purchase workflow expansion
-  - [ ] Purchase Orders
+  - [x] Purchase Orders
   - [ ] Receive Inventory before bill workflow
   - [ ] Bills against received inventory workflow
 - [ ] Backup and restore polish
@@ -359,3 +359,4 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
 - SQL Server now has its own EF Core migrations project and repeatable migration-script smoke test.
 - A live SQL Server instance smoke test is still needed before calling SQL Server production-ready.
 - SQL Server and SQLite groundwork is intentionally parked for now while the remaining backend slices continue on the SQLite runtime path.
+- Purchase orders are now live as non-posting operational documents; they intentionally do not touch inventory, vendor balances, or accounting transactions.

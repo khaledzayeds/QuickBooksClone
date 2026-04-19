@@ -638,6 +638,56 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.ToTable("purchase_bills", (string)null);
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.PurchaseOrders.PurchaseOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ExpectedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("OpenedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("OrderDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.ToTable("purchase_orders", (string)null);
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.PurchaseReturns.PurchaseReturn", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1176,6 +1226,46 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("PurchaseBillId");
+                        });
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.PurchaseOrders.PurchaseOrder", b =>
+                {
+                    b.OwnsMany("QuickBooksClone.Core.PurchaseOrders.PurchaseOrderLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("ItemId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("PurchaseOrderId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("Quantity")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("UnitCost")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("PurchaseOrderId");
+
+                            b1.ToTable("purchase_order_lines", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("PurchaseOrderId");
                         });
 
                     b.Navigation("Lines");
