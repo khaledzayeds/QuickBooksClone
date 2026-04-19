@@ -5,6 +5,7 @@ namespace QuickBooksClone.Api.Middleware;
 
 public sealed class TransactionalWriteMiddleware
 {
+    private static readonly PathString DatabaseMaintenancePath = new("/api/database");
     private static readonly HashSet<string> WriteMethods = new(StringComparer.OrdinalIgnoreCase)
     {
         HttpMethods.Post,
@@ -22,7 +23,8 @@ public sealed class TransactionalWriteMiddleware
 
     public async Task InvokeAsync(HttpContext context, QuickBooksCloneDbContext dbContext)
     {
-        if (!WriteMethods.Contains(context.Request.Method))
+        if (!WriteMethods.Contains(context.Request.Method) ||
+            context.Request.Path.StartsWithSegments(DatabaseMaintenancePath, StringComparison.OrdinalIgnoreCase))
         {
             await _next(context);
             return;

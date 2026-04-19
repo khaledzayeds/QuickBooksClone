@@ -42,6 +42,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddQuickBooksPersistence(builder.Configuration);
+builder.Services.AddScoped<IDatabaseMaintenanceService, SqliteDatabaseMaintenanceService>();
 builder.Services.AddScoped<IAccountRepository, EfAccountRepository>();
 builder.Services.AddScoped<IAccountingTransactionRepository, EfAccountingTransactionRepository>();
 builder.Services.AddScoped<ICustomerCreditActivityRepository, EfCustomerCreditActivityRepository>();

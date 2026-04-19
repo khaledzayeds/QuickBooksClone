@@ -265,6 +265,14 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Start API and verify it adopts the existing schema
   - [x] Verify no duplicate seed data after adoption
   - [x] Verify existing transactions remain readable after adoption
+- [x] Backup and restore foundation
+  - [x] Add database status endpoint
+  - [x] Add backup list endpoint
+  - [x] Add SQLite backup creation endpoint
+  - [x] Add SQLite restore endpoint
+  - [x] Create safety backup before restore
+  - [x] Add repeatable `scripts/smoke-backup-restore.ps1`
+  - [x] Verify backup/restore round-trip with reverted business data
 
 ## In Progress
 
@@ -274,11 +282,10 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [ ] Add SQL Server connection profile
   - [ ] Decide whether SQL Server uses a separate migration set or scripted deployment
   - [ ] Test provider switch against a real SQL Server instance
-- [ ] Backup and restore
-  - [ ] Local database backup export
-  - [ ] Local database restore with validation
-  - [ ] Automatic backup schedule option
-  - [ ] Restore safety checks before replacing live company data
+- [ ] Backup and restore polish
+  - [ ] Add automatic backup schedule option
+  - [ ] Add restore confirmation/audit metadata
+  - [ ] Decide whether restore should support uploaded external backup files
 - [ ] Program settings and startup configuration
   - [ ] Company settings
   - [ ] Currency, tax, and fiscal year settings

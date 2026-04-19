@@ -26,6 +26,7 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - `Database:Provider` is currently `Sqlite`; SQL Server support is wired at configuration/package level but still needs a real SQL Server smoke test before production use.
 - Persistence smoke test: `.\scripts\smoke-persistence.ps1`.
 - Existing SQLite adoption smoke test: `.\scripts\smoke-existing-sqlite-adoption.ps1`.
+- Backup/restore smoke test: `.\scripts\smoke-backup-restore.ps1`.
 - Current authentication is not enabled yet.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.
@@ -59,6 +60,109 @@ Vendor balance rules:
 - Receiving a vendor refund decreases `creditBalance`; the refund receipt transaction clears the Accounts Payable debit in the general ledger.
 
 ## Customers
+
+## Database Maintenance
+
+### Database Status
+
+```http
+GET /api/database/status
+```
+
+Response:
+
+```json
+{
+  "provider": "Sqlite",
+  "supportsBackupRestore": true,
+  "liveDatabasePath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\quickbooksclone-dev.db",
+  "backupDirectory": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups",
+  "backupCount": 2
+}
+```
+
+### List Database Backups
+
+```http
+GET /api/database/backups
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "fileName": "quickbooksclone-backup-20260419094500-smoke.db",
+      "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-backup-20260419094500-smoke.db",
+      "sizeBytes": 389120,
+      "createdAt": "2026-04-19T09:45:00+00:00"
+    }
+  ],
+  "totalCount": 1
+}
+```
+
+### Create Database Backup
+
+```http
+POST /api/database/backups
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "label": "before-upgrade"
+}
+```
+
+Response:
+
+```json
+{
+  "fileName": "quickbooksclone-backup-20260419094500-before-upgrade.db",
+  "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-backup-20260419094500-before-upgrade.db",
+  "sizeBytes": 389120,
+  "createdAt": "2026-04-19T09:45:00+00:00",
+  "createdSafetyBackup": false
+}
+```
+
+### Restore Database Backup
+
+```http
+POST /api/database/backups/restore
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "fileName": "quickbooksclone-backup-20260419094500-before-upgrade.db",
+  "createSafetyBackup": true
+}
+```
+
+Response:
+
+```json
+{
+  "fileName": "quickbooksclone-backup-20260419094500-before-upgrade.db",
+  "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-backup-20260419094500-before-upgrade.db",
+  "sizeBytes": 389120,
+  "createdAt": "2026-04-19T09:45:00+00:00",
+  "createdSafetyBackup": true
+}
+```
+
+Notes:
+
+- Current backup/restore support is SQLite-only.
+- Restore validates that the selected backup looks like a QuickBooksClone SQLite database.
+- Restore can create a fresh safety backup of the current live database before replacing it.
 
 ### List Customers
 
