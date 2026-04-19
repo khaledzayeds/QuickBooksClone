@@ -1,12 +1,16 @@
 @page "/"
+@using QuickBooksClone.Maui.Services
+@inject ApiConnectionSettingsStore ConnectionStore
 
 <h1>QuickBooksClone Desktop</h1>
 
 <p>Start with the first working slice: customers.</p>
+<p class="muted">Active API profile: @ConnectionStore.Current.StartupProfile -> @ConnectionStore.CurrentBaseUrl</p>
 
 <p>
     <a class="btn btn-primary" href="customers">Open Customers</a>
     <a class="btn btn-secondary" href="accounts">Open Accounts</a>
     <a class="btn btn-secondary" href="items">Open Items</a>
     <a class="btn btn-secondary" href="invoices">Open Invoices</a>
+    <a class="btn btn-secondary" href="connection-settings">Connection Settings</a>
 </p>

@@ -280,6 +280,12 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Add runtime settings endpoint for provider, environment, and backup path
   - [x] Add repeatable `scripts/smoke-settings.ps1`
   - [x] Verify settings update persists across restart
+- [x] Startup connection/profile settings
+  - [x] Replace hard-coded MAUI API base URL with stored connection settings
+  - [x] Add Local / LAN / Hosted connection profiles
+  - [x] Add Connection Settings page in MAUI
+  - [x] Add runtime connection test against `api/settings/runtime`
+  - [x] Show active profile summary on the home page
 
 ## In Progress
 
@@ -293,10 +299,10 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [ ] Add automatic backup schedule option
   - [ ] Add restore confirmation/audit metadata
   - [ ] Decide whether restore should support uploaded external backup files
-- [ ] Startup connection/profile settings
-  - [ ] Add API/server connection settings if frontend and backend run separately
-  - [ ] Decide desktop startup mode: embedded local API vs external server connection
-  - [ ] Add environment/profile selection for local, LAN, or hosted deployments
+- [ ] Desktop startup mode polish
+  - [ ] Decide whether desktop starts embedded local API automatically
+  - [ ] Add explicit toggle for embedded local API vs external API
+  - [ ] Add startup health check and friendlier offline message
 - [ ] Localization foundation
   - [ ] Arabic resources
   - [ ] English resources

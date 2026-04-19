@@ -11,6 +11,7 @@ using QuickBooksClone.Maui.Services.Payments;
 using QuickBooksClone.Maui.Services.PurchaseBills;
 using QuickBooksClone.Maui.Services.PurchaseReturns;
 using QuickBooksClone.Maui.Services.SalesReturns;
+using QuickBooksClone.Maui.Services.Settings;
 using QuickBooksClone.Maui.Services.Vendors;
 using QuickBooksClone.Maui.Services.VendorCredits;
 using QuickBooksClone.Maui.Services.VendorPayments;
@@ -30,13 +31,15 @@ public static class MauiProgram
             });
 
         builder.Services.AddMauiBlazorWebView();
-        builder.Services.AddSingleton(new ApiOptions());
+        builder.Services.AddSingleton<ApiConnectionSettingsStore>();
+        builder.Services.AddTransient<ConfigurableApiMessageHandler>();
         builder.Services.AddScoped(sp =>
         {
-            var options = sp.GetRequiredService<ApiOptions>();
-            return new HttpClient
+            var handler = ActivatorUtilities.CreateInstance<ConfigurableApiMessageHandler>(sp);
+            handler.InnerHandler = new HttpClientHandler();
+            return new HttpClient(handler)
             {
-                BaseAddress = new Uri(options.BaseUrl)
+                BaseAddress = new Uri("http://placeholder/")
             };
         });
         builder.Services.AddScoped<AccountsApiClient>();
@@ -51,6 +54,7 @@ public static class MauiProgram
         builder.Services.AddScoped<PurchaseBillsApiClient>();
         builder.Services.AddScoped<PurchaseReturnsApiClient>();
         builder.Services.AddScoped<SalesReturnsApiClient>();
+        builder.Services.AddScoped<SettingsApiClient>();
         builder.Services.AddScoped<VendorsApiClient>();
         builder.Services.AddScoped<VendorCreditsApiClient>();
         builder.Services.AddScoped<VendorPaymentsApiClient>();
