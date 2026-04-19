@@ -251,16 +251,24 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Wrap API write requests in one database transaction
   - [x] Roll back failed `POST`, `PUT`, `PATCH`, and `DELETE` workflows instead of leaving partial posting effects
   - [x] Add provider setting for SQLite now and SQL Server later
+- [x] Persistence smoke coverage
+  - [x] Add repeatable `scripts/smoke-persistence.ps1`
+  - [x] Build API before smoke run
+  - [x] Start API against a temporary SQLite database
+  - [x] Verify migration startup and seeded posting accounts
+  - [x] Verify posted credit invoice updates stock, customer balance, and accounting transactions
+  - [x] Verify failed insufficient-stock posting rolls back without saving the invoice
+  - [x] Restart API and verify invoice, stock, and customer balance persisted
 
 ## In Progress
 
 ## Next
 
-- [ ] Persistence smoke coverage
-  - [ ] Add repository-level smoke coverage for key posting workflows
-  - [ ] Add API smoke coverage for migration startup on a fresh database
-  - [ ] Add API smoke coverage for existing `EnsureCreated` SQLite database adoption
-  - [ ] Add failed-posting rollback smoke test
+- [ ] Existing SQLite migration-adoption smoke coverage
+  - [ ] Create an old-style SQLite database without migration history
+  - [ ] Start API and verify it adopts the existing schema
+  - [ ] Verify no duplicate seed data after adoption
+  - [ ] Verify existing transactions remain readable after adoption
 - [ ] SQL Server production mode
   - [ ] Add SQL Server connection profile
   - [ ] Decide whether SQL Server uses a separate migration set or scripted deployment
