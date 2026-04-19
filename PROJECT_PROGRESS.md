@@ -259,16 +259,17 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Verify posted credit invoice updates stock, customer balance, and accounting transactions
   - [x] Verify failed insufficient-stock posting rolls back without saving the invoice
   - [x] Restart API and verify invoice, stock, and customer balance persisted
+- [x] Existing SQLite migration-adoption smoke coverage
+  - [x] Add repeatable `scripts/smoke-existing-sqlite-adoption.ps1`
+  - [x] Create an old-style SQLite database without migration history
+  - [x] Start API and verify it adopts the existing schema
+  - [x] Verify no duplicate seed data after adoption
+  - [x] Verify existing transactions remain readable after adoption
 
 ## In Progress
 
 ## Next
 
-- [ ] Existing SQLite migration-adoption smoke coverage
-  - [ ] Create an old-style SQLite database without migration history
-  - [ ] Start API and verify it adopts the existing schema
-  - [ ] Verify no duplicate seed data after adoption
-  - [ ] Verify existing transactions remain readable after adoption
 - [ ] SQL Server production mode
   - [ ] Add SQL Server connection profile
   - [ ] Decide whether SQL Server uses a separate migration set or scripted deployment
