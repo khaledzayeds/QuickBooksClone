@@ -13,7 +13,7 @@ Build the system as working vertical slices:
 5. Build + smoke test
 6. Git commit
 
-Database persistence, EF Core, and polished UI will come after the core workflows are proven.
+The backend is now API-first with EF Core persistence. Current focus is hardening persistence, accounting safety, and operational workflows before final UI polish.
 
 ## Completed
 
@@ -244,16 +244,27 @@ Database persistence, EF Core, and polished UI will come after the core workflow
   - [x] Preserve posting idempotency and subledger balance rules through repository methods
   - [x] Build and API persistence smoke test
   - [x] Restart smoke test confirms invoices, inventory quantity, customer balance, and accounting transactions persist in SQLite
+- [x] EF Core migrations and write transaction hardening
+  - [x] Add initial EF Core migration for the current accounting schema
+  - [x] Replace startup `EnsureCreated` with `Migrate`
+  - [x] Add transitional adoption for existing SQLite databases created by `EnsureCreated`
+  - [x] Wrap API write requests in one database transaction
+  - [x] Roll back failed `POST`, `PUT`, `PATCH`, and `DELETE` workflows instead of leaving partial posting effects
+  - [x] Add provider setting for SQLite now and SQL Server later
 
 ## In Progress
 
 ## Next
 
-- [ ] EF Core migrations and persistence hardening
-  - [ ] Add initial migration instead of relying only on `EnsureCreated`
-  - [ ] Review transaction boundaries around multi-repository posting workflows
+- [ ] Persistence smoke coverage
   - [ ] Add repository-level smoke coverage for key posting workflows
-  - [ ] Add provider switch setting for SQLite vs future SQL Server mode
+  - [ ] Add API smoke coverage for migration startup on a fresh database
+  - [ ] Add API smoke coverage for existing `EnsureCreated` SQLite database adoption
+  - [ ] Add failed-posting rollback smoke test
+- [ ] SQL Server production mode
+  - [ ] Add SQL Server connection profile
+  - [ ] Decide whether SQL Server uses a separate migration set or scripted deployment
+  - [ ] Test provider switch against a real SQL Server instance
 - [ ] Backup and restore
   - [ ] Local database backup export
   - [ ] Local database restore with validation
@@ -293,6 +304,6 @@ Database persistence, EF Core, and polished UI will come after the core workflow
 ## Notes
 
 - Current MAUI app talks to API at `http://localhost:5014`.
-- Current repositories are intentionally in-memory to move fast.
-- Account links on Items are intentionally waiting for Chart of Accounts.
-- Invoice posting is intentionally waiting for account links and transaction rules.
+- Current repositories are EF Core backed.
+- Current default provider is SQLite through the API.
+- SQL Server package and provider switch exist, but SQL Server still needs a real instance smoke test before calling it production-ready.

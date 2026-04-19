@@ -12,23 +12,97 @@ public static class QuickBooksClonePersistence
 {
     public static IServiceCollection AddQuickBooksPersistence(this IServiceCollection services, IConfiguration configuration)
     {
+        var provider = configuration["Database:Provider"] ?? "Sqlite";
         var connectionString = configuration.GetConnectionString("QuickBooksClone")
             ?? "Data Source=quickbooksclone.db";
 
         services.AddDbContext<QuickBooksCloneDbContext>(options =>
         {
+            if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
+            {
+                options.UseSqlServer(connectionString);
+                return;
+            }
+
             options.UseSqlite(connectionString);
         });
 
         return services;
     }
 
-    public static async Task EnsureQuickBooksDatabaseCreatedAsync(this IServiceProvider services)
+    public static async Task ApplyQuickBooksDatabaseMigrationsAsync(this IServiceProvider services)
     {
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<QuickBooksCloneDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
+        await AdoptExistingSqliteSchemaAsync(dbContext);
+        await dbContext.Database.MigrateAsync();
         await SeedDefaultsAsync(dbContext);
+    }
+
+    private static async Task AdoptExistingSqliteSchemaAsync(QuickBooksCloneDbContext dbContext)
+    {
+        if (dbContext.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) != true)
+        {
+            return;
+        }
+
+        var connection = dbContext.Database.GetDbConnection();
+        var shouldClose = connection.State == System.Data.ConnectionState.Closed;
+        if (shouldClose)
+        {
+            await connection.OpenAsync();
+        }
+
+        try
+        {
+            var historyTableExists = await ExecuteScalarAsync<long>(
+                connection,
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = '__EFMigrationsHistory';") > 0;
+
+            if (historyTableExists)
+            {
+                return;
+            }
+
+            var existingTableCount = await ExecuteScalarAsync<long>(
+                connection,
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';");
+
+            if (existingTableCount == 0)
+            {
+                return;
+            }
+
+            await ExecuteNonQueryAsync(
+                connection,
+                "CREATE TABLE IF NOT EXISTS \"__EFMigrationsHistory\" (\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, \"ProductVersion\" TEXT NOT NULL);");
+
+            await ExecuteNonQueryAsync(
+                connection,
+                "INSERT OR IGNORE INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") VALUES ('20260419042720_InitialCreate', '10.0.5');");
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                await connection.CloseAsync();
+            }
+        }
+    }
+
+    private static async Task<T> ExecuteScalarAsync<T>(System.Data.Common.DbConnection connection, string commandText)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = commandText;
+        var value = await command.ExecuteScalarAsync();
+        return (T)Convert.ChangeType(value!, typeof(T));
+    }
+
+    private static async Task ExecuteNonQueryAsync(System.Data.Common.DbConnection connection, string commandText)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = commandText;
+        await command.ExecuteNonQueryAsync();
     }
 
     private static async Task SeedDefaultsAsync(QuickBooksCloneDbContext dbContext)

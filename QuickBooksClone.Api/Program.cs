@@ -1,3 +1,4 @@
+using QuickBooksClone.Api.Middleware;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.CustomerCredits;
 using QuickBooksClone.Core.Customers;
@@ -88,10 +89,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("DesktopClient");
 
+app.UseMiddleware<TransactionalWriteMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
 
-await app.Services.EnsureQuickBooksDatabaseCreatedAsync();
+await app.Services.ApplyQuickBooksDatabaseMigrationsAsync();
 
 app.Run();

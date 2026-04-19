@@ -20,7 +20,10 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - All JSON uses camelCase.
 - Current data store is EF Core over SQLite.
 - Default local database files are `quickbooksclone.db` and `quickbooksclone-dev.db`.
-- Initial schema is currently created with `EnsureCreated`; migrations are the next persistence hardening step.
+- Startup applies EF Core migrations and seeds the default accounts/sample data if needed.
+- Existing SQLite databases created by the earlier `EnsureCreated` phase are adopted into migration history on startup.
+- Write requests are wrapped in one database transaction, so failed posting workflows roll back instead of leaving partial accounting or inventory effects.
+- `Database:Provider` is currently `Sqlite`; SQL Server support is wired at configuration/package level but still needs a real SQL Server smoke test before production use.
 - Current authentication is not enabled yet.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.
