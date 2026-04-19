@@ -299,14 +299,21 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Add sample SQL Server appsettings profile
   - [x] Add repeatable `scripts/smoke-sqlserver-migrations.ps1`
   - [ ] Test provider switch against a real SQL Server instance
+- [x] Backup and restore polish foundation
+  - [x] Add database maintenance settings endpoint for backup policy
+  - [x] Store backup metadata with label/requested-by/reason
+  - [x] Require explicit restore confirmation in the API contract
+  - [x] Record restore audit history with safety-backup trace
+  - [x] Apply retention policy to manual SQLite backups
+  - [x] Add repeatable `scripts/smoke-backup-policy.ps1`
 
 ## In Progress
 
 ## Next
 
 - [ ] Backup and restore polish
-  - [ ] Add automatic backup schedule option
-  - [ ] Add restore confirmation/audit metadata
+  - [x] Add automatic backup schedule option
+  - [x] Add restore confirmation/audit metadata
   - [ ] Decide whether restore should support uploaded external backup files
 - [ ] Localization foundation
   - [ ] Arabic resources
@@ -337,6 +344,7 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
 
 - Current MAUI app supports stored connection profiles and managed local API startup for the Local profile.
 - Current repositories are EF Core backed.
-- Current default provider is SQLite through the API.
+- Current default provider is SQLite through the API, and SQLite is the active fully tested runtime provider today.
 - SQL Server now has its own EF Core migrations project and repeatable migration-script smoke test.
 - A live SQL Server instance smoke test is still needed before calling SQL Server production-ready.
+- SQL Server and SQLite groundwork is intentionally parked for now while the remaining backend slices continue on the SQLite runtime path.

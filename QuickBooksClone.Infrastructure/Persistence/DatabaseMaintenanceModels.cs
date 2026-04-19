@@ -4,7 +4,11 @@ public sealed record DatabaseBackupFile(
     string FileName,
     string FullPath,
     long SizeBytes,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string BackupKind,
+    string? Label,
+    string? RequestedBy,
+    string? Reason);
 
 public sealed record DatabaseStatus(
     string Provider,
@@ -15,4 +19,26 @@ public sealed record DatabaseStatus(
 
 public sealed record RestoreDatabaseBackupResult(
     DatabaseBackupFile RestoredBackup,
-    DatabaseBackupFile? SafetyBackup);
+    DatabaseBackupFile? SafetyBackup,
+    DatabaseRestoreAudit RestoreAudit);
+
+public sealed record DatabaseMaintenanceSettings(
+    bool AutoBackupEnabled,
+    string ScheduleMode,
+    int RunAtHourLocal,
+    int RetentionCount,
+    bool CreateSafetyBackupBeforeRestore,
+    string? PreferredLabelPrefix,
+    DateTimeOffset? UpdatedAt,
+    string? UpdatedBy);
+
+public sealed record DatabaseRestoreAudit(
+    string BackupFileName,
+    string BackupFullPath,
+    DateTimeOffset RestoredAt,
+    bool CreatedSafetyBackup,
+    string? SafetyBackupFileName,
+    string? RequestedBy,
+    string? Reason,
+    string? LiveDatabasePath,
+    string Provider);

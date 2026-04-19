@@ -5,4 +5,10 @@ public sealed record DatabaseBackupOperationResultDto(
     string FullPath,
     long SizeBytes,
     DateTimeOffset CreatedAt,
-    bool CreatedSafetyBackup);
+    bool CreatedSafetyBackup,
+    string BackupKind,
+    string? Label,
+    string? RequestedBy,
+    string? Reason,
+    string? SafetyBackupFileName,
+    DateTimeOffset? RestoredAt);

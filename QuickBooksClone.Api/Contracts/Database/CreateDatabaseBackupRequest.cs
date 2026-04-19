@@ -1,3 +1,6 @@
 namespace QuickBooksClone.Api.Contracts.Database;
 
-public sealed record CreateDatabaseBackupRequest(string? Label);
+public sealed record CreateDatabaseBackupRequest(
+    string? Label,
+    string? RequestedBy,
+    string? Reason);

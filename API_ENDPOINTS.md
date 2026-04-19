@@ -28,6 +28,7 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Sample SQL Server configuration lives in `QuickBooksClone.Api/appsettings.SqlServer.example.json`.
 - SQL Server migration smoke test: `.\scripts\smoke-sqlserver-migrations.ps1`.
 - SQL Server still needs one live-instance smoke test before we call it production-ready.
+- SQLite is the current fully exercised runtime provider for daily development and smoke coverage.
 - Persistence smoke test: `.\scripts\smoke-persistence.ps1`.
 - Existing SQLite adoption smoke test: `.\scripts\smoke-existing-sqlite-adoption.ps1`.
 - Backup/restore smoke test: `.\scripts\smoke-backup-restore.ps1`.
@@ -98,10 +99,14 @@ Response:
 {
   "items": [
     {
-      "fileName": "quickbooksclone-backup-20260419094500-smoke.db",
-      "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-backup-20260419094500-smoke.db",
+      "fileName": "quickbooksclone-manual-backup-20260419094500-smoke.db",
+      "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-manual-backup-20260419094500-smoke.db",
       "sizeBytes": 389120,
-      "createdAt": "2026-04-19T09:45:00+00:00"
+      "createdAt": "2026-04-19T09:45:00+00:00",
+      "backupKind": "Manual",
+      "label": "smoke",
+      "requestedBy": "admin",
+      "reason": "Before schema review"
     }
   ],
   "totalCount": 1
@@ -119,7 +124,9 @@ Request:
 
 ```json
 {
-  "label": "before-upgrade"
+  "label": "before-upgrade",
+  "requestedBy": "admin",
+  "reason": "Before posting engine update"
 }
 ```
 
@@ -127,11 +134,17 @@ Response:
 
 ```json
 {
-  "fileName": "quickbooksclone-backup-20260419094500-before-upgrade.db",
-  "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-backup-20260419094500-before-upgrade.db",
+  "fileName": "quickbooksclone-manual-backup-20260419094500-before-upgrade.db",
+  "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-manual-backup-20260419094500-before-upgrade.db",
   "sizeBytes": 389120,
   "createdAt": "2026-04-19T09:45:00+00:00",
-  "createdSafetyBackup": false
+  "createdSafetyBackup": false,
+  "backupKind": "Manual",
+  "label": "before-upgrade",
+  "requestedBy": "admin",
+  "reason": "Before posting engine update",
+  "safetyBackupFileName": null,
+  "restoredAt": null
 }
 ```
 
@@ -146,8 +159,11 @@ Request:
 
 ```json
 {
-  "fileName": "quickbooksclone-backup-20260419094500-before-upgrade.db",
-  "createSafetyBackup": true
+  "fileName": "quickbooksclone-manual-backup-20260419094500-before-upgrade.db",
+  "createSafetyBackup": true,
+  "confirmRestore": true,
+  "requestedBy": "admin",
+  "reason": "Rollback after smoke failure"
 }
 ```
 
@@ -155,11 +171,17 @@ Response:
 
 ```json
 {
-  "fileName": "quickbooksclone-backup-20260419094500-before-upgrade.db",
-  "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-backup-20260419094500-before-upgrade.db",
+  "fileName": "quickbooksclone-manual-backup-20260419094500-before-upgrade.db",
+  "fullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-manual-backup-20260419094500-before-upgrade.db",
   "sizeBytes": 389120,
   "createdAt": "2026-04-19T09:45:00+00:00",
-  "createdSafetyBackup": true
+  "createdSafetyBackup": true,
+  "backupKind": "Manual",
+  "label": "before-upgrade",
+  "requestedBy": "admin",
+  "reason": "Before posting engine update",
+  "safetyBackupFileName": "quickbooksclone-safety-backup-20260419100000-pre-restore.db",
+  "restoredAt": "2026-04-19T10:00:02+00:00"
 }
 ```
 
@@ -168,6 +190,80 @@ Notes:
 - Current backup/restore support is SQLite-only.
 - Restore validates that the selected backup looks like a QuickBooksClone SQLite database.
 - Restore can create a fresh safety backup of the current live database before replacing it.
+- Restore requires explicit confirmation through `confirmRestore=true`.
+- Backup metadata and restore audits are stored alongside the SQLite backup files.
+
+### Get Database Maintenance Settings
+
+```http
+GET /api/database/settings
+```
+
+Response:
+
+```json
+{
+  "autoBackupEnabled": true,
+  "scheduleMode": "Daily",
+  "runAtHourLocal": 2,
+  "retentionCount": 14,
+  "createSafetyBackupBeforeRestore": true,
+  "preferredLabelPrefix": "daily",
+  "updatedAt": "2026-04-19T10:10:00+00:00",
+  "updatedBy": "admin"
+}
+```
+
+### Update Database Maintenance Settings
+
+```http
+PUT /api/database/settings
+Content-Type: application/json
+```
+
+```json
+{
+  "autoBackupEnabled": true,
+  "scheduleMode": "Daily",
+  "runAtHourLocal": 2,
+  "retentionCount": 14,
+  "createSafetyBackupBeforeRestore": true,
+  "preferredLabelPrefix": "daily",
+  "updatedBy": "admin"
+}
+```
+
+Notes:
+
+- This is the policy foundation for automatic backups; it stores the intended schedule and retention settings.
+- The actual background scheduler is still deferred until later operational polish.
+
+### List Restore Audits
+
+```http
+GET /api/database/restore-audits
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "backupFileName": "quickbooksclone-manual-backup-20260419094500-before-upgrade.db",
+      "backupFullPath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups\\quickbooksclone-manual-backup-20260419094500-before-upgrade.db",
+      "restoredAt": "2026-04-19T10:00:02+00:00",
+      "createdSafetyBackup": true,
+      "safetyBackupFileName": "quickbooksclone-safety-backup-20260419100000-pre-restore.db",
+      "requestedBy": "admin",
+      "reason": "Rollback after smoke failure",
+      "liveDatabasePath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\quickbooksclone-dev.db",
+      "provider": "Sqlite"
+    }
+  ],
+  "totalCount": 1
+}
+```
 
 ## Settings
 

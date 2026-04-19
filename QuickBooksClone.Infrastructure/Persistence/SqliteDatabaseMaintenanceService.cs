@@ -1,17 +1,27 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 
 namespace QuickBooksClone.Infrastructure.Persistence;
 
 public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceService
 {
     private const string SqliteProvider = "Sqlite";
+    private const string ManualBackupKind = "Manual";
+    private const string SafetyBackupKind = "Safety";
 
     private readonly QuickBooksCloneDbContext _dbContext;
     private readonly string _provider;
     private readonly string? _liveDatabasePath;
     private readonly string _backupDirectory;
+    private readonly string _settingsPath;
+    private readonly string _restoreAuditPath;
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true
+    };
 
     public SqliteDatabaseMaintenanceService(
         QuickBooksCloneDbContext dbContext,
@@ -26,6 +36,8 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
 
         _liveDatabasePath = ResolveSqliteDatabasePath(connectionString, rootPath);
         _backupDirectory = ResolveBackupDirectory(configuration["Database:BackupDirectory"], rootPath);
+        _settingsPath = Path.Combine(_backupDirectory, "database-maintenance-settings.json");
+        _restoreAuditPath = Path.Combine(_backupDirectory, "restore-audit-log.json");
     }
 
     public async Task<DatabaseStatus> GetStatusAsync(CancellationToken cancellationToken = default)
@@ -37,6 +49,21 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
             _liveDatabasePath,
             _backupDirectory,
             backups.Count);
+    }
+
+    public async Task<DatabaseMaintenanceSettings> GetMaintenanceSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(_backupDirectory);
+        return await ReadSettingsAsync(cancellationToken);
+    }
+
+    public async Task<DatabaseMaintenanceSettings> UpdateMaintenanceSettingsAsync(DatabaseMaintenanceSettings settings, CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(_backupDirectory);
+
+        var normalized = NormalizeSettings(settings);
+        await WriteJsonAsync(_settingsPath, normalized, cancellationToken);
+        return normalized;
     }
 
     public Task<IReadOnlyList<DatabaseBackupFile>> ListBackupsAsync(CancellationToken cancellationToken = default)
@@ -53,13 +80,21 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         return Task.FromResult(backups);
     }
 
-    public async Task<DatabaseBackupFile> CreateBackupAsync(string? label, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<DatabaseRestoreAudit>> ListRestoreAuditsAsync(CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(_backupDirectory);
+        var audits = await ReadRestoreAuditsAsync(cancellationToken);
+        return audits.OrderByDescending(x => x.RestoredAt).ToList();
+    }
+
+    public async Task<DatabaseBackupFile> CreateBackupAsync(string? label, string? requestedBy, string? reason, CancellationToken cancellationToken = default)
     {
         EnsureSqliteSupported();
         EnsureLiveDatabaseExists();
 
         Directory.CreateDirectory(_backupDirectory);
-        var backupPath = BuildBackupPath(label);
+        var settings = await ReadSettingsAsync(cancellationToken);
+        var backupPath = BuildBackupPath(label, ManualBackupKind);
 
         await _dbContext.Database.CloseConnectionAsync();
         await using var source = CreateSqliteConnection(_liveDatabasePath!);
@@ -71,10 +106,21 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         await destination.CloseAsync();
         await source.CloseAsync();
 
-        return ToBackupFile(new FileInfo(backupPath));
+        var backupFile = ToBackupFile(
+            new FileInfo(backupPath),
+            new BackupMetadata(
+                Label: NormalizeText(label),
+                RequestedBy: NormalizeText(requestedBy),
+                Reason: NormalizeText(reason),
+                BackupKind: ManualBackupKind,
+                CreatedAt: DateTimeOffset.UtcNow));
+
+        await WriteBackupMetadataAsync(backupFile, cancellationToken);
+        await ApplyRetentionAsync(settings.RetentionCount, cancellationToken);
+        return backupFile;
     }
 
-    public async Task<RestoreDatabaseBackupResult> RestoreBackupAsync(string fileName, bool createSafetyBackup, CancellationToken cancellationToken = default)
+    public async Task<RestoreDatabaseBackupResult> RestoreBackupAsync(string fileName, bool createSafetyBackup, string? requestedBy, string? reason, CancellationToken cancellationToken = default)
     {
         EnsureSqliteSupported();
         EnsureLiveDatabaseExists();
@@ -90,7 +136,7 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         DatabaseBackupFile? safetyBackup = null;
         if (createSafetyBackup)
         {
-            safetyBackup = await CreateBackupAsync("pre-restore", cancellationToken);
+            safetyBackup = await CreateBackupInternalAsync("pre-restore", requestedBy, reason, SafetyBackupKind, cancellationToken);
         }
 
         await _dbContext.Database.CloseConnectionAsync();
@@ -103,7 +149,59 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         await destination.CloseAsync();
         await source.CloseAsync();
 
-        return new RestoreDatabaseBackupResult(ToBackupFile(new FileInfo(backupPath)), safetyBackup);
+        var restoredBackup = ToBackupFile(new FileInfo(backupPath));
+        var audit = new DatabaseRestoreAudit(
+            restoredBackup.FileName,
+            restoredBackup.FullPath,
+            DateTimeOffset.UtcNow,
+            safetyBackup is not null,
+            safetyBackup?.FileName,
+            NormalizeText(requestedBy),
+            NormalizeText(reason),
+            _liveDatabasePath,
+            _provider);
+
+        var audits = await ReadRestoreAuditsAsync(cancellationToken);
+        audits.Add(audit);
+        await WriteJsonAsync(_restoreAuditPath, audits, cancellationToken);
+
+        return new RestoreDatabaseBackupResult(restoredBackup, safetyBackup, audit);
+    }
+
+    private async Task<DatabaseBackupFile> CreateBackupInternalAsync(
+        string? label,
+        string? requestedBy,
+        string? reason,
+        string backupKind,
+        CancellationToken cancellationToken)
+    {
+        EnsureSqliteSupported();
+        EnsureLiveDatabaseExists();
+
+        Directory.CreateDirectory(_backupDirectory);
+        var backupPath = BuildBackupPath(label, backupKind);
+
+        await _dbContext.Database.CloseConnectionAsync();
+        await using var source = CreateSqliteConnection(_liveDatabasePath!);
+        await using var destination = CreateSqliteConnection(backupPath);
+
+        await source.OpenAsync(cancellationToken);
+        await destination.OpenAsync(cancellationToken);
+        source.BackupDatabase(destination);
+        await destination.CloseAsync();
+        await source.CloseAsync();
+
+        var backupFile = ToBackupFile(
+            new FileInfo(backupPath),
+            new BackupMetadata(
+                Label: NormalizeText(label),
+                RequestedBy: NormalizeText(requestedBy),
+                Reason: NormalizeText(reason),
+                BackupKind: backupKind,
+                CreatedAt: DateTimeOffset.UtcNow));
+
+        await WriteBackupMetadataAsync(backupFile, cancellationToken);
+        return backupFile;
     }
 
     private bool SupportsBackupRestore() =>
@@ -140,7 +238,26 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         }
     }
 
-    private string BuildBackupPath(string? label)
+    private async Task ApplyRetentionAsync(int retentionCount, CancellationToken cancellationToken)
+    {
+        if (retentionCount <= 0)
+        {
+            return;
+        }
+
+        var manualBackups = (await ListBackupsAsync(cancellationToken))
+            .Where(x => x.BackupKind == ManualBackupKind)
+            .Skip(retentionCount)
+            .ToList();
+
+        foreach (var backup in manualBackups)
+        {
+            await TryDeleteFileWithRetriesAsync(backup.FullPath, cancellationToken);
+            await TryDeleteFileWithRetriesAsync(GetBackupMetadataPath(backup.FullPath), cancellationToken);
+        }
+    }
+
+    private string BuildBackupPath(string? label, string backupKind)
     {
         var safeLabel = string.IsNullOrWhiteSpace(label)
             ? null
@@ -149,10 +266,108 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
 
         var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss");
         var fileName = string.IsNullOrWhiteSpace(safeLabel)
-            ? $"quickbooksclone-backup-{timestamp}.db"
-            : $"quickbooksclone-backup-{timestamp}-{safeLabel}.db";
+            ? $"quickbooksclone-{backupKind.ToLowerInvariant()}-backup-{timestamp}.db"
+            : $"quickbooksclone-{backupKind.ToLowerInvariant()}-backup-{timestamp}-{safeLabel}.db";
 
         return Path.Combine(_backupDirectory, fileName);
+    }
+
+    private async Task<DatabaseMaintenanceSettings> ReadSettingsAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(_settingsPath))
+        {
+            return DefaultSettings();
+        }
+
+        await using var stream = File.OpenRead(_settingsPath);
+        var settings = await JsonSerializer.DeserializeAsync<DatabaseMaintenanceSettings>(stream, JsonOptions, cancellationToken);
+        return NormalizeSettings(settings ?? DefaultSettings());
+    }
+
+    private async Task<List<DatabaseRestoreAudit>> ReadRestoreAuditsAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(_restoreAuditPath))
+        {
+            return [];
+        }
+
+        await using var stream = File.OpenRead(_restoreAuditPath);
+        return await JsonSerializer.DeserializeAsync<List<DatabaseRestoreAudit>>(stream, JsonOptions, cancellationToken) ?? [];
+    }
+
+    private static DatabaseMaintenanceSettings DefaultSettings() =>
+        new(
+            AutoBackupEnabled: false,
+            ScheduleMode: "Daily",
+            RunAtHourLocal: 2,
+            RetentionCount: 14,
+            CreateSafetyBackupBeforeRestore: true,
+            PreferredLabelPrefix: null,
+            UpdatedAt: null,
+            UpdatedBy: null);
+
+    private static DatabaseMaintenanceSettings NormalizeSettings(DatabaseMaintenanceSettings settings) =>
+        new(
+            settings.AutoBackupEnabled,
+            NormalizeScheduleMode(settings.ScheduleMode),
+            Math.Clamp(settings.RunAtHourLocal, 0, 23),
+            Math.Clamp(settings.RetentionCount, 1, 365),
+            settings.CreateSafetyBackupBeforeRestore,
+            NormalizeText(settings.PreferredLabelPrefix),
+            DateTimeOffset.UtcNow,
+            NormalizeText(settings.UpdatedBy));
+
+    private static string NormalizeScheduleMode(string? scheduleMode) =>
+        scheduleMode?.Equals("Weekly", StringComparison.OrdinalIgnoreCase) == true
+            ? "Weekly"
+            : "Daily";
+
+    private static string? NormalizeText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task WriteBackupMetadataAsync(DatabaseBackupFile backup, CancellationToken cancellationToken)
+    {
+        var metadata = new BackupMetadata(
+            backup.Label,
+            backup.RequestedBy,
+            backup.Reason,
+            backup.BackupKind,
+            backup.CreatedAt);
+
+        await WriteJsonAsync(GetBackupMetadataPath(backup.FullPath), metadata, cancellationToken);
+    }
+
+    private static string GetBackupMetadataPath(string backupFullPath) => $"{backupFullPath}.json";
+
+    private static async Task WriteJsonAsync<T>(string path, T value, CancellationToken cancellationToken)
+    {
+        await using var stream = File.Create(path);
+        await JsonSerializer.SerializeAsync(stream, value, JsonOptions, cancellationToken);
+    }
+
+    private static async Task TryDeleteFileWithRetriesAsync(string path, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                File.Delete(path);
+                return;
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                await Task.Delay(250, cancellationToken);
+            }
+            catch (UnauthorizedAccessException) when (attempt < 4)
+            {
+                await Task.Delay(250, cancellationToken);
+            }
+        }
     }
 
     private static SqliteConnection CreateSqliteConnection(string databasePath, bool readOnly = false)
@@ -160,7 +375,8 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         var builder = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
-            Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWriteCreate
+            Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWriteCreate,
+            Pooling = false
         };
 
         return new SqliteConnection(builder.ToString());
@@ -191,10 +407,46 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
             : Path.GetFullPath(Path.Combine(contentRootPath, configuredDirectory));
     }
 
-    private static DatabaseBackupFile ToBackupFile(FileInfo file) =>
+    private static DatabaseBackupFile ToBackupFile(FileInfo file)
+    {
+        var metadata = ReadBackupMetadata(file.FullName);
+        return ToBackupFile(file, metadata);
+    }
+
+    private static DatabaseBackupFile ToBackupFile(FileInfo file, BackupMetadata? metadata) =>
         new(
             file.Name,
             file.FullName,
             file.Length,
-            new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero));
+            metadata?.CreatedAt ?? new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero),
+            metadata?.BackupKind ?? ManualBackupKind,
+            metadata?.Label,
+            metadata?.RequestedBy,
+            metadata?.Reason);
+
+    private static BackupMetadata? ReadBackupMetadata(string backupFullPath)
+    {
+        var metadataPath = GetBackupMetadataPath(backupFullPath);
+        if (!File.Exists(metadataPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(metadataPath);
+            return JsonSerializer.Deserialize<BackupMetadata>(json, JsonOptions);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private sealed record BackupMetadata(
+        string? Label,
+        string? RequestedBy,
+        string? Reason,
+        string BackupKind,
+        DateTimeOffset CreatedAt);
 }

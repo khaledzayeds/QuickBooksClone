@@ -28,6 +28,35 @@ public sealed class DatabaseController : ControllerBase
             status.BackupCount));
     }
 
+    [HttpGet("settings")]
+    [ProducesResponseType(typeof(DatabaseMaintenanceSettingsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DatabaseMaintenanceSettingsDto>> GetMaintenanceSettings(CancellationToken cancellationToken = default)
+    {
+        var settings = await _databaseMaintenance.GetMaintenanceSettingsAsync(cancellationToken);
+        return Ok(ToDto(settings));
+    }
+
+    [HttpPut("settings")]
+    [ProducesResponseType(typeof(DatabaseMaintenanceSettingsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DatabaseMaintenanceSettingsDto>> UpdateMaintenanceSettings(
+        UpdateDatabaseMaintenanceSettingsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = await _databaseMaintenance.UpdateMaintenanceSettingsAsync(
+            new DatabaseMaintenanceSettings(
+                request.AutoBackupEnabled,
+                request.ScheduleMode,
+                request.RunAtHourLocal,
+                request.RetentionCount,
+                request.CreateSafetyBackupBeforeRestore,
+                request.PreferredLabelPrefix,
+                null,
+                request.UpdatedBy),
+            cancellationToken);
+
+        return Ok(ToDto(settings));
+    }
+
     [HttpGet("backups")]
     [ProducesResponseType(typeof(DatabaseBackupListResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<DatabaseBackupListResponse>> ListBackups(CancellationToken cancellationToken = default)
@@ -36,6 +65,16 @@ public sealed class DatabaseController : ControllerBase
         return Ok(new DatabaseBackupListResponse(
             backups.Select(ToDto).ToList(),
             backups.Count));
+    }
+
+    [HttpGet("restore-audits")]
+    [ProducesResponseType(typeof(DatabaseRestoreAuditListResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DatabaseRestoreAuditListResponse>> ListRestoreAudits(CancellationToken cancellationToken = default)
+    {
+        var audits = await _databaseMaintenance.ListRestoreAuditsAsync(cancellationToken);
+        return Ok(new DatabaseRestoreAuditListResponse(
+            audits.Select(ToDto).ToList(),
+            audits.Count));
     }
 
     [HttpPost("backups")]
@@ -47,15 +86,21 @@ public sealed class DatabaseController : ControllerBase
     {
         try
         {
-            var backup = await _databaseMaintenance.CreateBackupAsync(request?.Label, cancellationToken);
-            return CreatedAtAction(
-                nameof(ListBackups),
+            var backup = await _databaseMaintenance.CreateBackupAsync(request?.Label, request?.RequestedBy, request?.Reason, cancellationToken);
+            return StatusCode(
+                StatusCodes.Status201Created,
                 new DatabaseBackupOperationResultDto(
                     backup.FileName,
                     backup.FullPath,
                     backup.SizeBytes,
                     backup.CreatedAt,
-                    false));
+                    false,
+                    backup.BackupKind,
+                    backup.Label,
+                    backup.RequestedBy,
+                    backup.Reason,
+                    null,
+                    null));
         }
         catch (InvalidOperationException exception)
         {
@@ -70,15 +115,32 @@ public sealed class DatabaseController : ControllerBase
         RestoreDatabaseBackupRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (!request.ConfirmRestore)
+        {
+            return BadRequest("Restore requires explicit confirmation. Set confirmRestore=true to continue.");
+        }
+
         try
         {
-            var result = await _databaseMaintenance.RestoreBackupAsync(request.FileName, request.CreateSafetyBackup, cancellationToken);
+            var result = await _databaseMaintenance.RestoreBackupAsync(
+                request.FileName,
+                request.CreateSafetyBackup,
+                request.RequestedBy,
+                request.Reason,
+                cancellationToken);
+
             return Ok(new DatabaseBackupOperationResultDto(
                 result.RestoredBackup.FileName,
                 result.RestoredBackup.FullPath,
                 result.RestoredBackup.SizeBytes,
                 result.RestoredBackup.CreatedAt,
-                result.SafetyBackup is not null));
+                result.SafetyBackup is not null,
+                result.RestoredBackup.BackupKind,
+                result.RestoredBackup.Label,
+                result.RestoredBackup.RequestedBy,
+                result.RestoredBackup.Reason,
+                result.SafetyBackup?.FileName,
+                result.RestoreAudit.RestoredAt));
         }
         catch (InvalidOperationException exception)
         {
@@ -95,5 +157,32 @@ public sealed class DatabaseController : ControllerBase
             backup.FileName,
             backup.FullPath,
             backup.SizeBytes,
-            backup.CreatedAt);
+            backup.CreatedAt,
+            backup.BackupKind,
+            backup.Label,
+            backup.RequestedBy,
+            backup.Reason);
+
+    private static DatabaseMaintenanceSettingsDto ToDto(DatabaseMaintenanceSettings settings) =>
+        new(
+            settings.AutoBackupEnabled,
+            settings.ScheduleMode,
+            settings.RunAtHourLocal,
+            settings.RetentionCount,
+            settings.CreateSafetyBackupBeforeRestore,
+            settings.PreferredLabelPrefix,
+            settings.UpdatedAt,
+            settings.UpdatedBy);
+
+    private static DatabaseRestoreAuditDto ToDto(DatabaseRestoreAudit audit) =>
+        new(
+            audit.BackupFileName,
+            audit.BackupFullPath,
+            audit.RestoredAt,
+            audit.CreatedSafetyBackup,
+            audit.SafetyBackupFileName,
+            audit.RequestedBy,
+            audit.Reason,
+            audit.LiveDatabasePath,
+            audit.Provider);
 }
