@@ -27,6 +27,7 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Persistence smoke test: `.\scripts\smoke-persistence.ps1`.
 - Existing SQLite adoption smoke test: `.\scripts\smoke-existing-sqlite-adoption.ps1`.
 - Backup/restore smoke test: `.\scripts\smoke-backup-restore.ps1`.
+- Settings smoke test: `.\scripts\smoke-settings.ps1`.
 - Current authentication is not enabled yet.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.
@@ -163,6 +164,91 @@ Notes:
 - Current backup/restore support is SQLite-only.
 - Restore validates that the selected backup looks like a QuickBooksClone SQLite database.
 - Restore can create a fresh safety backup of the current live database before replacing it.
+
+## Settings
+
+### Get Company Settings
+
+```http
+GET /api/settings/company
+```
+
+Response:
+
+```json
+{
+  "id": "guid",
+  "companyId": "11111111-1111-1111-1111-111111111111",
+  "companyName": "QuickBooksClone Demo Company",
+  "legalName": "QuickBooksClone Demo Company LLC",
+  "email": "admin@quickbooksclone.local",
+  "phone": "+20 100 000 0000",
+  "currency": "EGP",
+  "country": "Egypt",
+  "timeZoneId": "Africa/Cairo",
+  "defaultLanguage": "ar",
+  "taxRegistrationNumber": null,
+  "addressLine1": null,
+  "addressLine2": null,
+  "city": null,
+  "region": null,
+  "postalCode": null,
+  "fiscalYearStartMonth": 1,
+  "fiscalYearStartDay": 1,
+  "defaultSalesTaxRate": 0,
+  "defaultPurchaseTaxRate": 0
+}
+```
+
+### Update Company Settings
+
+```http
+PUT /api/settings/company
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "companyName": "Zokaa Trading",
+  "legalName": "Zokaa Trading LLC",
+  "email": "finance@zokaa.example",
+  "phone": "+20 111 222 3333",
+  "currency": "SAR",
+  "country": "Saudi Arabia",
+  "timeZoneId": "Arab Standard Time",
+  "defaultLanguage": "en",
+  "taxRegistrationNumber": "300123456700003",
+  "addressLine1": "King Fahd Road",
+  "addressLine2": "Unit 12",
+  "city": "Riyadh",
+  "region": "Riyadh Region",
+  "postalCode": "12211",
+  "fiscalYearStartMonth": 4,
+  "fiscalYearStartDay": 1,
+  "defaultSalesTaxRate": 15,
+  "defaultPurchaseTaxRate": 15
+}
+```
+
+### Get Runtime Settings
+
+```http
+GET /api/settings/runtime
+```
+
+Response:
+
+```json
+{
+  "environmentName": "Development",
+  "databaseProvider": "Sqlite",
+  "supportsBackupRestore": true,
+  "liveDatabasePath": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\quickbooksclone-dev.db",
+  "backupDirectory": "E:\\Systems\\QuickBooksClone\\QuickBooksClone\\QuickBooksClone.Api\\backups"
+}
+```
 
 ### List Customers
 

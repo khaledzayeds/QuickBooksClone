@@ -273,6 +273,13 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Create safety backup before restore
   - [x] Add repeatable `scripts/smoke-backup-restore.ps1`
   - [x] Verify backup/restore round-trip with reverted business data
+- [x] Program settings and startup configuration foundation
+  - [x] Add company settings entity and persistence
+  - [x] Seed default company settings
+  - [x] Add company settings read/update endpoints
+  - [x] Add runtime settings endpoint for provider, environment, and backup path
+  - [x] Add repeatable `scripts/smoke-settings.ps1`
+  - [x] Verify settings update persists across restart
 
 ## In Progress
 
@@ -286,12 +293,10 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [ ] Add automatic backup schedule option
   - [ ] Add restore confirmation/audit metadata
   - [ ] Decide whether restore should support uploaded external backup files
-- [ ] Program settings and startup configuration
-  - [ ] Company settings
-  - [ ] Currency, tax, and fiscal year settings
-  - [ ] API/server connection settings if frontend and backend run separately
-  - [ ] Desktop startup mode decision: embedded local API vs external server connection
-  - [ ] Environment/profile selection for local, LAN, or hosted deployments
+- [ ] Startup connection/profile settings
+  - [ ] Add API/server connection settings if frontend and backend run separately
+  - [ ] Decide desktop startup mode: embedded local API vs external server connection
+  - [ ] Add environment/profile selection for local, LAN, or hosted deployments
 - [ ] Localization foundation
   - [ ] Arabic resources
   - [ ] English resources

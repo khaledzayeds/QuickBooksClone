@@ -10,6 +10,7 @@ using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.SalesReturns;
+using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.VendorPayments;
 using QuickBooksClone.Core.Vendors;
@@ -35,6 +36,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<PurchaseBill> PurchaseBills => Set<PurchaseBill>();
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
+    public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<VendorCreditActivity> VendorCreditActivities => Set<VendorCreditActivity>();
     public DbSet<VendorPayment> VendorPayments => Set<VendorPayment>();
@@ -53,6 +55,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigurePurchaseBills(modelBuilder);
         ConfigurePurchaseReturns(modelBuilder);
         ConfigureSalesReturns(modelBuilder);
+        ConfigureSettings(modelBuilder);
         ConfigureVendors(modelBuilder);
         ConfigureVendorCredits(modelBuilder);
         ConfigureVendorPayments(modelBuilder);
@@ -413,6 +416,35 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(vendor => vendor.IsActive).IsRequired();
             entity.HasIndex(vendor => vendor.DisplayName).IsUnique();
             entity.HasIndex(vendor => vendor.Email).IsUnique();
+        });
+    }
+
+    private static void ConfigureSettings(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CompanySettings>(entity =>
+        {
+            entity.ToTable("company_settings");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(settings => settings.CompanyName).HasMaxLength(200).IsRequired();
+            entity.Property(settings => settings.LegalName).HasMaxLength(200);
+            entity.Property(settings => settings.Email).HasMaxLength(250);
+            entity.Property(settings => settings.Phone).HasMaxLength(50);
+            entity.Property(settings => settings.Currency).HasMaxLength(10).IsRequired();
+            entity.Property(settings => settings.Country).HasMaxLength(120).IsRequired();
+            entity.Property(settings => settings.TimeZoneId).HasMaxLength(120).IsRequired();
+            entity.Property(settings => settings.DefaultLanguage).HasMaxLength(10).IsRequired();
+            entity.Property(settings => settings.TaxRegistrationNumber).HasMaxLength(100);
+            entity.Property(settings => settings.AddressLine1).HasMaxLength(200);
+            entity.Property(settings => settings.AddressLine2).HasMaxLength(200);
+            entity.Property(settings => settings.City).HasMaxLength(120);
+            entity.Property(settings => settings.Region).HasMaxLength(120);
+            entity.Property(settings => settings.PostalCode).HasMaxLength(40);
+            entity.Property(settings => settings.FiscalYearStartMonth).IsRequired();
+            entity.Property(settings => settings.FiscalYearStartDay).IsRequired();
+            ConfigureMoney(entity.Property(settings => settings.DefaultSalesTaxRate));
+            ConfigureMoney(entity.Property(settings => settings.DefaultPurchaseTaxRate));
+            entity.HasIndex(settings => settings.CompanyId).IsUnique();
         });
     }
 

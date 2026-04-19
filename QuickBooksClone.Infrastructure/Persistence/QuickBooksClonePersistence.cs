@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Items;
+using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.Vendors;
 
 namespace QuickBooksClone.Infrastructure.Persistence;
@@ -150,6 +151,23 @@ public static class QuickBooksClonePersistence
                 new Item("Consulting Hour", ItemType.Service, "SERV-001", null, 750, 0, 0, "hour", incomeAccountId, null, null, expenseAccountId),
                 new Item("Receipt Printer", ItemType.Inventory, "INV-PRN-001", "622100000001", 4200, 3100, 0, "pcs", incomeAccountId, inventoryAccountId, cogsAccountId, expenseAccountId),
                 new Item("Setup Fee", ItemType.NonInventory, "FEE-SETUP", null, 1500, 0, 0, "each", incomeAccountId, null, null, expenseAccountId));
+        }
+
+        if (!await dbContext.CompanySettings.AnyAsync())
+        {
+            dbContext.CompanySettings.Add(new CompanySettings(
+                companyName: "QuickBooksClone Demo Company",
+                currency: "EGP",
+                country: "Egypt",
+                timeZoneId: "Africa/Cairo",
+                defaultLanguage: "ar",
+                legalName: "QuickBooksClone Demo Company LLC",
+                email: "admin@quickbooksclone.local",
+                phone: "+20 100 000 0000",
+                fiscalYearStartMonth: 1,
+                fiscalYearStartDay: 1,
+                defaultSalesTaxRate: 0,
+                defaultPurchaseTaxRate: 0));
         }
 
         await dbContext.SaveChangesAsync();
