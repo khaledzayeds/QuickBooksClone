@@ -1,11 +1,20 @@
 @page "/"
 @using QuickBooksClone.Maui.Services
+@using QuickBooksClone.Maui.Services.Settings
 @inject ApiConnectionSettingsStore ConnectionStore
+@inject ApiConnectivityService Connectivity
 
 <h1>QuickBooksClone Desktop</h1>
 
 <p>Start with the first working slice: customers.</p>
-<p class="muted">Active API profile: @ConnectionStore.Current.StartupProfile -> @ConnectionStore.CurrentBaseUrl</p>
+<p class="muted">Startup mode: @ConnectionStore.Current.StartupMode | Active API profile: @ConnectionStore.Current.StartupProfile -> @ConnectionStore.CurrentBaseUrl</p>
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="panel status-panel @(statusIsError ? "status-error" : "status-success")">
+        @statusMessage
+    </div>
+}
 
 <p>
     <a class="btn btn-primary" href="customers">Open Customers</a>
@@ -14,3 +23,15 @@
     <a class="btn btn-secondary" href="invoices">Open Invoices</a>
     <a class="btn btn-secondary" href="connection-settings">Connection Settings</a>
 </p>
+
+@code {
+    private string? statusMessage;
+    private bool statusIsError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Connectivity.CheckAsync();
+        statusMessage = result.Message;
+        statusIsError = !result.IsHealthy;
+    }
+}

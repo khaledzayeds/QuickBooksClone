@@ -32,6 +32,7 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<ApiConnectionSettingsStore>();
+        builder.Services.AddSingleton<LocalApiProcessService>();
         builder.Services.AddTransient<ConfigurableApiMessageHandler>();
         builder.Services.AddScoped(sp =>
         {
@@ -54,6 +55,7 @@ public static class MauiProgram
         builder.Services.AddScoped<PurchaseBillsApiClient>();
         builder.Services.AddScoped<PurchaseReturnsApiClient>();
         builder.Services.AddScoped<SalesReturnsApiClient>();
+        builder.Services.AddScoped<ApiConnectivityService>();
         builder.Services.AddScoped<SettingsApiClient>();
         builder.Services.AddScoped<VendorsApiClient>();
         builder.Services.AddScoped<VendorCreditsApiClient>();

@@ -50,10 +50,12 @@ public sealed class ApiConnectionSettingsStore
     private static ApiConnectionSettings Clone(ApiConnectionSettings settings) =>
         new()
         {
+            StartupMode = settings.StartupMode,
             StartupProfile = settings.StartupProfile,
             LocalUrl = NormalizeBaseUrl(settings.LocalUrl),
             LanUrl = NormalizeBaseUrl(settings.LanUrl),
-            HostedUrl = NormalizeBaseUrl(settings.HostedUrl)
+            HostedUrl = NormalizeBaseUrl(settings.HostedUrl),
+            LocalApiProjectPath = NormalizeOptionalPath(settings.LocalApiProjectPath)
         };
 
     public static string NormalizeBaseUrl(string? value)
@@ -64,5 +66,15 @@ public sealed class ApiConnectionSettingsStore
         }
 
         return value.Trim().TrimEnd('/');
+    }
+
+    private static string? NormalizeOptionalPath(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
     }
 }

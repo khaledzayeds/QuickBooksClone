@@ -188,6 +188,7 @@ h1:focus {
 
 .status-panel {
     font-weight: 600;
+    margin-bottom: 1rem;
 }
 
 .status-success {

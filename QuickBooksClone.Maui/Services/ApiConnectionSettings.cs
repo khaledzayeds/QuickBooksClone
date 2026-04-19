@@ -2,10 +2,12 @@ namespace QuickBooksClone.Maui.Services;
 
 public sealed class ApiConnectionSettings
 {
+    public ApiStartupMode StartupMode { get; set; } = ApiStartupMode.ManagedLocalApi;
     public ApiConnectionMode StartupProfile { get; set; } = ApiConnectionMode.Local;
     public string LocalUrl { get; set; } = "http://localhost:5014";
     public string LanUrl { get; set; } = "http://192.168.1.10:5014";
     public string HostedUrl { get; set; } = "https://api.example.com";
+    public string? LocalApiProjectPath { get; set; }
 
     public string GetActiveBaseUrl() =>
         StartupProfile switch

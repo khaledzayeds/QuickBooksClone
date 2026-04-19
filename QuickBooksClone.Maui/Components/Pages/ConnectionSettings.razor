@@ -2,7 +2,8 @@
 @using QuickBooksClone.Maui.Services
 @using QuickBooksClone.Maui.Services.Settings
 @inject ApiConnectionSettingsStore ConnectionStore
-@inject SettingsApiClient SettingsApi
+@inject ApiConnectivityService Connectivity
+@inject LocalApiProcessService LocalApiProcess
 
 <PageTitle>Connection Settings</PageTitle>
 
@@ -34,6 +35,14 @@
 
             <div class="form-stack">
                 <label class="form-label">
+                    <span>Startup mode</span>
+                    <select class="form-control" @bind="model.StartupMode">
+                        <option value="@ApiStartupMode.ConnectOnly">Connect Only</option>
+                        <option value="@ApiStartupMode.ManagedLocalApi">Managed Local API</option>
+                    </select>
+                </label>
+
+                <label class="form-label">
                     <span>Startup profile</span>
                     <select class="form-control" @bind="model.StartupProfile">
                         <option value="@ApiConnectionMode.Local">Local</option>
@@ -56,6 +65,11 @@
                     <span>Hosted API URL</span>
                     <input class="form-control" @bind="model.HostedUrl" />
                 </label>
+
+                <label class="form-label">
+                    <span>Local API project path (optional)</span>
+                    <input class="form-control" @bind="model.LocalApiProjectPath" />
+                </label>
             </div>
         </section>
 
@@ -63,6 +77,8 @@
             <div class="toolbar">
                 <strong>Runtime</strong>
                 <button class="secondary-button" @onclick="TestConnection" disabled="@isTesting">@(isTesting ? "Testing..." : "Test Current Connection")</button>
+                <button class="secondary-button" @onclick="StartManagedLocalApi" disabled="@isTesting">Start Local API</button>
+                <button class="secondary-button" @onclick="StopManagedLocalApi" disabled="@isTesting">Stop Local API</button>
             </div>
 
             <dl class="summary-list">
@@ -86,6 +102,14 @@
                     <dt>Backup Directory</dt>
                     <dd>@(runtime?.BackupDirectory ?? "Unknown")</dd>
                 </div>
+                <div>
+                    <dt>Managed Local API</dt>
+                    <dd>@(LocalApiProcess.IsRunning ? "Running" : "Not running")</dd>
+                </div>
+                <div>
+                    <dt>Resolved Project Path</dt>
+                    <dd>@(lastHealth?.LocalApiProjectPath ?? LocalApiProcess.ResolvedProjectPath ?? "Auto-detect")</dd>
+                </div>
             </dl>
         </section>
     </div>
@@ -94,6 +118,7 @@
 @code {
     private ApiConnectionSettings model = new();
     private RuntimeSettingsDto? runtime;
+    private ConnectionHealthResult? lastHealth;
     private string activeUrl = string.Empty;
     private string? statusMessage;
     private bool statusIsError;
@@ -121,7 +146,7 @@
         ConnectionStore.Save(model);
         activeUrl = ConnectionStore.CurrentBaseUrl;
         statusIsError = false;
-        statusMessage = $"Saved. Active profile is {model.StartupProfile} -> {activeUrl}";
+        statusMessage = $"Saved. Startup mode is {model.StartupMode}. Active profile is {model.StartupProfile} -> {activeUrl}";
     }
 
     private async Task TestConnection()
@@ -132,13 +157,15 @@
         try
         {
             Save();
-            runtime = await SettingsApi.GetRuntimeAsync();
-            statusIsError = false;
-            statusMessage = $"Connected to {runtime.EnvironmentName} using {runtime.DatabaseProvider}.";
+            lastHealth = await Connectivity.CheckAsync();
+            runtime = lastHealth.Runtime;
+            statusIsError = !lastHealth.IsHealthy;
+            statusMessage = lastHealth.Message;
         }
         catch (Exception exception)
         {
             runtime = null;
+            lastHealth = null;
             statusIsError = true;
             statusMessage = $"Connection test failed. Details: {exception.Message}";
         }
@@ -146,5 +173,20 @@
         {
             isTesting = false;
         }
+    }
+
+    private async Task StartManagedLocalApi()
+    {
+        Save();
+        await TestConnection();
+    }
+
+    private async Task StopManagedLocalApi()
+    {
+        await LocalApiProcess.StopAsync();
+        runtime = null;
+        lastHealth = null;
+        statusIsError = false;
+        statusMessage = "Managed local API process was stopped.";
     }
 }

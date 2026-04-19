@@ -286,6 +286,12 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Add Connection Settings page in MAUI
   - [x] Add runtime connection test against `api/settings/runtime`
   - [x] Show active profile summary on the home page
+- [x] Desktop startup mode polish
+  - [x] Add explicit startup mode: Connect Only vs Managed Local API
+  - [x] Add managed local API launcher for the Local profile
+  - [x] Add connection health check with friendlier offline messaging
+  - [x] Show startup health state on the home page
+  - [x] Add local API start/stop actions on the Connection Settings page
 
 ## In Progress
 
@@ -299,10 +305,6 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [ ] Add automatic backup schedule option
   - [ ] Add restore confirmation/audit metadata
   - [ ] Decide whether restore should support uploaded external backup files
-- [ ] Desktop startup mode polish
-  - [ ] Decide whether desktop starts embedded local API automatically
-  - [ ] Add explicit toggle for embedded local API vs external API
-  - [ ] Add startup health check and friendlier offline message
 - [ ] Localization foundation
   - [ ] Arabic resources
   - [ ] English resources
@@ -330,7 +332,7 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
 
 ## Notes
 
-- Current MAUI app talks to API at `http://localhost:5014`.
+- Current MAUI app supports stored connection profiles and managed local API startup for the Local profile.
 - Current repositories are EF Core backed.
 - Current default provider is SQLite through the API.
 - SQL Server package and provider switch exist, but SQL Server still needs a real instance smoke test before calling it production-ready.
