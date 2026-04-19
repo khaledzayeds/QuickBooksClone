@@ -11,6 +11,8 @@ namespace QuickBooksClone.Infrastructure.Persistence;
 
 public static class QuickBooksClonePersistence
 {
+    private const string SqlServerMigrationsAssembly = "QuickBooksClone.SqlServerMigrations";
+
     public static IServiceCollection AddQuickBooksPersistence(this IServiceCollection services, IConfiguration configuration)
     {
         var provider = configuration["Database:Provider"] ?? "Sqlite";
@@ -21,7 +23,13 @@ public static class QuickBooksClonePersistence
         {
             if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
             {
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(
+                    connectionString,
+                    sqlServerOptions =>
+                    {
+                        sqlServerOptions.MigrationsAssembly(SqlServerMigrationsAssembly);
+                        sqlServerOptions.EnableRetryOnFailure();
+                    });
                 return;
             }
 

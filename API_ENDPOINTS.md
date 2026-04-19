@@ -23,7 +23,11 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Startup applies EF Core migrations and seeds the default accounts/sample data if needed.
 - Existing SQLite databases created by the earlier `EnsureCreated` phase are adopted into migration history on startup.
 - Write requests are wrapped in one database transaction, so failed posting workflows roll back instead of leaving partial accounting or inventory effects.
-- `Database:Provider` is currently `Sqlite`; SQL Server support is wired at configuration/package level but still needs a real SQL Server smoke test before production use.
+- `Database:Provider` defaults to `Sqlite`.
+- SQL Server now uses a separate EF Core migrations assembly: `QuickBooksClone.SqlServerMigrations`.
+- Sample SQL Server configuration lives in `QuickBooksClone.Api/appsettings.SqlServer.example.json`.
+- SQL Server migration smoke test: `.\scripts\smoke-sqlserver-migrations.ps1`.
+- SQL Server still needs one live-instance smoke test before we call it production-ready.
 - Persistence smoke test: `.\scripts\smoke-persistence.ps1`.
 - Existing SQLite adoption smoke test: `.\scripts\smoke-existing-sqlite-adoption.ps1`.
 - Backup/restore smoke test: `.\scripts\smoke-backup-restore.ps1`.

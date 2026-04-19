@@ -292,15 +292,18 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Add connection health check with friendlier offline messaging
   - [x] Show startup health state on the home page
   - [x] Add local API start/stop actions on the Connection Settings page
+- [x] SQL Server production mode
+  - [x] Add dedicated `QuickBooksClone.SqlServerMigrations` project
+  - [x] Keep SQL Server migrations separate from SQLite migration history
+  - [x] Route SQL Server provider to its own migrations assembly with retry policy
+  - [x] Add sample SQL Server appsettings profile
+  - [x] Add repeatable `scripts/smoke-sqlserver-migrations.ps1`
+  - [ ] Test provider switch against a real SQL Server instance
 
 ## In Progress
 
 ## Next
 
-- [ ] SQL Server production mode
-  - [ ] Add SQL Server connection profile
-  - [ ] Decide whether SQL Server uses a separate migration set or scripted deployment
-  - [ ] Test provider switch against a real SQL Server instance
 - [ ] Backup and restore polish
   - [ ] Add automatic backup schedule option
   - [ ] Add restore confirmation/audit metadata
@@ -335,4 +338,5 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
 - Current MAUI app supports stored connection profiles and managed local API startup for the Local profile.
 - Current repositories are EF Core backed.
 - Current default provider is SQLite through the API.
-- SQL Server package and provider switch exist, but SQL Server still needs a real instance smoke test before calling it production-ready.
+- SQL Server now has its own EF Core migrations project and repeatable migration-script smoke test.
+- A live SQL Server instance smoke test is still needed before calling SQL Server production-ready.

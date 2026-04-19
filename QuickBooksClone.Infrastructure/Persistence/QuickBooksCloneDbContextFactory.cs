@@ -6,6 +6,8 @@ namespace QuickBooksClone.Infrastructure.Persistence;
 
 public sealed class QuickBooksCloneDbContextFactory : IDesignTimeDbContextFactory<QuickBooksCloneDbContext>
 {
+    private const string SqlServerMigrationsAssembly = "QuickBooksClone.SqlServerMigrations";
+
     public QuickBooksCloneDbContext CreateDbContext(string[] args)
     {
         var basePath = Directory.GetCurrentDirectory();
@@ -15,16 +17,27 @@ public sealed class QuickBooksCloneDbContextFactory : IDesignTimeDbContextFactor
             .SetBasePath(Directory.Exists(apiSettingsPath) ? apiSettingsPath : basePath)
             .AddJsonFile("appsettings.json", optional: true)
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddJsonFile("appsettings.SqlServer.example.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
 
-        var provider = configuration["Database:Provider"] ?? "Sqlite";
+        var provider =
+            Environment.GetEnvironmentVariable("QB_DESIGNTIME_PROVIDER")
+            ?? configuration["Database:Provider"]
+            ?? "Sqlite";
         var connectionString = configuration.GetConnectionString("QuickBooksClone")
             ?? "Data Source=quickbooksclone-dev.db";
 
         var optionsBuilder = new DbContextOptionsBuilder<QuickBooksCloneDbContext>();
         if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
         {
-            optionsBuilder.UseSqlServer(connectionString);
+            optionsBuilder.UseSqlServer(
+                connectionString,
+                sqlServerOptions =>
+                {
+                    sqlServerOptions.MigrationsAssembly(SqlServerMigrationsAssembly);
+                    sqlServerOptions.EnableRetryOnFailure();
+                });
         }
         else
         {

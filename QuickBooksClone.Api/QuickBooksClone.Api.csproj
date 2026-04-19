@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\QuickBooksClone.Core\QuickBooksClone.Core.csproj" />
     <ProjectReference Include="..\QuickBooksClone.Infrastructure\QuickBooksClone.Infrastructure.csproj" />
+    <ProjectReference Include="..\QuickBooksClone.SqlServerMigrations\QuickBooksClone.SqlServerMigrations.csproj" />
   </ItemGroup>
 
 </Project>
