@@ -174,6 +174,11 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Link generated receipt payment back to the invoice
   - [x] Show payment mode, paid amount, balance, and deposit account on invoice screens
   - [x] Keep invoice and payment posting logic in dedicated services
+- [x] Sales receipts split from credit invoices
+  - [x] `Invoice` screen now represents credit sales only
+  - [x] Add dedicated `Sales Receipt` API endpoint and desktop screens
+  - [x] Auto-post sales receipts with linked receipt payment
+  - [x] Restrict `Receive Payment` to posted credit invoices only
 - [x] Sales return / credit memo workflow
   - [x] Sales return document linked to posted invoice
   - [x] Return quantities validated against original invoice lines

@@ -33,9 +33,6 @@ public sealed class InvoicesApiClient
             form.InvoiceDate,
             form.DueDate,
             form.SaveMode,
-            form.PaymentMode,
-            form.DepositAccountId,
-            form.PaymentMethod,
             Lines = form.Lines.Select(line => new
             {
                 line.ItemId,

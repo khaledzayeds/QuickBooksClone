@@ -45,6 +45,7 @@ Customer responses include:
 Customer balance rules:
 
 - Posted credit invoices increase `balance`.
+- Posted sales receipts net to zero customer balance because the sale and receipt payment are posted together.
 - Posted customer payments decrease `balance`.
 - Voided posted payments restore `balance`.
 - Sales returns decrease `balance` first; any excess becomes `creditBalance`.
@@ -1089,6 +1090,7 @@ Current MAUI entry screens are separate from list screens:
 /inventory-adjustments/new
 /journal-entries/new
 /invoices/new
+/sales-receipts/new
 /purchase-orders/new
 ```
 
@@ -1352,6 +1354,15 @@ Rules:
 
 ## Invoices
 
+Invoices are now credit-sales documents only.
+
+They:
+
+- debit Accounts Receivable
+- credit sales/income
+- reduce inventory when applicable
+- leave customer balance open until `Receive Payment`
+
 ### List Invoices
 
 ```http
@@ -1370,9 +1381,6 @@ POST /api/invoices
   "invoiceDate": "2026-04-17",
   "dueDate": "2026-05-17",
   "saveMode": 2,
-  "paymentMode": 1,
-  "depositAccountId": null,
-  "paymentMethod": null,
   "lines": [
     {
       "itemId": "guid",
@@ -1394,24 +1402,6 @@ If `unitPrice` is `0`, the API uses the selected item's sales price.
 2 SaveAndPost
 ```
 
-If `saveMode` is omitted, the API defaults to `SaveAndPost` for daily sales behavior.
-
-`paymentMode` is numeric:
-
-```text
-1 Credit
-2 Cash
-```
-
-Cash invoice behavior:
-
-- Cash invoices require `depositAccountId`.
-- The deposit account must be a Bank or Other Current Asset account.
-- When a cash invoice is saved and posted, the API posts the invoice first, then auto-creates and posts a customer payment for the remaining invoice balance.
-- The generated receipt payment uses `paymentNumber=RCPT-{invoiceNumber}`.
-- The invoice response includes `paymentMode`, `depositAccountId`, `depositAccountName`, `paymentMethod`, and `receiptPaymentId`.
-- Cash invoices normally return as `Paid` with `balanceDue=0`.
-
 Validation:
 
 - `customerId` must point to an existing customer.
@@ -1419,6 +1409,8 @@ Validation:
 - `quantity` must be greater than zero.
 - `unitPrice` cannot be negative.
 - `discountPercent` must be between 0 and 100.
+
+If `saveMode` is omitted, the API defaults to `SaveAndPost`.
 
 ### Mark Invoice Sent
 
@@ -1452,9 +1444,82 @@ Required before posting:
 - Inventory items also need inventory asset and COGS accounts.
 - Inventory items must have enough quantity on hand.
 
-For cash invoices, the `POST /api/invoices/{id}/post` workflow also creates the linked customer payment if it has not already been created. This keeps posting idempotent and avoids duplicate receipt payments.
-
 Posted invoices are immutable. Change business meaning through void/reversal, payment, customer credit, or sales return workflows instead of editing the posted invoice.
+
+## Sales Receipts
+
+Sales receipts are paid-now customer sales.
+
+They auto-post in one workflow:
+
+- post the sale
+- reduce inventory when applicable
+- auto-create the linked customer receipt payment
+- leave customer balance at zero
+
+### List Sales Receipts
+
+```http
+GET /api/sales-receipts?search=&customerId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Sales Receipt
+
+```http
+GET /api/sales-receipts/{id}
+```
+
+### Create Sales Receipt
+
+```http
+POST /api/sales-receipts
+Content-Type: application/json
+```
+
+```json
+{
+  "customerId": "guid",
+  "receiptDate": "2026-04-17",
+  "depositAccountId": "guid",
+  "paymentMethod": "Cash",
+  "lines": [
+    {
+      "itemId": "guid",
+      "description": "Line description",
+      "quantity": 2,
+      "unitPrice": 100,
+      "discountPercent": 0
+    }
+  ]
+}
+```
+
+Validation:
+
+- `customerId` must point to an existing customer.
+- `depositAccountId` must point to a Bank or Other Current Asset account.
+- Sales receipts must have at least one line.
+- `quantity` must be greater than zero.
+- `unitPrice` cannot be negative.
+- `discountPercent` must be between 0 and 100.
+
+Result:
+
+- The sales receipt is created and posted immediately.
+- The generated linked receipt payment uses `paymentNumber=RCPT-{salesReceiptNumber}`.
+- The response includes `receiptPaymentId`.
+
+### Void Sales Receipt
+
+```http
+PATCH /api/sales-receipts/{id}/void
+```
+
+Behavior:
+
+- The API first voids the linked receipt payment when it exists.
+- Then it voids the posted sales document and returns stock when applicable.
+- This makes `Sales Receipt` behave like one operational document from the user perspective.
 
 ### Void Invoice
 
@@ -1653,6 +1718,7 @@ Payments are auto-posted after creation. They create a balanced accounting trans
 - Credit Accounts Receivable.
 - Apply the amount to the target invoice.
 - Update invoice status to `PartiallyPaid` or `Paid`.
+- This workflow is only for credit invoices. Paid-now sales belong in `Sales Receipts`.
 
 ### List Payments
 

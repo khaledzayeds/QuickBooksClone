@@ -1,19 +1,21 @@
-@page "/invoices/new"
-@inject InvoicesApiClient InvoicesApi
+@page "/sales-receipts/new"
+@inject SalesReceiptsApiClient SalesReceiptsApi
 @inject CustomersApiClient CustomersApi
 @inject ItemsApiClient ItemsApi
+@inject AccountsApiClient AccountsApi
 @inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.SalesReceipts
 
-<PageTitle>New Invoice</PageTitle>
+<PageTitle>New Sales Receipt</PageTitle>
 
 <div class="qb-page">
     <section class="qb-header">
         <div>
             <p class="eyebrow">Sales</p>
-            <h1>New Invoice</h1>
-            <p class="muted">Create an Accounts Receivable invoice. Cash sales now belong in Sales Receipts.</p>
+            <h1>New Sales Receipt</h1>
+            <p class="muted">Create a paid-now sale that posts inventory, revenue, and receipt in one workflow.</p>
         </div>
-        <button class="secondary-button" @onclick="BackToList">Back to Invoices</button>
+        <button class="secondary-button" @onclick="BackToList">Back to Sales Receipts</button>
     </section>
 
     @if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -37,15 +39,26 @@
 
         <div class="form-row">
             <label>
-                Invoice date
-                <InputDate class="form-control" @bind-Value="invoiceDate" />
+                Receipt date
+                <InputDate class="form-control" @bind-Value="receiptDate" />
             </label>
 
             <label>
-                Due date
-                <InputDate class="form-control" @bind-Value="dueDate" />
+                Deposit account
+                <InputSelect class="form-control" @bind-Value="form.DepositAccountId">
+                    <option value="@Guid.Empty">Select cash or bank account</option>
+                    @foreach (var account in depositAccounts)
+                    {
+                        <option value="@account.Id">@account.Code - @account.Name</option>
+                    }
+                </InputSelect>
             </label>
         </div>
+
+        <label>
+            Payment method
+            <InputText class="form-control" @bind-Value="form.PaymentMethod" />
+        </label>
 
         <h3>Lines</h3>
         <div class="form-row">
@@ -113,14 +126,14 @@
         }
 
         <div class="totals-box">
-            Draft total: @DraftTotal.ToString("N2")
+            Receipt total: @DraftTotal.ToString("N2")
+            <small>This workflow auto-posts the sale and the receipt payment together.</small>
         </div>
 
         <div class="form-actions">
-            <button class="primary-button" type="button" disabled="@isSaving" @onclick="() => SaveInvoiceAsync(InvoiceSaveMode.SaveAndPost)">
-                @(isSaving ? "Saving..." : "Create and Post")
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="SaveReceiptAsync">
+                @(isSaving ? "Saving..." : "Create Sales Receipt")
             </button>
-            <button class="secondary-button" type="button" disabled="@isSaving" @onclick="() => SaveInvoiceAsync(InvoiceSaveMode.Draft)">Save Draft</button>
             <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
         </div>
     </EditForm>
@@ -129,10 +142,10 @@
 @code {
     private List<CustomerDto> customers = [];
     private List<ItemDto> items = [];
-    private InvoiceFormModel form = new();
-    private InvoiceLineFormModel draftLine = new();
-    private DateTime invoiceDate = DateTime.Today;
-    private DateTime dueDate = DateTime.Today.AddDays(30);
+    private List<AccountDto> depositAccounts = [];
+    private SalesReceiptFormModel form = new();
+    private SalesReceiptLineFormModel draftLine = new();
+    private DateTime receiptDate = DateTime.Today;
     private string? errorMessage;
     private bool isSaving;
 
@@ -151,6 +164,16 @@
         var itemResult = await ItemsApi.SearchAsync(null, false);
         items = itemResult.Items.ToList();
 
+        var bankAccounts = await AccountsApi.SearchAsync(null, AccountType.Bank, false);
+        var otherCurrentAssets = await AccountsApi.SearchAsync(null, AccountType.OtherCurrentAsset, false);
+        depositAccounts = bankAccounts.Items.Concat(otherCurrentAssets.Items)
+            .OrderBy(account => account.Code)
+            .ToList();
+
+        if (form.DepositAccountId == Guid.Empty)
+        {
+            form.DepositAccountId = depositAccounts.FirstOrDefault()?.Id ?? Guid.Empty;
+        }
     }
 
     private void AddLine()
@@ -164,7 +187,7 @@
         var item = items.FirstOrDefault(current => current.Id == draftLine.ItemId);
         var unitPrice = draftLine.UnitPrice > 0 ? draftLine.UnitPrice : item?.SalesPrice ?? 0;
 
-        form.Lines.Add(new InvoiceLineFormModel
+        form.Lines.Add(new SalesReceiptLineFormModel
         {
             ItemId = draftLine.ItemId,
             Description = string.IsNullOrWhiteSpace(draftLine.Description) ? item?.Name : draftLine.Description,
@@ -173,16 +196,16 @@
             DiscountPercent = draftLine.DiscountPercent
         });
 
-        draftLine = new InvoiceLineFormModel();
+        draftLine = new SalesReceiptLineFormModel();
         errorMessage = null;
     }
 
-    private void RemoveLine(InvoiceLineFormModel line)
+    private void RemoveLine(SalesReceiptLineFormModel line)
     {
         form.Lines.Remove(line);
     }
 
-    private async Task SaveInvoiceAsync(InvoiceSaveMode saveMode)
+    private async Task SaveReceiptAsync()
     {
         try
         {
@@ -192,24 +215,28 @@
                 return;
             }
 
+            if (form.DepositAccountId == Guid.Empty)
+            {
+                errorMessage = "Select a deposit account first.";
+                return;
+            }
+
             if (form.Lines.Count == 0)
             {
-                errorMessage = "Add at least one invoice line.";
+                errorMessage = "Add at least one sales receipt line.";
                 return;
             }
 
             errorMessage = null;
             isSaving = true;
-            form.InvoiceDate = DateOnly.FromDateTime(invoiceDate);
-            form.DueDate = DateOnly.FromDateTime(dueDate);
-            form.SaveMode = saveMode;
+            form.ReceiptDate = DateOnly.FromDateTime(receiptDate);
 
-            await InvoicesApi.CreateAsync(form);
+            await SalesReceiptsApi.CreateAsync(form);
             BackToList();
         }
         catch (Exception ex)
         {
-            errorMessage = $"Could not save invoice. Details: {ex.Message}";
+            errorMessage = $"Could not save sales receipt. Details: {ex.Message}";
         }
         finally
         {
@@ -224,6 +251,6 @@
 
     private void BackToList()
     {
-        Navigation.NavigateTo("invoices");
+        Navigation.NavigateTo("sales-receipts");
     }
 }

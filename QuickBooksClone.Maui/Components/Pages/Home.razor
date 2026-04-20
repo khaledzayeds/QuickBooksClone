@@ -67,7 +67,7 @@
 
                     @if (index < VendorSteps.Count - 1)
                     {
-                        <span class="workflow-arrow" aria-hidden="true">→</span>
+                        <span class="workflow-arrow" aria-hidden="true">&rarr;</span>
                     }
                 }
             </div>
@@ -93,7 +93,7 @@
 
                     @if (index < CustomerSteps.Count - 1)
                     {
-                        <span class="workflow-arrow" aria-hidden="true">→</span>
+                        <span class="workflow-arrow" aria-hidden="true">&rarr;</span>
                     }
                 }
             </div>
@@ -119,7 +119,7 @@
 
                     @if (index < BankingSteps.Count - 1)
                     {
-                        <span class="workflow-arrow" aria-hidden="true">→</span>
+                        <span class="workflow-arrow" aria-hidden="true">&rarr;</span>
                     }
                 }
             </div>
@@ -148,7 +148,7 @@
                 </div>
                 <ul class="home-checklist">
                     <li>Opening balances, posting engine, subledgers, and reversals are live.</li>
-                    <li>Sales invoices, customer payments, returns, and credits are live.</li>
+                    <li>Sales receipts, credit invoices, customer payments, returns, and credits are live.</li>
                     <li>Vendor bills, vendor payments, returns, and credits are live.</li>
                     <li>Inventory adjustments and manual journal entries are live.</li>
                     <li>Purchase orders, sales orders, estimates, statements, and bank reconciliation are next.</li>
@@ -175,9 +175,9 @@
     {
         new WorkflowStep("Estimates", "Quote customers before sales become real commitments.", null, false, "Estimate workflow is queued for development."),
         new WorkflowStep("Sales Orders", "Track committed orders before invoicing and fulfillment.", null, false, "Sales order workflow is queued after estimates."),
-        new WorkflowStep("Create Invoices", "Create draft, credit, or cash invoices and auto-post operational sales.", "invoices", true, null),
+        new WorkflowStep("Create Invoices", "Create credit invoices that hit Accounts Receivable and collect later.", "invoices", true, null),
         new WorkflowStep("Receive Payments", "Receive customer payments and settle Accounts Receivable.", "payments", true, null),
-        new WorkflowStep("Sales Receipts", "Instant sale plus payment in one customer-side workflow.", "invoices/new", true, "Use cash invoices now; dedicated sales receipt screen can come later."),
+        new WorkflowStep("Sales Receipts", "Instant sale plus payment in one customer-side workflow.", "sales-receipts", true, null),
         new WorkflowStep("Refunds and Credits", "Handle sales returns, customer credits, and customer refunds.", "customer-credits", true, null),
         new WorkflowStep("Statements", "Summarize customer activity and outstanding balances across periods.", null, false, "Customer statements and statement charges are still planned.")
     };

@@ -9,7 +9,7 @@
         <div>
             <p class="eyebrow">Sales</p>
             <h1>Invoices</h1>
-            <p class="muted">Create invoices, post them, then review their accounting effect in Transactions and Accounts.</p>
+            <p class="muted">Create credit invoices for Accounts Receivable, post them, then collect later through Receive Payments.</p>
         </div>
         <button class="primary-button" @onclick="NewInvoice">New Invoice</button>
     </section>
@@ -45,7 +45,6 @@
                         <th>Number</th>
                         <th>Customer</th>
                         <th>Date</th>
-                        <th>Mode</th>
                         <th>Due</th>
                         <th>Total</th>
                         <th>Paid</th>
@@ -66,13 +65,6 @@
                             </td>
                             <td>@invoice.CustomerName</td>
                             <td>@invoice.InvoiceDate</td>
-                            <td>
-                                <span class="status @(invoice.PaymentMode == InvoicePaymentMode.Cash ? "active" : "inactive")">@invoice.PaymentMode</span>
-                                @if (!string.IsNullOrWhiteSpace(invoice.DepositAccountName))
-                                {
-                                    <small>@invoice.DepositAccountName</small>
-                                }
-                            </td>
                             <td>@invoice.DueDate</td>
                             <td>@invoice.TotalAmount.ToString("N2")</td>
                             <td>@invoice.PaidAmount.ToString("N2")</td>

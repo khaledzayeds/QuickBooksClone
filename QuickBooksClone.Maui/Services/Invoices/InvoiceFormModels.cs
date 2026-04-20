@@ -10,9 +10,6 @@ public sealed class InvoiceFormModel
     public DateOnly InvoiceDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public DateOnly DueDate { get; set; } = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
     public InvoiceSaveMode SaveMode { get; set; } = InvoiceSaveMode.SaveAndPost;
-    public InvoicePaymentMode PaymentMode { get; set; } = InvoicePaymentMode.Credit;
-    public Guid? DepositAccountId { get; set; }
-    public string? PaymentMethod { get; set; } = "Cash";
     public List<InvoiceLineFormModel> Lines { get; } = [];
 }
 

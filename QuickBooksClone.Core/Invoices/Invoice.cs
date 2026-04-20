@@ -29,7 +29,8 @@ public sealed class Invoice : EntityBase, ITenantEntity
 
         CompanyId = companyId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
         CustomerId = customerId;
-        InvoiceNumber = string.IsNullOrWhiteSpace(invoiceNumber) ? $"INV-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}" : invoiceNumber.Trim();
+        var defaultPrefix = paymentMode == InvoicePaymentMode.Cash ? "SR" : "INV";
+        InvoiceNumber = string.IsNullOrWhiteSpace(invoiceNumber) ? $"{defaultPrefix}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}" : invoiceNumber.Trim();
         InvoiceDate = invoiceDate;
         DueDate = dueDate;
         PaymentMode = paymentMode;

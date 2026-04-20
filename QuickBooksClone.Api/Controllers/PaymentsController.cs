@@ -83,6 +83,11 @@ public sealed class PaymentsController : ControllerBase
             return BadRequest("Cannot receive a payment for a draft or void invoice.");
         }
 
+        if (invoice.PaymentMode != InvoicePaymentMode.Credit)
+        {
+            return BadRequest("Receive Payment is only for credit invoices. Use Sales Receipt for paid-now sales.");
+        }
+
         if (request.Amount > invoice.BalanceDue)
         {
             return BadRequest($"Payment amount exceeds invoice balance. Balance due: {invoice.BalanceDue:N2}.");

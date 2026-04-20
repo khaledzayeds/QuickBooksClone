@@ -11,7 +11,7 @@
         <div>
             <p class="eyebrow">Customers</p>
             <h1>Receive Payment</h1>
-            <p class="muted">Apply a customer payment to one posted invoice and create the accounting transaction automatically.</p>
+            <p class="muted">Apply a customer payment to one posted credit invoice and create the accounting transaction automatically.</p>
         </div>
         <button class="secondary-button" @onclick="BackToList">Back to Payments</button>
     </section>
@@ -27,7 +27,7 @@
         <label>
             Invoice
             <InputSelect class="form-control" @bind-Value="form.InvoiceId">
-                <option value="@Guid.Empty">Select posted invoice</option>
+                <option value="@Guid.Empty">Select posted credit invoice</option>
                 @foreach (var invoice in payableInvoices)
                 {
                     <option value="@invoice.Id">@invoice.InvoiceNumber - @invoice.CustomerName - Balance @invoice.BalanceDue.ToString("N2")</option>

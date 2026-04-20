@@ -1,0 +1,136 @@
+@page "/sales-receipts"
+@inject SalesReceiptsApiClient SalesReceiptsApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.Invoices
+@using QuickBooksClone.Maui.Services.SalesReceipts
+
+<PageTitle>Sales Receipts</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Sales</p>
+            <h1>Sales Receipts</h1>
+            <p class="muted">Create paid-now sales, post them immediately, and deposit directly into cash or bank.</p>
+        </div>
+        <button class="primary-button" @onclick="NewReceipt">New Sales Receipt</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search sales receipt number" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeVoid" />
+                Include void
+            </label>
+            <button class="secondary-button" @onclick="LoadReceiptsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading sales receipts...</p>
+        }
+        else if (receipts.Count == 0)
+        {
+            <p class="muted">No sales receipts yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Deposit To</th>
+                        <th>Method</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var receipt in receipts)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@receipt.InvoiceNumber</strong>
+                                <small>@receipt.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@receipt.CustomerName</td>
+                            <td>@receipt.InvoiceDate</td>
+                            <td>@receipt.DepositAccountName</td>
+                            <td>@receipt.PaymentMethod</td>
+                            <td>@receipt.TotalAmount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(receipt.Status is InvoiceStatus.Paid or InvoiceStatus.Posted ? "active" : "inactive")">@receipt.Status</span>
+                            </td>
+                            <td class="actions">
+                                @if (receipt.Status is not InvoiceStatus.Void)
+                                {
+                                    <button class="link-button" @onclick="() => VoidAsync(receipt)">Void</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<InvoiceDto> receipts = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReceiptsAsync();
+    }
+
+    private async Task LoadReceiptsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await SalesReceiptsApi.SearchAsync(searchText, includeVoid);
+            receipts = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load sales receipts. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task VoidAsync(InvoiceDto receipt)
+    {
+        try
+        {
+            errorMessage = null;
+            await SalesReceiptsApi.VoidAsync(receipt.Id);
+            await LoadReceiptsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not void sales receipt. Details: {ex.Message}";
+        }
+    }
+
+    private void NewReceipt()
+    {
+        Navigation.NavigateTo("sales-receipts/new");
+    }
+}

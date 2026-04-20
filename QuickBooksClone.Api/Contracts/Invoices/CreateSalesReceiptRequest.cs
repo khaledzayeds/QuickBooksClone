@@ -1,11 +1,10 @@
 using System.ComponentModel.DataAnnotations;
-using QuickBooksClone.Core.Invoices;
 
 namespace QuickBooksClone.Api.Contracts.Invoices;
 
-public sealed record CreateInvoiceRequest(
+public sealed record CreateSalesReceiptRequest(
     Guid CustomerId,
-    DateOnly InvoiceDate,
-    DateOnly DueDate,
-    InvoiceSaveMode SaveMode,
+    DateOnly ReceiptDate,
+    Guid DepositAccountId,
+    string? PaymentMethod,
     [MinLength(1)] IReadOnlyList<CreateInvoiceLineRequest> Lines);

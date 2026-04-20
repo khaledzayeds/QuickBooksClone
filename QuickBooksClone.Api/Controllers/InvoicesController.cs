@@ -4,7 +4,6 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
-using QuickBooksClone.Core.Payments;
 
 namespace QuickBooksClone.Api.Controllers;
 
@@ -16,26 +15,20 @@ public sealed class InvoicesController : ControllerBase
     private readonly ICustomerRepository _customers;
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
-    private readonly IPaymentRepository _payments;
     private readonly ISalesInvoicePostingService _postingService;
-    private readonly IPaymentPostingService _paymentPostingService;
 
     public InvoicesController(
         IInvoiceRepository invoices,
         ICustomerRepository customers,
         IItemRepository items,
         IAccountRepository accounts,
-        IPaymentRepository payments,
-        ISalesInvoicePostingService postingService,
-        IPaymentPostingService paymentPostingService)
+        ISalesInvoicePostingService postingService)
     {
         _invoices = invoices;
         _customers = customers;
         _items = items;
         _accounts = accounts;
-        _payments = payments;
         _postingService = postingService;
-        _paymentPostingService = paymentPostingService;
     }
 
     [HttpGet]
@@ -48,7 +41,7 @@ public sealed class InvoicesController : ControllerBase
         [FromQuery] int pageSize = 25,
         CancellationToken cancellationToken = default)
     {
-        var result = await _invoices.SearchAsync(new InvoiceSearch(search, customerId, includeVoid, page, pageSize), cancellationToken);
+        var result = await _invoices.SearchAsync(new InvoiceSearch(search, customerId, InvoicePaymentMode.Credit, includeVoid, page, pageSize), cancellationToken);
         var items = new List<InvoiceDto>();
 
         foreach (var invoice in result.Items)
@@ -65,7 +58,12 @@ public sealed class InvoicesController : ControllerBase
     public async Task<ActionResult<InvoiceDto>> Get(Guid id, CancellationToken cancellationToken = default)
     {
         var invoice = await _invoices.GetByIdAsync(id, cancellationToken);
-        return invoice is null ? NotFound() : Ok(await ToDtoAsync(invoice, cancellationToken));
+        if (invoice is null || invoice.PaymentMode != InvoicePaymentMode.Credit)
+        {
+            return NotFound();
+        }
+
+        return Ok(await ToDtoAsync(invoice, cancellationToken));
     }
 
     [HttpPost]
@@ -79,25 +77,10 @@ public sealed class InvoicesController : ControllerBase
             return BadRequest("Invalid invoice save mode.");
         }
 
-        var paymentMode = request.PaymentMode == 0 ? InvoicePaymentMode.Credit : request.PaymentMode;
-        if (!Enum.IsDefined(paymentMode))
-        {
-            return BadRequest("Invalid invoice payment mode.");
-        }
-
         var customer = await _customers.GetByIdAsync(request.CustomerId, cancellationToken);
         if (customer is null)
         {
             return BadRequest("Customer does not exist.");
-        }
-
-        if (paymentMode == InvoicePaymentMode.Cash)
-        {
-            var depositValidation = await ValidateDepositAccountAsync(request.DepositAccountId, cancellationToken);
-            if (depositValidation is not null)
-            {
-                return BadRequest(depositValidation);
-            }
         }
 
         if (request.Lines.Count == 0)
@@ -108,10 +91,7 @@ public sealed class InvoicesController : ControllerBase
         var invoice = new Invoice(
             request.CustomerId,
             request.InvoiceDate,
-            request.DueDate,
-            paymentMode: paymentMode,
-            depositAccountId: paymentMode == InvoicePaymentMode.Cash ? request.DepositAccountId : null,
-            paymentMethod: paymentMode == InvoicePaymentMode.Cash ? request.PaymentMethod ?? "Cash" : null);
+            request.DueDate);
 
         foreach (var line in request.Lines)
         {
@@ -130,10 +110,10 @@ public sealed class InvoicesController : ControllerBase
 
         if (saveMode == InvoiceSaveMode.SaveAndPost)
         {
-            var workflowValidation = await PostInvoiceAndAutoReceiveIfNeededAsync(invoice.Id, cancellationToken);
-            if (workflowValidation is not null)
+            var postingResult = await _postingService.PostAsync(invoice.Id, cancellationToken);
+            if (!postingResult.Succeeded)
             {
-                return BadRequest(workflowValidation);
+                return BadRequest(postingResult.ErrorMessage);
             }
         }
 
@@ -148,7 +128,7 @@ public sealed class InvoicesController : ControllerBase
     public async Task<IActionResult> MarkSent(Guid id, CancellationToken cancellationToken = default)
     {
         var invoice = await _invoices.GetByIdAsync(id, cancellationToken);
-        if (invoice is null)
+        if (invoice is null || invoice.PaymentMode != InvoicePaymentMode.Credit)
         {
             return NotFound();
         }
@@ -191,15 +171,15 @@ public sealed class InvoicesController : ControllerBase
     public async Task<ActionResult<InvoiceDto>> Post(Guid id, CancellationToken cancellationToken = default)
     {
         var invoice = await _invoices.GetByIdAsync(id, cancellationToken);
-        if (invoice is null)
+        if (invoice is null || invoice.PaymentMode != InvoicePaymentMode.Credit)
         {
             return NotFound();
         }
 
-        var workflowValidation = await PostInvoiceAndAutoReceiveIfNeededAsync(invoice.Id, cancellationToken);
-        if (workflowValidation is not null)
+        var postingResult = await _postingService.PostAsync(invoice.Id, cancellationToken);
+        if (!postingResult.Succeeded)
         {
-            return BadRequest(workflowValidation);
+            return BadRequest(postingResult.ErrorMessage);
         }
 
         var updatedInvoice = await _invoices.GetByIdAsync(invoice.Id, cancellationToken);
@@ -248,70 +228,4 @@ public sealed class InvoicesController : ControllerBase
                 line.LineTotal)).ToList());
     }
 
-    private async Task<string?> PostInvoiceAndAutoReceiveIfNeededAsync(Guid invoiceId, CancellationToken cancellationToken)
-    {
-        var postingResult = await _postingService.PostAsync(invoiceId, cancellationToken);
-        if (!postingResult.Succeeded)
-        {
-            return postingResult.ErrorMessage;
-        }
-
-        var invoice = await _invoices.GetByIdAsync(invoiceId, cancellationToken);
-        if (invoice is null)
-        {
-            return "Invoice does not exist.";
-        }
-
-        if (invoice.PaymentMode != InvoicePaymentMode.Cash || invoice.BalanceDue <= 0 || invoice.ReceiptPaymentId is not null)
-        {
-            return null;
-        }
-
-        var depositValidation = await ValidateDepositAccountAsync(invoice.DepositAccountId, cancellationToken);
-        if (depositValidation is not null)
-        {
-            return depositValidation;
-        }
-
-        var payment = new Payment(
-            invoice.CustomerId,
-            invoice.Id,
-            invoice.DepositAccountId!.Value,
-            invoice.InvoiceDate,
-            invoice.BalanceDue,
-            invoice.PaymentMethod ?? "Cash",
-            $"RCPT-{invoice.InvoiceNumber}");
-
-        await _payments.AddAsync(payment, cancellationToken);
-
-        var paymentResult = await _paymentPostingService.PostAsync(payment.Id, cancellationToken);
-        if (!paymentResult.Succeeded)
-        {
-            return paymentResult.ErrorMessage;
-        }
-
-        await _invoices.LinkReceiptPaymentAsync(invoice.Id, payment.Id, cancellationToken);
-        return null;
-    }
-
-    private async Task<string?> ValidateDepositAccountAsync(Guid? depositAccountId, CancellationToken cancellationToken)
-    {
-        if (depositAccountId is null || depositAccountId == Guid.Empty)
-        {
-            return "Deposit account is required for cash invoices.";
-        }
-
-        var depositAccount = await _accounts.GetByIdAsync(depositAccountId.Value, cancellationToken);
-        if (depositAccount is null)
-        {
-            return "Deposit account does not exist.";
-        }
-
-        if (depositAccount.AccountType is not AccountType.Bank and not AccountType.OtherCurrentAsset)
-        {
-            return "Deposit account must be a bank or other current asset account.";
-        }
-
-        return null;
-    }
 }
