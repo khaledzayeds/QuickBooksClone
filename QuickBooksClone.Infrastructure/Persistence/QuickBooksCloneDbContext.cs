@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.CustomerCredits;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.InventoryAdjustments;
@@ -39,6 +40,8 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<DeviceSettings> DeviceSettings => Set<DeviceSettings>();
+    public DbSet<DocumentSequenceCounter> DocumentSequenceCounters => Set<DocumentSequenceCounter>();
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<VendorCreditActivity> VendorCreditActivities => Set<VendorCreditActivity>();
     public DbSet<VendorPayment> VendorPayments => Set<VendorPayment>();
@@ -59,6 +62,8 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigurePurchaseReturns(modelBuilder);
         ConfigureSalesReturns(modelBuilder);
         ConfigureSettings(modelBuilder);
+        ConfigureDeviceSettings(modelBuilder);
+        ConfigureDocumentSequenceCounters(modelBuilder);
         ConfigureVendors(modelBuilder);
         ConfigureVendorCredits(modelBuilder);
         ConfigureVendorPayments(modelBuilder);
@@ -141,6 +146,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("customer_credit_activities");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(activity => activity.CustomerId).IsRequired();
             entity.Property(activity => activity.ActivityDate).IsRequired();
             entity.Property(activity => activity.InvoiceId);
@@ -161,6 +167,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("inventory_adjustments");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(adjustment => adjustment.ItemId).IsRequired();
             entity.Property(adjustment => adjustment.AdjustmentAccountId).IsRequired();
             entity.Property(adjustment => adjustment.AdjustmentDate).IsRequired();
@@ -181,6 +188,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("invoices");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(invoice => invoice.CustomerId).IsRequired();
             entity.Property(invoice => invoice.InvoiceDate).IsRequired();
             entity.Property(invoice => invoice.DueDate).IsRequired();
@@ -250,6 +258,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("journal_entries");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(entry => entry.EntryDate).IsRequired();
             entity.Property(entry => entry.PostedTransactionId);
             entity.Property(entry => entry.ReversalTransactionId);
@@ -282,6 +291,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("payments");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(payment => payment.CustomerId).IsRequired();
             entity.Property(payment => payment.InvoiceId).IsRequired();
             entity.Property(payment => payment.DepositAccountId).IsRequired();
@@ -303,6 +313,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("purchase_bills");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(bill => bill.VendorId).IsRequired();
             entity.Property(bill => bill.BillDate).IsRequired();
             entity.Property(bill => bill.DueDate).IsRequired();
@@ -340,6 +351,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("purchase_orders");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(order => order.VendorId).IsRequired();
             entity.Property(order => order.OrderDate).IsRequired();
             entity.Property(order => order.ExpectedDate).IsRequired();
@@ -371,6 +383,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("purchase_returns");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(purchaseReturn => purchaseReturn.PurchaseBillId).IsRequired();
             entity.Property(purchaseReturn => purchaseReturn.VendorId).IsRequired();
             entity.Property(purchaseReturn => purchaseReturn.ReturnDate).IsRequired();
@@ -404,6 +417,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("sales_returns");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(salesReturn => salesReturn.InvoiceId).IsRequired();
             entity.Property(salesReturn => salesReturn.CustomerId).IsRequired();
             entity.Property(salesReturn => salesReturn.ReturnDate).IsRequired();
@@ -482,6 +496,32 @@ public sealed class QuickBooksCloneDbContext : DbContext
         });
     }
 
+    private static void ConfigureDeviceSettings(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DeviceSettings>(entity =>
+        {
+            entity.ToTable("device_settings");
+            ConfigureEntityBase(entity);
+            entity.Property(settings => settings.DeviceId).HasMaxLength(20).IsRequired();
+            entity.Property(settings => settings.DeviceName).HasMaxLength(120).IsRequired();
+            entity.HasIndex(settings => settings.DeviceId).IsUnique();
+        });
+    }
+
+    private static void ConfigureDocumentSequenceCounters(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DocumentSequenceCounter>(entity =>
+        {
+            entity.ToTable("document_sequence_counters");
+            ConfigureEntityBase(entity);
+            entity.Property(counter => counter.DeviceId).HasMaxLength(20).IsRequired();
+            entity.Property(counter => counter.DocumentType).HasMaxLength(50).IsRequired();
+            entity.Property(counter => counter.Year).IsRequired();
+            entity.Property(counter => counter.NextSequence).IsRequired();
+            entity.HasIndex(counter => new { counter.DeviceId, counter.DocumentType, counter.Year }).IsUnique();
+        });
+    }
+
     private static void ConfigureVendorCredits(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<VendorCreditActivity>(entity =>
@@ -489,6 +529,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("vendor_credit_activities");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(activity => activity.VendorId).IsRequired();
             entity.Property(activity => activity.ActivityDate).IsRequired();
             entity.Property(activity => activity.PurchaseBillId);
@@ -509,6 +550,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.ToTable("vendor_payments");
             ConfigureEntityBase(entity);
             ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
             entity.Property(payment => payment.VendorId).IsRequired();
             entity.Property(payment => payment.PurchaseBillId).IsRequired();
             entity.Property(payment => payment.PaymentAccountId).IsRequired();
@@ -537,6 +579,19 @@ public sealed class QuickBooksCloneDbContext : DbContext
     {
         entity.Property<Guid>("CompanyId").IsRequired();
         entity.HasIndex("CompanyId");
+    }
+
+    private static void ConfigureSyncDocument<TEntity>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity> entity)
+        where TEntity : SyncDocumentBase
+    {
+        entity.Property(document => document.DeviceId).HasMaxLength(20).IsRequired();
+        entity.Property(document => document.DocumentNo).HasMaxLength(80).IsRequired();
+        entity.Property(document => document.SyncStatus).HasConversion<int>().IsRequired();
+        entity.Property(document => document.LastSyncAt);
+        entity.Property(document => document.SyncError).HasMaxLength(500);
+        entity.HasIndex(document => document.DocumentNo).IsUnique();
+        entity.HasIndex(document => document.DeviceId);
+        entity.HasIndex(document => document.SyncStatus);
     }
 
     private static void ConfigureMoney(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<decimal> property)

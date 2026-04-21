@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.CustomerCredits;
 
-public sealed class CustomerCreditActivity : EntityBase, ITenantEntity
+public sealed class CustomerCreditActivity : SyncDocumentBase, ITenantEntity
 {
     private CustomerCreditActivity()
     {

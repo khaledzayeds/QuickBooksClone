@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.PurchaseBills;
 
-public sealed class PurchaseBill : EntityBase, ITenantEntity
+public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
 {
     private readonly List<PurchaseBillLine> _lines = [];
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Invoices;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
@@ -16,19 +17,22 @@ public sealed class InvoicesController : ControllerBase
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
     private readonly ISalesInvoicePostingService _postingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public InvoicesController(
         IInvoiceRepository invoices,
         ICustomerRepository customers,
         IItemRepository items,
         IAccountRepository accounts,
-        ISalesInvoicePostingService postingService)
+        ISalesInvoicePostingService postingService,
+        IDocumentNumberService documentNumbers)
     {
         _invoices = invoices;
         _customers = customers;
         _items = items;
         _accounts = accounts;
         _postingService = postingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -88,10 +92,13 @@ public sealed class InvoicesController : ControllerBase
             return BadRequest("Invoice must have at least one line.");
         }
 
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.Invoice, cancellationToken);
         var invoice = new Invoice(
             request.CustomerId,
             request.InvoiceDate,
-            request.DueDate);
+            request.DueDate,
+            allocation.DocumentNo);
+        invoice.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         foreach (var line in request.Lines)
         {

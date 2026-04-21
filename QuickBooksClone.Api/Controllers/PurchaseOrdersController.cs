@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.PurchaseOrders;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.Vendors;
@@ -13,12 +14,14 @@ public sealed class PurchaseOrdersController : ControllerBase
     private readonly IPurchaseOrderRepository _orders;
     private readonly IVendorRepository _vendors;
     private readonly IItemRepository _items;
+    private readonly IDocumentNumberService _documentNumbers;
 
-    public PurchaseOrdersController(IPurchaseOrderRepository orders, IVendorRepository vendors, IItemRepository items)
+    public PurchaseOrdersController(IPurchaseOrderRepository orders, IVendorRepository vendors, IItemRepository items, IDocumentNumberService documentNumbers)
     {
         _orders = orders;
         _vendors = vendors;
         _items = items;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -78,7 +81,9 @@ public sealed class PurchaseOrdersController : ControllerBase
             return BadRequest("Purchase order must have at least one line.");
         }
 
-        var order = new PurchaseOrder(request.VendorId, request.OrderDate, request.ExpectedDate);
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.PurchaseOrder, cancellationToken);
+        var order = new PurchaseOrder(request.VendorId, request.OrderDate, request.ExpectedDate, allocation.DocumentNo);
+        order.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         foreach (var line in request.Lines)
         {

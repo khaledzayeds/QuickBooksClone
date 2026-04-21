@@ -125,6 +125,11 @@ public static class QuickBooksClonePersistence
         var cogsAccountId = Guid.Parse("10000000-0000-0000-0000-000000000007");
         var expenseAccountId = Guid.Parse("10000000-0000-0000-0000-000000000008");
 
+        if (!await dbContext.DeviceSettings.AnyAsync())
+        {
+            dbContext.DeviceSettings.Add(new DeviceSettings("DEV01", Environment.MachineName));
+        }
+
         if (!await dbContext.Accounts.AnyAsync())
         {
             dbContext.Accounts.AddRange(

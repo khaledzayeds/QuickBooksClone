@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.VendorCredits;
 
-public sealed class VendorCreditActivity : EntityBase, ITenantEntity
+public sealed class VendorCreditActivity : SyncDocumentBase, ITenantEntity
 {
     private VendorCreditActivity()
     {

@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.PurchaseOrders;
 
-public sealed class PurchaseOrder : EntityBase, ITenantEntity
+public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
 {
     private readonly List<PurchaseOrderLine> _lines = [];
 

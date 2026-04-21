@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.VendorPayments;
 
-public sealed class VendorPayment : EntityBase, ITenantEntity
+public sealed class VendorPayment : SyncDocumentBase, ITenantEntity
 {
     private VendorPayment()
     {

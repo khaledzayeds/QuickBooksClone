@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Invoices;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
@@ -19,6 +20,7 @@ public sealed class SalesReceiptsController : ControllerBase
     private readonly IPaymentRepository _payments;
     private readonly ISalesInvoicePostingService _postingService;
     private readonly IPaymentPostingService _paymentPostingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public SalesReceiptsController(
         IInvoiceRepository invoices,
@@ -27,7 +29,8 @@ public sealed class SalesReceiptsController : ControllerBase
         IAccountRepository accounts,
         IPaymentRepository payments,
         ISalesInvoicePostingService postingService,
-        IPaymentPostingService paymentPostingService)
+        IPaymentPostingService paymentPostingService,
+        IDocumentNumberService documentNumbers)
     {
         _invoices = invoices;
         _customers = customers;
@@ -36,6 +39,7 @@ public sealed class SalesReceiptsController : ControllerBase
         _payments = payments;
         _postingService = postingService;
         _paymentPostingService = paymentPostingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -95,13 +99,16 @@ public sealed class SalesReceiptsController : ControllerBase
             return BadRequest(depositValidation);
         }
 
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.SalesReceipt, cancellationToken);
         var receipt = new Invoice(
             request.CustomerId,
             request.ReceiptDate,
             request.ReceiptDate,
+            allocation.DocumentNo,
             paymentMode: InvoicePaymentMode.Cash,
             depositAccountId: request.DepositAccountId,
             paymentMethod: request.PaymentMethod ?? "Cash");
+        receipt.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         foreach (var line in request.Lines)
         {
@@ -229,6 +236,7 @@ public sealed class SalesReceiptsController : ControllerBase
             return null;
         }
 
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.Payment, cancellationToken);
         var payment = new Payment(
             receipt.CustomerId,
             receipt.Id,
@@ -236,7 +244,8 @@ public sealed class SalesReceiptsController : ControllerBase
             receipt.InvoiceDate,
             receipt.BalanceDue,
             receipt.PaymentMethod ?? "Cash",
-            $"RCPT-{receipt.InvoiceNumber}");
+            allocation.DocumentNo);
+        payment.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         await _payments.AddAsync(payment, cancellationToken);
 

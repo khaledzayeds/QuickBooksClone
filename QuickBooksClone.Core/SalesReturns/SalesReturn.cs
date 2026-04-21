@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.SalesReturns;
 
-public sealed class SalesReturn : EntityBase, ITenantEntity
+public sealed class SalesReturn : SyncDocumentBase, ITenantEntity
 {
     private readonly List<SalesReturnLine> _lines = [];
 

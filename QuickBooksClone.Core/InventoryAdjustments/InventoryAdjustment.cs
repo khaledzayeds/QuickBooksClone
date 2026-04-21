@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.InventoryAdjustments;
 
-public sealed class InventoryAdjustment : EntityBase, ITenantEntity
+public sealed class InventoryAdjustment : SyncDocumentBase, ITenantEntity
 {
     private InventoryAdjustment()
     {

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.JournalEntries;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.JournalEntries;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -12,15 +13,18 @@ public sealed class JournalEntriesController : ControllerBase
     private readonly IJournalEntryRepository _journalEntries;
     private readonly IJournalEntryPostingService _postingService;
     private readonly IAccountRepository _accounts;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public JournalEntriesController(
         IJournalEntryRepository journalEntries,
         IJournalEntryPostingService postingService,
-        IAccountRepository accounts)
+        IAccountRepository accounts,
+        IDocumentNumberService documentNumbers)
     {
         _journalEntries = journalEntries;
         _postingService = postingService;
         _accounts = accounts;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -67,7 +71,9 @@ public sealed class JournalEntriesController : ControllerBase
             .Select(line => new JournalEntryLine(line.AccountId, line.Description ?? request.Memo ?? "Manual journal entry", line.Debit, line.Credit))
             .ToList();
 
-        var entry = new JournalEntry(request.EntryDate, request.Memo ?? "Manual journal entry", lines);
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.JournalEntry, cancellationToken);
+        var entry = new JournalEntry(request.EntryDate, request.Memo ?? "Manual journal entry", lines, allocation.DocumentNo);
+        entry.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
         await _journalEntries.AddAsync(entry, cancellationToken);
 
         if (request.SaveMode == JournalEntrySaveMode.SaveAndPost)

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.PurchaseReturns;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.Vendors;
@@ -14,13 +15,15 @@ public sealed class PurchaseReturnsController : ControllerBase
     private readonly IPurchaseBillRepository _bills;
     private readonly IVendorRepository _vendors;
     private readonly IPurchaseReturnPostingService _postingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
-    public PurchaseReturnsController(IPurchaseReturnRepository returns, IPurchaseBillRepository bills, IVendorRepository vendors, IPurchaseReturnPostingService postingService)
+    public PurchaseReturnsController(IPurchaseReturnRepository returns, IPurchaseBillRepository bills, IVendorRepository vendors, IPurchaseReturnPostingService postingService, IDocumentNumberService documentNumbers)
     {
         _returns = returns;
         _bills = bills;
         _vendors = vendors;
         _postingService = postingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -51,7 +54,9 @@ public sealed class PurchaseReturnsController : ControllerBase
         if (bill.Status is PurchaseBillStatus.Draft or PurchaseBillStatus.Void) return BadRequest("Cannot return a draft or void purchase bill.");
         if (request.Lines.Count == 0) return BadRequest("Purchase return must have at least one line.");
 
-        var purchaseReturn = new PurchaseReturn(bill.Id, bill.VendorId, request.ReturnDate);
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.PurchaseReturn, cancellationToken);
+        var purchaseReturn = new PurchaseReturn(bill.Id, bill.VendorId, request.ReturnDate, allocation.DocumentNo);
+        purchaseReturn.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
         foreach (var requestLine in request.Lines)
         {
             var billLine = bill.Lines.FirstOrDefault(line => line.Id == requestLine.PurchaseBillLineId);

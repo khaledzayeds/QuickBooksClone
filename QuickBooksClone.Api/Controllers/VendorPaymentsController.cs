@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.VendorPayments;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.VendorPayments;
 using QuickBooksClone.Core.Vendors;
@@ -16,19 +17,22 @@ public sealed class VendorPaymentsController : ControllerBase
     private readonly IVendorRepository _vendors;
     private readonly IAccountRepository _accounts;
     private readonly IVendorPaymentPostingService _postingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public VendorPaymentsController(
         IVendorPaymentRepository payments,
         IPurchaseBillRepository bills,
         IVendorRepository vendors,
         IAccountRepository accounts,
-        IVendorPaymentPostingService postingService)
+        IVendorPaymentPostingService postingService,
+        IDocumentNumberService documentNumbers)
     {
         _payments = payments;
         _bills = bills;
         _vendors = vendors;
         _accounts = accounts;
         _postingService = postingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -99,13 +103,16 @@ public sealed class VendorPaymentsController : ControllerBase
             return BadRequest("Payment account must be a bank or other current asset account.");
         }
 
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.VendorPayment, cancellationToken);
         var payment = new VendorPayment(
             bill.VendorId,
             bill.Id,
             request.PaymentAccountId,
             request.PaymentDate,
             request.Amount,
-            request.PaymentMethod ?? "Cash");
+            request.PaymentMethod ?? "Cash",
+            allocation.DocumentNo);
+        payment.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         await _payments.AddAsync(payment, cancellationToken);
 

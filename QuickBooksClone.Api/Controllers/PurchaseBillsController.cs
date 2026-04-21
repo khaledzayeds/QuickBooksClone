@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.PurchaseBills;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.Vendors;
@@ -14,17 +15,20 @@ public sealed class PurchaseBillsController : ControllerBase
     private readonly IVendorRepository _vendors;
     private readonly IItemRepository _items;
     private readonly IPurchaseBillPostingService _postingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public PurchaseBillsController(
         IPurchaseBillRepository bills,
         IVendorRepository vendors,
         IItemRepository items,
-        IPurchaseBillPostingService postingService)
+        IPurchaseBillPostingService postingService,
+        IDocumentNumberService documentNumbers)
     {
         _bills = bills;
         _vendors = vendors;
         _items = items;
         _postingService = postingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -84,7 +88,9 @@ public sealed class PurchaseBillsController : ControllerBase
             return BadRequest("Purchase bill must have at least one line.");
         }
 
-        var bill = new PurchaseBill(request.VendorId, request.BillDate, request.DueDate);
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.PurchaseBill, cancellationToken);
+        var bill = new PurchaseBill(request.VendorId, request.BillDate, request.DueDate, allocation.DocumentNo);
+        bill.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         foreach (var line in request.Lines)
         {

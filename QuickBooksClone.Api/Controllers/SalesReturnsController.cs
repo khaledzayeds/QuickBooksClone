@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.SalesReturns;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.SalesReturns;
@@ -14,17 +15,20 @@ public sealed class SalesReturnsController : ControllerBase
     private readonly IInvoiceRepository _invoices;
     private readonly ICustomerRepository _customers;
     private readonly ISalesReturnPostingService _postingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public SalesReturnsController(
         ISalesReturnRepository salesReturns,
         IInvoiceRepository invoices,
         ICustomerRepository customers,
-        ISalesReturnPostingService postingService)
+        ISalesReturnPostingService postingService,
+        IDocumentNumberService documentNumbers)
     {
         _salesReturns = salesReturns;
         _invoices = invoices;
         _customers = customers;
         _postingService = postingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -79,7 +83,9 @@ public sealed class SalesReturnsController : ControllerBase
             return BadRequest("Sales return must have at least one line.");
         }
 
-        var salesReturn = new SalesReturn(invoice.Id, invoice.CustomerId, request.ReturnDate);
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.SalesReturn, cancellationToken);
+        var salesReturn = new SalesReturn(invoice.Id, invoice.CustomerId, request.ReturnDate, allocation.DocumentNo);
+        salesReturn.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
         foreach (var requestLine in request.Lines)
         {
             var invoiceLine = invoice.Lines.FirstOrDefault(line => line.Id == requestLine.InvoiceLineId);

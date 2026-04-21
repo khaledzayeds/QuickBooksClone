@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.PurchaseReturns;
 
-public sealed class PurchaseReturn : EntityBase, ITenantEntity
+public sealed class PurchaseReturn : SyncDocumentBase, ITenantEntity
 {
     private readonly List<PurchaseReturnLine> _lines = [];
 

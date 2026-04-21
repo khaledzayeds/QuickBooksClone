@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.CustomerCredits;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.CustomerCredits;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
@@ -16,19 +17,22 @@ public sealed class CustomerCreditsController : ControllerBase
     private readonly ICustomerRepository _customers;
     private readonly IInvoiceRepository _invoices;
     private readonly IAccountRepository _accounts;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public CustomerCreditsController(
         ICustomerCreditActivityRepository activities,
         ICustomerCreditPostingService postingService,
         ICustomerRepository customers,
         IInvoiceRepository invoices,
-        IAccountRepository accounts)
+        IAccountRepository accounts,
+        IDocumentNumberService documentNumbers)
     {
         _activities = activities;
         _postingService = postingService;
         _customers = customers;
         _invoices = invoices;
         _accounts = accounts;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -83,6 +87,7 @@ public sealed class CustomerCreditsController : ControllerBase
             return BadRequest("Customer does not exist.");
         }
 
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.CustomerCredit, cancellationToken);
         var activity = new CustomerCreditActivity(
             request.CustomerId,
             request.ActivityDate,
@@ -90,7 +95,9 @@ public sealed class CustomerCreditsController : ControllerBase
             request.Action,
             request.InvoiceId,
             request.RefundAccountId,
-            request.PaymentMethod);
+            request.PaymentMethod,
+            allocation.DocumentNo);
+        activity.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         await _activities.AddAsync(activity, cancellationToken);
 

@@ -114,11 +114,13 @@ try {
 
     $runtime = Invoke-Json -Method Get -Uri "$BaseUrl/api/settings/runtime"
     $company = Invoke-Json -Method Get -Uri "$BaseUrl/api/settings/company"
+    $device = Invoke-Json -Method Get -Uri "$BaseUrl/api/settings/device"
 
     Assert-True ($runtime.databaseProvider -eq "Sqlite") "Runtime settings did not report SQLite provider."
     Assert-True ($runtime.supportsBackupRestore -eq $true) "Runtime settings did not report backup support."
     Assert-True ($company.companyName -eq "QuickBooksClone Demo Company") "Default company settings were not seeded."
     Assert-True ($company.defaultLanguage -eq "ar") "Default company language was not seeded."
+    Assert-True ($device.deviceId -eq "DEV01") "Default device settings were not seeded."
 
     Write-Step "Updating company settings."
     $updated = Invoke-Json -Method Put -Uri "$BaseUrl/api/settings/company" -Body @{
@@ -142,9 +144,17 @@ try {
         defaultPurchaseTaxRate = 15
     }
 
+    Write-Step "Updating device settings."
+    $updatedDevice = Invoke-Json -Method Put -Uri "$BaseUrl/api/settings/device" -Body @{
+        deviceId = "POS01"
+        deviceName = "Front Counter"
+    }
+
     Assert-True ($updated.companyName -eq "Zokaa Trading") "Company settings update did not return the new company name."
     Assert-True ($updated.currency -eq "SAR") "Company settings update did not return the new currency."
     Assert-True ($updated.defaultSalesTaxRate -eq 15) "Company settings update did not return the new sales tax rate."
+    Assert-True ($updatedDevice.deviceId -eq "POS01") "Device settings update did not return the new device ID."
+    Assert-True ($updatedDevice.deviceName -eq "Front Counter") "Device settings update did not return the new device name."
 
     Write-Step "Restarting API to verify settings persistence."
     Stop-SmokeApi -Process $api
@@ -152,11 +162,13 @@ try {
 
     $persistedCompany = Invoke-Json -Method Get -Uri "$BaseUrl/api/settings/company"
     $persistedRuntime = Invoke-Json -Method Get -Uri "$BaseUrl/api/settings/runtime"
+    $persistedDevice = Invoke-Json -Method Get -Uri "$BaseUrl/api/settings/device"
 
     Assert-True ($persistedCompany.companyName -eq "Zokaa Trading") "Company settings did not persist after restart."
     Assert-True ($persistedCompany.defaultLanguage -eq "en") "Company language did not persist after restart."
     Assert-True ($persistedCompany.fiscalYearStartMonth -eq 4) "Fiscal year start month did not persist after restart."
     Assert-True ($persistedRuntime.backupDirectory -eq $BackupDirectory) "Runtime settings did not reflect configured backup directory."
+    Assert-True ($persistedDevice.deviceId -eq "POS01") "Device settings did not persist after restart."
 
     [pscustomobject]@{
         companyName = $persistedCompany.companyName
@@ -164,6 +176,8 @@ try {
         defaultLanguage = $persistedCompany.defaultLanguage
         fiscalYearStartMonth = $persistedCompany.fiscalYearStartMonth
         salesTaxRate = $persistedCompany.defaultSalesTaxRate
+        deviceId = $persistedDevice.deviceId
+        deviceName = $persistedDevice.deviceName
         runtimeProvider = $persistedRuntime.databaseProvider
         runtimeBackupDirectory = $persistedRuntime.backupDirectory
     } | ConvertTo-Json

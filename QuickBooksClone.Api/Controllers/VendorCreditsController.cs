@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.VendorCredits;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.Vendors;
@@ -16,14 +17,16 @@ public sealed class VendorCreditsController : ControllerBase
     private readonly IVendorRepository _vendors;
     private readonly IPurchaseBillRepository _bills;
     private readonly IAccountRepository _accounts;
+    private readonly IDocumentNumberService _documentNumbers;
 
-    public VendorCreditsController(IVendorCreditActivityRepository activities, IVendorCreditPostingService postingService, IVendorRepository vendors, IPurchaseBillRepository bills, IAccountRepository accounts)
+    public VendorCreditsController(IVendorCreditActivityRepository activities, IVendorCreditPostingService postingService, IVendorRepository vendors, IPurchaseBillRepository bills, IAccountRepository accounts, IDocumentNumberService documentNumbers)
     {
         _activities = activities;
         _postingService = postingService;
         _vendors = vendors;
         _bills = bills;
         _accounts = accounts;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -70,7 +73,9 @@ public sealed class VendorCreditsController : ControllerBase
             return BadRequest("Vendor does not exist.");
         }
 
-        var activity = new VendorCreditActivity(request.VendorId, request.ActivityDate, request.Amount, request.Action, request.PurchaseBillId, request.DepositAccountId, request.PaymentMethod);
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.VendorCredit, cancellationToken);
+        var activity = new VendorCreditActivity(request.VendorId, request.ActivityDate, request.Amount, request.Action, request.PurchaseBillId, request.DepositAccountId, request.PaymentMethod, allocation.DocumentNo);
+        activity.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
         await _activities.AddAsync(activity, cancellationToken);
         var postingResult = await _postingService.PostAsync(activity.Id, cancellationToken);
         if (!postingResult.Succeeded)

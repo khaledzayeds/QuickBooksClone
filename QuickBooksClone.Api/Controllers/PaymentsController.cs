@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Payments;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Payments;
@@ -16,19 +17,22 @@ public sealed class PaymentsController : ControllerBase
     private readonly ICustomerRepository _customers;
     private readonly IAccountRepository _accounts;
     private readonly IPaymentPostingService _postingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
     public PaymentsController(
         IPaymentRepository payments,
         IInvoiceRepository invoices,
         ICustomerRepository customers,
         IAccountRepository accounts,
-        IPaymentPostingService postingService)
+        IPaymentPostingService postingService,
+        IDocumentNumberService documentNumbers)
     {
         _payments = payments;
         _invoices = invoices;
         _customers = customers;
         _accounts = accounts;
         _postingService = postingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -104,13 +108,16 @@ public sealed class PaymentsController : ControllerBase
             return BadRequest("Deposit account must be a bank or other current asset account.");
         }
 
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.Payment, cancellationToken);
         var payment = new Payment(
             invoice.CustomerId,
             invoice.Id,
             request.DepositAccountId,
             request.PaymentDate,
             request.Amount,
-            request.PaymentMethod ?? "Cash");
+            request.PaymentMethod ?? "Cash",
+            allocation.DocumentNo);
+        payment.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
         await _payments.AddAsync(payment, cancellationToken);
 

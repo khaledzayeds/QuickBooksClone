@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.JournalEntries;
 
-public sealed class JournalEntry : EntityBase, ITenantEntity
+public sealed class JournalEntry : SyncDocumentBase, ITenantEntity
 {
     private readonly List<JournalEntryLine> _lines = [];
 

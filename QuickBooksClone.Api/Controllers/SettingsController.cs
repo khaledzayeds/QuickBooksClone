@@ -10,15 +10,18 @@ namespace QuickBooksClone.Api.Controllers;
 public sealed class SettingsController : ControllerBase
 {
     private readonly ICompanySettingsRepository _companySettings;
+    private readonly IDeviceSettingsRepository _deviceSettings;
     private readonly IDatabaseMaintenanceService _databaseMaintenance;
     private readonly IWebHostEnvironment _environment;
 
     public SettingsController(
         ICompanySettingsRepository companySettings,
+        IDeviceSettingsRepository deviceSettings,
         IDatabaseMaintenanceService databaseMaintenance,
         IWebHostEnvironment environment)
     {
         _companySettings = companySettings;
+        _deviceSettings = deviceSettings;
         _databaseMaintenance = databaseMaintenance;
         _environment = environment;
     }
@@ -68,6 +71,30 @@ public sealed class SettingsController : ControllerBase
         }
     }
 
+    [HttpGet("device")]
+    [ProducesResponseType(typeof(DeviceSettingsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DeviceSettingsDto>> GetDevice(CancellationToken cancellationToken = default)
+    {
+        var settings = await _deviceSettings.GetOrCreateAsync(cancellationToken);
+        return Ok(ToDto(settings));
+    }
+
+    [HttpPut("device")]
+    [ProducesResponseType(typeof(DeviceSettingsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<DeviceSettingsDto>> UpdateDevice(UpdateDeviceSettingsRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var settings = await _deviceSettings.UpsertAsync(request.DeviceId, request.DeviceName, cancellationToken);
+            return Ok(ToDto(settings));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+    }
+
     [HttpGet("runtime")]
     [ProducesResponseType(typeof(RuntimeSettingsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<RuntimeSettingsDto>> GetRuntime(CancellationToken cancellationToken = default)
@@ -103,4 +130,7 @@ public sealed class SettingsController : ControllerBase
             settings.FiscalYearStartDay,
             settings.DefaultSalesTaxRate,
             settings.DefaultPurchaseTaxRate);
+
+    private static DeviceSettingsDto ToDto(DeviceSettings settings) =>
+        new(settings.Id, settings.DeviceId, settings.DeviceName);
 }

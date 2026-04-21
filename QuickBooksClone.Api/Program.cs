@@ -1,5 +1,6 @@
 using QuickBooksClone.Api.Middleware;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.CustomerCredits;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
@@ -48,6 +49,8 @@ builder.Services.AddScoped<IDatabaseMaintenanceService, SqliteDatabaseMaintenanc
 builder.Services.AddScoped<IAccountRepository, EfAccountRepository>();
 builder.Services.AddScoped<IAccountingTransactionRepository, EfAccountingTransactionRepository>();
 builder.Services.AddScoped<ICompanySettingsRepository, EfCompanySettingsRepository>();
+builder.Services.AddScoped<IDeviceSettingsRepository, EfDeviceSettingsRepository>();
+builder.Services.AddScoped<IDocumentNumberService, DocumentNumberService>();
 builder.Services.AddScoped<ICustomerCreditActivityRepository, EfCustomerCreditActivityRepository>();
 builder.Services.AddScoped<ICustomerCreditPostingService, CustomerCreditPostingService>();
 builder.Services.AddScoped<ICustomerRepository, EfCustomerRepository>();

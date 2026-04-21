@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.InventoryAdjustments;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.InventoryAdjustments;
 using QuickBooksClone.Core.Items;
 
@@ -14,13 +15,15 @@ public sealed class InventoryAdjustmentsController : ControllerBase
     private readonly IInventoryAdjustmentPostingService _postingService;
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
+    private readonly IDocumentNumberService _documentNumbers;
 
-    public InventoryAdjustmentsController(IInventoryAdjustmentRepository adjustments, IInventoryAdjustmentPostingService postingService, IItemRepository items, IAccountRepository accounts)
+    public InventoryAdjustmentsController(IInventoryAdjustmentRepository adjustments, IInventoryAdjustmentPostingService postingService, IItemRepository items, IAccountRepository accounts, IDocumentNumberService documentNumbers)
     {
         _adjustments = adjustments;
         _postingService = postingService;
         _items = items;
         _accounts = accounts;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -71,7 +74,9 @@ public sealed class InventoryAdjustmentsController : ControllerBase
         var unitCost = request.UnitCost is > 0 ? request.UnitCost.Value : item.PurchasePrice;
         if (unitCost <= 0) return BadRequest("Unit cost is required when the item purchase price is zero.");
 
-        var adjustment = new InventoryAdjustment(request.ItemId, request.AdjustmentAccountId, request.AdjustmentDate, request.QuantityChange, unitCost, request.Reason ?? "Inventory adjustment");
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.InventoryAdjustment, cancellationToken);
+        var adjustment = new InventoryAdjustment(request.ItemId, request.AdjustmentAccountId, request.AdjustmentDate, request.QuantityChange, unitCost, request.Reason ?? "Inventory adjustment", allocation.DocumentNo);
+        adjustment.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
         await _adjustments.AddAsync(adjustment, cancellationToken);
         var postingResult = await _postingService.PostAsync(adjustment.Id, cancellationToken);
         if (!postingResult.Succeeded) return BadRequest(postingResult.ErrorMessage);

@@ -2,7 +2,7 @@ using QuickBooksClone.Core.Common;
 
 namespace QuickBooksClone.Core.Invoices;
 
-public sealed class Invoice : EntityBase, ITenantEntity
+public sealed class Invoice : SyncDocumentBase, ITenantEntity
 {
     private readonly List<InvoiceLine> _lines = [];
 

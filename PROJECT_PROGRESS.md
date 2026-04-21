@@ -15,6 +15,13 @@ Build the system as working vertical slices:
 
 The backend is now API-first with EF Core persistence. Current focus is hardening persistence, accounting safety, and operational workflows before final UI polish.
 
+Architectural baseline is now fixed:
+
+- `Blazor UI -> Local API -> SQLite`
+- future `Sync Layer -> Central SQL Server`
+- business logic stays in the API
+- sync readiness is being added to document headers before the sync engine itself ships
+
 ## Completed
 
 - [x] Project structure
@@ -285,6 +292,17 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
   - [x] Add runtime settings endpoint for provider, environment, and backup path
   - [x] Add repeatable `scripts/smoke-settings.ps1`
   - [x] Verify settings update persists across restart
+- [x] Offline-first sync-ready foundation
+  - [x] Add sync metadata to document headers only
+  - [x] Add `SyncStatus`, `DeviceId`, `DocumentNo`, `LastSyncAt`, and `SyncError`
+  - [x] Add local `DeviceSettings`
+  - [x] Add local `DocumentSequenceCounter`
+  - [x] Add `DocumentNumberService`
+  - [x] Add device settings API endpoints
+  - [x] Apply generated document numbers to current document creation workflows
+  - [x] Add SQLite migration for sync-ready foundation
+  - [x] Add SQL Server migration for sync-ready foundation
+  - [x] Verify with settings smoke and purchase-order smoke
 - [x] Startup connection/profile settings
   - [x] Replace hard-coded MAUI API base URL with stored connection settings
   - [x] Add Local / LAN / Hosted connection profiles
@@ -365,3 +383,4 @@ The backend is now API-first with EF Core persistence. Current focus is hardenin
 - A live SQL Server instance smoke test is still needed before calling SQL Server production-ready.
 - SQL Server and SQLite groundwork is intentionally parked for now while the remaining backend slices continue on the SQLite runtime path.
 - Purchase orders are now live as non-posting operational documents; they intentionally do not touch inventory, vendor balances, or accounting transactions.
+- Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.

@@ -139,7 +139,20 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PaymentMethod")
@@ -163,6 +176,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -170,8 +190,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("ReferenceNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("customer_credit_activities", (string)null);
                 });
@@ -258,7 +285,20 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("ItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("PostedAt")
@@ -279,6 +319,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 4)
                         .HasColumnType("TEXT");
@@ -292,6 +339,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("inventory_adjustments", (string)null);
                 });
@@ -317,6 +371,16 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("DepositAccountId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("TEXT");
 
@@ -326,6 +390,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
                         .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("PaidAmount")
@@ -358,6 +425,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("TaxAmount")
                         .HasPrecision(18, 4)
                         .HasColumnType("TEXT");
@@ -372,8 +446,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("InvoiceNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("invoices", (string)null);
                 });
@@ -467,12 +548,25 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("EntryDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("EntryNumber")
                         .IsRequired()
                         .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Memo")
@@ -492,6 +586,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -502,8 +603,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("EntryNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("journal_entries", (string)null);
                 });
@@ -529,7 +637,20 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DepositAccountId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("InvoiceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("PaymentDate")
@@ -557,6 +678,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -567,8 +695,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("PaymentNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("payments", (string)null);
                 });
@@ -596,7 +731,20 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("DueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("PaidAmount")
@@ -619,6 +767,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -634,6 +789,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("purchase_bills", (string)null);
                 });
@@ -655,7 +817,20 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("ExpectedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("OpenedAt")
@@ -672,6 +847,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -682,8 +864,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("OrderNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("purchase_orders", (string)null);
                 });
@@ -697,6 +886,19 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("PostedAt")
@@ -719,6 +921,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -729,8 +938,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("ReturnNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("purchase_returns", (string)null);
                 });
@@ -749,7 +965,20 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("InvoiceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("PostedAt")
@@ -769,6 +998,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -776,8 +1012,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("ReturnNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("sales_returns", (string)null);
                 });
@@ -879,6 +1122,70 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.ToTable("company_settings", (string)null);
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.Settings.DeviceSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId")
+                        .IsUnique();
+
+                    b.ToTable("device_settings", (string)null);
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.Settings.DocumentSequenceCounter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("NextSequence")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "DocumentType", "Year")
+                        .IsUnique();
+
+                    b.ToTable("document_sequence_counters", (string)null);
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.VendorCredits.VendorCreditActivity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -903,6 +1210,19 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("DepositAccountId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PaymentMethod")
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
@@ -924,6 +1244,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -934,8 +1261,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("ReferenceNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("vendor_credit_activities", (string)null);
                 });
@@ -953,6 +1287,19 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("PaymentAccountId")
@@ -986,6 +1333,13 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -999,8 +1353,15 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
                     b.HasIndex("PaymentNumber")
                         .IsUnique();
+
+                    b.HasIndex("SyncStatus");
 
                     b.ToTable("vendor_payments", (string)null);
                 });
