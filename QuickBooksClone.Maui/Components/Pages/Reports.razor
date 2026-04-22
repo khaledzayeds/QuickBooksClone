@@ -1,0 +1,245 @@
+@page "/reports"
+@using QuickBooksClone.Api.Contracts.Reports
+@using QuickBooksClone.Maui.Services.Reports
+@inject ReportsApiClient ReportsApi
+
+<PageTitle>Reports</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Reports</p>
+            <h1>Financial Reports</h1>
+            <p class="muted">Start with trial balance from posted accounting entries, then grow into full statements and aging reports.</p>
+        </div>
+        <button class="secondary-button" @onclick="LoadAsync" disabled="@isLoading">Refresh</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="qb-grid">
+        <div class="panel">
+            <div class="toolbar">
+                <label class="form-label">
+                    <span>Report</span>
+                    <select class="form-control narrow-control" @bind="selectedReport">
+                        <option value="@ReportMode.TrialBalance">Trial Balance</option>
+                        <option value="@ReportMode.BalanceSheet">Balance Sheet</option>
+                    </select>
+                </label>
+                <label class="form-label">
+                    <span>As of date</span>
+                    <input class="form-control narrow-control" type="date" @bind="asOfDateText" />
+                </label>
+                <label class="check-row">
+                    <input type="checkbox" @bind="includeZeroBalances" />
+                    Include zero balances
+                </label>
+                <label class="check-row">
+                    <input type="checkbox" @bind="includeInactiveAccounts" />
+                    Include inactive accounts
+                </label>
+                <button class="primary-button" @onclick="LoadAsync" disabled="@isLoading">Run Report</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <p class="muted">Loading report...</p>
+            }
+            else if (selectedReport == ReportMode.TrialBalance)
+            {
+                @if (trialBalanceReport is null || trialBalanceReport.Items.Count == 0)
+                {
+                    <p class="muted">No posted balances found for the selected date yet.</p>
+                }
+                else
+                {
+                    <table class="data-table compact-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Account</th>
+                                <th>Type</th>
+                                <th>Total Debit</th>
+                                <th>Total Credit</th>
+                                <th>Closing Debit</th>
+                                <th>Closing Credit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in trialBalanceReport.Items)
+                            {
+                                <tr>
+                                    <td><strong>@row.AccountCode</strong></td>
+                                    <td>@row.AccountName</td>
+                                    <td>@row.AccountType</td>
+                                    <td>@row.TotalDebit.ToString("N2")</td>
+                                    <td>@row.TotalCredit.ToString("N2")</td>
+                                    <td>@row.ClosingDebit.ToString("N2")</td>
+                                    <td>@row.ClosingCredit.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="5">Closing totals</th>
+                                <th>@trialBalanceReport.TotalDebit.ToString("N2")</th>
+                                <th>@trialBalanceReport.TotalCredit.ToString("N2")</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                }
+            }
+            else
+            {
+                @if (balanceSheetReport is null || balanceSheetReport.Sections.All(section => section.Items.Count == 0))
+                {
+                    <p class="muted">No balance sheet activity found for the selected date yet.</p>
+                }
+                else
+                {
+                    @foreach (var section in balanceSheetReport.Sections)
+                    {
+                        <div class="totals-box">
+                            <strong>@section.Title</strong>
+                        </div>
+
+                        <table class="data-table compact-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Account</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in section.Items)
+                                {
+                                    <tr>
+                                        <td><strong>@row.AccountCode</strong></td>
+                                        <td>@row.AccountName</td>
+                                        <td>@row.AccountType</td>
+                                        <td>@row.Amount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3">@section.Title total</th>
+                                    <th>@section.Total.ToString("N2")</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    }
+                }
+            }
+        </div>
+
+        <section class="panel form-panel">
+            <h2>Report Roadmap</h2>
+            <div class="metric-grid">
+                <div class="metric-box">
+                    <span>Live now</span>
+                    <strong>Trial Balance / Balance Sheet</strong>
+                </div>
+                <div class="metric-box">
+                    <span>Next</span>
+                    <strong>P&amp;L</strong>
+                </div>
+                <div class="metric-box">
+                    <span>Then</span>
+                    <strong>Aging / Inventory</strong>
+                </div>
+            </div>
+
+            <div class="totals-box">
+                Reports should come from posted accounting entries only, not from ad hoc UI totals.
+            </div>
+
+            @if (balanceSheetReport is not null)
+            {
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <span>Total Assets</span>
+                        <strong>@balanceSheetReport.TotalAssets.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Liabilities</span>
+                        <strong>@balanceSheetReport.TotalLiabilities.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Equity</span>
+                        <strong>@balanceSheetReport.TotalEquity.ToString("N2")</strong>
+                    </div>
+                </div>
+            }
+
+            <ul class="check-list">
+                <li>Trial balance is calculated from posted transactions up to the selected date.</li>
+                <li>Voided accounting transactions are excluded automatically.</li>
+                <li>Balance sheet groups balance-sheet accounts into assets, liabilities, and equity from the same posted ledger.</li>
+                <li>Current report foundation is ready for profit and loss, aging, and inventory valuation reports.</li>
+            </ul>
+        </section>
+    </section>
+</div>
+
+@code {
+    private TrialBalanceReportDto? trialBalanceReport;
+    private BalanceSheetReportDto? balanceSheetReport;
+    private string asOfDateText = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+    private string? errorMessage;
+    private bool includeZeroBalances;
+    private bool includeInactiveAccounts;
+    private bool isLoading;
+    private ReportMode selectedReport = ReportMode.TrialBalance;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var asOfDate = ParseAsOfDate();
+
+            if (selectedReport == ReportMode.TrialBalance)
+            {
+                trialBalanceReport = await ReportsApi.GetTrialBalanceAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
+            }
+            else
+            {
+                balanceSheetReport = await ReportsApi.GetBalanceSheetAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
+            }
+        }
+        catch (Exception exception)
+        {
+            errorMessage = $"Could not load reports. Details: {exception.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private DateOnly ParseAsOfDate()
+    {
+        return DateOnly.TryParse(asOfDateText, out var parsed)
+            ? parsed
+            : DateOnly.FromDateTime(DateTime.Today);
+    }
+
+    private enum ReportMode
+    {
+        TrialBalance,
+        BalanceSheet
+    }
+}

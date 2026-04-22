@@ -42,6 +42,83 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.
 
+## Reports
+
+### Trial Balance
+
+```http
+GET /api/reports/trial-balance?asOfDate=2026-04-22&includeZeroBalances=false&includeInactiveAccounts=false
+```
+
+Response:
+
+```json
+{
+  "asOfDate": "2026-04-22",
+  "items": [
+    {
+      "accountId": "10000000-0000-0000-0000-000000000001",
+      "accountCode": "1000",
+      "accountName": "Cash on Hand",
+      "accountType": "Bank",
+      "totalDebit": 5000.0,
+      "totalCredit": 1200.0,
+      "closingDebit": 3800.0,
+      "closingCredit": 0.0
+    }
+  ],
+  "totalDebit": 3800.0,
+  "totalCredit": 3800.0
+}
+```
+
+Notes:
+
+- Trial balance is calculated from posted accounting transactions only.
+- Voided accounting transactions are excluded automatically.
+- `totalDebit` and `totalCredit` at the report level represent the final closing-balance columns.
+- This is the current foundation for future `Balance Sheet`, `Profit and Loss`, and aging reports.
+
+### Balance Sheet
+
+```http
+GET /api/reports/balance-sheet?asOfDate=2026-04-22&includeZeroBalances=false&includeInactiveAccounts=false
+```
+
+Response:
+
+```json
+{
+  "asOfDate": "2026-04-22",
+  "sections": [
+    {
+      "key": "assets",
+      "title": "Assets",
+      "items": [
+        {
+          "accountId": "10000000-0000-0000-0000-000000000001",
+          "accountCode": "1000",
+          "accountName": "Cash on Hand",
+          "accountType": "Bank",
+          "amount": 3800.0
+        }
+      ],
+      "total": 3800.0
+    }
+  ],
+  "totalAssets": 3800.0,
+  "totalLiabilities": 1200.0,
+  "totalEquity": 2600.0,
+  "totalLiabilitiesAndEquity": 3800.0
+}
+```
+
+Notes:
+
+- Balance sheet is also calculated from posted accounting transactions only.
+- Sections currently group accounts into `Assets`, `Liabilities`, and `Equity`.
+- Income-statement accounts are excluded from this report and remain reserved for `Profit and Loss`.
+
 Customer responses include:
 
 - `balance`: current regular customer balance field.

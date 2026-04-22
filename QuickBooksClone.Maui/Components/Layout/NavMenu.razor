@@ -1,107 +1,123 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">QuickBooksClone</a>
+<aside class="ledger-nav">
+    <div class="ledger-nav__brand">
+        <div class="ledger-nav__logo">L</div>
+        <div>
+            <strong>QuickBooksClone</strong>
+            <small>Professional accounting workspace</small>
+        </div>
     </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <div class="ledger-nav__scroll">
+        <div class="ledger-nav__group">
+            <p class="ledger-nav__group-title">Workspace</p>
+            <NavLink class="ledger-nav__link" href="" Match="NavLinkMatch.All">
+                <span class="ledger-nav__icon">D</span>
+                <span>Dashboard</span>
+            </NavLink>
+        </div>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+        <div class="ledger-nav__group">
+            <p class="ledger-nav__group-title">Core</p>
+            <NavLink class="ledger-nav__link" href="customers">
+                <span class="ledger-nav__icon">C</span>
+                <span>Customers</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="vendors">
+                <span class="ledger-nav__icon">V</span>
+                <span>Vendors</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="items">
+                <span class="ledger-nav__icon">IT</span>
+                <span>Items</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="accounts">
+                <span class="ledger-nav__icon">COA</span>
+                <span>Chart of Accounts</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="transactions">
+                <span class="ledger-nav__icon">TR</span>
+                <span>Transactions</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="customers">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Customers
+
+        <div class="ledger-nav__group">
+            <p class="ledger-nav__group-title">Sales</p>
+            <NavLink class="ledger-nav__link" href="invoices">
+                <span class="ledger-nav__icon">I</span>
+                <span>Invoices</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="sales-receipts">
+                <span class="ledger-nav__icon">SR</span>
+                <span>Sales Receipts</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="payments">
+                <span class="ledger-nav__icon">P</span>
+                <span>Payments</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="sales-returns">
+                <span class="ledger-nav__icon">RT</span>
+                <span>Sales Returns</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="customer-credits">
+                <span class="ledger-nav__icon">CR</span>
+                <span>Customer Credits</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="accounts">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Accounts
+
+        <div class="ledger-nav__group">
+            <p class="ledger-nav__group-title">Purchases</p>
+            <NavLink class="ledger-nav__link" href="purchase-orders">
+                <span class="ledger-nav__icon">PO</span>
+                <span>Purchase Orders</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="receive-inventory">
+                <span class="ledger-nav__icon">RI</span>
+                <span>Receive Inventory</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="purchase-bills">
+                <span class="ledger-nav__icon">PB</span>
+                <span>Purchase Bills</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="purchase-returns">
+                <span class="ledger-nav__icon">PR</span>
+                <span>Purchase Returns</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="vendor-payments">
+                <span class="ledger-nav__icon">VP</span>
+                <span>Vendor Payments</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="vendor-credits">
+                <span class="ledger-nav__icon">VC</span>
+                <span>Vendor Credits</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="transactions">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Transactions
+
+        <div class="ledger-nav__group">
+            <p class="ledger-nav__group-title">More</p>
+            <NavLink class="ledger-nav__link" href="inventory-adjustments">
+                <span class="ledger-nav__icon">IA</span>
+                <span>Inventory Adjustments</span>
+            </NavLink>
+            <NavLink class="ledger-nav__link" href="journal-entries">
+                <span class="ledger-nav__icon">JE</span>
+                <span>Journal Entries</span>
+            </NavLink>
+            <span class="ledger-nav__link ledger-nav__link--muted">
+                <span class="ledger-nav__icon">BK</span>
+                <span>Banking</span>
+            </span>
+            <NavLink class="ledger-nav__link" href="reports">
+                <span class="ledger-nav__icon">RP</span>
+                <span>Reports</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="journal-entries">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Journal Entries
-            </NavLink>
+    </div>
+
+    <div class="ledger-nav__footer">
+        <button type="button" class="ledger-nav__cta">New Transaction</button>
+        <div class="ledger-nav__pending">
+            <span class="ledger-nav__pending-badge">Pending</span>
+            <p>Banking, reports, reconciliation, and full language switching stay in the final design but remain filtered from the main navigation until hookup is ready.</p>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="items">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Items
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="inventory-adjustments">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Inventory Adjustments
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="invoices">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Invoices
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="sales-receipts">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Sales Receipts
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="payments">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Payments
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="sales-returns">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Sales Returns
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="customer-credits">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Customer Credits
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="vendors">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Vendors
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="purchase-orders">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Purchase Orders
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="purchase-bills">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Purchase Bills
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="purchase-returns">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Purchase Returns
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="vendor-payments">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Vendor Payments
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="vendor-credits">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Vendor Credits
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="connection-settings">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Connection Settings
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    </div>
+</aside>

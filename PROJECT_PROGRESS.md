@@ -360,6 +360,13 @@ Architectural baseline is now fixed:
   - [x] Keep direct purchase bills available for non-inventory/direct vendor charges
   - [x] Add desktop bill-from-receipt entry path
   - [x] Add repeatable `scripts/smoke-bills-against-receipts.ps1`
+- [x] Reporting foundation
+  - [x] Add financial reporting service over posted accounting transactions
+  - [x] Add live `Trial Balance` API endpoint
+  - [x] Add desktop `Reports` screen with trial balance filters and totals
+  - [x] Expose reports navigation entry
+  - [x] Add live `Balance Sheet` API endpoint
+  - [x] Group balance sheet accounts into assets, liabilities, and equity from posted ledger balances
 
 ## In Progress
 
@@ -370,6 +377,13 @@ Architectural baseline is now fixed:
   - [x] Receive Inventory before bill workflow
   - [x] Bills against received inventory workflow
   - [ ] Payables refinement and purchase-side review pass
+- [ ] Core accounting reports
+  - [x] Trial Balance
+  - [x] Balance Sheet
+  - [ ] Profit and Loss
+  - [ ] Accounts Receivable Aging
+  - [ ] Accounts Payable Aging
+  - [ ] Inventory valuation and stock movement
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
   - [x] Add restore confirmation/audit metadata
@@ -411,4 +425,5 @@ Architectural baseline is now fixed:
 - Receive Inventory is now live as the operational bridge between Purchase Orders and Purchase Bills; it increases stock and credits the temporary `Inventory Received Not Billed` liability without changing vendor balances.
 - Purchase Bills can now clear `Inventory Received Not Billed` against previously posted inventory receipts, so the bill creates Accounts Payable without increasing stock a second time.
 - Sales and purchase returns now have backend reversal workflows instead of being one-way posting documents.
+- Reports are now starting from posted accounting transactions instead of page-level totals, beginning with live Trial Balance and Balance Sheet slices.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.
