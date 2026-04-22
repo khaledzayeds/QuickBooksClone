@@ -369,6 +369,8 @@ Architectural baseline is now fixed:
   - [x] Group balance sheet accounts into assets, liabilities, and equity from posted ledger balances
   - [x] Add live `Profit and Loss` API endpoint
   - [x] Add date-range profit and loss sections for income, cost of goods sold, and expenses
+  - [x] Add live `Accounts Receivable Aging` API endpoint
+  - [x] Group open customer receivables into aging buckets by due date
 
 ## In Progress
 
@@ -383,7 +385,7 @@ Architectural baseline is now fixed:
   - [x] Trial Balance
   - [x] Balance Sheet
   - [x] Profit and Loss
-  - [ ] Accounts Receivable Aging
+  - [x] Accounts Receivable Aging
   - [ ] Accounts Payable Aging
   - [ ] Inventory valuation and stock movement
 - [ ] Backup and restore polish
@@ -427,5 +429,5 @@ Architectural baseline is now fixed:
 - Receive Inventory is now live as the operational bridge between Purchase Orders and Purchase Bills; it increases stock and credits the temporary `Inventory Received Not Billed` liability without changing vendor balances.
 - Purchase Bills can now clear `Inventory Received Not Billed` against previously posted inventory receipts, so the bill creates Accounts Payable without increasing stock a second time.
 - Sales and purchase returns now have backend reversal workflows instead of being one-way posting documents.
-- Reports are now starting from posted accounting transactions instead of page-level totals, beginning with live Trial Balance, Balance Sheet, and Profit and Loss slices.
+- Reports are now starting from posted accounting transactions and current open-document balances instead of page-level totals, beginning with live Trial Balance, Balance Sheet, Profit and Loss, and A/R Aging slices.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.

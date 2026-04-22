@@ -22,6 +22,12 @@ public interface IFinancialReportService
         bool includeZeroBalances,
         bool includeInactiveAccounts,
         CancellationToken cancellationToken = default);
+
+    Task<AccountsReceivableAgingReport> GetAccountsReceivableAgingAsync(
+        DateOnly asOfDate,
+        bool includeZeroBalances,
+        bool includeInactiveCustomers,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record TrialBalanceReport(
@@ -83,3 +89,26 @@ public sealed record ProfitAndLossRow(
     string AccountName,
     AccountType AccountType,
     decimal Amount);
+
+public sealed record AccountsReceivableAgingReport(
+    DateOnly AsOfDate,
+    IReadOnlyList<AccountsReceivableAgingRow> Items,
+    decimal Current,
+    decimal Days1To30,
+    decimal Days31To60,
+    decimal Days61To90,
+    decimal Over90,
+    decimal Total);
+
+public sealed record AccountsReceivableAgingRow(
+    Guid CustomerId,
+    string CustomerName,
+    string Currency,
+    decimal Current,
+    decimal Days1To30,
+    decimal Days31To60,
+    decimal Days61To90,
+    decimal Over90,
+    decimal Total,
+    decimal CreditBalance,
+    int OpenInvoiceCount);

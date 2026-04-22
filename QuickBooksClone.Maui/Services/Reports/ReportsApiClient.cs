@@ -57,4 +57,19 @@ public sealed class ReportsApiClient
         return await _httpClient.GetFromJsonAsync<ProfitAndLossReportDto>(url, cancellationToken)
             ?? new ProfitAndLossReportDto(fromDate, toDate, [], 0m, 0m, 0m, 0m, 0m);
     }
+
+    public async Task<AccountsReceivableAgingReportDto> GetAccountsReceivableAgingAsync(
+        DateOnly asOfDate,
+        bool includeZeroBalances,
+        bool includeInactiveCustomers,
+        CancellationToken cancellationToken = default)
+    {
+        var url =
+            $"api/reports/accounts-receivable-aging?asOfDate={asOfDate:yyyy-MM-dd}" +
+            $"&includeZeroBalances={includeZeroBalances.ToString().ToLowerInvariant()}" +
+            $"&includeInactiveCustomers={includeInactiveCustomers.ToString().ToLowerInvariant()}";
+
+        return await _httpClient.GetFromJsonAsync<AccountsReceivableAgingReportDto>(url, cancellationToken)
+            ?? new AccountsReceivableAgingReportDto(asOfDate, [], 0m, 0m, 0m, 0m, 0m, 0m);
+    }
 }

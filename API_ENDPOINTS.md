@@ -162,6 +162,48 @@ Notes:
 - `CostOfGoodsSold`, `Expense`, and `OtherExpense` are shown as debit-normal positive values.
 - `netProfit = grossProfit - totalExpenses`.
 
+### Accounts Receivable Aging
+
+```http
+GET /api/reports/accounts-receivable-aging?asOfDate=2026-04-22&includeZeroBalances=false&includeInactiveCustomers=false
+```
+
+Response:
+
+```json
+{
+  "asOfDate": "2026-04-22",
+  "items": [
+    {
+      "customerId": "aaaaaaaa-1111-2222-3333-bbbbbbbbbbbb",
+      "customerName": "Ahmed Mohamed",
+      "currency": "EGP",
+      "current": 1200.0,
+      "days1To30": 800.0,
+      "days31To60": 0.0,
+      "days61To90": 0.0,
+      "over90": 0.0,
+      "total": 2000.0,
+      "creditBalance": 150.0,
+      "openInvoiceCount": 2
+    }
+  ],
+  "current": 1200.0,
+  "days1To30": 800.0,
+  "days31To60": 0.0,
+  "days61To90": 0.0,
+  "over90": 0.0,
+  "total": 2000.0
+}
+```
+
+Notes:
+
+- A/R aging is based on **open credit invoice balances** only.
+- Cash sales receipts are excluded.
+- Buckets are based on `DueDate` relative to the selected `asOfDate`.
+- Customer `creditBalance` is exposed alongside the open receivable so collection and available credit can be reviewed together.
+
 Customer responses include:
 
 - `balance`: current regular customer balance field.

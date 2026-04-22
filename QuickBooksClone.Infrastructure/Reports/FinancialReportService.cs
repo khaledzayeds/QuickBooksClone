@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Reports;
 using QuickBooksClone.Infrastructure.Persistence;
 
@@ -212,6 +213,110 @@ public sealed class FinancialReportService : IFinancialReportService
             grossProfit,
             totalExpenses,
             netProfit);
+    }
+
+    public async Task<AccountsReceivableAgingReport> GetAccountsReceivableAgingAsync(
+        DateOnly asOfDate,
+        bool includeZeroBalances,
+        bool includeInactiveCustomers,
+        CancellationToken cancellationToken = default)
+    {
+        var customersQuery = _db.Customers.AsNoTracking();
+        if (!includeInactiveCustomers)
+        {
+            customersQuery = customersQuery.Where(customer => customer.IsActive);
+        }
+
+        var customers = await customersQuery
+            .OrderBy(customer => customer.DisplayName)
+            .ToListAsync(cancellationToken);
+
+        var candidateInvoices = await _db.Invoices
+            .AsNoTracking()
+            .Where(invoice =>
+                invoice.PaymentMode == Core.Invoices.InvoicePaymentMode.Credit &&
+                invoice.Status != Core.Invoices.InvoiceStatus.Void &&
+                invoice.Status != Core.Invoices.InvoiceStatus.Draft &&
+                invoice.InvoiceDate <= asOfDate)
+            .ToListAsync(cancellationToken);
+
+        var openInvoices = candidateInvoices
+            .Select(invoice => new
+            {
+                invoice.CustomerId,
+                invoice.DueDate,
+                Balance = invoice.BalanceDue
+            })
+            .Where(invoice => invoice.Balance > 0)
+            .ToList();
+
+        var invoiceGroups = openInvoices
+            .GroupBy(invoice => invoice.CustomerId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        var rows = customers
+            .Select(customer =>
+            {
+                invoiceGroups.TryGetValue(customer.Id, out var invoices);
+                invoices ??= [];
+
+                decimal current = 0m;
+                decimal days1To30 = 0m;
+                decimal days31To60 = 0m;
+                decimal days61To90 = 0m;
+                decimal over90 = 0m;
+
+                foreach (var invoice in invoices)
+                {
+                    var ageDays = asOfDate.DayNumber - invoice.DueDate.DayNumber;
+                    if (ageDays <= 0)
+                    {
+                        current += invoice.Balance;
+                    }
+                    else if (ageDays <= 30)
+                    {
+                        days1To30 += invoice.Balance;
+                    }
+                    else if (ageDays <= 60)
+                    {
+                        days31To60 += invoice.Balance;
+                    }
+                    else if (ageDays <= 90)
+                    {
+                        days61To90 += invoice.Balance;
+                    }
+                    else
+                    {
+                        over90 += invoice.Balance;
+                    }
+                }
+
+                var total = current + days1To30 + days31To60 + days61To90 + over90;
+                return new AccountsReceivableAgingRow(
+                    customer.Id,
+                    customer.DisplayName,
+                    customer.Currency,
+                    current,
+                    days1To30,
+                    days31To60,
+                    days61To90,
+                    over90,
+                    total,
+                    customer.CreditBalance,
+                    invoices.Count);
+            })
+            .Where(row => includeZeroBalances || row.Total != 0m || row.CreditBalance != 0m)
+            .ToList();
+
+        return new AccountsReceivableAgingReport(
+            asOfDate,
+            rows,
+            rows.Sum(row => row.Current),
+            rows.Sum(row => row.Days1To30),
+            rows.Sum(row => row.Days31To60),
+            rows.Sum(row => row.Days61To90),
+            rows.Sum(row => row.Over90),
+            rows.Sum(row => row.Total));
     }
 
     private async Task<(List<QuickBooksClone.Core.Accounting.Account> Accounts, Dictionary<Guid, (decimal TotalDebit, decimal TotalCredit)> Balances)>

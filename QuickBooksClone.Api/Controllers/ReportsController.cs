@@ -124,4 +124,42 @@ public sealed class ReportsController : ControllerBase
             report.TotalExpenses,
             report.NetProfit));
     }
+
+    [HttpGet("accounts-receivable-aging")]
+    [ProducesResponseType(typeof(AccountsReceivableAgingReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<AccountsReceivableAgingReportDto>> GetAccountsReceivableAging(
+        [FromQuery] DateOnly? asOfDate,
+        [FromQuery] bool includeZeroBalances = false,
+        [FromQuery] bool includeInactiveCustomers = false,
+        CancellationToken cancellationToken = default)
+    {
+        var report = await _reports.GetAccountsReceivableAgingAsync(
+            asOfDate ?? DateOnly.FromDateTime(DateTime.Today),
+            includeZeroBalances,
+            includeInactiveCustomers,
+            cancellationToken);
+
+        return Ok(new AccountsReceivableAgingReportDto(
+            report.AsOfDate,
+            report.Items
+                .Select(row => new AccountsReceivableAgingRowDto(
+                    row.CustomerId,
+                    row.CustomerName,
+                    row.Currency,
+                    row.Current,
+                    row.Days1To30,
+                    row.Days31To60,
+                    row.Days61To90,
+                    row.Over90,
+                    row.Total,
+                    row.CreditBalance,
+                    row.OpenInvoiceCount))
+                .ToList(),
+            report.Current,
+            report.Days1To30,
+            report.Days31To60,
+            report.Days61To90,
+            report.Over90,
+            report.Total));
+    }
 }
