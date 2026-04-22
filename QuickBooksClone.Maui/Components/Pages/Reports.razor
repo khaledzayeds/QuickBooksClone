@@ -1,5 +1,5 @@
 @page "/reports"
-@using QuickBooksClone.Api.Contracts.Reports
+@using QuickBooksClone.Maui.Contracts.Reports
 @using QuickBooksClone.Maui.Services.Reports
 @inject ReportsApiClient ReportsApi
 
@@ -31,24 +31,25 @@
                         <option value="@ReportMode.ProfitAndLoss">Profit &amp; Loss</option>
                         <option value="@ReportMode.AccountsReceivableAging">A/R Aging</option>
                         <option value="@ReportMode.AccountsPayableAging">A/P Aging</option>
+                        <option value="@ReportMode.InventoryValuation">Inventory Valuation / Stock Movement</option>
                     </select>
                 </label>
-                @if (selectedReport == ReportMode.ProfitAndLoss)
+                @if (selectedReport is ReportMode.ProfitAndLoss or ReportMode.InventoryValuation)
                 {
                     <label class="form-label">
                         <span>From date</span>
-                        <input class="form-control narrow-control" type="date" @bind="fromDateText" />
+                        <input class="form-control narrow-control" type="date" value="@fromDateText" @onchange="OnFromDateChanged" />
                     </label>
                     <label class="form-label">
                         <span>To date</span>
-                        <input class="form-control narrow-control" type="date" @bind="toDateText" />
+                        <input class="form-control narrow-control" type="date" value="@toDateText" @onchange="OnToDateChanged" />
                     </label>
                 }
                 else
                 {
                     <label class="form-label">
                         <span>As of date</span>
-                        <input class="form-control narrow-control" type="date" @bind="asOfDateText" />
+                        <input class="form-control narrow-control" type="date" value="@asOfDateText" @onchange="OnAsOfDateChanged" />
                     </label>
                 }
                 <label class="check-row">
@@ -57,7 +58,7 @@
                 </label>
                 <label class="check-row">
                     <input type="checkbox" @bind="includeInactiveAccounts" />
-                    Include inactive accounts
+                    @InactiveLabel
                 </label>
                 <button class="primary-button" @onclick="LoadAsync" disabled="@isLoading">Run Report</button>
             </div>
@@ -112,16 +113,16 @@
             }
             else if (selectedReport == ReportMode.BalanceSheet)
             {
-                @if (balanceSheetReport is null || balanceSheetReport.Sections.All(section => section.Items.Count == 0))
+                @if (balanceSheetReport is null || balanceSheetReport.Sections.All(s => s.Items.Count == 0))
                 {
                     <p class="muted">No balance sheet activity found for the selected date yet.</p>
                 }
                 else
                 {
-                    @foreach (var section in balanceSheetReport.Sections)
+                    @foreach (var reportSection in balanceSheetReport.Sections)
                     {
                         <div class="totals-box">
-                            <strong>@section.Title</strong>
+                            <strong>@reportSection.Title</strong>
                         </div>
 
                         <table class="data-table compact-table">
@@ -134,7 +135,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var row in section.Items)
+                                @foreach (var row in reportSection.Items)
                                 {
                                     <tr>
                                         <td><strong>@row.AccountCode</strong></td>
@@ -146,8 +147,8 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <th colspan="3">@section.Title total</th>
-                                    <th>@section.Total.ToString("N2")</th>
+                                    <th colspan="3">@reportSection.Title total</th>
+                                    <th>@reportSection.Total.ToString("N2")</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -156,16 +157,16 @@
             }
             else if (selectedReport == ReportMode.ProfitAndLoss)
             {
-                @if (profitAndLossReport is null || profitAndLossReport.Sections.All(section => section.Items.Count == 0))
+                @if (profitAndLossReport is null || profitAndLossReport.Sections.All(s => s.Items.Count == 0))
                 {
                     <p class="muted">No profit and loss activity found for the selected period yet.</p>
                 }
                 else
                 {
-                    @foreach (var section in profitAndLossReport.Sections)
+                    @foreach (var reportSection in profitAndLossReport.Sections)
                     {
                         <div class="totals-box">
-                            <strong>@section.Title</strong>
+                            <strong>@reportSection.Title</strong>
                         </div>
 
                         <table class="data-table compact-table">
@@ -178,7 +179,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var row in section.Items)
+                                @foreach (var row in reportSection.Items)
                                 {
                                     <tr>
                                         <td><strong>@row.AccountCode</strong></td>
@@ -190,8 +191,8 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <th colspan="3">@section.Title total</th>
-                                    <th>@section.Total.ToString("N2")</th>
+                                    <th colspan="3">@reportSection.Title total</th>
+                                    <th>@reportSection.Total.ToString("N2")</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -256,7 +257,7 @@
                         </table>
                     }
                 }
-                else
+                else if (selectedReport == ReportMode.AccountsPayableAging)
                 {
                     @if (accountsPayableAgingReport is null || accountsPayableAgingReport.Items.Count == 0)
                     {
@@ -312,6 +313,66 @@
                         </table>
                     }
                 }
+                else
+                {
+                    @if (inventoryValuationReport is null || inventoryValuationReport.Items.Count == 0)
+                    {
+                        <p class="muted">No inventory movement found for the selected period yet.</p>
+                    }
+                    else
+                    {
+                        <table class="data-table compact-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>SKU</th>
+                                    <th>Unit</th>
+                                    <th>Unit Cost</th>
+                                    <th>Opening Qty</th>
+                                    <th>In</th>
+                                    <th>Out</th>
+                                    <th>Closing Qty</th>
+                                    <th>Opening Value</th>
+                                    <th>In Value</th>
+                                    <th>Out Value</th>
+                                    <th>Closing Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in inventoryValuationReport.Items)
+                                {
+                                    <tr>
+                                        <td><strong>@row.ItemName</strong></td>
+                                        <td>@(string.IsNullOrWhiteSpace(row.Sku) ? "-" : row.Sku)</td>
+                                        <td>@row.Unit</td>
+                                        <td>@row.UnitCost.ToString("N2")</td>
+                                        <td>@row.OpeningQuantity.ToString("N2")</td>
+                                        <td>@row.QuantityIn.ToString("N2")</td>
+                                        <td>@row.QuantityOut.ToString("N2")</td>
+                                        <td>@row.ClosingQuantity.ToString("N2")</td>
+                                        <td>@row.OpeningValue.ToString("N2")</td>
+                                        <td>@row.QuantityInValue.ToString("N2")</td>
+                                        <td>@row.QuantityOutValue.ToString("N2")</td>
+                                        <td>@row.ClosingValue.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4">Totals</th>
+                                    <th>@inventoryValuationReport.TotalOpeningQuantity.ToString("N2")</th>
+                                    <th>@inventoryValuationReport.TotalQuantityIn.ToString("N2")</th>
+                                    <th>@inventoryValuationReport.TotalQuantityOut.ToString("N2")</th>
+                                    <th>@inventoryValuationReport.TotalClosingQuantity.ToString("N2")</th>
+                                    <th>@inventoryValuationReport.TotalOpeningValue.ToString("N2")</th>
+                                    <th>@inventoryValuationReport.TotalQuantityInValue.ToString("N2")</th>
+                                    <th>@inventoryValuationReport.TotalQuantityOutValue.ToString("N2")</th>
+                                    <th>@inventoryValuationReport.TotalClosingValue.ToString("N2")</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    }
+                }
             }
         </div>
 
@@ -324,11 +385,11 @@
                 </div>
                 <div class="metric-box">
                     <span>Next</span>
-                    <strong>A/R &amp; A/P Aging Live</strong>
+                    <strong>A/R, A/P, and Inventory Live</strong>
                 </div>
                 <div class="metric-box">
                     <span>Then</span>
-                    <strong>Inventory</strong>
+                    <strong>Review + Hardening</strong>
                 </div>
             </div>
 
@@ -408,6 +469,24 @@
                 </div>
             }
 
+            @if (inventoryValuationReport is not null)
+            {
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <span>Opening Value</span>
+                        <strong>@inventoryValuationReport.TotalOpeningValue.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Period Movement</span>
+                        <strong>@((inventoryValuationReport.TotalQuantityInValue - inventoryValuationReport.TotalQuantityOutValue).ToString("N2"))</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Closing Value</span>
+                        <strong>@inventoryValuationReport.TotalClosingValue.ToString("N2")</strong>
+                    </div>
+                </div>
+            }
+
             <ul class="check-list">
                 <li>Trial balance is calculated from posted transactions up to the selected date.</li>
                 <li>Voided accounting transactions are excluded automatically.</li>
@@ -415,7 +494,8 @@
                 <li>Profit and loss uses a date range and separates income, COGS, and expenses from the same posted ledger.</li>
                 <li>A/R aging groups open credit invoices by customer and due-date bucket using the current open balance only.</li>
                 <li>A/P aging groups open vendor bills by due-date bucket using the current open payable balance only.</li>
-                <li>Current report foundation is ready for inventory valuation and stock movement reports.</li>
+                <li>Inventory valuation combines posted stock movement documents with current item on-hand quantities.</li>
+                <li>Current inventory valuation uses the item's current purchase price for opening and closing value until costing layers ship.</li>
             </ul>
         </section>
     </section>
@@ -427,6 +507,7 @@
     private ProfitAndLossReportDto? profitAndLossReport;
     private AccountsReceivableAgingReportDto? accountsReceivableAgingReport;
     private AccountsPayableAgingReportDto? accountsPayableAgingReport;
+    private InventoryValuationReportDto? inventoryValuationReport;
     private string asOfDateText = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
     private string fromDateText = new DateOnly(DateTime.Today.Year, 1, 1).ToString("yyyy-MM-dd");
     private string toDateText = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
@@ -435,6 +516,15 @@
     private bool includeInactiveAccounts;
     private bool isLoading;
     private ReportMode selectedReport = ReportMode.TrialBalance;
+
+    private string InactiveLabel =>
+        selectedReport switch
+        {
+            ReportMode.AccountsReceivableAging => "Include inactive customers",
+            ReportMode.AccountsPayableAging => "Include inactive vendors",
+            ReportMode.InventoryValuation => "Include inactive items",
+            _ => "Include inactive accounts"
+        };
 
     protected override async Task OnInitializedAsync()
     {
@@ -467,9 +557,13 @@
                 {
                     accountsReceivableAgingReport = await ReportsApi.GetAccountsReceivableAgingAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
                 }
-                else
+                else if (selectedReport == ReportMode.AccountsPayableAging)
                 {
                     accountsPayableAgingReport = await ReportsApi.GetAccountsPayableAgingAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
+                }
+                else
+                {
+                    inventoryValuationReport = await ReportsApi.GetInventoryValuationAsync(ParseFromDate(), ParseToDate(), includeZeroBalances, includeInactiveAccounts);
                 }
             }
         }
@@ -504,12 +598,28 @@
             : DateOnly.FromDateTime(DateTime.Today);
     }
 
+    private void OnAsOfDateChanged(ChangeEventArgs args)
+    {
+        asOfDateText = args.Value?.ToString() ?? asOfDateText;
+    }
+
+    private void OnFromDateChanged(ChangeEventArgs args)
+    {
+        fromDateText = args.Value?.ToString() ?? fromDateText;
+    }
+
+    private void OnToDateChanged(ChangeEventArgs args)
+    {
+        toDateText = args.Value?.ToString() ?? toDateText;
+    }
+
     private enum ReportMode
     {
         TrialBalance,
         BalanceSheet,
         ProfitAndLoss,
         AccountsReceivableAging,
-        AccountsPayableAging
+        AccountsPayableAging,
+        InventoryValuation
     }
 }

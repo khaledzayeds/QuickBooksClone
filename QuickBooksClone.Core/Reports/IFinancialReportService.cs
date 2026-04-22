@@ -34,6 +34,13 @@ public interface IFinancialReportService
         bool includeZeroBalances,
         bool includeInactiveVendors,
         CancellationToken cancellationToken = default);
+
+    Task<InventoryValuationReport> GetInventoryValuationAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroBalances,
+        bool includeInactiveItems,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record TrialBalanceReport(
@@ -141,3 +148,31 @@ public sealed record AccountsPayableAgingRow(
     decimal Total,
     decimal CreditBalance,
     int OpenBillCount);
+
+public sealed record InventoryValuationReport(
+    DateOnly FromDate,
+    DateOnly ToDate,
+    IReadOnlyList<InventoryValuationRow> Items,
+    decimal TotalOpeningQuantity,
+    decimal TotalQuantityIn,
+    decimal TotalQuantityOut,
+    decimal TotalClosingQuantity,
+    decimal TotalOpeningValue,
+    decimal TotalQuantityInValue,
+    decimal TotalQuantityOutValue,
+    decimal TotalClosingValue);
+
+public sealed record InventoryValuationRow(
+    Guid ItemId,
+    string ItemName,
+    string? Sku,
+    string Unit,
+    decimal UnitCost,
+    decimal OpeningQuantity,
+    decimal QuantityIn,
+    decimal QuantityOut,
+    decimal ClosingQuantity,
+    decimal OpeningValue,
+    decimal QuantityInValue,
+    decimal QuantityOutValue,
+    decimal ClosingValue);

@@ -245,6 +245,54 @@ Notes:
 - Due-date buckets use the selected `asOfDate`.
 - Vendor `creditBalance` is shown with the payable aging rows so available credits and outstanding bills can be reviewed together.
 
+### Inventory Valuation / Stock Movement
+
+```http
+GET /api/reports/inventory-valuation?fromDate=2026-01-01&toDate=2026-04-22&includeZeroBalances=false&includeInactiveItems=false
+```
+
+Response:
+
+```json
+{
+  "fromDate": "2026-01-01",
+  "toDate": "2026-04-22",
+  "items": [
+    {
+      "itemId": "eeeeeeee-1111-2222-3333-ffffffffffff",
+      "itemName": "Receipt Printer",
+      "sku": "INV-PRN-001",
+      "unit": "pcs",
+      "unitCost": 3100.0,
+      "openingQuantity": 5.0,
+      "quantityIn": 3.0,
+      "quantityOut": 2.0,
+      "closingQuantity": 6.0,
+      "openingValue": 15500.0,
+      "quantityInValue": 9300.0,
+      "quantityOutValue": 6200.0,
+      "closingValue": 18600.0
+    }
+  ],
+  "totalOpeningQuantity": 5.0,
+  "totalQuantityIn": 3.0,
+  "totalQuantityOut": 2.0,
+  "totalClosingQuantity": 6.0,
+  "totalOpeningValue": 15500.0,
+  "totalQuantityInValue": 9300.0,
+  "totalQuantityOutValue": 6200.0,
+  "totalClosingValue": 18600.0
+}
+```
+
+Notes:
+
+- This report is item-level and combines **inventory valuation** with **period stock movement** in one payload.
+- Movement sources currently include posted `Receive Inventory`, direct posted `Purchase Bills`, posted `Invoices` and `Sales Receipts`, posted `Sales Returns`, posted `Purchase Returns`, and posted `Inventory Adjustments`.
+- `openingQuantity` and `closingQuantity` are reconstructed from current item on-hand plus dated stock movement.
+- Current valuation uses the item's **current purchase price** for opening and closing value.
+- True costing layers such as FIFO/average-cost history are intentionally deferred to a later inventory-costing phase.
+
 Customer responses include:
 
 - `balance`: current regular customer balance field.

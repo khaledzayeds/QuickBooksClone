@@ -1,7 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.InventoryAdjustments;
+using QuickBooksClone.Core.Items;
+using QuickBooksClone.Core.PurchaseBills;
+using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.Reports;
+using QuickBooksClone.Core.ReceiveInventory;
+using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.Vendors;
 using QuickBooksClone.Infrastructure.Persistence;
 
@@ -423,6 +429,104 @@ public sealed class FinancialReportService : IFinancialReportService
             rows.Sum(row => row.Total));
     }
 
+    public async Task<InventoryValuationReport> GetInventoryValuationAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroBalances,
+        bool includeInactiveItems,
+        CancellationToken cancellationToken = default)
+    {
+        if (toDate < fromDate)
+        {
+            throw new InvalidOperationException("The report end date cannot be earlier than the start date.");
+        }
+
+        var itemsQuery = _db.Items
+            .AsNoTracking()
+            .Where(item => item.ItemType == ItemType.Inventory);
+
+        if (!includeInactiveItems)
+        {
+            itemsQuery = itemsQuery.Where(item => item.IsActive);
+        }
+
+        var items = await itemsQuery
+            .OrderBy(item => item.Name)
+            .ThenBy(item => item.Sku)
+            .ToListAsync(cancellationToken);
+
+        var movements = await LoadInventoryMovementsAsync(cancellationToken);
+
+        var movementGroups = movements
+            .GroupBy(movement => movement.ItemId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        var rows = items
+            .Select(item =>
+            {
+                movementGroups.TryGetValue(item.Id, out var itemMovements);
+                itemMovements ??= [];
+
+                var periodMovements = itemMovements
+                    .Where(movement => movement.MovementDate >= fromDate && movement.MovementDate <= toDate)
+                    .ToList();
+
+                var futureMovementsFromDate = itemMovements
+                    .Where(movement => movement.MovementDate >= fromDate)
+                    .Sum(movement => movement.QuantityDelta);
+
+                var futureMovementsAfterToDate = itemMovements
+                    .Where(movement => movement.MovementDate > toDate)
+                    .Sum(movement => movement.QuantityDelta);
+
+                var openingQuantity = item.QuantityOnHand - futureMovementsFromDate;
+                var closingQuantity = item.QuantityOnHand - futureMovementsAfterToDate;
+                var quantityIn = periodMovements.Where(movement => movement.QuantityDelta > 0m).Sum(movement => movement.QuantityDelta);
+                var quantityOut = periodMovements.Where(movement => movement.QuantityDelta < 0m).Sum(movement => Math.Abs(movement.QuantityDelta));
+                var quantityInValue = periodMovements.Where(movement => movement.QuantityDelta > 0m).Sum(movement => movement.QuantityDelta * movement.UnitCost);
+                var quantityOutValue = periodMovements.Where(movement => movement.QuantityDelta < 0m).Sum(movement => Math.Abs(movement.QuantityDelta) * movement.UnitCost);
+                var openingValue = openingQuantity * item.PurchasePrice;
+                var closingValue = closingQuantity * item.PurchasePrice;
+
+                return new InventoryValuationRow(
+                    item.Id,
+                    item.Name,
+                    item.Sku,
+                    item.Unit,
+                    item.PurchasePrice,
+                    openingQuantity,
+                    quantityIn,
+                    quantityOut,
+                    closingQuantity,
+                    openingValue,
+                    quantityInValue,
+                    quantityOutValue,
+                    closingValue);
+            })
+            .Where(row =>
+                includeZeroBalances ||
+                row.OpeningQuantity != 0m ||
+                row.QuantityIn != 0m ||
+                row.QuantityOut != 0m ||
+                row.ClosingQuantity != 0m ||
+                row.OpeningValue != 0m ||
+                row.ClosingValue != 0m)
+            .ToList();
+
+        return new InventoryValuationReport(
+            fromDate,
+            toDate,
+            rows,
+            rows.Sum(row => row.OpeningQuantity),
+            rows.Sum(row => row.QuantityIn),
+            rows.Sum(row => row.QuantityOut),
+            rows.Sum(row => row.ClosingQuantity),
+            rows.Sum(row => row.OpeningValue),
+            rows.Sum(row => row.QuantityInValue),
+            rows.Sum(row => row.QuantityOutValue),
+            rows.Sum(row => row.ClosingValue));
+    }
+
     private async Task<(List<QuickBooksClone.Core.Accounting.Account> Accounts, Dictionary<Guid, (decimal TotalDebit, decimal TotalCredit)> Balances)>
         LoadBalancesAsync(
             DateOnly asOfDate,
@@ -466,6 +570,117 @@ public sealed class FinancialReportService : IFinancialReportService
                 cancellationToken);
 
         return (accounts, balances);
+    }
+
+    private async Task<List<InventoryMovement>> LoadInventoryMovementsAsync(CancellationToken cancellationToken)
+    {
+        var itemCosts = await _db.Items
+            .AsNoTracking()
+            .Where(item => item.ItemType == ItemType.Inventory)
+            .ToDictionaryAsync(item => item.Id, item => item.PurchasePrice, cancellationToken);
+
+        var receipts = await _db.InventoryReceipts
+            .AsNoTracking()
+            .Where(receipt => receipt.Status == InventoryReceiptStatus.Posted)
+            .SelectMany(
+                receipt => receipt.Lines,
+                (receipt, line) => new InventoryMovement(
+                    line.ItemId,
+                    receipt.ReceiptDate,
+                    line.Quantity,
+                    line.UnitCost))
+            .ToListAsync(cancellationToken);
+
+        var directPurchaseBills = await _db.PurchaseBills
+            .AsNoTracking()
+            .Where(bill =>
+                bill.InventoryReceiptId == null &&
+                bill.Status != PurchaseBillStatus.Draft &&
+                bill.Status != PurchaseBillStatus.Void)
+            .SelectMany(
+                bill => bill.Lines,
+                (bill, line) => new InventoryMovement(
+                    line.ItemId,
+                    bill.BillDate,
+                    line.Quantity,
+                    line.UnitCost))
+            .ToListAsync(cancellationToken);
+
+        var invoices = await _db.Invoices
+            .AsNoTracking()
+            .Where(invoice =>
+                invoice.Status != Core.Invoices.InvoiceStatus.Draft &&
+                invoice.Status != Core.Invoices.InvoiceStatus.Void)
+            .SelectMany(
+                invoice => invoice.Lines,
+                (invoice, line) => new
+                {
+                    invoice.InvoiceDate,
+                    line.ItemId,
+                    line.Quantity
+                })
+            .ToListAsync(cancellationToken);
+
+        var invoiceMovements = invoices
+            .Select(line => new InventoryMovement(
+                line.ItemId,
+                line.InvoiceDate,
+                -line.Quantity,
+                itemCosts.GetValueOrDefault(line.ItemId)))
+            .ToList();
+
+        var salesReturns = await _db.SalesReturns
+            .AsNoTracking()
+            .Where(returnDocument => returnDocument.Status == SalesReturnStatus.Posted)
+            .SelectMany(
+                returnDocument => returnDocument.Lines,
+                (returnDocument, line) => new
+                {
+                    returnDocument.ReturnDate,
+                    line.ItemId,
+                    line.Quantity
+                })
+            .ToListAsync(cancellationToken);
+
+        var salesReturnMovements = salesReturns
+            .Select(line => new InventoryMovement(
+                line.ItemId,
+                line.ReturnDate,
+                line.Quantity,
+                itemCosts.GetValueOrDefault(line.ItemId)))
+            .ToList();
+
+        var purchaseReturns = await _db.PurchaseReturns
+            .AsNoTracking()
+            .Where(returnDocument => returnDocument.Status == PurchaseReturnStatus.Posted)
+            .SelectMany(
+                returnDocument => returnDocument.Lines,
+                (returnDocument, line) => new InventoryMovement(
+                    line.ItemId,
+                    returnDocument.ReturnDate,
+                    -line.Quantity,
+                    line.UnitCost))
+            .ToListAsync(cancellationToken);
+
+        var adjustments = await _db.InventoryAdjustments
+            .AsNoTracking()
+            .Where(adjustment => adjustment.Status == InventoryAdjustmentStatus.Posted)
+            .Select(adjustment => new InventoryMovement(
+                adjustment.ItemId,
+                adjustment.AdjustmentDate,
+                adjustment.QuantityChange,
+                adjustment.UnitCost))
+            .ToListAsync(cancellationToken);
+
+        return
+        [
+            .. receipts,
+            .. directPurchaseBills,
+            .. invoiceMovements,
+            .. salesReturnMovements,
+            .. purchaseReturns,
+            .. adjustments
+        ];
     }
 
     private static bool IsBalanceSheetType(AccountType accountType) =>
@@ -527,4 +742,10 @@ public sealed class FinancialReportService : IFinancialReportService
             _ => 0m
         };
     }
+
+    private sealed record InventoryMovement(
+        Guid ItemId,
+        DateOnly MovementDate,
+        decimal QuantityDelta,
+        decimal UnitCost);
 }

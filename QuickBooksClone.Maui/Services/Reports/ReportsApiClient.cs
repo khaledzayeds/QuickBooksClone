@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using QuickBooksClone.Api.Contracts.Reports;
+using QuickBooksClone.Maui.Contracts.Reports;
 
 namespace QuickBooksClone.Maui.Services.Reports;
 
@@ -86,5 +86,21 @@ public sealed class ReportsApiClient
 
         return await _httpClient.GetFromJsonAsync<AccountsPayableAgingReportDto>(url, cancellationToken)
             ?? new AccountsPayableAgingReportDto(asOfDate, [], 0m, 0m, 0m, 0m, 0m, 0m);
+    }
+
+    public async Task<InventoryValuationReportDto> GetInventoryValuationAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroBalances,
+        bool includeInactiveItems,
+        CancellationToken cancellationToken = default)
+    {
+        var url =
+            $"api/reports/inventory-valuation?fromDate={fromDate:yyyy-MM-dd}&toDate={toDate:yyyy-MM-dd}" +
+            $"&includeZeroBalances={includeZeroBalances.ToString().ToLowerInvariant()}" +
+            $"&includeInactiveItems={includeInactiveItems.ToString().ToLowerInvariant()}";
+
+        return await _httpClient.GetFromJsonAsync<InventoryValuationReportDto>(url, cancellationToken)
+            ?? new InventoryValuationReportDto(fromDate, toDate, [], 0m, 0m, 0m, 0m, 0m, 0m, 0m, 0m);
     }
 }

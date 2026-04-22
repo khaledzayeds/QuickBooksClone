@@ -373,6 +373,9 @@ Architectural baseline is now fixed:
   - [x] Group open customer receivables into aging buckets by due date
   - [x] Add live `Accounts Payable Aging` API endpoint
   - [x] Group open vendor payables into aging buckets by due date
+  - [x] Add live `Inventory Valuation / Stock Movement` API endpoint
+  - [x] Combine inventory movement documents with current stock-on-hand for item-level opening/in/out/closing reporting
+  - [x] Add desktop report view for inventory valuation and stock movement
 
 ## In Progress
 
@@ -389,7 +392,7 @@ Architectural baseline is now fixed:
   - [x] Profit and Loss
   - [x] Accounts Receivable Aging
   - [x] Accounts Payable Aging
-  - [ ] Inventory valuation and stock movement
+  - [x] Inventory valuation and stock movement
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
   - [x] Add restore confirmation/audit metadata
@@ -431,5 +434,6 @@ Architectural baseline is now fixed:
 - Receive Inventory is now live as the operational bridge between Purchase Orders and Purchase Bills; it increases stock and credits the temporary `Inventory Received Not Billed` liability without changing vendor balances.
 - Purchase Bills can now clear `Inventory Received Not Billed` against previously posted inventory receipts, so the bill creates Accounts Payable without increasing stock a second time.
 - Sales and purchase returns now have backend reversal workflows instead of being one-way posting documents.
-- Reports are now starting from posted accounting transactions and current open-document balances instead of page-level totals, beginning with live Trial Balance, Balance Sheet, Profit and Loss, A/R Aging, and A/P Aging slices.
+- Reports are now starting from posted accounting transactions and current open-document balances instead of page-level totals, now including live Trial Balance, Balance Sheet, Profit and Loss, A/R Aging, A/P Aging, and Inventory Valuation / Stock Movement.
+- Current inventory valuation reconstructs opening/closing quantities from dated stock movement and uses the item's current purchase price for valuation until full costing layers are introduced.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.

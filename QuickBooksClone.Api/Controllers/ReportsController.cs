@@ -200,4 +200,52 @@ public sealed class ReportsController : ControllerBase
             report.Over90,
             report.Total));
     }
+
+    [HttpGet("inventory-valuation")]
+    [ProducesResponseType(typeof(InventoryValuationReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<InventoryValuationReportDto>> GetInventoryValuation(
+        [FromQuery] DateOnly? fromDate,
+        [FromQuery] DateOnly? toDate,
+        [FromQuery] bool includeZeroBalances = false,
+        [FromQuery] bool includeInactiveItems = false,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedToDate = toDate ?? DateOnly.FromDateTime(DateTime.Today);
+        var resolvedFromDate = fromDate ?? new DateOnly(resolvedToDate.Year, 1, 1);
+
+        var report = await _reports.GetInventoryValuationAsync(
+            resolvedFromDate,
+            resolvedToDate,
+            includeZeroBalances,
+            includeInactiveItems,
+            cancellationToken);
+
+        return Ok(new InventoryValuationReportDto(
+            report.FromDate,
+            report.ToDate,
+            report.Items
+                .Select(row => new InventoryValuationRowDto(
+                    row.ItemId,
+                    row.ItemName,
+                    row.Sku,
+                    row.Unit,
+                    row.UnitCost,
+                    row.OpeningQuantity,
+                    row.QuantityIn,
+                    row.QuantityOut,
+                    row.ClosingQuantity,
+                    row.OpeningValue,
+                    row.QuantityInValue,
+                    row.QuantityOutValue,
+                    row.ClosingValue))
+                .ToList(),
+            report.TotalOpeningQuantity,
+            report.TotalQuantityIn,
+            report.TotalQuantityOut,
+            report.TotalClosingQuantity,
+            report.TotalOpeningValue,
+            report.TotalQuantityInValue,
+            report.TotalQuantityOutValue,
+            report.TotalClosingValue));
+    }
 }
