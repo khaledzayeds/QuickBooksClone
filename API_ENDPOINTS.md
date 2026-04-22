@@ -119,6 +119,49 @@ Notes:
 - Sections currently group accounts into `Assets`, `Liabilities`, and `Equity`.
 - Income-statement accounts are excluded from this report and remain reserved for `Profit and Loss`.
 
+### Profit and Loss
+
+```http
+GET /api/reports/profit-and-loss?fromDate=2026-01-01&toDate=2026-04-22&includeZeroBalances=false&includeInactiveAccounts=false
+```
+
+Response:
+
+```json
+{
+  "fromDate": "2026-01-01",
+  "toDate": "2026-04-22",
+  "sections": [
+    {
+      "key": "income",
+      "title": "Income",
+      "items": [
+        {
+          "accountId": "10000000-0000-0000-0000-000000000006",
+          "accountCode": "4000",
+          "accountName": "Sales Income",
+          "accountType": "Income",
+          "amount": 15000.0
+        }
+      ],
+      "total": 15000.0
+    }
+  ],
+  "totalIncome": 15000.0,
+  "totalCostOfGoodsSold": 7000.0,
+  "grossProfit": 8000.0,
+  "totalExpenses": 2200.0,
+  "netProfit": 5800.0
+}
+```
+
+Notes:
+
+- Profit and loss uses a **date range**, not only an as-of date.
+- Income and other income are shown as credit-normal positive values.
+- `CostOfGoodsSold`, `Expense`, and `OtherExpense` are shown as debit-normal positive values.
+- `netProfit = grossProfit - totalExpenses`.
+
 Customer responses include:
 
 - `balance`: current regular customer balance field.

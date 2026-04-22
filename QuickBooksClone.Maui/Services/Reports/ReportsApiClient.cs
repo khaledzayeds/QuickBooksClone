@@ -41,4 +41,20 @@ public sealed class ReportsApiClient
         return await _httpClient.GetFromJsonAsync<BalanceSheetReportDto>(url, cancellationToken)
             ?? new BalanceSheetReportDto(asOfDate, [], 0m, 0m, 0m, 0m);
     }
+
+    public async Task<ProfitAndLossReportDto> GetProfitAndLossAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroBalances,
+        bool includeInactiveAccounts,
+        CancellationToken cancellationToken = default)
+    {
+        var url =
+            $"api/reports/profit-and-loss?fromDate={fromDate:yyyy-MM-dd}&toDate={toDate:yyyy-MM-dd}" +
+            $"&includeZeroBalances={includeZeroBalances.ToString().ToLowerInvariant()}" +
+            $"&includeInactiveAccounts={includeInactiveAccounts.ToString().ToLowerInvariant()}";
+
+        return await _httpClient.GetFromJsonAsync<ProfitAndLossReportDto>(url, cancellationToken)
+            ?? new ProfitAndLossReportDto(fromDate, toDate, [], 0m, 0m, 0m, 0m, 0m);
+    }
 }

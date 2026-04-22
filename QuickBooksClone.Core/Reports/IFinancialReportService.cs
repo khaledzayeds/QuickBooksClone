@@ -15,6 +15,13 @@ public interface IFinancialReportService
         bool includeZeroBalances,
         bool includeInactiveAccounts,
         CancellationToken cancellationToken = default);
+
+    Task<ProfitAndLossReport> GetProfitAndLossAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroBalances,
+        bool includeInactiveAccounts,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record TrialBalanceReport(
@@ -48,6 +55,29 @@ public sealed record BalanceSheetSection(
     decimal Total);
 
 public sealed record BalanceSheetRow(
+    Guid AccountId,
+    string AccountCode,
+    string AccountName,
+    AccountType AccountType,
+    decimal Amount);
+
+public sealed record ProfitAndLossReport(
+    DateOnly FromDate,
+    DateOnly ToDate,
+    IReadOnlyList<ProfitAndLossSection> Sections,
+    decimal TotalIncome,
+    decimal TotalCostOfGoodsSold,
+    decimal GrossProfit,
+    decimal TotalExpenses,
+    decimal NetProfit);
+
+public sealed record ProfitAndLossSection(
+    string Key,
+    string Title,
+    IReadOnlyList<ProfitAndLossRow> Items,
+    decimal Total);
+
+public sealed record ProfitAndLossRow(
     Guid AccountId,
     string AccountCode,
     string AccountName,

@@ -107,6 +107,113 @@ public sealed class FinancialReportService : IFinancialReportService
             totalLiabilities + totalEquity);
     }
 
+    public async Task<ProfitAndLossReport> GetProfitAndLossAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroBalances,
+        bool includeInactiveAccounts,
+        CancellationToken cancellationToken = default)
+    {
+        if (toDate < fromDate)
+        {
+            throw new InvalidOperationException("The report end date cannot be earlier than the start date.");
+        }
+
+        var accountsQuery = _db.Accounts.AsNoTracking();
+        if (!includeInactiveAccounts)
+        {
+            accountsQuery = accountsQuery.Where(account => account.IsActive);
+        }
+
+        var accounts = await accountsQuery
+            .Where(account =>
+                account.AccountType == AccountType.Income ||
+                account.AccountType == AccountType.OtherIncome ||
+                account.AccountType == AccountType.CostOfGoodsSold ||
+                account.AccountType == AccountType.Expense ||
+                account.AccountType == AccountType.OtherExpense)
+            .OrderBy(account => account.Code)
+            .ThenBy(account => account.Name)
+            .ToListAsync(cancellationToken);
+
+        var balances = await _db.AccountingTransactions
+            .AsNoTracking()
+            .Where(transaction =>
+                transaction.Status == AccountingTransactionStatus.Posted &&
+                transaction.TransactionDate >= fromDate &&
+                transaction.TransactionDate <= toDate)
+            .SelectMany(
+                transaction => transaction.Lines,
+                (transaction, line) => new
+                {
+                    line.AccountId,
+                    line.Debit,
+                    line.Credit
+                })
+            .GroupBy(line => line.AccountId)
+            .Select(group => new
+            {
+                AccountId = group.Key,
+                TotalDebit = group.Sum(line => line.Debit),
+                TotalCredit = group.Sum(line => line.Credit)
+            })
+            .ToDictionaryAsync(
+                entry => entry.AccountId,
+                entry => (entry.TotalDebit, entry.TotalCredit),
+                cancellationToken);
+
+        var rows = accounts
+            .Select(account =>
+            {
+                balances.TryGetValue(account.Id, out var balance);
+                var amount = GetProfitAndLossAmount(account.AccountType, balance.TotalDebit, balance.TotalCredit);
+
+                return new ProfitAndLossRow(
+                    account.Id,
+                    account.Code,
+                    account.Name,
+                    account.AccountType,
+                    amount);
+            })
+            .Where(row => includeZeroBalances || row.Amount != 0m)
+            .ToList();
+
+        var incomeRows = rows
+            .Where(row => row.AccountType is AccountType.Income or AccountType.OtherIncome)
+            .OrderBy(row => row.AccountCode)
+            .ToList();
+
+        var cogsRows = rows
+            .Where(row => row.AccountType == AccountType.CostOfGoodsSold)
+            .OrderBy(row => row.AccountCode)
+            .ToList();
+
+        var expenseRows = rows
+            .Where(row => row.AccountType is AccountType.Expense or AccountType.OtherExpense)
+            .OrderBy(row => row.AccountCode)
+            .ToList();
+
+        var totalIncome = incomeRows.Sum(row => row.Amount);
+        var totalCostOfGoodsSold = cogsRows.Sum(row => row.Amount);
+        var grossProfit = totalIncome - totalCostOfGoodsSold;
+        var totalExpenses = expenseRows.Sum(row => row.Amount);
+        var netProfit = grossProfit - totalExpenses;
+
+        return new ProfitAndLossReport(
+            fromDate,
+            toDate,
+            [
+                new ProfitAndLossSection("income", "Income", incomeRows, totalIncome),
+                new ProfitAndLossSection("cogs", "Cost of Goods Sold", cogsRows, totalCostOfGoodsSold),
+                new ProfitAndLossSection("expenses", "Expenses", expenseRows, totalExpenses)
+            ],
+            totalIncome,
+            totalCostOfGoodsSold,
+            grossProfit,
+            totalExpenses,
+            netProfit);
+    }
+
     private async Task<(List<QuickBooksClone.Core.Accounting.Account> Accounts, Dictionary<Guid, (decimal TotalDebit, decimal TotalCredit)> Balances)>
         LoadBalancesAsync(
             DateOnly asOfDate,
@@ -170,6 +277,13 @@ public sealed class FinancialReportService : IFinancialReportService
             or AccountType.OtherCurrentLiability
             or AccountType.LongTermLiability;
 
+    private static bool IsProfitAndLossType(AccountType accountType) =>
+        accountType is AccountType.Income
+            or AccountType.OtherIncome
+            or AccountType.CostOfGoodsSold
+            or AccountType.Expense
+            or AccountType.OtherExpense;
+
     private static decimal GetBalanceSheetAmount(AccountType accountType, decimal totalDebit, decimal totalCredit)
     {
         return accountType switch
@@ -185,6 +299,21 @@ public sealed class FinancialReportService : IFinancialReportService
             AccountType.OtherCurrentLiability or
             AccountType.LongTermLiability or
             AccountType.Equity => totalCredit - totalDebit,
+
+            _ => 0m
+        };
+    }
+
+    private static decimal GetProfitAndLossAmount(AccountType accountType, decimal totalDebit, decimal totalCredit)
+    {
+        return accountType switch
+        {
+            AccountType.Income or
+            AccountType.OtherIncome => totalCredit - totalDebit,
+
+            AccountType.CostOfGoodsSold or
+            AccountType.Expense or
+            AccountType.OtherExpense => totalDebit - totalCredit,
 
             _ => 0m
         };

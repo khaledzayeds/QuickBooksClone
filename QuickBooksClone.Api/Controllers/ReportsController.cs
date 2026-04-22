@@ -81,4 +81,47 @@ public sealed class ReportsController : ControllerBase
             report.TotalEquity,
             report.TotalLiabilitiesAndEquity));
     }
+
+    [HttpGet("profit-and-loss")]
+    [ProducesResponseType(typeof(ProfitAndLossReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ProfitAndLossReportDto>> GetProfitAndLoss(
+        [FromQuery] DateOnly? fromDate,
+        [FromQuery] DateOnly? toDate,
+        [FromQuery] bool includeZeroBalances = false,
+        [FromQuery] bool includeInactiveAccounts = false,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedToDate = toDate ?? DateOnly.FromDateTime(DateTime.Today);
+        var resolvedFromDate = fromDate ?? new DateOnly(resolvedToDate.Year, 1, 1);
+
+        var report = await _reports.GetProfitAndLossAsync(
+            resolvedFromDate,
+            resolvedToDate,
+            includeZeroBalances,
+            includeInactiveAccounts,
+            cancellationToken);
+
+        return Ok(new ProfitAndLossReportDto(
+            report.FromDate,
+            report.ToDate,
+            report.Sections
+                .Select(section => new ProfitAndLossSectionDto(
+                    section.Key,
+                    section.Title,
+                    section.Items
+                        .Select(item => new ProfitAndLossRowDto(
+                            item.AccountId,
+                            item.AccountCode,
+                            item.AccountName,
+                            item.AccountType,
+                            item.Amount))
+                        .ToList(),
+                    section.Total))
+                .ToList(),
+            report.TotalIncome,
+            report.TotalCostOfGoodsSold,
+            report.GrossProfit,
+            report.TotalExpenses,
+            report.NetProfit));
+    }
 }

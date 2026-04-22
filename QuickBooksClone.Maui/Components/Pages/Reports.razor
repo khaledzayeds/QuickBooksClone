@@ -28,12 +28,27 @@
                     <select class="form-control narrow-control" @bind="selectedReport">
                         <option value="@ReportMode.TrialBalance">Trial Balance</option>
                         <option value="@ReportMode.BalanceSheet">Balance Sheet</option>
+                        <option value="@ReportMode.ProfitAndLoss">Profit &amp; Loss</option>
                     </select>
                 </label>
-                <label class="form-label">
-                    <span>As of date</span>
-                    <input class="form-control narrow-control" type="date" @bind="asOfDateText" />
-                </label>
+                @if (selectedReport == ReportMode.ProfitAndLoss)
+                {
+                    <label class="form-label">
+                        <span>From date</span>
+                        <input class="form-control narrow-control" type="date" @bind="fromDateText" />
+                    </label>
+                    <label class="form-label">
+                        <span>To date</span>
+                        <input class="form-control narrow-control" type="date" @bind="toDateText" />
+                    </label>
+                }
+                else
+                {
+                    <label class="form-label">
+                        <span>As of date</span>
+                        <input class="form-control narrow-control" type="date" @bind="asOfDateText" />
+                    </label>
+                }
                 <label class="check-row">
                     <input type="checkbox" @bind="includeZeroBalances" />
                     Include zero balances
@@ -93,7 +108,7 @@
                     </table>
                 }
             }
-            else
+            else if (selectedReport == ReportMode.BalanceSheet)
             {
                 @if (balanceSheetReport is null || balanceSheetReport.Sections.All(section => section.Items.Count == 0))
                 {
@@ -137,6 +152,50 @@
                     }
                 }
             }
+            else
+            {
+                @if (profitAndLossReport is null || profitAndLossReport.Sections.All(section => section.Items.Count == 0))
+                {
+                    <p class="muted">No profit and loss activity found for the selected period yet.</p>
+                }
+                else
+                {
+                    @foreach (var section in profitAndLossReport.Sections)
+                    {
+                        <div class="totals-box">
+                            <strong>@section.Title</strong>
+                        </div>
+
+                        <table class="data-table compact-table">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Account</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in section.Items)
+                                {
+                                    <tr>
+                                        <td><strong>@row.AccountCode</strong></td>
+                                        <td>@row.AccountName</td>
+                                        <td>@row.AccountType</td>
+                                        <td>@row.Amount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3">@section.Title total</th>
+                                    <th>@section.Total.ToString("N2")</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    }
+                }
+            }
         </div>
 
         <section class="panel form-panel">
@@ -144,15 +203,15 @@
             <div class="metric-grid">
                 <div class="metric-box">
                     <span>Live now</span>
-                    <strong>Trial Balance / Balance Sheet</strong>
+                    <strong>Trial Balance / Balance Sheet / P&amp;L</strong>
                 </div>
                 <div class="metric-box">
                     <span>Next</span>
-                    <strong>P&amp;L</strong>
+                    <strong>A/R Aging</strong>
                 </div>
                 <div class="metric-box">
                     <span>Then</span>
-                    <strong>Aging / Inventory</strong>
+                    <strong>A/P Aging / Inventory</strong>
                 </div>
             </div>
 
@@ -178,11 +237,30 @@
                 </div>
             }
 
+            @if (profitAndLossReport is not null)
+            {
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <span>Total Income</span>
+                        <strong>@profitAndLossReport.TotalIncome.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Gross Profit</span>
+                        <strong>@profitAndLossReport.GrossProfit.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Net Profit</span>
+                        <strong>@profitAndLossReport.NetProfit.ToString("N2")</strong>
+                    </div>
+                </div>
+            }
+
             <ul class="check-list">
                 <li>Trial balance is calculated from posted transactions up to the selected date.</li>
                 <li>Voided accounting transactions are excluded automatically.</li>
                 <li>Balance sheet groups balance-sheet accounts into assets, liabilities, and equity from the same posted ledger.</li>
-                <li>Current report foundation is ready for profit and loss, aging, and inventory valuation reports.</li>
+                <li>Profit and loss uses a date range and separates income, COGS, and expenses from the same posted ledger.</li>
+                <li>Current report foundation is ready for aging and inventory valuation reports.</li>
             </ul>
         </section>
     </section>
@@ -191,7 +269,10 @@
 @code {
     private TrialBalanceReportDto? trialBalanceReport;
     private BalanceSheetReportDto? balanceSheetReport;
+    private ProfitAndLossReportDto? profitAndLossReport;
     private string asOfDateText = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+    private string fromDateText = new DateOnly(DateTime.Today.Year, 1, 1).ToString("yyyy-MM-dd");
+    private string toDateText = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
     private string? errorMessage;
     private bool includeZeroBalances;
     private bool includeInactiveAccounts;
@@ -215,9 +296,13 @@
             {
                 trialBalanceReport = await ReportsApi.GetTrialBalanceAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
             }
-            else
+            else if (selectedReport == ReportMode.BalanceSheet)
             {
                 balanceSheetReport = await ReportsApi.GetBalanceSheetAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
+            }
+            else
+            {
+                profitAndLossReport = await ReportsApi.GetProfitAndLossAsync(ParseFromDate(), ParseToDate(), includeZeroBalances, includeInactiveAccounts);
             }
         }
         catch (Exception exception)
@@ -237,9 +322,24 @@
             : DateOnly.FromDateTime(DateTime.Today);
     }
 
+    private DateOnly ParseFromDate()
+    {
+        return DateOnly.TryParse(fromDateText, out var parsed)
+            ? parsed
+            : new DateOnly(DateTime.Today.Year, 1, 1);
+    }
+
+    private DateOnly ParseToDate()
+    {
+        return DateOnly.TryParse(toDateText, out var parsed)
+            ? parsed
+            : DateOnly.FromDateTime(DateTime.Today);
+    }
+
     private enum ReportMode
     {
         TrialBalance,
-        BalanceSheet
+        BalanceSheet,
+        ProfitAndLoss
     }
 }
