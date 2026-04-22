@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Reports;
+using QuickBooksClone.Core.Vendors;
 using QuickBooksClone.Infrastructure.Persistence;
 
 namespace QuickBooksClone.Infrastructure.Reports;
@@ -309,6 +310,109 @@ public sealed class FinancialReportService : IFinancialReportService
             .ToList();
 
         return new AccountsReceivableAgingReport(
+            asOfDate,
+            rows,
+            rows.Sum(row => row.Current),
+            rows.Sum(row => row.Days1To30),
+            rows.Sum(row => row.Days31To60),
+            rows.Sum(row => row.Days61To90),
+            rows.Sum(row => row.Over90),
+            rows.Sum(row => row.Total));
+    }
+
+    public async Task<AccountsPayableAgingReport> GetAccountsPayableAgingAsync(
+        DateOnly asOfDate,
+        bool includeZeroBalances,
+        bool includeInactiveVendors,
+        CancellationToken cancellationToken = default)
+    {
+        var vendorsQuery = _db.Vendors.AsNoTracking();
+        if (!includeInactiveVendors)
+        {
+            vendorsQuery = vendorsQuery.Where(vendor => vendor.IsActive);
+        }
+
+        var vendors = await vendorsQuery
+            .OrderBy(vendor => vendor.DisplayName)
+            .ToListAsync(cancellationToken);
+
+        var candidateBills = await _db.PurchaseBills
+            .AsNoTracking()
+            .Where(bill =>
+                bill.Status != Core.PurchaseBills.PurchaseBillStatus.Void &&
+                bill.Status != Core.PurchaseBills.PurchaseBillStatus.Draft &&
+                bill.BillDate <= asOfDate)
+            .ToListAsync(cancellationToken);
+
+        var openBills = candidateBills
+            .Select(bill => new
+            {
+                bill.VendorId,
+                bill.DueDate,
+                Balance = bill.BalanceDue
+            })
+            .Where(bill => bill.Balance > 0)
+            .ToList();
+
+        var billGroups = openBills
+            .GroupBy(bill => bill.VendorId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        var rows = vendors
+            .Select(vendor =>
+            {
+                billGroups.TryGetValue(vendor.Id, out var bills);
+                bills ??= [];
+
+                decimal current = 0m;
+                decimal days1To30 = 0m;
+                decimal days31To60 = 0m;
+                decimal days61To90 = 0m;
+                decimal over90 = 0m;
+
+                foreach (var bill in bills)
+                {
+                    var ageDays = asOfDate.DayNumber - bill.DueDate.DayNumber;
+                    if (ageDays <= 0)
+                    {
+                        current += bill.Balance;
+                    }
+                    else if (ageDays <= 30)
+                    {
+                        days1To30 += bill.Balance;
+                    }
+                    else if (ageDays <= 60)
+                    {
+                        days31To60 += bill.Balance;
+                    }
+                    else if (ageDays <= 90)
+                    {
+                        days61To90 += bill.Balance;
+                    }
+                    else
+                    {
+                        over90 += bill.Balance;
+                    }
+                }
+
+                var total = current + days1To30 + days31To60 + days61To90 + over90;
+                return new AccountsPayableAgingRow(
+                    vendor.Id,
+                    vendor.DisplayName,
+                    vendor.Currency,
+                    current,
+                    days1To30,
+                    days31To60,
+                    days61To90,
+                    over90,
+                    total,
+                    vendor.CreditBalance,
+                    bills.Count);
+            })
+            .Where(row => includeZeroBalances || row.Total != 0m || row.CreditBalance != 0m)
+            .ToList();
+
+        return new AccountsPayableAgingReport(
             asOfDate,
             rows,
             rows.Sum(row => row.Current),

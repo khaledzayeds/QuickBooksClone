@@ -204,6 +204,47 @@ Notes:
 - Buckets are based on `DueDate` relative to the selected `asOfDate`.
 - Customer `creditBalance` is exposed alongside the open receivable so collection and available credit can be reviewed together.
 
+### Accounts Payable Aging
+
+```http
+GET /api/reports/accounts-payable-aging?asOfDate=2026-04-22&includeZeroBalances=false&includeInactiveVendors=false
+```
+
+Response:
+
+```json
+{
+  "asOfDate": "2026-04-22",
+  "items": [
+    {
+      "vendorId": "cccccccc-1111-2222-3333-dddddddddddd",
+      "vendorName": "Delta Hardware",
+      "currency": "EGP",
+      "current": 900.0,
+      "days1To30": 450.0,
+      "days31To60": 0.0,
+      "days61To90": 0.0,
+      "over90": 0.0,
+      "total": 1350.0,
+      "creditBalance": 200.0,
+      "openBillCount": 2
+    }
+  ],
+  "current": 900.0,
+  "days1To30": 450.0,
+  "days31To60": 0.0,
+  "days61To90": 0.0,
+  "over90": 0.0,
+  "total": 1350.0
+}
+```
+
+Notes:
+
+- A/P aging is based on **open purchase bill balances** only.
+- Due-date buckets use the selected `asOfDate`.
+- Vendor `creditBalance` is shown with the payable aging rows so available credits and outstanding bills can be reviewed together.
+
 Customer responses include:
 
 - `balance`: current regular customer balance field.

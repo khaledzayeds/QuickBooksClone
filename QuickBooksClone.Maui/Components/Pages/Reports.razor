@@ -30,6 +30,7 @@
                         <option value="@ReportMode.BalanceSheet">Balance Sheet</option>
                         <option value="@ReportMode.ProfitAndLoss">Profit &amp; Loss</option>
                         <option value="@ReportMode.AccountsReceivableAging">A/R Aging</option>
+                        <option value="@ReportMode.AccountsPayableAging">A/P Aging</option>
                     </select>
                 </label>
                 @if (selectedReport == ReportMode.ProfitAndLoss)
@@ -199,58 +200,117 @@
             }
             else
             {
-                @if (accountsReceivableAgingReport is null || accountsReceivableAgingReport.Items.Count == 0)
+                @if (selectedReport == ReportMode.AccountsReceivableAging)
                 {
-                    <p class="muted">No open receivables found for the selected date yet.</p>
+                    @if (accountsReceivableAgingReport is null || accountsReceivableAgingReport.Items.Count == 0)
+                    {
+                        <p class="muted">No open receivables found for the selected date yet.</p>
+                    }
+                    else
+                    {
+                        <table class="data-table compact-table">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Currency</th>
+                                    <th>Current</th>
+                                    <th>1-30</th>
+                                    <th>31-60</th>
+                                    <th>61-90</th>
+                                    <th>90+</th>
+                                    <th>Total</th>
+                                    <th>Credit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in accountsReceivableAgingReport.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@row.CustomerName</strong>
+                                            <small>@row.OpenInvoiceCount open invoices</small>
+                                        </td>
+                                        <td>@row.Currency</td>
+                                        <td>@row.Current.ToString("N2")</td>
+                                        <td>@row.Days1To30.ToString("N2")</td>
+                                        <td>@row.Days31To60.ToString("N2")</td>
+                                        <td>@row.Days61To90.ToString("N2")</td>
+                                        <td>@row.Over90.ToString("N2")</td>
+                                        <td>@row.Total.ToString("N2")</td>
+                                        <td>@row.CreditBalance.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="2">Totals</th>
+                                    <th>@accountsReceivableAgingReport.Current.ToString("N2")</th>
+                                    <th>@accountsReceivableAgingReport.Days1To30.ToString("N2")</th>
+                                    <th>@accountsReceivableAgingReport.Days31To60.ToString("N2")</th>
+                                    <th>@accountsReceivableAgingReport.Days61To90.ToString("N2")</th>
+                                    <th>@accountsReceivableAgingReport.Over90.ToString("N2")</th>
+                                    <th>@accountsReceivableAgingReport.Total.ToString("N2")</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    }
                 }
                 else
                 {
-                    <table class="data-table compact-table">
-                        <thead>
-                            <tr>
-                                <th>Customer</th>
-                                <th>Currency</th>
-                                <th>Current</th>
-                                <th>1-30</th>
-                                <th>31-60</th>
-                                <th>61-90</th>
-                                <th>90+</th>
-                                <th>Total</th>
-                                <th>Credit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var row in accountsReceivableAgingReport.Items)
-                            {
+                    @if (accountsPayableAgingReport is null || accountsPayableAgingReport.Items.Count == 0)
+                    {
+                        <p class="muted">No open payables found for the selected date yet.</p>
+                    }
+                    else
+                    {
+                        <table class="data-table compact-table">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <strong>@row.CustomerName</strong>
-                                        <small>@row.OpenInvoiceCount open invoices</small>
-                                    </td>
-                                    <td>@row.Currency</td>
-                                    <td>@row.Current.ToString("N2")</td>
-                                    <td>@row.Days1To30.ToString("N2")</td>
-                                    <td>@row.Days31To60.ToString("N2")</td>
-                                    <td>@row.Days61To90.ToString("N2")</td>
-                                    <td>@row.Over90.ToString("N2")</td>
-                                    <td>@row.Total.ToString("N2")</td>
-                                    <td>@row.CreditBalance.ToString("N2")</td>
+                                    <th>Vendor</th>
+                                    <th>Currency</th>
+                                    <th>Current</th>
+                                    <th>1-30</th>
+                                    <th>31-60</th>
+                                    <th>61-90</th>
+                                    <th>90+</th>
+                                    <th>Total</th>
+                                    <th>Credit</th>
                                 </tr>
-                            }
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <th colspan="2">Totals</th>
-                                <th>@accountsReceivableAgingReport.Current.ToString("N2")</th>
-                                <th>@accountsReceivableAgingReport.Days1To30.ToString("N2")</th>
-                                <th>@accountsReceivableAgingReport.Days31To60.ToString("N2")</th>
-                                <th>@accountsReceivableAgingReport.Days61To90.ToString("N2")</th>
-                                <th>@accountsReceivableAgingReport.Over90.ToString("N2")</th>
-                                <th>@accountsReceivableAgingReport.Total.ToString("N2")</th>
-                                <th></th>
-                            </tr>
-                        </tfoot>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in accountsPayableAgingReport.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@row.VendorName</strong>
+                                            <small>@row.OpenBillCount open bills</small>
+                                        </td>
+                                        <td>@row.Currency</td>
+                                        <td>@row.Current.ToString("N2")</td>
+                                        <td>@row.Days1To30.ToString("N2")</td>
+                                        <td>@row.Days31To60.ToString("N2")</td>
+                                        <td>@row.Days61To90.ToString("N2")</td>
+                                        <td>@row.Over90.ToString("N2")</td>
+                                        <td>@row.Total.ToString("N2")</td>
+                                        <td>@row.CreditBalance.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="2">Totals</th>
+                                    <th>@accountsPayableAgingReport.Current.ToString("N2")</th>
+                                    <th>@accountsPayableAgingReport.Days1To30.ToString("N2")</th>
+                                    <th>@accountsPayableAgingReport.Days31To60.ToString("N2")</th>
+                                    <th>@accountsPayableAgingReport.Days61To90.ToString("N2")</th>
+                                    <th>@accountsPayableAgingReport.Over90.ToString("N2")</th>
+                                    <th>@accountsPayableAgingReport.Total.ToString("N2")</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    }
                 }
             }
         </div>
@@ -264,11 +324,11 @@
                 </div>
                 <div class="metric-box">
                     <span>Next</span>
-                    <strong>A/R Aging Live</strong>
+                    <strong>A/R &amp; A/P Aging Live</strong>
                 </div>
                 <div class="metric-box">
                     <span>Then</span>
-                    <strong>A/P Aging / Inventory</strong>
+                    <strong>Inventory</strong>
                 </div>
             </div>
 
@@ -330,13 +390,32 @@
                 </div>
             }
 
+            @if (accountsPayableAgingReport is not null)
+            {
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <span>A/P Current</span>
+                        <strong>@accountsPayableAgingReport.Current.ToString("N2")</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>A/P Over 30</span>
+                        <strong>@((accountsPayableAgingReport.Days31To60 + accountsPayableAgingReport.Days61To90 + accountsPayableAgingReport.Over90).ToString("N2"))</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span>Total A/P</span>
+                        <strong>@accountsPayableAgingReport.Total.ToString("N2")</strong>
+                    </div>
+                </div>
+            }
+
             <ul class="check-list">
                 <li>Trial balance is calculated from posted transactions up to the selected date.</li>
                 <li>Voided accounting transactions are excluded automatically.</li>
                 <li>Balance sheet groups balance-sheet accounts into assets, liabilities, and equity from the same posted ledger.</li>
                 <li>Profit and loss uses a date range and separates income, COGS, and expenses from the same posted ledger.</li>
                 <li>A/R aging groups open credit invoices by customer and due-date bucket using the current open balance only.</li>
-                <li>Current report foundation is ready for A/P aging and inventory valuation reports.</li>
+                <li>A/P aging groups open vendor bills by due-date bucket using the current open payable balance only.</li>
+                <li>Current report foundation is ready for inventory valuation and stock movement reports.</li>
             </ul>
         </section>
     </section>
@@ -347,6 +426,7 @@
     private BalanceSheetReportDto? balanceSheetReport;
     private ProfitAndLossReportDto? profitAndLossReport;
     private AccountsReceivableAgingReportDto? accountsReceivableAgingReport;
+    private AccountsPayableAgingReportDto? accountsPayableAgingReport;
     private string asOfDateText = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
     private string fromDateText = new DateOnly(DateTime.Today.Year, 1, 1).ToString("yyyy-MM-dd");
     private string toDateText = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
@@ -383,9 +463,13 @@
                 {
                     profitAndLossReport = await ReportsApi.GetProfitAndLossAsync(ParseFromDate(), ParseToDate(), includeZeroBalances, includeInactiveAccounts);
                 }
-                else
+                else if (selectedReport == ReportMode.AccountsReceivableAging)
                 {
                     accountsReceivableAgingReport = await ReportsApi.GetAccountsReceivableAgingAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
+                }
+                else
+                {
+                    accountsPayableAgingReport = await ReportsApi.GetAccountsPayableAgingAsync(asOfDate, includeZeroBalances, includeInactiveAccounts);
                 }
             }
         }
@@ -425,6 +509,7 @@
         TrialBalance,
         BalanceSheet,
         ProfitAndLoss,
-        AccountsReceivableAging
+        AccountsReceivableAging,
+        AccountsPayableAging
     }
 }

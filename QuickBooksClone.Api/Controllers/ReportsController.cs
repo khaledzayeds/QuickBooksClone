@@ -162,4 +162,42 @@ public sealed class ReportsController : ControllerBase
             report.Over90,
             report.Total));
     }
+
+    [HttpGet("accounts-payable-aging")]
+    [ProducesResponseType(typeof(AccountsPayableAgingReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<AccountsPayableAgingReportDto>> GetAccountsPayableAging(
+        [FromQuery] DateOnly? asOfDate,
+        [FromQuery] bool includeZeroBalances = false,
+        [FromQuery] bool includeInactiveVendors = false,
+        CancellationToken cancellationToken = default)
+    {
+        var report = await _reports.GetAccountsPayableAgingAsync(
+            asOfDate ?? DateOnly.FromDateTime(DateTime.Today),
+            includeZeroBalances,
+            includeInactiveVendors,
+            cancellationToken);
+
+        return Ok(new AccountsPayableAgingReportDto(
+            report.AsOfDate,
+            report.Items
+                .Select(row => new AccountsPayableAgingRowDto(
+                    row.VendorId,
+                    row.VendorName,
+                    row.Currency,
+                    row.Current,
+                    row.Days1To30,
+                    row.Days31To60,
+                    row.Days61To90,
+                    row.Over90,
+                    row.Total,
+                    row.CreditBalance,
+                    row.OpenBillCount))
+                .ToList(),
+            report.Current,
+            report.Days1To30,
+            report.Days31To60,
+            report.Days61To90,
+            report.Over90,
+            report.Total));
+    }
 }
