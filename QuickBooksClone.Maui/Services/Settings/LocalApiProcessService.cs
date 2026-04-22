@@ -35,10 +35,12 @@ public sealed class LocalApiProcessService
         _resolvedProjectPath = projectPath;
         _lastError = null;
 
+        var command = ResolveStartupCommand(projectPath, settings.LocalUrl);
+
         var startInfo = new ProcessStartInfo
         {
-            FileName = "dotnet",
-            Arguments = BuildArguments(projectPath, settings.LocalUrl),
+            FileName = command.FileName,
+            Arguments = command.Arguments,
             WorkingDirectory = Path.GetDirectoryName(projectPath)!,
             UseShellExecute = false,
             RedirectStandardOutput = false,
@@ -51,7 +53,7 @@ public sealed class LocalApiProcessService
         try
         {
             _process = Process.Start(startInfo);
-            await Task.Delay(1500, cancellationToken);
+            await Task.Delay(500, cancellationToken);
             if (_process is null || _process.HasExited)
             {
                 _lastError = "Managed local API process exited before becoming ready.";
@@ -119,15 +121,24 @@ public sealed class LocalApiProcessService
         return candidates.FirstOrDefault(File.Exists);
     }
 
-    private static string BuildArguments(string projectPath, string localUrl)
+    private static StartupCommand ResolveStartupCommand(string projectPath, string localUrl)
     {
         var projectDirectory = Path.GetDirectoryName(projectPath)!;
+        var exePath = Path.Combine(projectDirectory, "bin", "Debug", "net10.0", "QuickBooksClone.Api.exe");
         var dllPath = Path.Combine(projectDirectory, "bin", "Debug", "net10.0", "QuickBooksClone.Api.dll");
-        if (File.Exists(dllPath))
+
+        if (File.Exists(exePath))
         {
-            return $"\"{dllPath}\" --urls \"{localUrl}\"";
+            return new StartupCommand(exePath, $"--urls \"{localUrl}\"");
         }
 
-        return $"run --project \"{projectPath}\" --urls \"{localUrl}\"";
+        if (File.Exists(dllPath))
+        {
+            return new StartupCommand("dotnet", $"\"{dllPath}\" --urls \"{localUrl}\"");
+        }
+
+        return new StartupCommand("dotnet", $"run --project \"{projectPath}\" --urls \"{localUrl}\"");
     }
+
+    private sealed record StartupCommand(string FileName, string Arguments);
 }

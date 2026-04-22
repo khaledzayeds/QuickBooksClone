@@ -921,6 +921,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ReversalTransactionId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -935,6 +938,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("VendorId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -1078,6 +1084,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ReversalTransactionId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -1089,6 +1098,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QuickBooksClone.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using QuickBooksClone.Infrastructure.Persistence;
 namespace QuickBooksClone.SqlServerMigrations.Migrations
 {
     [DbContext(typeof(QuickBooksCloneDbContext))]
-    partial class QuickBooksCloneDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260422131036_AddReturnReversalsAndReceiptBillLinksSqlServer")]
+    partial class AddReturnReversalsAndReceiptBillLinksSqlServer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

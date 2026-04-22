@@ -23,7 +23,7 @@ public sealed class ApiConnectivityService
 
         try
         {
-            var runtime = await TryGetRuntimeWithRetryAsync(cancellationToken);
+            var runtime = await TryGetRuntimeWithRetryAsync(cancellationToken, 3, 400);
             const string prefix = "Connected successfully.";
             return new ConnectionHealthResult(
                 true,
@@ -43,7 +43,7 @@ public sealed class ApiConnectivityService
                 {
                     try
                     {
-                        var runtime = await TryGetRuntimeWithRetryAsync(cancellationToken, 20, 500);
+                        var runtime = await TryGetRuntimeWithRetryAsync(cancellationToken, 60, 500);
                         return new ConnectionHealthResult(
                             true,
                             $"Local workspace is ready. {runtime.EnvironmentName} / {runtime.DatabaseProvider}",
