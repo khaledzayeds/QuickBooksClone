@@ -4,6 +4,7 @@ public static class DocumentTypes
 {
     public const string CustomerCredit = "CUSTOMER_CREDIT";
     public const string InventoryAdjustment = "INVENTORY_ADJUSTMENT";
+    public const string InventoryReceipt = "INVENTORY_RECEIPT";
     public const string Invoice = "INVOICE";
     public const string JournalEntry = "JOURNAL_ENTRY";
     public const string Payment = "PAYMENT";

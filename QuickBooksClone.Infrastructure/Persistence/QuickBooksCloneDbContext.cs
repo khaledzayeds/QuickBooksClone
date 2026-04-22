@@ -11,6 +11,7 @@ using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseReturns;
+using QuickBooksClone.Core.ReceiveInventory;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.VendorCredits;
@@ -36,6 +37,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<PurchaseBill> PurchaseBills => Set<PurchaseBill>();
+    public DbSet<InventoryReceipt> InventoryReceipts => Set<InventoryReceipt>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
@@ -58,6 +60,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigureJournalEntries(modelBuilder);
         ConfigurePayments(modelBuilder);
         ConfigurePurchaseBills(modelBuilder);
+        ConfigureInventoryReceipts(modelBuilder);
         ConfigurePurchaseOrders(modelBuilder);
         ConfigurePurchaseReturns(modelBuilder);
         ConfigureSalesReturns(modelBuilder);
@@ -315,6 +318,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             ConfigureTenant(entity);
             ConfigureSyncDocument(entity);
             entity.Property(bill => bill.VendorId).IsRequired();
+            entity.Property(bill => bill.InventoryReceiptId);
             entity.Property(bill => bill.BillDate).IsRequired();
             entity.Property(bill => bill.DueDate).IsRequired();
             entity.Property(bill => bill.PostedTransactionId);
@@ -334,6 +338,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.WithOwner().HasForeignKey("PurchaseBillId");
                 line.HasKey(current => current.Id);
                 line.Property(current => current.ItemId).IsRequired();
+                line.Property(current => current.InventoryReceiptLineId);
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitCost));
@@ -341,6 +346,41 @@ public sealed class QuickBooksCloneDbContext : DbContext
             });
 
             entity.Navigation(bill => bill.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+    }
+
+    private static void ConfigureInventoryReceipts(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<InventoryReceipt>(entity =>
+        {
+            entity.ToTable("inventory_receipts");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
+            entity.Property(receipt => receipt.VendorId).IsRequired();
+            entity.Property(receipt => receipt.PurchaseOrderId);
+            entity.Property(receipt => receipt.ReceiptDate).IsRequired();
+            entity.Property(receipt => receipt.PostedTransactionId);
+            entity.Property(receipt => receipt.ReversalTransactionId);
+            entity.Property(receipt => receipt.ReceiptNumber).HasMaxLength(80).IsRequired();
+            entity.Property(receipt => receipt.Status).HasConversion<int>().IsRequired();
+            entity.Ignore(receipt => receipt.TotalAmount);
+            entity.HasIndex(receipt => receipt.ReceiptNumber).IsUnique();
+
+            entity.OwnsMany(receipt => receipt.Lines, line =>
+            {
+                line.ToTable("inventory_receipt_lines");
+                line.WithOwner().HasForeignKey("InventoryReceiptId");
+                line.HasKey(current => current.Id);
+                line.Property(current => current.ItemId).IsRequired();
+                line.Property(current => current.PurchaseOrderLineId);
+                line.Property(current => current.Description).HasMaxLength(300).IsRequired();
+                ConfigureMoney(line.Property(current => current.Quantity));
+                ConfigureMoney(line.Property(current => current.UnitCost));
+                line.Ignore(current => current.LineTotal);
+            });
+
+            entity.Navigation(receipt => receipt.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
     }
 
@@ -388,6 +428,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(purchaseReturn => purchaseReturn.VendorId).IsRequired();
             entity.Property(purchaseReturn => purchaseReturn.ReturnDate).IsRequired();
             entity.Property(purchaseReturn => purchaseReturn.PostedTransactionId);
+            entity.Property(purchaseReturn => purchaseReturn.ReversalTransactionId);
             entity.Property(purchaseReturn => purchaseReturn.ReturnNumber).HasMaxLength(80).IsRequired();
             entity.Property(purchaseReturn => purchaseReturn.Status).HasConversion<int>().IsRequired();
             entity.Ignore(purchaseReturn => purchaseReturn.TotalAmount);
@@ -422,6 +463,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(salesReturn => salesReturn.CustomerId).IsRequired();
             entity.Property(salesReturn => salesReturn.ReturnDate).IsRequired();
             entity.Property(salesReturn => salesReturn.PostedTransactionId);
+            entity.Property(salesReturn => salesReturn.ReversalTransactionId);
             entity.Property(salesReturn => salesReturn.ReturnNumber).HasMaxLength(80).IsRequired();
             entity.Property(salesReturn => salesReturn.Status).HasConversion<int>().IsRequired();
             entity.Ignore(salesReturn => salesReturn.TotalAmount);

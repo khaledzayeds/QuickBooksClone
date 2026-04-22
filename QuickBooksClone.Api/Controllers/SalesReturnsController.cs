@@ -137,6 +137,28 @@ public sealed class SalesReturnsController : ControllerBase
         return Ok(await ToDtoAsync(updatedReturn!, cancellationToken));
     }
 
+    [HttpPatch("{id:guid}/void")]
+    [ProducesResponseType(typeof(SalesReturnDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SalesReturnDto>> Void(Guid id, CancellationToken cancellationToken = default)
+    {
+        var salesReturn = await _salesReturns.GetByIdAsync(id, cancellationToken);
+        if (salesReturn is null)
+        {
+            return NotFound();
+        }
+
+        var result = await _postingService.VoidAsync(id, cancellationToken);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.ErrorMessage);
+        }
+
+        var updatedReturn = await _salesReturns.GetByIdAsync(id, cancellationToken);
+        return Ok(await ToDtoAsync(updatedReturn!, cancellationToken));
+    }
+
     private async Task<SalesReturnDto> ToDtoAsync(SalesReturn salesReturn, CancellationToken cancellationToken)
     {
         var invoice = await _invoices.GetByIdAsync(salesReturn.InvoiceId, cancellationToken);
@@ -154,6 +176,8 @@ public sealed class SalesReturnsController : ControllerBase
             salesReturn.TotalAmount,
             salesReturn.PostedTransactionId,
             salesReturn.PostedAt,
+            salesReturn.ReversalTransactionId,
+            salesReturn.VoidedAt,
             salesReturn.Lines.Select(line => new SalesReturnLineDto(
                 line.Id,
                 line.InvoiceLineId,

@@ -12,4 +12,6 @@ public sealed record PurchaseReturnDto(
     decimal TotalAmount,
     Guid? PostedTransactionId,
     DateTimeOffset? PostedAt,
+    Guid? ReversalTransactionId,
+    DateTimeOffset? VoidedAt,
     IReadOnlyList<PurchaseReturnLineDto> Lines);

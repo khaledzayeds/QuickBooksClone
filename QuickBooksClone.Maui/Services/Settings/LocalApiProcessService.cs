@@ -38,7 +38,7 @@ public sealed class LocalApiProcessService
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"run --project \"{projectPath}\" --urls \"{settings.LocalUrl}\"",
+            Arguments = BuildArguments(projectPath, settings.LocalUrl),
             WorkingDirectory = Path.GetDirectoryName(projectPath)!,
             UseShellExecute = false,
             RedirectStandardOutput = false,
@@ -117,5 +117,17 @@ public sealed class LocalApiProcessService
         }
 
         return candidates.FirstOrDefault(File.Exists);
+    }
+
+    private static string BuildArguments(string projectPath, string localUrl)
+    {
+        var projectDirectory = Path.GetDirectoryName(projectPath)!;
+        var dllPath = Path.Combine(projectDirectory, "bin", "Debug", "net10.0", "QuickBooksClone.Api.dll");
+        if (File.Exists(dllPath))
+        {
+            return $"\"{dllPath}\" --urls \"{localUrl}\"";
+        }
+
+        return $"run --project \"{projectPath}\" --urls \"{localUrl}\"";
     }
 }

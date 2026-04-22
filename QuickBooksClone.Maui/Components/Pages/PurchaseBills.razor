@@ -44,6 +44,7 @@
                     <tr>
                         <th>Number</th>
                         <th>Vendor</th>
+                        <th>Receipt</th>
                         <th>Date</th>
                         <th>Due</th>
                         <th>Total</th>
@@ -64,6 +65,7 @@
                                 <small>@bill.Id.ToString()[..8]</small>
                             </td>
                             <td>@bill.VendorName</td>
+                            <td>@(bill.InventoryReceiptNumber ?? "-")</td>
                             <td>@bill.BillDate</td>
                             <td>@bill.DueDate</td>
                             <td>@bill.TotalAmount.ToString("N2")</td>

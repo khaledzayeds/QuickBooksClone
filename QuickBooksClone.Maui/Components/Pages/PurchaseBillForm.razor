@@ -2,7 +2,11 @@
 @inject PurchaseBillsApiClient PurchaseBillsApi
 @inject VendorsApiClient VendorsApi
 @inject ItemsApiClient ItemsApi
+@inject InventoryReceiptsApiClient InventoryReceiptsApi
 @inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.PurchaseBills
+@using QuickBooksClone.Maui.Services.ReceiveInventory
+@using Microsoft.AspNetCore.Components
 
 <PageTitle>New Purchase Bill</PageTitle>
 
@@ -11,7 +15,7 @@
         <div>
             <p class="eyebrow">Purchases</p>
             <h1>New Purchase Bill</h1>
-            <p class="muted">Post inventory purchases into stock and Accounts Payable, or save a draft for review.</p>
+            <p class="muted">Record Accounts Payable now. If this bill is tied to received inventory, it clears GRNI instead of increasing stock again.</p>
         </div>
         <button class="secondary-button" @onclick="BackToList">Back to Bills</button>
     </section>
@@ -24,16 +28,30 @@
     <EditForm Model="form" class="panel form-panel page-form page-form-wide">
         <DataAnnotationsValidator />
 
-        <label>
-            Vendor
-            <InputSelect class="form-control" @bind-Value="form.VendorId">
-                <option value="@Guid.Empty">Select vendor</option>
-                @foreach (var vendor in vendors)
-                {
-                    <option value="@vendor.Id">@vendor.DisplayName</option>
-                }
-            </InputSelect>
-        </label>
+        @if (linkedReceipt is not null)
+        {
+            <div class="alert success">
+                Billing against receipt <strong>@linkedReceipt.ReceiptNumber</strong>. Stock already moved on receipt; this bill will clear GRNI into Accounts Payable.
+            </div>
+        }
+
+        <div class="form-row">
+            <label>
+                Vendor
+                <InputSelect class="form-control" @bind-Value="form.VendorId" disabled="@IsReceiptLocked">
+                    <option value="@Guid.Empty">Select vendor</option>
+                    @foreach (var vendor in vendors)
+                    {
+                        <option value="@vendor.Id">@vendor.DisplayName</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Linked receipt
+                <input class="form-control" value="@(linkedReceipt?.ReceiptNumber ?? "Direct bill")" disabled />
+            </label>
+        </div>
 
         <div class="form-row">
             <label>
@@ -48,37 +66,49 @@
         </div>
 
         <h3>Lines</h3>
-        <div class="form-row">
-            <label>
-                Item
-                <InputSelect class="form-control" @bind-Value="draftLine.ItemId">
-                    <option value="@Guid.Empty">Select item</option>
-                    @foreach (var item in items)
-                    {
-                        <option value="@item.Id">@item.Name (@item.PurchasePrice.ToString("N2"))</option>
-                    }
-                </InputSelect>
-            </label>
 
-            <label>
-                Quantity
-                <InputNumber class="form-control" @bind-Value="draftLine.Quantity" />
-            </label>
-        </div>
+        @if (linkedReceipt is null)
+        {
+            <div class="form-row">
+                <label>
+                    Item
+                    <InputSelect class="form-control" @bind-Value="draftLine.ItemId">
+                        <option value="@Guid.Empty">Select item</option>
+                        @foreach (var item in items)
+                        {
+                            <option value="@item.Id">@item.Name (@item.PurchasePrice.ToString("N2"))</option>
+                        }
+                    </InputSelect>
+                </label>
 
-        <div class="form-row">
-            <label>
-                Unit cost
-                <InputNumber class="form-control" @bind-Value="draftLine.UnitCost" />
-            </label>
+                <label>
+                    Quantity
+                    <InputNumber class="form-control" @bind-Value="draftLine.Quantity" />
+                </label>
+            </div>
 
-            <label>
-                Description
-                <InputText class="form-control" @bind-Value="draftLine.Description" />
-            </label>
-        </div>
+            <div class="form-row">
+                <label>
+                    Unit cost
+                    <InputNumber class="form-control" @bind-Value="draftLine.UnitCost" />
+                </label>
 
-        <button class="secondary-button" type="button" @onclick="AddLine">Add Line</button>
+                <label>
+                    Description
+                    <InputText class="form-control" @bind-Value="draftLine.Description" />
+                </label>
+            </div>
+
+            <button class="secondary-button" type="button" @onclick="AddLine">Add Line</button>
+        }
+        else if (form.Lines.Count == 0)
+        {
+            <p class="muted">No remaining receipt lines are available to bill.</p>
+        }
+        else
+        {
+            <p class="muted">Quantities are prefilled from the remaining unbilled receipt lines. You can reduce quantity or change unit cost before posting the bill.</p>
+        }
 
         @if (form.Lines.Count > 0)
         {
@@ -89,6 +119,7 @@
                         <th>Qty</th>
                         <th>Cost</th>
                         <th>Total</th>
+                        <th>@(linkedReceipt is null ? string.Empty : "Receipt line")</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -97,9 +128,28 @@
                     {
                         <tr>
                             <td>@GetItemName(line.ItemId)</td>
-                            <td>@line.Quantity</td>
-                            <td>@line.UnitCost.ToString("N2")</td>
+                            <td>
+                                @if (linkedReceipt is null)
+                                {
+                                    @line.Quantity
+                                }
+                                else
+                                {
+                                    <InputNumber class="form-control" @bind-Value="line.Quantity" />
+                                }
+                            </td>
+                            <td>
+                                @if (linkedReceipt is null)
+                                {
+                                    @line.UnitCost.ToString("N2")
+                                }
+                                else
+                                {
+                                    <InputNumber class="form-control" @bind-Value="line.UnitCost" />
+                                }
+                            </td>
                             <td>@((line.Quantity * line.UnitCost).ToString("N2"))</td>
+                            <td>@(line.InventoryReceiptLineId?.ToString()[..8] ?? "-")</td>
                             <td><button class="link-button" type="button" @onclick="() => RemoveLine(line)">Remove</button></td>
                         </tr>
                     }
@@ -122,20 +172,30 @@
 </div>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "inventoryReceiptId")]
+    public Guid? InventoryReceiptId { get; set; }
+
     private List<VendorDto> vendors = [];
     private List<ItemDto> items = [];
     private PurchaseBillFormModel form = new();
     private PurchaseBillLineFormModel draftLine = new();
+    private InventoryReceiptDto? linkedReceipt;
     private DateTime billDate = DateTime.Today;
     private DateTime dueDate = DateTime.Today.AddDays(30);
     private string? errorMessage;
     private bool isSaving;
 
+    private bool IsReceiptLocked => linkedReceipt is not null;
     private decimal DraftTotal => form.Lines.Sum(line => line.Quantity * line.UnitCost);
 
     protected override async Task OnInitializedAsync()
     {
         await LoadLookupsAsync();
+        if (InventoryReceiptId is not null)
+        {
+            await LoadReceiptAsync(InventoryReceiptId.Value);
+        }
     }
 
     private async Task LoadLookupsAsync()
@@ -145,6 +205,40 @@
 
         var itemResult = await ItemsApi.SearchAsync(null, false);
         items = itemResult.Items.ToList();
+    }
+
+    private async Task LoadReceiptAsync(Guid receiptId)
+    {
+        linkedReceipt = await InventoryReceiptsApi.GetAsync(receiptId);
+        form.InventoryReceiptId = linkedReceipt.Id;
+        form.VendorId = linkedReceipt.VendorId;
+
+        var existingBills = await PurchaseBillsApi.SearchAsync(null, true, linkedReceipt.Id);
+        var billedByReceiptLine = existingBills.Items
+            .Where(bill => bill.Status != PurchaseBillStatus.Void)
+            .SelectMany(bill => bill.Lines)
+            .Where(line => line.InventoryReceiptLineId is not null)
+            .GroupBy(line => line.InventoryReceiptLineId!.Value)
+            .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity));
+
+        form.Lines.Clear();
+        foreach (var receiptLine in linkedReceipt.Lines)
+        {
+            var remainingQuantity = receiptLine.Quantity - billedByReceiptLine.GetValueOrDefault(receiptLine.Id);
+            if (remainingQuantity <= 0)
+            {
+                continue;
+            }
+
+            form.Lines.Add(new PurchaseBillLineFormModel
+            {
+                ItemId = receiptLine.ItemId,
+                InventoryReceiptLineId = receiptLine.Id,
+                Description = receiptLine.Description,
+                Quantity = remainingQuantity,
+                UnitCost = receiptLine.UnitCost
+            });
+        }
     }
 
     private void AddLine()
@@ -188,6 +282,12 @@
             if (form.Lines.Count == 0)
             {
                 errorMessage = "Add at least one purchase bill line.";
+                return;
+            }
+
+            if (form.Lines.Any(line => line.Quantity <= 0))
+            {
+                errorMessage = "Every purchase bill line must have quantity greater than zero.";
                 return;
             }
 

@@ -11,6 +11,7 @@ using QuickBooksClone.Maui.Services.Payments;
 using QuickBooksClone.Maui.Services.PurchaseBills;
 using QuickBooksClone.Maui.Services.PurchaseOrders;
 using QuickBooksClone.Maui.Services.PurchaseReturns;
+using QuickBooksClone.Maui.Services.ReceiveInventory;
 using QuickBooksClone.Maui.Services.SalesReturns;
 using QuickBooksClone.Maui.Services.SalesReceipts;
 using QuickBooksClone.Maui.Services.Settings;
@@ -32,9 +33,11 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
             });
 
+        builder.Services.AddTransient<MainPage>();
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<ApiConnectionSettingsStore>();
         builder.Services.AddSingleton<LocalApiProcessService>();
+        builder.Services.AddSingleton<AppStartupCoordinator>();
         builder.Services.AddTransient<ConfigurableApiMessageHandler>();
         builder.Services.AddScoped(sp =>
         {
@@ -57,6 +60,7 @@ public static class MauiProgram
         builder.Services.AddScoped<PurchaseBillsApiClient>();
         builder.Services.AddScoped<PurchaseOrdersApiClient>();
         builder.Services.AddScoped<PurchaseReturnsApiClient>();
+        builder.Services.AddScoped<InventoryReceiptsApiClient>();
         builder.Services.AddScoped<SalesReceiptsApiClient>();
         builder.Services.AddScoped<SalesReturnsApiClient>();
         builder.Services.AddScoped<ApiConnectivityService>();

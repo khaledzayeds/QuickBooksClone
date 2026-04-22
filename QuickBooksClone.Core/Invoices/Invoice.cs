@@ -244,4 +244,33 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
 
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    public void ReverseReturn(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Return amount must be greater than zero.");
+        }
+
+        if (amount > ReturnedAmount)
+        {
+            throw new InvalidOperationException("Return reversal amount cannot exceed returned amount.");
+        }
+
+        ReturnedAmount -= amount;
+        if (BalanceDue == 0)
+        {
+            Status = InvoiceStatus.Paid;
+        }
+        else if (PaidAmount > 0 || ReturnedAmount > 0 || CreditAppliedAmount > 0)
+        {
+            Status = InvoiceStatus.PartiallyPaid;
+        }
+        else
+        {
+            Status = InvoiceStatus.Posted;
+        }
+
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

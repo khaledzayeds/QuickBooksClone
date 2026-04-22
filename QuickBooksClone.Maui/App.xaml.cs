@@ -1,14 +1,20 @@
-﻿namespace QuickBooksClone.Maui;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace QuickBooksClone.Maui;
 
 public partial class App : Application
 {
-	public App()
-	{
-		InitializeComponent();
-	}
+    private readonly IServiceProvider _services;
 
-	protected override Window CreateWindow(IActivationState? activationState)
-	{
-		return new Window(new MainPage()) { Title = "QuickBooksClone.Maui" };
-	}
+    public App(IServiceProvider services)
+    {
+        _services = services;
+        InitializeComponent();
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        var mainPage = _services.GetRequiredService<MainPage>();
+        return new Window(mainPage) { Title = "QuickBooksClone" };
+    }
 }

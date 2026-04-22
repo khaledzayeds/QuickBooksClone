@@ -12,13 +12,18 @@ public sealed class PurchaseBillsApiClient
         _httpClient = httpClient;
     }
 
-    public async Task<PurchaseBillListResponse> SearchAsync(string? search, bool includeVoid, CancellationToken cancellationToken = default)
+    public async Task<PurchaseBillListResponse> SearchAsync(string? search, bool includeVoid, Guid? inventoryReceiptId = null, CancellationToken cancellationToken = default)
     {
         var url = $"api/purchase-bills?includeVoid={includeVoid.ToString().ToLowerInvariant()}&page=1&pageSize=50";
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             url += $"&search={Uri.EscapeDataString(search)}";
+        }
+
+        if (inventoryReceiptId is not null)
+        {
+            url += $"&inventoryReceiptId={inventoryReceiptId}";
         }
 
         return await _httpClient.GetFromJsonAsync<PurchaseBillListResponse>(url, cancellationToken)
@@ -30,12 +35,14 @@ public sealed class PurchaseBillsApiClient
         var response = await _httpClient.PostAsJsonAsync("api/purchase-bills", new
         {
             form.VendorId,
+            form.InventoryReceiptId,
             form.BillDate,
             form.DueDate,
             form.SaveMode,
             Lines = form.Lines.Select(line => new
             {
                 line.ItemId,
+                line.InventoryReceiptLineId,
                 line.Description,
                 line.Quantity,
                 line.UnitCost

@@ -208,6 +208,12 @@ Architectural baseline is now fixed:
   - [x] Purchase bill exposes returned amount and zero-floor balance due
   - [x] Paid bill returns create vendor credit balance
   - [x] Desktop Purchase Returns list and creation form
+- [x] Return reversal hardening
+  - [x] Sales return void now creates a balanced reversal transaction
+  - [x] Voiding a posted sales return removes the returned stock and restores invoice/customer return impact
+  - [x] Purchase return void now creates a balanced reversal transaction
+  - [x] Voiding a posted purchase return restores stock and restores purchase-bill/vendor return impact
+  - [x] Draft return documents can be voided without accounting impact
 - [x] Vendor credit application / refund receipt
   - [x] Apply vendor credit to another purchase bill
   - [x] Receive vendor refund into bank/cash account
@@ -336,6 +342,24 @@ Architectural baseline is now fixed:
   - [x] Link all currently live workflows directly from Home
   - [x] Show planned workflows in-app with clear "planned next" messaging
   - [x] Keep the current backend coverage visible from the Home screen
+- [x] Receive Inventory before bill workflow
+  - [x] Add inventory receipt document, repository, API endpoints, and desktop screens
+  - [x] Support receiving directly or against an open purchase order
+  - [x] Block over-receiving beyond the linked purchase-order quantities
+  - [x] Auto-post received inventory into stock through a dedicated posting service
+  - [x] Debit Inventory Asset and credit Inventory Received Not Billed (GRNI)
+  - [x] Keep vendor balance unchanged until the purchase bill is entered
+  - [x] Add repeatable `scripts/smoke-receive-inventory.ps1`
+  - [x] Add SQLite and SQL Server migrations for inventory receipts
+- [x] Bills against received inventory workflow
+  - [x] Link purchase bills optionally to a posted inventory receipt
+  - [x] Link purchase bill lines to inventory receipt lines
+  - [x] Block billing beyond the received and unbilled quantities
+  - [x] Clear `Inventory Received Not Billed` into Accounts Payable when billing received stock
+  - [x] Keep stock unchanged when the bill is tied to a prior inventory receipt
+  - [x] Keep direct purchase bills available for non-inventory/direct vendor charges
+  - [x] Add desktop bill-from-receipt entry path
+  - [x] Add repeatable `scripts/smoke-bills-against-receipts.ps1`
 
 ## In Progress
 
@@ -343,8 +367,9 @@ Architectural baseline is now fixed:
 
 - [ ] Purchase workflow expansion
   - [x] Purchase Orders
-  - [ ] Receive Inventory before bill workflow
-  - [ ] Bills against received inventory workflow
+  - [x] Receive Inventory before bill workflow
+  - [x] Bills against received inventory workflow
+  - [ ] Payables refinement and purchase-side review pass
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
   - [x] Add restore confirmation/audit metadata
@@ -383,4 +408,7 @@ Architectural baseline is now fixed:
 - A live SQL Server instance smoke test is still needed before calling SQL Server production-ready.
 - SQL Server and SQLite groundwork is intentionally parked for now while the remaining backend slices continue on the SQLite runtime path.
 - Purchase orders are now live as non-posting operational documents; they intentionally do not touch inventory, vendor balances, or accounting transactions.
+- Receive Inventory is now live as the operational bridge between Purchase Orders and Purchase Bills; it increases stock and credits the temporary `Inventory Received Not Billed` liability without changing vendor balances.
+- Purchase Bills can now clear `Inventory Received Not Billed` against previously posted inventory receipts, so the bill creates Accounts Payable without increasing stock a second time.
+- Sales and purchase returns now have backend reversal workflows instead of being one-way posting documents.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.

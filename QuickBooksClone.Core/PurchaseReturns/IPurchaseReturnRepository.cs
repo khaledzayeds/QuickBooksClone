@@ -6,4 +6,5 @@ public interface IPurchaseReturnRepository
     Task<PurchaseReturn?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PurchaseReturn> AddAsync(PurchaseReturn purchaseReturn, CancellationToken cancellationToken = default);
     Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default);
+    Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default);
 }

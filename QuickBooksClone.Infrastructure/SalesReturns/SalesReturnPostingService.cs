@@ -9,6 +9,7 @@ namespace QuickBooksClone.Infrastructure.SalesReturns;
 public sealed class SalesReturnPostingService : ISalesReturnPostingService
 {
     private const string SalesReturnSourceEntityType = "SalesReturn";
+    private const string SalesReturnReversalSourceEntityType = "SalesReturnReversal";
 
     private readonly ISalesReturnRepository _salesReturns;
     private readonly IInvoiceRepository _invoices;
@@ -144,6 +145,87 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
         return SalesReturnPostingResult.Success(savedTransaction.Id);
     }
 
+    public async Task<SalesReturnPostingResult> VoidAsync(Guid salesReturnId, CancellationToken cancellationToken = default)
+    {
+        var salesReturn = await _salesReturns.GetByIdAsync(salesReturnId, cancellationToken);
+        if (salesReturn is null)
+        {
+            return SalesReturnPostingResult.Failure("Sales return does not exist.");
+        }
+
+        if (salesReturn.Status == SalesReturnStatus.Void)
+        {
+            return SalesReturnPostingResult.Success(salesReturn.ReversalTransactionId);
+        }
+
+        if (salesReturn.PostedTransactionId is null)
+        {
+            await _salesReturns.VoidAsync(salesReturn.Id, null, cancellationToken);
+            return SalesReturnPostingResult.Success();
+        }
+
+        var invoice = await _invoices.GetByIdAsync(salesReturn.InvoiceId, cancellationToken);
+        if (invoice is null)
+        {
+            return SalesReturnPostingResult.Failure("Invoice does not exist.");
+        }
+
+        var customer = await _customers.GetByIdAsync(salesReturn.CustomerId, cancellationToken);
+        if (customer is null)
+        {
+            return SalesReturnPostingResult.Failure("Customer does not exist.");
+        }
+
+        var existingReversal = await _transactions.GetBySourceAsync(SalesReturnReversalSourceEntityType, salesReturn.Id, cancellationToken);
+        if (existingReversal is not null)
+        {
+            await _salesReturns.VoidAsync(salesReturn.Id, existingReversal.Id, cancellationToken);
+            return SalesReturnPostingResult.Success(existingReversal.Id);
+        }
+
+        var originalTransaction = await _transactions.GetByIdAsync(salesReturn.PostedTransactionId.Value, cancellationToken);
+        if (originalTransaction is null)
+        {
+            return SalesReturnPostingResult.Failure("Posted sales return transaction is missing.");
+        }
+
+        foreach (var line in salesReturn.Lines)
+        {
+            var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
+            if (item is null)
+            {
+                return SalesReturnPostingResult.Failure($"Item does not exist: {line.ItemId}");
+            }
+
+            if (item.ItemType != ItemType.Inventory)
+            {
+                continue;
+            }
+
+            if (item.QuantityOnHand < line.Quantity)
+            {
+                return SalesReturnPostingResult.Failure($"Cannot void sales return because '{item.Name}' has only {item.QuantityOnHand:N2} on hand, but {line.Quantity:N2} must be removed.");
+            }
+        }
+
+        var reversal = BuildReversalTransaction(salesReturn, originalTransaction);
+        var savedReversal = await _transactions.AddAsync(reversal, cancellationToken);
+
+        foreach (var line in salesReturn.Lines)
+        {
+            var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
+            if (item?.ItemType == ItemType.Inventory)
+            {
+                await _items.DecreaseQuantityAsync(item.Id, line.Quantity, cancellationToken);
+            }
+        }
+
+        await _invoices.ReverseReturnAsync(invoice.Id, salesReturn.TotalAmount, cancellationToken);
+        await _customers.ReverseSalesReturnAsync(customer.Id, salesReturn.TotalAmount, cancellationToken);
+        await _salesReturns.VoidAsync(salesReturn.Id, savedReversal.Id, cancellationToken);
+        return SalesReturnPostingResult.Success(savedReversal.Id);
+    }
+
     private async Task<Dictionary<Guid, decimal>> GetPostedReturnedQuantitiesAsync(SalesReturn currentReturn, CancellationToken cancellationToken)
     {
         var result = await _salesReturns.SearchAsync(new SalesReturnSearch(InvoiceId: currentReturn.InvoiceId, IncludeVoid: false, PageSize: 200), cancellationToken);
@@ -205,6 +287,27 @@ public sealed class SalesReturnPostingService : ISalesReturnPostingService
                 $"Reverse COGS - {returnLine.Description}",
                 0,
                 costAmount));
+        }
+
+        return transaction;
+    }
+
+    private static AccountingTransaction BuildReversalTransaction(SalesReturn salesReturn, AccountingTransaction originalTransaction)
+    {
+        var transaction = new AccountingTransaction(
+            "SalesReturnReversal",
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            $"{salesReturn.ReturnNumber}-VOID",
+            SalesReturnReversalSourceEntityType,
+            salesReturn.Id);
+
+        foreach (var line in originalTransaction.Lines)
+        {
+            transaction.AddLine(new AccountingTransactionLine(
+                line.AccountId,
+                $"Reversal - {line.Description}",
+                line.Credit,
+                line.Debit));
         }
 
         return transaction;

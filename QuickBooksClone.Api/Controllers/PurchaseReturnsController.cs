@@ -73,6 +73,19 @@ public sealed class PurchaseReturnsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = purchaseReturn.Id }, await ToDtoAsync(savedReturn!, cancellationToken));
     }
 
+    [HttpPatch("{id:guid}/void")]
+    public async Task<ActionResult<PurchaseReturnDto>> Void(Guid id, CancellationToken cancellationToken = default)
+    {
+        var purchaseReturn = await _returns.GetByIdAsync(id, cancellationToken);
+        if (purchaseReturn is null) return NotFound();
+
+        var result = await _postingService.VoidAsync(id, cancellationToken);
+        if (!result.Succeeded) return BadRequest(result.ErrorMessage);
+
+        var updated = await _returns.GetByIdAsync(id, cancellationToken);
+        return Ok(await ToDtoAsync(updated!, cancellationToken));
+    }
+
     private async Task<PurchaseReturnDto> ToDtoAsync(PurchaseReturn purchaseReturn, CancellationToken cancellationToken)
     {
         var bill = await _bills.GetByIdAsync(purchaseReturn.PurchaseBillId, cancellationToken);
@@ -89,6 +102,8 @@ public sealed class PurchaseReturnsController : ControllerBase
             purchaseReturn.TotalAmount,
             purchaseReturn.PostedTransactionId,
             purchaseReturn.PostedAt,
+            purchaseReturn.ReversalTransactionId,
+            purchaseReturn.VoidedAt,
             purchaseReturn.Lines.Select(line => new PurchaseReturnLineDto(line.Id, line.PurchaseBillLineId, line.ItemId, line.Description, line.Quantity, line.UnitCost, line.LineTotal)).ToList());
     }
 }

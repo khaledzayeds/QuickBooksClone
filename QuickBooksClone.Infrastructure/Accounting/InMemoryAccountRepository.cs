@@ -13,6 +13,7 @@ public sealed class InMemoryAccountRepository : IAccountRepository
         Seed(new Account("1100", "Accounts Receivable", AccountType.AccountsReceivable));
         Seed(new Account("1200", "Inventory Asset", AccountType.InventoryAsset));
         Seed(new Account("2000", "Accounts Payable", AccountType.AccountsPayable));
+        Seed(new Account("2050", "Inventory Received Not Billed", AccountType.OtherCurrentLiability));
         Seed(new Account("3000", "Owner Equity", AccountType.Equity));
         Seed(new Account("4000", "Sales Income", AccountType.Income));
         Seed(new Account("5000", "Cost of Goods Sold", AccountType.CostOfGoodsSold));

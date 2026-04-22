@@ -744,6 +744,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("InventoryReceiptId")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("TEXT");
 
@@ -949,6 +952,86 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.HasIndex("SyncStatus");
 
                     b.ToTable("purchase_returns", (string)null);
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.ReceiveInventory.InventoryReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("PostedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PostedTransactionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PurchaseOrderId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ReceiptDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ReversalTransactionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
+                    b.HasIndex("ReceiptNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SyncStatus");
+
+                    b.ToTable("inventory_receipts", (string)null);
                 });
 
             modelBuilder.Entity("QuickBooksClone.Core.SalesReturns.SalesReturn", b =>
@@ -1565,6 +1648,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                                 .HasMaxLength(300)
                                 .HasColumnType("TEXT");
 
+                            b1.Property<Guid?>("InventoryReceiptLineId")
+                                .HasColumnType("TEXT");
+
                             b1.Property<Guid>("ItemId")
                                 .HasColumnType("TEXT");
 
@@ -1670,6 +1756,49 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("PurchaseReturnId");
+                        });
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.ReceiveInventory.InventoryReceipt", b =>
+                {
+                    b.OwnsMany("QuickBooksClone.Core.ReceiveInventory.InventoryReceiptLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("InventoryReceiptId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("ItemId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid?>("PurchaseOrderLineId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("Quantity")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("UnitCost")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("InventoryReceiptId");
+
+                            b1.ToTable("inventory_receipt_lines", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("InventoryReceiptId");
                         });
 
                     b.Navigation("Lines");

@@ -146,6 +146,17 @@ public sealed class InMemoryCustomerRepository : ICustomerRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ReverseSalesReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_customers.TryGetValue(id, out var customer))
+        {
+            return Task.FromResult(false);
+        }
+
+        customer.ReverseSalesReturn(amount);
+        return Task.FromResult(true);
+    }
+
     public Task<bool> AddCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
     {
         if (!_customers.TryGetValue(id, out var customer))

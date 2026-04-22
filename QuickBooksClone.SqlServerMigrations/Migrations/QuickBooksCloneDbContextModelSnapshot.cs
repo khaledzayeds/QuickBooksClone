@@ -959,6 +959,86 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.ToTable("purchase_returns", (string)null);
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.ReceiveInventory.InventoryReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("PostedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("PostedTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PurchaseOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("ReceiptDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<Guid?>("ReversalTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
+                    b.HasIndex("ReceiptNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SyncStatus");
+
+                    b.ToTable("inventory_receipts", (string)null);
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.SalesReturns.SalesReturn", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1679,6 +1759,49 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("PurchaseReturnId");
+                        });
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.ReceiveInventory.InventoryReceipt", b =>
+                {
+                    b.OwnsMany("QuickBooksClone.Core.ReceiveInventory.InventoryReceiptLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("nvarchar(300)");
+
+                            b1.Property<Guid>("InventoryReceiptId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("ItemId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid?>("PurchaseOrderLineId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("Quantity")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<decimal>("UnitCost")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("InventoryReceiptId");
+
+                            b1.ToTable("inventory_receipt_lines", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("InventoryReceiptId");
                         });
 
                     b.Navigation("Lines");

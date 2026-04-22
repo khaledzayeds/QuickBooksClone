@@ -4,6 +4,7 @@
 @inject ApiConnectionSettingsStore ConnectionStore
 @inject ApiConnectivityService Connectivity
 @inject LocalApiProcessService LocalApiProcess
+@inject AppStartupCoordinator Startup
 
 <PageTitle>Connection Settings</PageTitle>
 
@@ -11,8 +12,8 @@
     <section class="qb-header">
         <div>
             <div class="eyebrow">Startup</div>
-            <h1>Connection Settings</h1>
-            <p class="muted">Choose how the desktop app reaches the API and save separate URLs for local, LAN, and hosted use.</p>
+            <h1>Advanced Connection Settings</h1>
+            <p class="muted">Local mode starts automatically with the desktop app. LAN and hosted URLs stay here for central sync or multi-device deployment later.</p>
         </div>
         <div class="toolbar">
             <button class="secondary-button" @onclick="Reload">Reset</button>
@@ -37,8 +38,8 @@
                 <label class="form-label">
                     <span>Startup mode</span>
                     <select class="form-control" @bind="model.StartupMode">
-                        <option value="@ApiStartupMode.ConnectOnly">Connect Only</option>
-                        <option value="@ApiStartupMode.ManagedLocalApi">Managed Local API</option>
+                        <option value="@ApiStartupMode.ManagedLocalApi">Automatic Local Startup</option>
+                        <option value="@ApiStartupMode.ConnectOnly">Manual External API</option>
                     </select>
                 </label>
 
@@ -65,6 +66,10 @@
                     <span>Hosted API URL</span>
                     <input class="form-control" @bind="model.HostedUrl" />
                 </label>
+
+                <div class="muted">
+                    Use the hosted URL later for central sync or central-office deployment. Daily local startup still runs from the local API and SQLite.
+                </div>
 
                 <label class="form-label">
                     <span>Local API project path (optional)</span>
@@ -144,9 +149,10 @@
         model.HostedUrl = ApiConnectionSettingsStore.NormalizeBaseUrl(model.HostedUrl);
 
         ConnectionStore.Save(model);
+        Startup.Reset();
         activeUrl = ConnectionStore.CurrentBaseUrl;
         statusIsError = false;
-        statusMessage = $"Saved. Startup mode is {model.StartupMode}. Active profile is {model.StartupProfile} -> {activeUrl}";
+        statusMessage = $"Saved. Automatic local startup is now using {model.StartupProfile} -> {activeUrl}";
     }
 
     private async Task TestConnection()

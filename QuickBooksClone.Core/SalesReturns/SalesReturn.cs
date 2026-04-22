@@ -42,6 +42,8 @@ public sealed class SalesReturn : SyncDocumentBase, ITenantEntity
     public decimal TotalAmount => _lines.Sum(line => line.LineTotal);
     public Guid? PostedTransactionId { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
+    public Guid? ReversalTransactionId { get; private set; }
+    public DateTimeOffset? VoidedAt { get; private set; }
 
     public void AddLine(SalesReturnLine line)
     {
@@ -69,6 +71,25 @@ public sealed class SalesReturn : SyncDocumentBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = SalesReturnStatus.Posted;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Void(Guid? reversalTransactionId = null)
+    {
+        if (Status == SalesReturnStatus.Void)
+        {
+            if (ReversalTransactionId is null && reversalTransactionId is not null)
+            {
+                ReversalTransactionId = reversalTransactionId;
+                UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            return;
+        }
+
+        ReversalTransactionId = reversalTransactionId;
+        VoidedAt = DateTimeOffset.UtcNow;
+        Status = SalesReturnStatus.Void;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

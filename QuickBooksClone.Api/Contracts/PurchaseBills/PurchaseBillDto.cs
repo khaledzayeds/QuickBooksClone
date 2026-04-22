@@ -7,6 +7,8 @@ public sealed record PurchaseBillDto(
     string BillNumber,
     Guid VendorId,
     string? VendorName,
+    Guid? InventoryReceiptId,
+    string? InventoryReceiptNumber,
     DateOnly BillDate,
     DateOnly DueDate,
     PurchaseBillStatus Status,

@@ -1,0 +1,161 @@
+@page "/receive-inventory"
+@inject InventoryReceiptsApiClient InventoryReceiptsApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.ReceiveInventory
+
+<PageTitle>Receive Inventory</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>Receive Inventory</h1>
+            <p class="muted">Receive stock into inventory now and hold the accounting offset in Inventory Received Not Billed until the vendor bill arrives.</p>
+        </div>
+        <button class="primary-button" @onclick="NewReceipt">New Receipt</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search receipt number" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeVoid" />
+                Include void
+            </label>
+            <button class="secondary-button" @onclick="LoadReceiptsAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading inventory receipts...</p>
+        }
+        else if (receipts.Count == 0)
+        {
+            <p class="muted">No inventory receipts yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Receipt</th>
+                        <th>Vendor</th>
+                        <th>Purchase Order</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var receipt in receipts)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@receipt.ReceiptNumber</strong>
+                                <small>@receipt.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@receipt.VendorName</td>
+                            <td>@(receipt.PurchaseOrderNumber ?? "-")</td>
+                            <td>@receipt.ReceiptDate</td>
+                            <td>@receipt.TotalAmount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(receipt.Status == InventoryReceiptStatus.Posted ? "active" : "inactive")">@receipt.Status</span>
+                            </td>
+                            <td class="actions">
+                                @if (receipt.Status == InventoryReceiptStatus.Posted)
+                                {
+                                    <button class="link-button" @onclick="() => BillReceipt(receipt)">Bill</button>
+                                }
+                                @if (receipt.Status == InventoryReceiptStatus.Draft)
+                                {
+                                    <button class="link-button" @onclick="() => PostAsync(receipt)">Post</button>
+                                }
+                                @if (receipt.Status is InventoryReceiptStatus.Draft or InventoryReceiptStatus.Posted)
+                                {
+                                    <button class="link-button" @onclick="() => VoidAsync(receipt)">Void</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private readonly List<InventoryReceiptDto> receipts = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeVoid;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReceiptsAsync();
+    }
+
+    private async Task LoadReceiptsAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await InventoryReceiptsApi.SearchAsync(searchText, null, null, includeVoid);
+            receipts.Clear();
+            receipts.AddRange(result.Items);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load inventory receipts. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task PostAsync(InventoryReceiptDto receipt)
+    {
+        try
+        {
+            errorMessage = null;
+            await InventoryReceiptsApi.PostAsync(receipt.Id);
+            await LoadReceiptsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not post inventory receipt. Details: {ex.Message}";
+        }
+    }
+
+    private async Task VoidAsync(InventoryReceiptDto receipt)
+    {
+        try
+        {
+            errorMessage = null;
+            await InventoryReceiptsApi.VoidAsync(receipt.Id);
+            await LoadReceiptsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not void inventory receipt. Details: {ex.Message}";
+        }
+    }
+
+    private void NewReceipt()
+    {
+        Navigation.NavigateTo("receive-inventory/new");
+    }
+
+    private void BillReceipt(InventoryReceiptDto receipt)
+    {
+        Navigation.NavigateTo($"purchase-bills/new?inventoryReceiptId={receipt.Id}");
+    }
+}

@@ -78,6 +78,7 @@
                                 }
                                 @if (order.Status == PurchaseOrderStatus.Open)
                                 {
+                                    <button class="link-button" @onclick="() => ReceiveAsync(order)">Receive</button>
                                     <button class="link-button" @onclick="() => CloseAsync(order)">Close</button>
                                 }
                                 @if (order.Status is PurchaseOrderStatus.Draft or PurchaseOrderStatus.Open)
@@ -165,6 +166,11 @@
         {
             errorMessage = $"Could not cancel purchase order. Details: {ex.Message}";
         }
+    }
+
+    private void ReceiveAsync(PurchaseOrderDto order)
+    {
+        Navigation.NavigateTo($"receive-inventory/new?purchaseOrderId={order.Id}");
     }
 
     private void NewOrder()

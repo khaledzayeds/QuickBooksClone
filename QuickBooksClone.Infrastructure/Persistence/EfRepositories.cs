@@ -10,6 +10,7 @@ using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseReturns;
+using QuickBooksClone.Core.ReceiveInventory;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.VendorPayments;
@@ -141,6 +142,7 @@ public sealed class EfCustomerRepository : ICustomerRepository
     public Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.ApplyPayment(amount), cancellationToken);
     public Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.ReversePayment(amount), cancellationToken);
     public Task<bool> ApplySalesReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.ApplySalesReturn(amount), cancellationToken);
+    public Task<bool> ReverseSalesReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.ReverseSalesReturn(amount), cancellationToken);
     public Task<bool> AddCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.AddCredit(amount), cancellationToken);
     public Task<bool> UseCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.UseCredit(amount), cancellationToken);
     public Task<bool> ApplyCreditToInvoiceAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.ApplyCreditToInvoice(amount), cancellationToken);
@@ -163,6 +165,7 @@ public sealed class EfVendorRepository : IVendorRepository
     public Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, vendor => vendor.ApplyPayment(amount), cancellationToken);
     public Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, vendor => vendor.ReversePayment(amount), cancellationToken);
     public Task<bool> ApplyPurchaseReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, vendor => vendor.ApplyPurchaseReturn(amount), cancellationToken);
+    public Task<bool> ReversePurchaseReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, vendor => vendor.ReversePurchaseReturn(amount), cancellationToken);
     public Task<bool> UseCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, vendor => vendor.UseCredit(amount), cancellationToken);
     private async Task<bool> MutateAsync(Guid id, Action<Vendor> mutation, CancellationToken cancellationToken) { var vendor = await GetByIdAsync(id, cancellationToken); if (vendor is null) return false; mutation(vendor); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
@@ -208,6 +211,7 @@ public sealed class EfInvoiceRepository : IInvoiceRepository
     public Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, invoice => invoice.ReversePayment(amount), cancellationToken);
     public Task<bool> ApplyCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, invoice => invoice.ApplyCredit(amount), cancellationToken);
     public Task<bool> ApplyReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, invoice => invoice.ApplyReturn(amount), cancellationToken);
+    public Task<bool> ReverseReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, invoice => invoice.ReverseReturn(amount), cancellationToken);
     public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default) => MutateAsync(id, invoice => invoice.Void(reversalTransactionId), cancellationToken);
     private async Task<bool> MutateAsync(Guid id, Action<Invoice> mutation, CancellationToken cancellationToken) { var invoice = await GetByIdAsync(id, cancellationToken); if (invoice is null) return false; mutation(invoice); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
@@ -229,16 +233,61 @@ public sealed class EfPurchaseBillRepository : IPurchaseBillRepository
     private readonly QuickBooksCloneDbContext _db;
     public EfPurchaseBillRepository(QuickBooksCloneDbContext db) => _db = db;
     private IQueryable<PurchaseBill> Query() => _db.PurchaseBills.Include(bill => bill.Lines);
-    public async Task<PurchaseBillListResult> SearchAsync(PurchaseBillSearch search, CancellationToken cancellationToken = default) { var page = Math.Max(search.Page, 1); var pageSize = Math.Clamp(search.PageSize, 1, 100); var query = Query(); if (!search.IncludeVoid) query = query.Where(bill => bill.Status != PurchaseBillStatus.Void); if (search.VendorId is not null) query = query.Where(bill => bill.VendorId == search.VendorId); if (!string.IsNullOrWhiteSpace(search.Search)) { var term = EfAccountRepository.Like(search.Search); query = query.Where(bill => EF.Functions.Like(bill.BillNumber, term)); } var total = await query.CountAsync(cancellationToken); var items = await query.OrderByDescending(bill => bill.BillDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken); return new PurchaseBillListResult(items, total, page, pageSize); }
+    public async Task<PurchaseBillListResult> SearchAsync(PurchaseBillSearch search, CancellationToken cancellationToken = default) { var page = Math.Max(search.Page, 1); var pageSize = Math.Clamp(search.PageSize, 1, 100); var query = Query(); if (!search.IncludeVoid) query = query.Where(bill => bill.Status != PurchaseBillStatus.Void); if (search.VendorId is not null) query = query.Where(bill => bill.VendorId == search.VendorId); if (search.InventoryReceiptId is not null) query = query.Where(bill => bill.InventoryReceiptId == search.InventoryReceiptId); if (!string.IsNullOrWhiteSpace(search.Search)) { var term = EfAccountRepository.Like(search.Search); query = query.Where(bill => EF.Functions.Like(bill.BillNumber, term)); } var total = await query.CountAsync(cancellationToken); var items = await query.OrderByDescending(bill => bill.BillDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken); return new PurchaseBillListResult(items, total, page, pageSize); }
     public Task<PurchaseBill?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Query().FirstOrDefaultAsync(bill => bill.Id == id, cancellationToken);
     public async Task<PurchaseBill> AddAsync(PurchaseBill bill, CancellationToken cancellationToken = default) { _db.PurchaseBills.Add(bill); await _db.SaveChangesAsync(cancellationToken); return bill; }
+    public async Task<Dictionary<Guid, decimal>> GetBilledQuantitiesByInventoryReceiptLineIdsAsync(IEnumerable<Guid> inventoryReceiptLineIds, CancellationToken cancellationToken = default)
+    {
+        var lineIds = inventoryReceiptLineIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (lineIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await Query()
+            .Where(bill => bill.Status != PurchaseBillStatus.Void)
+            .SelectMany(bill => bill.Lines)
+            .Where(line => line.InventoryReceiptLineId.HasValue && lineIds.Contains(line.InventoryReceiptLineId.Value))
+            .GroupBy(line => line.InventoryReceiptLineId!.Value)
+            .ToDictionaryAsync(group => group.Key, group => group.Sum(line => line.Quantity), cancellationToken);
+    }
     public Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.MarkPosted(transactionId), cancellationToken);
     public Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.ApplyPayment(amount), cancellationToken);
     public Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.ReversePayment(amount), cancellationToken);
     public Task<bool> ApplyCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.ApplyCredit(amount), cancellationToken);
     public Task<bool> ApplyReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.ApplyReturn(amount), cancellationToken);
+    public Task<bool> ReverseReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.ReverseReturn(amount), cancellationToken);
     public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default) => MutateAsync(id, bill => bill.Void(reversalTransactionId), cancellationToken);
     private async Task<bool> MutateAsync(Guid id, Action<PurchaseBill> mutation, CancellationToken cancellationToken) { var bill = await GetByIdAsync(id, cancellationToken); if (bill is null) return false; mutation(bill); await _db.SaveChangesAsync(cancellationToken); return true; }
+}
+
+public sealed class EfInventoryReceiptRepository : IInventoryReceiptRepository
+{
+    private readonly QuickBooksCloneDbContext _db;
+    public EfInventoryReceiptRepository(QuickBooksCloneDbContext db) => _db = db;
+    private IQueryable<InventoryReceipt> Query() => _db.InventoryReceipts.Include(receipt => receipt.Lines);
+    public async Task<InventoryReceiptListResult> SearchAsync(InventoryReceiptSearch search, CancellationToken cancellationToken = default) { var page = Math.Max(search.Page, 1); var pageSize = Math.Clamp(search.PageSize, 1, 100); var query = Query(); if (!search.IncludeVoid) query = query.Where(receipt => receipt.Status != InventoryReceiptStatus.Void); if (search.VendorId is not null) query = query.Where(receipt => receipt.VendorId == search.VendorId); if (search.PurchaseOrderId is not null) query = query.Where(receipt => receipt.PurchaseOrderId == search.PurchaseOrderId); if (!string.IsNullOrWhiteSpace(search.Search)) { var term = EfAccountRepository.Like(search.Search); query = query.Where(receipt => EF.Functions.Like(receipt.ReceiptNumber, term)); } var total = await query.CountAsync(cancellationToken); var items = await query.OrderByDescending(receipt => receipt.ReceiptDate).ThenByDescending(receipt => receipt.ReceiptNumber).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken); return new InventoryReceiptListResult(items, total, page, pageSize); }
+    public Task<InventoryReceipt?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Query().FirstOrDefaultAsync(receipt => receipt.Id == id, cancellationToken);
+    public async Task<InventoryReceipt> AddAsync(InventoryReceipt receipt, CancellationToken cancellationToken = default) { _db.InventoryReceipts.Add(receipt); await _db.SaveChangesAsync(cancellationToken); return receipt; }
+    public Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default) => MutateAsync(id, receipt => receipt.MarkPosted(transactionId), cancellationToken);
+    public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default) => MutateAsync(id, receipt => receipt.Void(reversalTransactionId), cancellationToken);
+    public async Task<Dictionary<Guid, decimal>> GetReceivedQuantitiesByPurchaseOrderLineIdsAsync(IEnumerable<Guid> purchaseOrderLineIds, CancellationToken cancellationToken = default)
+    {
+        var lineIds = purchaseOrderLineIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (lineIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await Query()
+            .Where(receipt => receipt.Status != InventoryReceiptStatus.Void)
+            .SelectMany(receipt => receipt.Lines)
+            .Where(line => line.PurchaseOrderLineId.HasValue && lineIds.Contains(line.PurchaseOrderLineId.Value))
+            .GroupBy(line => line.PurchaseOrderLineId!.Value)
+            .ToDictionaryAsync(group => group.Key, group => group.Sum(line => line.Quantity), cancellationToken);
+    }
+
+    private async Task<bool> MutateAsync(Guid id, Action<InventoryReceipt> mutation, CancellationToken cancellationToken) { var receipt = await GetByIdAsync(id, cancellationToken); if (receipt is null) return false; mutation(receipt); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
 
 public sealed class EfPurchaseOrderRepository : IPurchaseOrderRepository
@@ -276,6 +325,7 @@ public sealed class EfSalesReturnRepository : ISalesReturnRepository
     public Task<SalesReturn?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Query().FirstOrDefaultAsync(salesReturn => salesReturn.Id == id, cancellationToken);
     public async Task<SalesReturn> AddAsync(SalesReturn salesReturn, CancellationToken cancellationToken = default) { _db.SalesReturns.Add(salesReturn); await _db.SaveChangesAsync(cancellationToken); return salesReturn; }
     public async Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default) { var salesReturn = await GetByIdAsync(id, cancellationToken); if (salesReturn is null) return false; salesReturn.MarkPosted(transactionId); await _db.SaveChangesAsync(cancellationToken); return true; }
+    public async Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default) { var salesReturn = await GetByIdAsync(id, cancellationToken); if (salesReturn is null) return false; salesReturn.Void(reversalTransactionId); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
 
 public sealed class EfPurchaseReturnRepository : IPurchaseReturnRepository
@@ -287,6 +337,7 @@ public sealed class EfPurchaseReturnRepository : IPurchaseReturnRepository
     public Task<PurchaseReturn?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Query().FirstOrDefaultAsync(purchaseReturn => purchaseReturn.Id == id, cancellationToken);
     public async Task<PurchaseReturn> AddAsync(PurchaseReturn purchaseReturn, CancellationToken cancellationToken = default) { _db.PurchaseReturns.Add(purchaseReturn); await _db.SaveChangesAsync(cancellationToken); return purchaseReturn; }
     public async Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default) { var purchaseReturn = await GetByIdAsync(id, cancellationToken); if (purchaseReturn is null) return false; purchaseReturn.MarkPosted(transactionId); await _db.SaveChangesAsync(cancellationToken); return true; }
+    public async Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default) { var purchaseReturn = await GetByIdAsync(id, cancellationToken); if (purchaseReturn is null) return false; purchaseReturn.Void(reversalTransactionId); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
 
 public sealed class EfCustomerCreditActivityRepository : ICustomerCreditActivityRepository

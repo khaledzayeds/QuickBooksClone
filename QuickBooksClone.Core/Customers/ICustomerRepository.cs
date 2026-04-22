@@ -14,6 +14,7 @@ public interface ICustomerRepository
     Task<bool> ApplyPaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> ReversePaymentAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> ApplySalesReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
+    Task<bool> ReverseSalesReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> AddCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> UseCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);
     Task<bool> ApplyCreditToInvoiceAsync(Guid id, decimal amount, CancellationToken cancellationToken = default);

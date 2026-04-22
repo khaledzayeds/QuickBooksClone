@@ -1,0 +1,311 @@
+@page "/receive-inventory/new"
+@inject InventoryReceiptsApiClient InventoryReceiptsApi
+@inject PurchaseOrdersApiClient PurchaseOrdersApi
+@inject VendorsApiClient VendorsApi
+@inject ItemsApiClient ItemsApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.Items
+@using QuickBooksClone.Maui.Services.PurchaseOrders
+@using QuickBooksClone.Maui.Services.ReceiveInventory
+@using QuickBooksClone.Maui.Services.Vendors
+
+<PageTitle>New Inventory Receipt</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Purchases</p>
+            <h1>New Inventory Receipt</h1>
+            <p class="muted">Receive inventory now, increase stock immediately, and hold the offset in Inventory Received Not Billed until the vendor bill is entered.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Receipts</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <DataAnnotationsValidator />
+
+        <label>
+            Vendor
+            <InputSelect class="form-control" @bind-Value="form.VendorId" disabled="@isBoundToPurchaseOrder">
+                <option value="@Guid.Empty">Select vendor</option>
+                @foreach (var vendor in vendors)
+                {
+                    <option value="@vendor.Id">@vendor.DisplayName</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Receipt date
+                <InputDate class="form-control" @bind-Value="receiptDate" />
+            </label>
+
+            <label>
+                Purchase order
+                <InputSelect class="form-control" @bind-Value="selectedPurchaseOrderId" disabled="@isBoundToPurchaseOrder">
+                    <option value="">No purchase order</option>
+                    @foreach (var order in purchaseOrders)
+                    {
+                        <option value="@order.Id">@order.OrderNumber - @order.VendorName</option>
+                    }
+                </InputSelect>
+            </label>
+        </div>
+
+        @if (selectedPurchaseOrder is not null)
+        {
+            <div class="totals-box">
+                Receiving against <strong>@selectedPurchaseOrder.OrderNumber</strong>.
+                <small>Ordered quantities are used as the ceiling so we do not over-receive a PO line.</small>
+            </div>
+        }
+
+        <h3>Lines</h3>
+        <div class="form-row">
+            <label>
+                Item
+                <InputSelect class="form-control" @bind-Value="draftLine.ItemId">
+                    <option value="@Guid.Empty">Select item</option>
+                    @foreach (var item in AvailableItems)
+                    {
+                        <option value="@item.Id">@item.Name (@item.PurchasePrice.ToString("N2"))</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Quantity
+                <InputNumber class="form-control" @bind-Value="draftLine.Quantity" />
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Unit cost
+                <InputNumber class="form-control" @bind-Value="draftLine.UnitCost" />
+            </label>
+
+            <label>
+                Description
+                <InputText class="form-control" @bind-Value="draftLine.Description" />
+            </label>
+        </div>
+
+        @if (selectedPurchaseOrder is not null)
+        {
+            <label>
+                Purchase order line
+                <InputSelect class="form-control" @bind-Value="draftLine.PurchaseOrderLineId">
+                    <option value="">Select PO line</option>
+                    @foreach (var line in AvailablePurchaseOrderLines)
+                    {
+                        <option value="@line.Id">@GetItemName(line.ItemId) - Qty @line.Quantity.ToString("N2")</option>
+                    }
+                </InputSelect>
+            </label>
+        }
+
+        <button class="secondary-button" type="button" @onclick="AddLine">Add Line</button>
+
+        @if (form.Lines.Count > 0)
+        {
+            <table class="data-table compact-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>PO Line</th>
+                        <th>Qty</th>
+                        <th>Cost</th>
+                        <th>Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in form.Lines)
+                    {
+                        <tr>
+                            <td>@GetItemName(line.ItemId)</td>
+                            <td>@GetOrderLineLabel(line.PurchaseOrderLineId)</td>
+                            <td>@line.Quantity</td>
+                            <td>@line.UnitCost.ToString("N2")</td>
+                            <td>@((line.Quantity * line.UnitCost).ToString("N2"))</td>
+                            <td><button class="link-button" type="button" @onclick="() => RemoveLine(line)">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="totals-box">
+            Receipt total: @DraftTotal.ToString("N2")
+            <small>Posted receipts increase stock and credit Inventory Received Not Billed. Vendor balance stays unchanged until the bill is entered.</small>
+        </div>
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="() => SaveReceiptAsync(InventoryReceiptSaveMode.SaveAndPost)">
+                @(isSaving ? "Saving..." : "Save and Post")
+            </button>
+            <button class="secondary-button" type="button" disabled="@isSaving" @onclick="() => SaveReceiptAsync(InventoryReceiptSaveMode.Draft)">Save Draft</button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "purchaseOrderId")]
+    public Guid? PurchaseOrderId { get; set; }
+
+    private readonly List<VendorDto> vendors = [];
+    private readonly List<ItemDto> items = [];
+    private readonly List<PurchaseOrderDto> purchaseOrders = [];
+    private InventoryReceiptFormModel form = new();
+    private InventoryReceiptLineFormModel draftLine = new();
+    private DateTime receiptDate = DateTime.Today;
+    private string? errorMessage;
+    private bool isSaving;
+    private bool isBoundToPurchaseOrder;
+    private Guid? selectedPurchaseOrderId;
+    private PurchaseOrderDto? selectedPurchaseOrder;
+    private decimal DraftTotal => form.Lines.Sum(line => line.Quantity * line.UnitCost);
+    private IReadOnlyList<ItemDto> AvailableItems => selectedPurchaseOrder is null
+        ? items
+        : items.Where(item => selectedPurchaseOrder.Lines.Any(line => line.ItemId == item.Id)).ToList();
+    private IReadOnlyList<PurchaseOrderLineDto> AvailablePurchaseOrderLines => selectedPurchaseOrder?.Lines ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupsAsync();
+        await TryLoadPurchaseOrderAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await TryLoadPurchaseOrderAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var vendorResult = await VendorsApi.SearchAsync(null, false);
+        vendors.Clear();
+        vendors.AddRange(vendorResult.Items);
+
+        var itemResult = await ItemsApi.SearchAsync(null, false);
+        items.Clear();
+        items.AddRange(itemResult.Items);
+
+        var orderResult = await PurchaseOrdersApi.SearchAsync(null, false, false);
+        purchaseOrders.Clear();
+        purchaseOrders.AddRange(orderResult.Items.Where(order => order.Status == PurchaseOrderStatus.Open));
+    }
+
+    private async Task TryLoadPurchaseOrderAsync()
+    {
+        if (PurchaseOrderId is null || PurchaseOrderId == Guid.Empty)
+        {
+            isBoundToPurchaseOrder = false;
+            return;
+        }
+
+        selectedPurchaseOrder = await PurchaseOrdersApi.GetAsync(PurchaseOrderId.Value);
+        selectedPurchaseOrderId = selectedPurchaseOrder.Id;
+        form.PurchaseOrderId = selectedPurchaseOrder.Id;
+        form.VendorId = selectedPurchaseOrder.VendorId;
+        receiptDate = DateTime.Today;
+        isBoundToPurchaseOrder = true;
+    }
+
+    private void AddLine()
+    {
+        if (draftLine.ItemId == Guid.Empty || draftLine.Quantity <= 0)
+        {
+            errorMessage = "Select an item and enter a quantity greater than zero.";
+            return;
+        }
+
+        if (selectedPurchaseOrder is not null && (draftLine.PurchaseOrderLineId is null || draftLine.PurchaseOrderLineId == Guid.Empty))
+        {
+            errorMessage = "Select the purchase order line for this receipt line.";
+            return;
+        }
+
+        var item = items.FirstOrDefault(current => current.Id == draftLine.ItemId);
+        var unitCost = draftLine.UnitCost > 0 ? draftLine.UnitCost : item?.PurchasePrice ?? 0;
+
+        form.Lines.Add(new InventoryReceiptLineFormModel
+        {
+            ItemId = draftLine.ItemId,
+            PurchaseOrderLineId = draftLine.PurchaseOrderLineId,
+            Description = string.IsNullOrWhiteSpace(draftLine.Description) ? item?.Name : draftLine.Description,
+            Quantity = draftLine.Quantity,
+            UnitCost = unitCost
+        });
+
+        draftLine = new InventoryReceiptLineFormModel();
+        errorMessage = null;
+    }
+
+    private void RemoveLine(InventoryReceiptLineFormModel line)
+    {
+        form.Lines.Remove(line);
+    }
+
+    private async Task SaveReceiptAsync(InventoryReceiptSaveMode saveMode)
+    {
+        try
+        {
+            if (form.VendorId == Guid.Empty)
+            {
+                errorMessage = "Select a vendor first.";
+                return;
+            }
+
+            form.PurchaseOrderId = selectedPurchaseOrderId;
+
+            if (form.Lines.Count == 0)
+            {
+                errorMessage = "Add at least one receipt line.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.ReceiptDate = DateOnly.FromDateTime(receiptDate);
+            form.SaveMode = saveMode;
+            await InventoryReceiptsApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save inventory receipt. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string GetItemName(Guid itemId) => items.FirstOrDefault(item => item.Id == itemId)?.Name ?? itemId.ToString()[..8];
+
+    private string GetOrderLineLabel(Guid? purchaseOrderLineId)
+    {
+        if (purchaseOrderLineId is null || selectedPurchaseOrder is null)
+        {
+            return "-";
+        }
+
+        var line = selectedPurchaseOrder.Lines.FirstOrDefault(current => current.Id == purchaseOrderLineId.Value);
+        return line is null ? purchaseOrderLineId.Value.ToString()[..8] : $"{GetItemName(line.ItemId)} / {line.Quantity:N2}";
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("receive-inventory");
+    }
+}

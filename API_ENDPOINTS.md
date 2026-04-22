@@ -711,6 +711,124 @@ PATCH /api/purchase-orders/{id}/cancel
 
 Marks a draft/open purchase order as `Cancelled`.
 
+## Receive Inventory
+
+Receive Inventory is the operational bridge between Purchase Orders and Purchase Bills.
+
+Posted inventory receipts:
+
+- increase inventory quantity on hand
+- debit each item's Inventory Asset account
+- credit `Inventory Received Not Billed` (`2050`)
+- do not change vendor balance yet
+- do not create Accounts Payable yet
+
+### List Inventory Receipts
+
+```http
+GET /api/receive-inventory?search=&vendorId=&purchaseOrderId=&includeVoid=false&page=1&pageSize=25
+```
+
+### Get Inventory Receipt
+
+```http
+GET /api/receive-inventory/{id}
+```
+
+### Create Inventory Receipt
+
+```http
+POST /api/receive-inventory
+Content-Type: application/json
+```
+
+```json
+{
+  "vendorId": "guid",
+  "purchaseOrderId": "guid-or-null",
+  "receiptDate": "2026-04-22",
+  "saveMode": 2,
+  "lines": [
+    {
+      "itemId": "guid",
+      "purchaseOrderLineId": "guid-or-null",
+      "description": "Received stock",
+      "quantity": 4,
+      "unitCost": 9.5
+    }
+  ]
+}
+```
+
+If `purchaseOrderId` is supplied:
+
+- the purchase order must exist and be `Open`
+- the purchase order vendor must match the selected vendor
+- each line must reference a valid `purchaseOrderLineId`
+- requested quantities cannot exceed the ordered quantity minus quantities already received on prior posted receipts
+
+If `unitCost` is `0`, the API uses the selected item's purchase price.
+
+`saveMode` is numeric:
+
+```text
+1 Draft
+2 SaveAndPost
+```
+
+Validation:
+
+- `vendorId` must point to an active vendor
+- receipts must have at least one line
+- only inventory items are allowed
+- `quantity` must be greater than zero
+- `unitCost` must be greater than zero after fallback
+- items must have an Inventory Asset account before posting
+
+Document behavior:
+
+- draft receipts save without stock or accounting impact
+- `SaveAndPost` posts immediately through the dedicated inventory-receipt posting service
+- current posting is idempotent by source document
+
+Transactions use:
+
+```text
+sourceEntityType=InventoryReceipt
+sourceEntityId={inventoryReceiptId}
+transactionType=InventoryReceipt
+```
+
+### Post Inventory Receipt
+
+```http
+POST /api/receive-inventory/{id}/post
+```
+
+Posting is idempotent. Re-posting an already posted inventory receipt returns the posted document without duplicating stock or accounting effects.
+
+### Void Inventory Receipt
+
+```http
+PATCH /api/receive-inventory/{id}/void
+```
+
+Rules:
+
+- voiding a draft receipt marks it `Void` with no accounting or inventory impact
+- voiding a posted receipt creates a balanced reversal transaction
+- voiding a posted receipt removes the received quantity from stock
+- void is blocked if current stock is lower than the quantity that must be reversed
+- vendor balance stays unchanged because Receive Inventory itself does not touch Accounts Payable
+
+Reversal transactions use:
+
+```text
+sourceEntityType=InventoryReceiptReversal
+sourceEntityId={inventoryReceiptId}
+transactionType=InventoryReceiptReversal
+```
+
 ## Purchase Bills
 
 Purchase bills are posted through a dedicated posting service. Posted purchase bills:
@@ -721,10 +839,21 @@ Purchase bills are posted through a dedicated posting service. Posted purchase b
 - Increase inventory item quantity on hand.
 - Increase vendor balance.
 
+Purchase bills support two modes:
+
+1. Direct bill
+   - inventory items debit Inventory Asset and can still increase stock directly
+   - service/non-inventory items debit their expense account
+   - credit Accounts Payable
+2. Bill against received inventory
+   - references a posted `Receive Inventory` document
+   - clears `Inventory Received Not Billed` into Accounts Payable
+   - does not increase stock a second time
+
 ### List Purchase Bills
 
 ```http
-GET /api/purchase-bills?search=&vendorId=&includeVoid=false&page=1&pageSize=25
+GET /api/purchase-bills?search=&vendorId=&inventoryReceiptId=&includeVoid=false&page=1&pageSize=25
 ```
 
 ### Get Purchase Bill
@@ -743,12 +872,14 @@ Content-Type: application/json
 ```json
 {
   "vendorId": "guid",
+  "inventoryReceiptId": "guid-or-null",
   "billDate": "2026-04-18",
   "dueDate": "2026-05-18",
   "saveMode": 2,
   "lines": [
     {
       "itemId": "guid",
+      "inventoryReceiptLineId": "guid-or-null",
       "description": "Line description",
       "quantity": 2,
       "unitCost": 40
@@ -772,6 +903,9 @@ Validation:
 - Bills must have at least one line.
 - `quantity` must be greater than zero.
 - `unitCost` cannot be negative.
+- If `inventoryReceiptId` is supplied, it must point to a posted receipt for the same vendor.
+- If `inventoryReceiptId` is supplied, every line must reference a valid `inventoryReceiptLineId` from that receipt.
+- Billed quantities cannot exceed the remaining unbilled quantity on the linked receipt line.
 - Inventory items need an inventory asset account before posting.
 - Service/non-inventory items need an expense account before posting.
 - Accounts Payable must exist before posting.
@@ -791,6 +925,14 @@ sourceEntityType=PurchaseBill
 sourceEntityId={purchaseBillId}
 transactionType=PurchaseBill
 ```
+
+Accounting behavior for bills against receipts:
+
+- Debit `Inventory Received Not Billed` using the receipt cost for the billed quantity.
+- If the vendor bill cost differs from the receipt cost, the variance adjusts Inventory Asset.
+- Credit Accounts Payable for the bill total.
+- Vendor balance increases by the full bill total.
+- Inventory quantity does not change on the bill, because it already changed on the receipt.
 
 ### Void Purchase Bill
 
@@ -885,6 +1027,28 @@ Purchase return transactions use:
 sourceEntityType=PurchaseReturn
 sourceEntityId={purchaseReturnId}
 transactionType=PurchaseReturn
+```
+
+### Void Purchase Return
+
+```http
+PATCH /api/purchase-returns/{id}/void
+```
+
+Rules:
+
+- draft purchase returns are marked `Void` with no accounting impact
+- posted purchase returns create a balanced reversal transaction
+- voiding a posted purchase return restores the returned inventory quantity back into stock
+- purchase bill returned amount is reduced back by the voided return amount
+- vendor return impact is reversed at the subledger aggregate level
+
+Reversal transactions use:
+
+```text
+sourceEntityType=PurchaseReturnReversal
+sourceEntityId={purchaseReturnId}
+transactionType=PurchaseReturnReversal
 ```
 
 ## Vendor Credits
@@ -1134,6 +1298,8 @@ Current MAUI entry screens are separate from list screens:
 /invoices/new
 /sales-receipts/new
 /purchase-orders/new
+/receive-inventory/new
+/purchase-bills/new?inventoryReceiptId={receiptId}
 ```
 
 ### Activate / Deactivate Account
@@ -1661,6 +1827,28 @@ Sales return transactions use:
 sourceEntityType=SalesReturn
 sourceEntityId={salesReturnId}
 transactionType=SalesReturn
+```
+
+### Void Sales Return
+
+```http
+PATCH /api/sales-returns/{id}/void
+```
+
+Rules:
+
+- draft sales returns are marked `Void` with no accounting impact
+- posted sales returns create a balanced reversal transaction
+- voiding a posted sales return removes the returned inventory quantity from stock
+- invoice returned amount is reduced back by the voided return amount
+- customer return impact is reversed at the subledger aggregate level
+
+Reversal transactions use:
+
+```text
+sourceEntityType=SalesReturnReversal
+sourceEntityId={salesReturnId}
+transactionType=SalesReturnReversal
 ```
 
 ## Customer Credits

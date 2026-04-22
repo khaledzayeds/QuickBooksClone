@@ -125,6 +125,19 @@ public sealed class Customer : EntityBase, ITenantEntity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    public void ReverseSalesReturn(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Return amount must be greater than zero.");
+        }
+
+        var creditReduction = Math.Min(CreditBalance, amount);
+        CreditBalance -= creditReduction;
+        Balance += amount - creditReduction;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void AddCredit(decimal amount)
     {
         if (amount <= 0)

@@ -7,7 +7,7 @@ public sealed class PurchaseBillLine
         Description = string.Empty;
     }
 
-    public PurchaseBillLine(Guid itemId, string description, decimal quantity, decimal unitCost)
+    public PurchaseBillLine(Guid itemId, string description, decimal quantity, decimal unitCost, Guid? inventoryReceiptLineId = null)
     {
         if (itemId == Guid.Empty)
         {
@@ -25,6 +25,7 @@ public sealed class PurchaseBillLine
         }
 
         ItemId = itemId;
+        InventoryReceiptLineId = inventoryReceiptLineId;
         Description = string.IsNullOrWhiteSpace(description) ? "Item" : description.Trim();
         Quantity = quantity;
         UnitCost = unitCost;
@@ -32,6 +33,7 @@ public sealed class PurchaseBillLine
 
     public Guid Id { get; } = Guid.NewGuid();
     public Guid ItemId { get; }
+    public Guid? InventoryReceiptLineId { get; }
     public string Description { get; }
     public decimal Quantity { get; }
     public decimal UnitCost { get; }

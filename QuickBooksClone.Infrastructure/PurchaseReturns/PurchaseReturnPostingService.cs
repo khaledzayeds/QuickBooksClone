@@ -9,6 +9,7 @@ namespace QuickBooksClone.Infrastructure.PurchaseReturns;
 public sealed class PurchaseReturnPostingService : IPurchaseReturnPostingService
 {
     private const string PurchaseReturnSourceEntityType = "PurchaseReturn";
+    private const string PurchaseReturnReversalSourceEntityType = "PurchaseReturnReversal";
 
     private readonly IPurchaseReturnRepository _returns;
     private readonly IPurchaseBillRepository _bills;
@@ -92,6 +93,57 @@ public sealed class PurchaseReturnPostingService : IPurchaseReturnPostingService
         return PurchaseReturnPostingResult.Success(savedTransaction.Id);
     }
 
+    public async Task<PurchaseReturnPostingResult> VoidAsync(Guid purchaseReturnId, CancellationToken cancellationToken = default)
+    {
+        var purchaseReturn = await _returns.GetByIdAsync(purchaseReturnId, cancellationToken);
+        if (purchaseReturn is null) return PurchaseReturnPostingResult.Failure("Purchase return does not exist.");
+        if (purchaseReturn.Status == PurchaseReturnStatus.Void) return PurchaseReturnPostingResult.Success(purchaseReturn.ReversalTransactionId);
+
+        if (purchaseReturn.PostedTransactionId is null)
+        {
+            await _returns.VoidAsync(purchaseReturn.Id, null, cancellationToken);
+            return PurchaseReturnPostingResult.Success();
+        }
+
+        var bill = await _bills.GetByIdAsync(purchaseReturn.PurchaseBillId, cancellationToken);
+        if (bill is null) return PurchaseReturnPostingResult.Failure("Purchase bill does not exist.");
+
+        var vendor = await _vendors.GetByIdAsync(purchaseReturn.VendorId, cancellationToken);
+        if (vendor is null) return PurchaseReturnPostingResult.Failure("Vendor does not exist.");
+
+        var existingReversal = await _transactions.GetBySourceAsync(PurchaseReturnReversalSourceEntityType, purchaseReturn.Id, cancellationToken);
+        if (existingReversal is not null)
+        {
+            await _returns.VoidAsync(purchaseReturn.Id, existingReversal.Id, cancellationToken);
+            return PurchaseReturnPostingResult.Success(existingReversal.Id);
+        }
+
+        var originalTransaction = await _transactions.GetByIdAsync(purchaseReturn.PostedTransactionId.Value, cancellationToken);
+        if (originalTransaction is null) return PurchaseReturnPostingResult.Failure("Posted purchase return transaction is missing.");
+
+        var inventoryLines = new List<(PurchaseReturnLine ReturnLine, Item Item)>();
+        foreach (var returnLine in purchaseReturn.Lines)
+        {
+            var item = await _items.GetByIdAsync(returnLine.ItemId, cancellationToken);
+            if (item is null) return PurchaseReturnPostingResult.Failure($"Item does not exist: {returnLine.ItemId}");
+            if (item.ItemType != ItemType.Inventory) continue;
+            inventoryLines.Add((returnLine, item));
+        }
+
+        var reversal = BuildReversalTransaction(purchaseReturn, originalTransaction);
+        var savedReversal = await _transactions.AddAsync(reversal, cancellationToken);
+
+        foreach (var (returnLine, item) in inventoryLines)
+        {
+            await _items.IncreaseQuantityAsync(item.Id, returnLine.Quantity, cancellationToken);
+        }
+
+        await _bills.ReverseReturnAsync(bill.Id, purchaseReturn.TotalAmount, cancellationToken);
+        await _vendors.ReversePurchaseReturnAsync(vendor.Id, purchaseReturn.TotalAmount, cancellationToken);
+        await _returns.VoidAsync(purchaseReturn.Id, savedReversal.Id, cancellationToken);
+        return PurchaseReturnPostingResult.Success(savedReversal.Id);
+    }
+
     private async Task<Dictionary<Guid, decimal>> GetPostedReturnedQuantitiesAsync(PurchaseReturn currentReturn, CancellationToken cancellationToken)
     {
         var result = await _returns.SearchAsync(new PurchaseReturnSearch(PurchaseBillId: currentReturn.PurchaseBillId, IncludeVoid: false, PageSize: 200), cancellationToken);
@@ -110,6 +162,17 @@ public sealed class PurchaseReturnPostingService : IPurchaseReturnPostingService
         {
             var creditAccountId = item.ItemType == ItemType.Inventory ? item.InventoryAssetAccountId!.Value : item.ExpenseAccountId!.Value;
             transaction.AddLine(new AccountingTransactionLine(creditAccountId, $"Return - {returnLine.Description}", 0, returnLine.LineTotal));
+        }
+
+        return transaction;
+    }
+
+    private static AccountingTransaction BuildReversalTransaction(PurchaseReturn purchaseReturn, AccountingTransaction originalTransaction)
+    {
+        var transaction = new AccountingTransaction("PurchaseReturnReversal", DateOnly.FromDateTime(DateTime.UtcNow), $"{purchaseReturn.ReturnNumber}-VOID", PurchaseReturnReversalSourceEntityType, purchaseReturn.Id);
+        foreach (var line in originalTransaction.Lines)
+        {
+            transaction.AddLine(new AccountingTransactionLine(line.AccountId, $"Reversal - {line.Description}", line.Credit, line.Debit));
         }
 
         return transaction;

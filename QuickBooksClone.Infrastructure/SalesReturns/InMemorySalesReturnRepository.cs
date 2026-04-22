@@ -69,4 +69,15 @@ public sealed class InMemorySalesReturnRepository : ISalesReturnRepository
         salesReturn.MarkPosted(transactionId);
         return Task.FromResult(true);
     }
+
+    public Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default)
+    {
+        if (!_salesReturns.TryGetValue(id, out var salesReturn))
+        {
+            return Task.FromResult(false);
+        }
+
+        salesReturn.Void(reversalTransactionId);
+        return Task.FromResult(true);
+    }
 }

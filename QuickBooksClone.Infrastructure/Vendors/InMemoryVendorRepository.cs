@@ -146,6 +146,17 @@ public sealed class InMemoryVendorRepository : IVendorRepository
         return Task.FromResult(true);
     }
 
+    public Task<bool> ReversePurchaseReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_vendors.TryGetValue(id, out var vendor))
+        {
+            return Task.FromResult(false);
+        }
+
+        vendor.ReversePurchaseReturn(amount);
+        return Task.FromResult(true);
+    }
+
     public Task<bool> UseCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
     {
         if (!_vendors.TryGetValue(id, out var vendor))

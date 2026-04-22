@@ -38,6 +38,14 @@ public sealed class PurchaseOrdersApiClient
             ?? throw new InvalidOperationException("API returned an empty purchase order response.");
     }
 
+    public async Task<PurchaseOrderDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"api/purchase-orders/{id}", cancellationToken);
+        await response.EnsureQuickBooksSuccessAsync(cancellationToken);
+        return await response.Content.ReadFromJsonAsync<PurchaseOrderDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty purchase order response.");
+    }
+
     public async Task<PurchaseOrderDto> OpenAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsync($"api/purchase-orders/{id}/open", null, cancellationToken);

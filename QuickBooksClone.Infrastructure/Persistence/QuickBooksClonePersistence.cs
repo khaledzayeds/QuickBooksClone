@@ -120,6 +120,7 @@ public static class QuickBooksClonePersistence
         var arAccountId = Guid.Parse("10000000-0000-0000-0000-000000000002");
         var inventoryAccountId = Guid.Parse("10000000-0000-0000-0000-000000000003");
         var apAccountId = Guid.Parse("10000000-0000-0000-0000-000000000004");
+        var grniAccountId = Guid.Parse("10000000-0000-0000-0000-000000000009");
         var equityAccountId = Guid.Parse("10000000-0000-0000-0000-000000000005");
         var incomeAccountId = Guid.Parse("10000000-0000-0000-0000-000000000006");
         var cogsAccountId = Guid.Parse("10000000-0000-0000-0000-000000000007");
@@ -137,10 +138,15 @@ public static class QuickBooksClonePersistence
                 new Account("1100", "Accounts Receivable", AccountType.AccountsReceivable) { Id = arAccountId },
                 new Account("1200", "Inventory Asset", AccountType.InventoryAsset) { Id = inventoryAccountId },
                 new Account("2000", "Accounts Payable", AccountType.AccountsPayable) { Id = apAccountId },
+                new Account("2050", "Inventory Received Not Billed", AccountType.OtherCurrentLiability) { Id = grniAccountId },
                 new Account("3000", "Owner Equity", AccountType.Equity) { Id = equityAccountId },
                 new Account("4000", "Sales Income", AccountType.Income) { Id = incomeAccountId },
                 new Account("5000", "Cost of Goods Sold", AccountType.CostOfGoodsSold) { Id = cogsAccountId },
                 new Account("6000", "General Expenses", AccountType.Expense) { Id = expenseAccountId });
+        }
+        else
+        {
+            await EnsureAccountAsync(dbContext, grniAccountId, "2050", "Inventory Received Not Billed", AccountType.OtherCurrentLiability);
         }
 
         if (!await dbContext.Customers.AnyAsync())
@@ -184,5 +190,23 @@ public static class QuickBooksClonePersistence
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task EnsureAccountAsync(
+        QuickBooksCloneDbContext dbContext,
+        Guid id,
+        string code,
+        string name,
+        AccountType accountType)
+    {
+        var exists = await dbContext.Accounts.AnyAsync(account =>
+            account.Code == code || account.Name == name);
+
+        if (exists)
+        {
+            return;
+        }
+
+        dbContext.Accounts.Add(new Account(code, name, accountType) { Id = id });
     }
 }

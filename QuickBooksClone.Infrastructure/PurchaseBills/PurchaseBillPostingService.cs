@@ -1,6 +1,7 @@
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.PurchaseBills;
+using QuickBooksClone.Core.ReceiveInventory;
 using QuickBooksClone.Core.Vendors;
 
 namespace QuickBooksClone.Infrastructure.PurchaseBills;
@@ -9,8 +10,11 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
 {
     private const string PurchaseBillSourceEntityType = "PurchaseBill";
     private const string PurchaseBillReversalSourceEntityType = "PurchaseBillReversal";
+    private const string GoodsReceivedNotBilledCode = "2050";
+    private const string GoodsReceivedNotBilledName = "Inventory Received Not Billed";
 
     private readonly IPurchaseBillRepository _bills;
+    private readonly IInventoryReceiptRepository _receipts;
     private readonly IVendorRepository _vendors;
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
@@ -18,12 +22,14 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
 
     public PurchaseBillPostingService(
         IPurchaseBillRepository bills,
+        IInventoryReceiptRepository receipts,
         IVendorRepository vendors,
         IItemRepository items,
         IAccountRepository accounts,
         IAccountingTransactionRepository transactions)
     {
         _bills = bills;
+        _receipts = receipts;
         _vendors = vendors;
         _items = items;
         _accounts = accounts;
@@ -77,6 +83,27 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
             return PurchaseBillPostingResult.Failure("Accounts Payable account is missing.");
         }
 
+        var grniAccount = await FindGoodsReceivedNotBilledAccountAsync(cancellationToken);
+        if (grniAccount is null)
+        {
+            return PurchaseBillPostingResult.Failure("Inventory Received Not Billed account is missing.");
+        }
+
+        InventoryReceipt? linkedReceipt = null;
+        if (bill.InventoryReceiptId is not null)
+        {
+            linkedReceipt = await _receipts.GetByIdAsync(bill.InventoryReceiptId.Value, cancellationToken);
+            if (linkedReceipt is null)
+            {
+                return PurchaseBillPostingResult.Failure("Linked inventory receipt does not exist.");
+            }
+
+            if (linkedReceipt.Status != InventoryReceiptStatus.Posted)
+            {
+                return PurchaseBillPostingResult.Failure("Linked inventory receipt must be posted before the bill is posted.");
+            }
+        }
+
         var lineItems = new List<(PurchaseBillLine Line, Item Item)>();
         foreach (var line in bill.Lines)
         {
@@ -86,7 +113,29 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
                 return PurchaseBillPostingResult.Failure($"Item does not exist: {line.ItemId}");
             }
 
-            if (item.ItemType == ItemType.Inventory)
+            if (line.InventoryReceiptLineId is not null)
+            {
+                if (linkedReceipt is null)
+                {
+                    return PurchaseBillPostingResult.Failure("Cannot bill inventory receipt lines without a linked inventory receipt.");
+                }
+
+                if (item.ItemType != ItemType.Inventory)
+                {
+                    return PurchaseBillPostingResult.Failure($"Only inventory items can be billed against received inventory. '{item.Name}' is {item.ItemType}.");
+                }
+
+                if (item.InventoryAssetAccountId is null)
+                {
+                    return PurchaseBillPostingResult.Failure($"Inventory item '{item.Name}' is missing an inventory asset account.");
+                }
+
+                if (linkedReceipt.Lines.All(receiptLine => receiptLine.Id != line.InventoryReceiptLineId.Value))
+                {
+                    return PurchaseBillPostingResult.Failure("Purchase bill line references an inventory receipt line that is not on the linked receipt.");
+                }
+            }
+            else if (item.ItemType == ItemType.Inventory)
             {
                 if (item.InventoryAssetAccountId is null)
                 {
@@ -101,10 +150,10 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
             lineItems.Add((line, item));
         }
 
-        var transaction = BuildAccountingTransaction(bill, apAccount.Id, lineItems);
+        var transaction = BuildAccountingTransaction(bill, apAccount.Id, grniAccount.Id, lineItems, linkedReceipt);
         var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
 
-        foreach (var (line, item) in lineItems.Where(current => current.Item.ItemType == ItemType.Inventory))
+        foreach (var (line, item) in lineItems.Where(current => current.Item.ItemType == ItemType.Inventory && current.Line.InventoryReceiptLineId is null))
         {
             await _items.IncreaseQuantityAsync(item.Id, line.Quantity, cancellationToken);
         }
@@ -165,6 +214,11 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
         var inventoryItems = new List<(PurchaseBillLine Line, Item Item)>();
         foreach (var line in bill.Lines)
         {
+            if (line.InventoryReceiptLineId is not null)
+            {
+                continue;
+            }
+
             var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
             if (item is null)
             {
@@ -200,7 +254,9 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
     private static AccountingTransaction BuildAccountingTransaction(
         PurchaseBill bill,
         Guid accountsPayableAccountId,
-        IReadOnlyList<(PurchaseBillLine Line, Item Item)> lineItems)
+        Guid goodsReceivedNotBilledAccountId,
+        IReadOnlyList<(PurchaseBillLine Line, Item Item)> lineItems,
+        InventoryReceipt? linkedReceipt)
     {
         var transaction = new AccountingTransaction(
             "PurchaseBill",
@@ -211,6 +267,37 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
 
         foreach (var (line, item) in lineItems)
         {
+            if (line.InventoryReceiptLineId is not null)
+            {
+                var receiptLine = linkedReceipt!.Lines.First(current => current.Id == line.InventoryReceiptLineId.Value);
+                var receiptAmount = receiptLine.UnitCost * line.Quantity;
+                transaction.AddLine(new AccountingTransactionLine(
+                    goodsReceivedNotBilledAccountId,
+                    $"Clear GRNI {receiptLine.Description}",
+                    receiptAmount,
+                    0));
+
+                var variance = line.LineTotal - receiptAmount;
+                if (variance > 0)
+                {
+                    transaction.AddLine(new AccountingTransactionLine(
+                        item.InventoryAssetAccountId!.Value,
+                        $"Receipt cost variance {line.Description}",
+                        variance,
+                        0));
+                }
+                else if (variance < 0)
+                {
+                    transaction.AddLine(new AccountingTransactionLine(
+                        item.InventoryAssetAccountId!.Value,
+                        $"Receipt cost variance {line.Description}",
+                        0,
+                        Math.Abs(variance)));
+                }
+
+                continue;
+            }
+
             var debitAccountId = item.ItemType == ItemType.Inventory
                 ? item.InventoryAssetAccountId!.Value
                 : item.ExpenseAccountId!.Value;
@@ -258,5 +345,13 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
     {
         var result = await _accounts.SearchAsync(new AccountSearch(null, accountType, false, 1, 1), cancellationToken);
         return result.Items.FirstOrDefault();
+    }
+
+    private async Task<Account?> FindGoodsReceivedNotBilledAccountAsync(CancellationToken cancellationToken)
+    {
+        var result = await _accounts.SearchAsync(new AccountSearch(null, AccountType.OtherCurrentLiability, false, 1, 50), cancellationToken);
+        return result.Items.FirstOrDefault(account =>
+            string.Equals(account.Code, GoodsReceivedNotBilledCode, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(account.Name, GoodsReceivedNotBilledName, StringComparison.OrdinalIgnoreCase));
     }
 }

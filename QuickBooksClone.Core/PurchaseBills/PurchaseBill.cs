@@ -29,6 +29,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
 
     public Guid CompanyId { get; }
     public Guid VendorId { get; }
+    public Guid? InventoryReceiptId { get; private set; }
     public string BillNumber { get; }
     public DateOnly BillDate { get; }
     public DateOnly DueDate { get; }
@@ -43,6 +44,22 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversalTransactionId { get; private set; }
     public DateTimeOffset? VoidedAt { get; private set; }
+
+    public void LinkInventoryReceipt(Guid inventoryReceiptId)
+    {
+        if (inventoryReceiptId == Guid.Empty)
+        {
+            throw new ArgumentException("Inventory receipt is required.", nameof(inventoryReceiptId));
+        }
+
+        if (_lines.Count > 0)
+        {
+            throw new InvalidOperationException("Link the inventory receipt before adding lines.");
+        }
+
+        InventoryReceiptId = inventoryReceiptId;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 
     public void AddLine(PurchaseBillLine line)
     {
@@ -193,6 +210,35 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
 
         CreditAppliedAmount += amount;
         Status = BalanceDue == 0 ? PurchaseBillStatus.Paid : PurchaseBillStatus.PartiallyPaid;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void ReverseReturn(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Return amount must be greater than zero.");
+        }
+
+        if (amount > ReturnedAmount)
+        {
+            throw new InvalidOperationException("Return reversal amount cannot exceed returned amount.");
+        }
+
+        ReturnedAmount -= amount;
+        if (BalanceDue == 0)
+        {
+            Status = PurchaseBillStatus.Paid;
+        }
+        else if (PaidAmount > 0 || ReturnedAmount > 0 || CreditAppliedAmount > 0)
+        {
+            Status = PurchaseBillStatus.PartiallyPaid;
+        }
+        else
+        {
+            Status = PurchaseBillStatus.Posted;
+        }
+
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

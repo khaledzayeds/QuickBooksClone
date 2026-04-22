@@ -23,6 +23,11 @@ public sealed class InMemoryPurchaseBillRepository : IPurchaseBillRepository
             query = query.Where(bill => bill.VendorId == search.VendorId);
         }
 
+        if (search.InventoryReceiptId is not null)
+        {
+            query = query.Where(bill => bill.InventoryReceiptId == search.InventoryReceiptId);
+        }
+
         if (!string.IsNullOrWhiteSpace(search.Search))
         {
             var term = search.Search.Trim();
@@ -52,6 +57,24 @@ public sealed class InMemoryPurchaseBillRepository : IPurchaseBillRepository
     {
         _bills[bill.Id] = bill;
         return Task.FromResult(bill);
+    }
+
+    public Task<Dictionary<Guid, decimal>> GetBilledQuantitiesByInventoryReceiptLineIdsAsync(IEnumerable<Guid> inventoryReceiptLineIds, CancellationToken cancellationToken = default)
+    {
+        var lineIds = inventoryReceiptLineIds.Where(id => id != Guid.Empty).Distinct().ToHashSet();
+        if (lineIds.Count == 0)
+        {
+            return Task.FromResult<Dictionary<Guid, decimal>>([]);
+        }
+
+        var quantities = _bills.Values
+            .Where(bill => bill.Status != PurchaseBillStatus.Void)
+            .SelectMany(bill => bill.Lines)
+            .Where(line => line.InventoryReceiptLineId.HasValue && lineIds.Contains(line.InventoryReceiptLineId.Value))
+            .GroupBy(line => line.InventoryReceiptLineId!.Value)
+            .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity));
+
+        return Task.FromResult(quantities);
     }
 
     public Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default)
@@ -106,6 +129,17 @@ public sealed class InMemoryPurchaseBillRepository : IPurchaseBillRepository
         }
 
         bill.ApplyReturn(amount);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ReverseReturnAsync(Guid id, decimal amount, CancellationToken cancellationToken = default)
+    {
+        if (!_bills.TryGetValue(id, out var bill))
+        {
+            return Task.FromResult(false);
+        }
+
+        bill.ReverseReturn(amount);
         return Task.FromResult(true);
     }
 
