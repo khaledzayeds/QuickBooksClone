@@ -90,6 +90,7 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
         }
 
         InventoryReceipt? linkedReceipt = null;
+        Dictionary<Guid, decimal> billedQuantities = [];
         if (bill.InventoryReceiptId is not null)
         {
             linkedReceipt = await _receipts.GetByIdAsync(bill.InventoryReceiptId.Value, cancellationToken);
@@ -102,6 +103,8 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
             {
                 return PurchaseBillPostingResult.Failure("Linked inventory receipt must be posted before the bill is posted.");
             }
+
+            billedQuantities = await _bills.GetBilledQuantitiesByInventoryReceiptLineIdsAsync(linkedReceipt.Lines.Select(line => line.Id), cancellationToken);
         }
 
         var lineItems = new List<(PurchaseBillLine Line, Item Item)>();
@@ -133,6 +136,13 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
                 if (linkedReceipt.Lines.All(receiptLine => receiptLine.Id != line.InventoryReceiptLineId.Value))
                 {
                     return PurchaseBillPostingResult.Failure("Purchase bill line references an inventory receipt line that is not on the linked receipt.");
+                }
+
+                var receiptLine = linkedReceipt.Lines.First(current => current.Id == line.InventoryReceiptLineId.Value);
+                var totalBilledQuantity = billedQuantities.GetValueOrDefault(receiptLine.Id);
+                if (totalBilledQuantity > receiptLine.Quantity)
+                {
+                    return PurchaseBillPostingResult.Failure($"Billed quantity exceeds received quantity for '{item.Name}'. Received: {receiptLine.Quantity:N2}, billed: {totalBilledQuantity:N2}.");
                 }
             }
             else if (item.ItemType == ItemType.Inventory)

@@ -82,9 +82,9 @@ public sealed class PaymentsController : ControllerBase
             return BadRequest("Invoice does not exist.");
         }
 
-        if (invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Void)
+        if (invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Void || invoice.PostedTransactionId is null)
         {
-            return BadRequest("Cannot receive a payment for a draft or void invoice.");
+            return BadRequest("Cannot receive a payment for an invoice that is not posted yet.");
         }
 
         if (invoice.PaymentMode != InvoicePaymentMode.Credit)

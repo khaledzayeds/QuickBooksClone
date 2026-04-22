@@ -1,5 +1,6 @@
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Items;
+using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.ReceiveInventory;
 using QuickBooksClone.Core.Vendors;
 
@@ -13,6 +14,7 @@ public sealed class InventoryReceiptPostingService : IInventoryReceiptPostingSer
     private const string GoodsReceivedNotBilledName = "Inventory Received Not Billed";
 
     private readonly IInventoryReceiptRepository _receipts;
+    private readonly IPurchaseBillRepository _bills;
     private readonly IVendorRepository _vendors;
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
@@ -20,12 +22,14 @@ public sealed class InventoryReceiptPostingService : IInventoryReceiptPostingSer
 
     public InventoryReceiptPostingService(
         IInventoryReceiptRepository receipts,
+        IPurchaseBillRepository bills,
         IVendorRepository vendors,
         IItemRepository items,
         IAccountRepository accounts,
         IAccountingTransactionRepository transactions)
     {
         _receipts = receipts;
+        _bills = bills;
         _vendors = vendors;
         _items = items;
         _accounts = accounts;
@@ -130,6 +134,16 @@ public sealed class InventoryReceiptPostingService : IInventoryReceiptPostingSer
         {
             await _receipts.VoidAsync(receipt.Id, null, cancellationToken);
             return InventoryReceiptPostingResult.Success();
+        }
+
+        var billedQuantities = await _bills.GetBilledQuantitiesByInventoryReceiptLineIdsAsync(receipt.Lines.Select(line => line.Id), cancellationToken);
+        var billedLines = receipt.Lines
+            .Where(line => billedQuantities.GetValueOrDefault(line.Id) > 0m)
+            .ToList();
+
+        if (billedLines.Count > 0)
+        {
+            return InventoryReceiptPostingResult.Failure("Cannot void inventory receipt because one or more receipt lines have already been billed. Void or reverse the linked purchase bill first.");
         }
 
         var existingReversal = await _transactions.GetBySourceAsync(InventoryReceiptReversalSourceEntityType, receipt.Id, cancellationToken);

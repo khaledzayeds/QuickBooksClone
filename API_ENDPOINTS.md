@@ -200,6 +200,7 @@ Response:
 Notes:
 
 - A/R aging is based on **open credit invoice balances** only.
+- Only **posted** credit invoices are included.
 - Cash sales receipts are excluded.
 - Buckets are based on `DueDate` relative to the selected `asOfDate`.
 - Customer `creditBalance` is exposed alongside the open receivable so collection and available credit can be reviewed together.
@@ -242,6 +243,7 @@ Response:
 Notes:
 
 - A/P aging is based on **open purchase bill balances** only.
+- Only **posted** purchase bills are included.
 - Due-date buckets use the selected `asOfDate`.
 - Vendor `creditBalance` is shown with the payable aging rows so available credits and outstanding bills can be reviewed together.
 
@@ -289,6 +291,7 @@ Notes:
 
 - This report is item-level and combines **inventory valuation** with **period stock movement** in one payload.
 - Movement sources currently include posted `Receive Inventory`, direct posted `Purchase Bills`, posted `Invoices` and `Sales Receipts`, posted `Sales Returns`, posted `Purchase Returns`, and posted `Inventory Adjustments`.
+- Draft and sent-but-unposted invoices are excluded.
 - `openingQuantity` and `closingQuantity` are reconstructed from current item on-hand plus dated stock movement.
 - Current valuation uses the item's **current purchase price** for opening and closing value.
 - True costing layers such as FIFO/average-cost history are intentionally deferred to a later inventory-costing phase.
@@ -2233,6 +2236,7 @@ Content-Type: application/json
 Validation:
 
 - `invoiceId` must point to an existing posted or partially paid invoice.
+- Unposted `Sent` invoices are rejected.
 - `amount` must be greater than zero.
 - `amount` cannot exceed invoice balance due.
 - `depositAccountId` must point to a Bank or Other Current Asset account.

@@ -245,6 +245,7 @@ public sealed class EfPurchaseBillRepository : IPurchaseBillRepository
         }
 
         return await Query()
+            .AsNoTracking()
             .Where(bill => bill.Status != PurchaseBillStatus.Void)
             .SelectMany(bill => bill.Lines)
             .Where(line => line.InventoryReceiptLineId.HasValue && lineIds.Contains(line.InventoryReceiptLineId.Value))

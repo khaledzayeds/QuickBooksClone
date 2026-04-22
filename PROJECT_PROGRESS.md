@@ -376,6 +376,10 @@ Architectural baseline is now fixed:
   - [x] Add live `Inventory Valuation / Stock Movement` API endpoint
   - [x] Combine inventory movement documents with current stock-on-hand for item-level opening/in/out/closing reporting
   - [x] Add desktop report view for inventory valuation and stock movement
+  - [x] Tighten reports so draft/sent-but-unposted invoices and draft purchase bills do not leak into aging or stock-movement reporting
+  - [x] Block payments on sent-but-unposted invoices
+  - [x] Block voiding received inventory after linked bill usage
+  - [x] Re-check billed-vs-received quantity inside purchase-bill posting service, not only in the controller
 
 ## In Progress
 
@@ -436,4 +440,5 @@ Architectural baseline is now fixed:
 - Sales and purchase returns now have backend reversal workflows instead of being one-way posting documents.
 - Reports are now starting from posted accounting transactions and current open-document balances instead of page-level totals, now including live Trial Balance, Balance Sheet, Profit and Loss, A/R Aging, A/P Aging, and Inventory Valuation / Stock Movement.
 - Current inventory valuation reconstructs opening/closing quantities from dated stock movement and uses the item's current purchase price for valuation until full costing layers are introduced.
+- Recent hardening pass closed four accounting-safety gaps: reports are posted-only, payments reject unposted sent invoices, billed receipts cannot be voided, and purchase-bill posting revalidates linked receipt quantities inside the posting layer.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.

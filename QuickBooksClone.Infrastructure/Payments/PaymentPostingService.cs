@@ -61,9 +61,9 @@ public sealed class PaymentPostingService : IPaymentPostingService
             return PaymentPostingResult.Failure("Invoice does not exist.");
         }
 
-        if (invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Void)
+        if (invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Void || invoice.PostedTransactionId is null)
         {
-            return PaymentPostingResult.Failure("Cannot receive a payment for a draft or void invoice.");
+            return PaymentPostingResult.Failure("Cannot receive a payment for an invoice that is not posted yet.");
         }
 
         if (invoice.CustomerId != payment.CustomerId)

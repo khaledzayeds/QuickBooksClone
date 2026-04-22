@@ -242,8 +242,8 @@ public sealed class FinancialReportService : IFinancialReportService
             .AsNoTracking()
             .Where(invoice =>
                 invoice.PaymentMode == Core.Invoices.InvoicePaymentMode.Credit &&
+                invoice.PostedTransactionId != null &&
                 invoice.Status != Core.Invoices.InvoiceStatus.Void &&
-                invoice.Status != Core.Invoices.InvoiceStatus.Draft &&
                 invoice.InvoiceDate <= asOfDate)
             .ToListAsync(cancellationToken);
 
@@ -345,8 +345,8 @@ public sealed class FinancialReportService : IFinancialReportService
         var candidateBills = await _db.PurchaseBills
             .AsNoTracking()
             .Where(bill =>
+                bill.PostedTransactionId != null &&
                 bill.Status != Core.PurchaseBills.PurchaseBillStatus.Void &&
-                bill.Status != Core.PurchaseBills.PurchaseBillStatus.Draft &&
                 bill.BillDate <= asOfDate)
             .ToListAsync(cancellationToken);
 
@@ -595,7 +595,7 @@ public sealed class FinancialReportService : IFinancialReportService
             .AsNoTracking()
             .Where(bill =>
                 bill.InventoryReceiptId == null &&
-                bill.Status != PurchaseBillStatus.Draft &&
+                bill.PostedTransactionId != null &&
                 bill.Status != PurchaseBillStatus.Void)
             .SelectMany(
                 bill => bill.Lines,
@@ -609,7 +609,7 @@ public sealed class FinancialReportService : IFinancialReportService
         var invoices = await _db.Invoices
             .AsNoTracking()
             .Where(invoice =>
-                invoice.Status != Core.Invoices.InvoiceStatus.Draft &&
+                invoice.PostedTransactionId != null &&
                 invoice.Status != Core.Invoices.InvoiceStatus.Void)
             .SelectMany(
                 invoice => invoice.Lines,
