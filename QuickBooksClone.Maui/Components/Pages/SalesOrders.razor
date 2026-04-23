@@ -1,0 +1,174 @@
+@page "/sales-orders"
+@inject SalesOrdersApiClient SalesOrdersApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.SalesOrders
+
+<PageTitle>Sales Orders</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Sales</p>
+            <h1>Sales Orders</h1>
+            <p class="muted">Track customer commitments before shipping, invoicing, or receipt posting happens.</p>
+        </div>
+        <button class="primary-button" @onclick="NewOrder">New Sales Order</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search sales order number" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeClosed" />
+                Include closed
+            </label>
+            <label class="check-row">
+                <input type="checkbox" @bind="includeCancelled" />
+                Include cancelled
+            </label>
+            <button class="secondary-button" @onclick="LoadOrdersAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading sales orders...</p>
+        }
+        else if (orders.Count == 0)
+        {
+            <p class="muted">No sales orders yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Customer</th>
+                        <th>Order Date</th>
+                        <th>Expected</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in orders)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@order.OrderNumber</strong>
+                                <small>@order.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@order.CustomerName</td>
+                            <td>@order.OrderDate</td>
+                            <td>@order.ExpectedDate</td>
+                            <td>@order.TotalAmount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(order.Status is SalesOrderStatus.Open or SalesOrderStatus.Closed ? "active" : "inactive")">@order.Status</span>
+                            </td>
+                            <td class="actions">
+                                @if (order.Status == SalesOrderStatus.Draft)
+                                {
+                                    <button class="link-button" @onclick="() => OpenAsync(order)">Open</button>
+                                }
+                                @if (order.Status == SalesOrderStatus.Open)
+                                {
+                                    <button class="link-button" @onclick="() => CloseAsync(order)">Close</button>
+                                }
+                                @if (order.Status is SalesOrderStatus.Draft or SalesOrderStatus.Open)
+                                {
+                                    <button class="link-button" @onclick="() => CancelAsync(order)">Cancel</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<SalesOrderDto> orders = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeClosed;
+    private bool includeCancelled;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await SalesOrdersApi.SearchAsync(searchText, includeClosed, includeCancelled);
+            orders = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load sales orders. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OpenAsync(SalesOrderDto order)
+    {
+        try
+        {
+            errorMessage = null;
+            await SalesOrdersApi.OpenAsync(order.Id);
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not open sales order. Details: {ex.Message}";
+        }
+    }
+
+    private async Task CloseAsync(SalesOrderDto order)
+    {
+        try
+        {
+            errorMessage = null;
+            await SalesOrdersApi.CloseAsync(order.Id);
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not close sales order. Details: {ex.Message}";
+        }
+    }
+
+    private async Task CancelAsync(SalesOrderDto order)
+    {
+        try
+        {
+            errorMessage = null;
+            await SalesOrdersApi.CancelAsync(order.Id);
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not cancel sales order. Details: {ex.Message}";
+        }
+    }
+
+    private void NewOrder()
+    {
+        Navigation.NavigateTo("sales-orders/new");
+    }
+}

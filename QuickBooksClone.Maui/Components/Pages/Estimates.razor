@@ -1,0 +1,186 @@
+@page "/estimates"
+@inject EstimatesApiClient EstimatesApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.Estimates
+
+<PageTitle>Estimates</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Sales</p>
+            <h1>Estimates</h1>
+            <p class="muted">Quote customers before any receivable, posting, or inventory movement is created.</p>
+        </div>
+        <button class="primary-button" @onclick="NewEstimate">New Estimate</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <section class="panel">
+        <div class="toolbar">
+            <input class="search-input" placeholder="Search estimate number" @bind="searchText" @bind:event="oninput" />
+            <label class="check-row">
+                <input type="checkbox" @bind="includeClosed" />
+                Include accepted/declined
+            </label>
+            <label class="check-row">
+                <input type="checkbox" @bind="includeCancelled" />
+                Include cancelled
+            </label>
+            <button class="secondary-button" @onclick="LoadEstimatesAsync" disabled="@isLoading">Search</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p class="muted">Loading estimates...</p>
+        }
+        else if (estimates.Count == 0)
+        {
+            <p class="muted">No estimates yet.</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Expires</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var estimate in estimates)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@estimate.EstimateNumber</strong>
+                                <small>@estimate.Id.ToString()[..8]</small>
+                            </td>
+                            <td>@estimate.CustomerName</td>
+                            <td>@estimate.EstimateDate</td>
+                            <td>@estimate.ExpirationDate</td>
+                            <td>@estimate.TotalAmount.ToString("N2")</td>
+                            <td>
+                                <span class="status @(estimate.Status is EstimateStatus.Sent or EstimateStatus.Accepted ? "active" : "inactive")">@estimate.Status</span>
+                            </td>
+                            <td class="actions">
+                                @if (estimate.Status == EstimateStatus.Draft)
+                                {
+                                    <button class="link-button" @onclick="() => SendAsync(estimate)">Send</button>
+                                }
+                                @if (estimate.Status is EstimateStatus.Draft or EstimateStatus.Sent)
+                                {
+                                    <button class="link-button" @onclick="() => AcceptAsync(estimate)">Accept</button>
+                                    <button class="link-button" @onclick="() => DeclineAsync(estimate)">Decline</button>
+                                    <button class="link-button" @onclick="() => CancelAsync(estimate)">Cancel</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@code {
+    private List<EstimateDto> estimates = [];
+    private string? searchText;
+    private string? errorMessage;
+    private bool includeClosed;
+    private bool includeCancelled;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEstimatesAsync();
+    }
+
+    private async Task LoadEstimatesAsync()
+    {
+        try
+        {
+            errorMessage = null;
+            isLoading = true;
+            var result = await EstimatesApi.SearchAsync(searchText, includeClosed, includeCancelled);
+            estimates = result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load estimates. Details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SendAsync(EstimateDto estimate)
+    {
+        try
+        {
+            errorMessage = null;
+            await EstimatesApi.SendAsync(estimate.Id);
+            await LoadEstimatesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not send estimate. Details: {ex.Message}";
+        }
+    }
+
+    private async Task AcceptAsync(EstimateDto estimate)
+    {
+        try
+        {
+            errorMessage = null;
+            await EstimatesApi.AcceptAsync(estimate.Id);
+            await LoadEstimatesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not accept estimate. Details: {ex.Message}";
+        }
+    }
+
+    private async Task DeclineAsync(EstimateDto estimate)
+    {
+        try
+        {
+            errorMessage = null;
+            await EstimatesApi.DeclineAsync(estimate.Id);
+            await LoadEstimatesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not decline estimate. Details: {ex.Message}";
+        }
+    }
+
+    private async Task CancelAsync(EstimateDto estimate)
+    {
+        try
+        {
+            errorMessage = null;
+            await EstimatesApi.CancelAsync(estimate.Id);
+            await LoadEstimatesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not cancel estimate. Details: {ex.Message}";
+        }
+    }
+
+    private void NewEstimate()
+    {
+        Navigation.NavigateTo("estimates/new");
+    }
+}

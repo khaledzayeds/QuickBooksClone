@@ -2194,6 +2194,144 @@ sourceEntityId={customerCreditActivityId}
 transactionType=CustomerCreditRefund
 ```
 
+## Estimates
+
+Estimates are non-posting customer quotes. They do not touch inventory, receivables, or accounting transactions.
+
+### List Estimates
+
+```http
+GET /api/estimates?search=&customerId=&includeClosed=false&includeCancelled=false&page=1&pageSize=25
+```
+
+`includeClosed=true` brings back accepted and declined estimates.
+
+### Get Estimate
+
+```http
+GET /api/estimates/{id}
+```
+
+### Create Estimate
+
+```http
+POST /api/estimates
+Content-Type: application/json
+```
+
+```json
+{
+  "customerId": "guid",
+  "estimateDate": "2026-04-23",
+  "expirationDate": "2026-05-07",
+  "saveMode": 2,
+  "lines": [
+    {
+      "itemId": "guid",
+      "description": "Quoted service",
+      "quantity": 2,
+      "unitPrice": 750
+    }
+  ]
+}
+```
+
+Validation:
+
+- `customerId` must point to an existing active customer.
+- `expirationDate` should not be earlier than `estimateDate`.
+- At least one line is required.
+- Each `itemId` must point to an existing active item.
+
+### Send Estimate
+
+```http
+POST /api/estimates/{id}/send
+```
+
+### Accept Estimate
+
+```http
+POST /api/estimates/{id}/accept
+```
+
+### Decline Estimate
+
+```http
+POST /api/estimates/{id}/decline
+```
+
+### Cancel Estimate
+
+```http
+PATCH /api/estimates/{id}/cancel
+```
+
+## Sales Orders
+
+Sales Orders are non-posting customer commitments. They are operational documents only until later fulfillment and invoicing steps are introduced.
+
+### List Sales Orders
+
+```http
+GET /api/sales-orders?search=&customerId=&includeClosed=false&includeCancelled=false&page=1&pageSize=25
+```
+
+### Get Sales Order
+
+```http
+GET /api/sales-orders/{id}
+```
+
+### Create Sales Order
+
+```http
+POST /api/sales-orders
+Content-Type: application/json
+```
+
+```json
+{
+  "customerId": "guid",
+  "orderDate": "2026-04-23",
+  "expectedDate": "2026-04-30",
+  "saveMode": 2,
+  "lines": [
+    {
+      "itemId": "guid",
+      "description": "Reserved inventory item",
+      "quantity": 3,
+      "unitPrice": 725
+    }
+  ]
+}
+```
+
+Validation:
+
+- `customerId` must point to an existing active customer.
+- `expectedDate` should not be earlier than `orderDate`.
+- At least one line is required.
+- Each `itemId` must point to an existing active item.
+
+### Open Sales Order
+
+```http
+POST /api/sales-orders/{id}/open
+```
+
+### Close Sales Order
+
+```http
+POST /api/sales-orders/{id}/close
+```
+
+### Cancel Sales Order
+
+```http
+PATCH /api/sales-orders/{id}/cancel
+```
+
 ## Payments
 
 Payments are auto-posted after creation. They create a balanced accounting transaction:

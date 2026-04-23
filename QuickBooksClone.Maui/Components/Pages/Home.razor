@@ -261,8 +261,8 @@ else
 
     private IReadOnlyList<WorkflowStep> CustomerSteps => new[]
     {
-        new WorkflowStep("Estimates", "Quote customers before sales.", null, false, "Queued for development."),
-        new WorkflowStep("Sales Orders", "Track committed orders before fulfillment.", null, false, "Queued after estimates."),
+        new WorkflowStep("Estimates", "Quote customers before sales.", "estimates", true, null),
+        new WorkflowStep("Sales Orders", "Track committed orders before fulfillment.", "sales-orders", true, null),
         new WorkflowStep("Create Invoices", "Create credit invoices for receivables.", "invoices", true, null),
         new WorkflowStep("Receive Payments", "Settle receivable balances.", "payments", true, null),
         new WorkflowStep("Sales Receipts", "Post instant sale plus payment.", "sales-receipts", true, null),

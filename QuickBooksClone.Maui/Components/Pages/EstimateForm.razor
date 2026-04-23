@@ -1,0 +1,227 @@
+@page "/estimates/new"
+@inject EstimatesApiClient EstimatesApi
+@inject CustomersApiClient CustomersApi
+@inject ItemsApiClient ItemsApi
+@inject NavigationManager Navigation
+@using QuickBooksClone.Maui.Services.Customers
+@using QuickBooksClone.Maui.Services.Estimates
+@using QuickBooksClone.Maui.Services.Items
+
+<PageTitle>New Estimate</PageTitle>
+
+<div class="qb-page">
+    <section class="qb-header">
+        <div>
+            <p class="eyebrow">Sales</p>
+            <h1>New Estimate</h1>
+            <p class="muted">Build the customer quote first, then convert acceptance into the next operational step later.</p>
+        </div>
+        <button class="secondary-button" @onclick="BackToList">Back to Estimates</button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+
+    <EditForm Model="form" class="panel form-panel page-form page-form-wide">
+        <DataAnnotationsValidator />
+
+        <label>
+            Customer
+            <InputSelect class="form-control" @bind-Value="form.CustomerId">
+                <option value="@Guid.Empty">Select customer</option>
+                @foreach (var customer in customers)
+                {
+                    <option value="@customer.Id">@customer.DisplayName</option>
+                }
+            </InputSelect>
+        </label>
+
+        <div class="form-row">
+            <label>
+                Estimate date
+                <InputDate class="form-control" @bind-Value="estimateDate" />
+            </label>
+
+            <label>
+                Expiration date
+                <InputDate class="form-control" @bind-Value="expirationDate" />
+            </label>
+        </div>
+
+        <h3>Lines</h3>
+        <div class="form-row">
+            <label>
+                Item
+                <InputSelect class="form-control" @bind-Value="draftLine.ItemId">
+                    <option value="@Guid.Empty">Select item</option>
+                    @foreach (var item in items)
+                    {
+                        <option value="@item.Id">@item.Name (@item.SalesPrice.ToString("N2"))</option>
+                    }
+                </InputSelect>
+            </label>
+
+            <label>
+                Quantity
+                <InputNumber class="form-control" @bind-Value="draftLine.Quantity" />
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label>
+                Unit price
+                <InputNumber class="form-control" @bind-Value="draftLine.UnitPrice" />
+            </label>
+
+            <label>
+                Description
+                <InputText class="form-control" @bind-Value="draftLine.Description" />
+            </label>
+        </div>
+
+        <button class="secondary-button" type="button" @onclick="AddLine">Add Line</button>
+
+        @if (form.Lines.Count > 0)
+        {
+            <table class="data-table compact-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in form.Lines)
+                    {
+                        <tr>
+                            <td>@GetItemName(line.ItemId)</td>
+                            <td>@line.Quantity</td>
+                            <td>@line.UnitPrice.ToString("N2")</td>
+                            <td>@((line.Quantity * line.UnitPrice).ToString("N2"))</td>
+                            <td><button class="link-button" type="button" @onclick="() => RemoveLine(line)">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="totals-box">
+            Quote total: @DraftTotal.ToString("N2")
+            <small>Estimates stay non-posting until a later customer workflow turns them into live sales activity.</small>
+        </div>
+
+        <div class="form-actions">
+            <button class="primary-button" type="button" disabled="@isSaving" @onclick="() => SaveEstimateAsync(EstimateSaveMode.SaveAsSent)">
+                @(isSaving ? "Saving..." : "Save as Sent")
+            </button>
+            <button class="secondary-button" type="button" disabled="@isSaving" @onclick="() => SaveEstimateAsync(EstimateSaveMode.Draft)">Save Draft</button>
+            <button class="secondary-button" type="button" @onclick="BackToList">Cancel</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private List<CustomerDto> customers = [];
+    private List<ItemDto> items = [];
+    private EstimateFormModel form = new();
+    private EstimateLineFormModel draftLine = new();
+    private DateTime estimateDate = DateTime.Today;
+    private DateTime expirationDate = DateTime.Today.AddDays(14);
+    private string? errorMessage;
+    private bool isSaving;
+    private decimal DraftTotal => form.Lines.Sum(line => line.Quantity * line.UnitPrice);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var customerResult = await CustomersApi.SearchAsync(null, false);
+        customers = customerResult.Items.ToList();
+
+        var itemResult = await ItemsApi.SearchAsync(null, false);
+        items = itemResult.Items.ToList();
+    }
+
+    private void AddLine()
+    {
+        if (draftLine.ItemId == Guid.Empty || draftLine.Quantity <= 0)
+        {
+            errorMessage = "Select an item and enter a quantity greater than zero.";
+            return;
+        }
+
+        var item = items.FirstOrDefault(current => current.Id == draftLine.ItemId);
+        var unitPrice = draftLine.UnitPrice > 0 ? draftLine.UnitPrice : item?.SalesPrice ?? 0;
+
+        form.Lines.Add(new EstimateLineFormModel
+        {
+            ItemId = draftLine.ItemId,
+            Description = string.IsNullOrWhiteSpace(draftLine.Description) ? item?.Name : draftLine.Description,
+            Quantity = draftLine.Quantity,
+            UnitPrice = unitPrice
+        });
+
+        draftLine = new EstimateLineFormModel();
+        errorMessage = null;
+    }
+
+    private void RemoveLine(EstimateLineFormModel line)
+    {
+        form.Lines.Remove(line);
+    }
+
+    private async Task SaveEstimateAsync(EstimateSaveMode saveMode)
+    {
+        try
+        {
+            if (form.CustomerId == Guid.Empty)
+            {
+                errorMessage = "Select a customer first.";
+                return;
+            }
+
+            if (form.Lines.Count == 0)
+            {
+                errorMessage = "Add at least one estimate line.";
+                return;
+            }
+
+            if (expirationDate.Date < estimateDate.Date)
+            {
+                errorMessage = "Expiration date cannot be earlier than estimate date.";
+                return;
+            }
+
+            errorMessage = null;
+            isSaving = true;
+            form.EstimateDate = DateOnly.FromDateTime(estimateDate);
+            form.ExpirationDate = DateOnly.FromDateTime(expirationDate);
+            form.SaveMode = saveMode;
+            await EstimatesApi.CreateAsync(form);
+            BackToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save estimate. Details: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string GetItemName(Guid itemId) => items.FirstOrDefault(item => item.Id == itemId)?.Name ?? itemId.ToString()[..8];
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("estimates");
+    }
+}

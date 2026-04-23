@@ -3,6 +3,7 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.CustomerCredits;
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.Estimates;
 using QuickBooksClone.Core.InventoryAdjustments;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
@@ -12,6 +13,7 @@ using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.ReceiveInventory;
+using QuickBooksClone.Core.SalesOrders;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.VendorCredits;
@@ -31,6 +33,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<AccountingTransaction> AccountingTransactions => Set<AccountingTransaction>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerCreditActivity> CustomerCreditActivities => Set<CustomerCreditActivity>();
+    public DbSet<Estimate> Estimates => Set<Estimate>();
     public DbSet<InventoryAdjustment> InventoryAdjustments => Set<InventoryAdjustment>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<Item> Items => Set<Item>();
@@ -40,6 +43,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<InventoryReceipt> InventoryReceipts => Set<InventoryReceipt>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
+    public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
     public DbSet<DeviceSettings> DeviceSettings => Set<DeviceSettings>();
@@ -54,6 +58,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigureAccountingTransactions(modelBuilder);
         ConfigureCustomers(modelBuilder);
         ConfigureCustomerCredits(modelBuilder);
+        ConfigureEstimates(modelBuilder);
         ConfigureInventoryAdjustments(modelBuilder);
         ConfigureInvoices(modelBuilder);
         ConfigureItems(modelBuilder);
@@ -63,6 +68,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigureInventoryReceipts(modelBuilder);
         ConfigurePurchaseOrders(modelBuilder);
         ConfigurePurchaseReturns(modelBuilder);
+        ConfigureSalesOrders(modelBuilder);
         ConfigureSalesReturns(modelBuilder);
         ConfigureSettings(modelBuilder);
         ConfigureDeviceSettings(modelBuilder);
@@ -160,6 +166,38 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(activity => activity.Status).HasConversion<int>().IsRequired();
             ConfigureMoney(entity.Property(activity => activity.Amount));
             entity.HasIndex(activity => activity.ReferenceNumber).IsUnique();
+        });
+    }
+
+    private static void ConfigureEstimates(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Estimate>(entity =>
+        {
+            entity.ToTable("estimates");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
+            entity.Property(estimate => estimate.CustomerId).IsRequired();
+            entity.Property(estimate => estimate.EstimateDate).IsRequired();
+            entity.Property(estimate => estimate.ExpirationDate).IsRequired();
+            entity.Property(estimate => estimate.EstimateNumber).HasMaxLength(80).IsRequired();
+            entity.Property(estimate => estimate.Status).HasConversion<int>().IsRequired();
+            entity.Ignore(estimate => estimate.TotalAmount);
+            entity.HasIndex(estimate => estimate.EstimateNumber).IsUnique();
+
+            entity.OwnsMany(estimate => estimate.Lines, line =>
+            {
+                line.ToTable("estimate_lines");
+                line.WithOwner().HasForeignKey("EstimateId");
+                line.HasKey(current => current.Id);
+                line.Property(current => current.ItemId).IsRequired();
+                line.Property(current => current.Description).HasMaxLength(300).IsRequired();
+                ConfigureMoney(line.Property(current => current.Quantity));
+                ConfigureMoney(line.Property(current => current.UnitPrice));
+                line.Ignore(current => current.LineTotal);
+            });
+
+            entity.Navigation(estimate => estimate.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
     }
 
@@ -486,6 +524,38 @@ public sealed class QuickBooksCloneDbContext : DbContext
             });
 
             entity.Navigation(salesReturn => salesReturn.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+    }
+
+    private static void ConfigureSalesOrders(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SalesOrder>(entity =>
+        {
+            entity.ToTable("sales_orders");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
+            entity.Property(order => order.CustomerId).IsRequired();
+            entity.Property(order => order.OrderDate).IsRequired();
+            entity.Property(order => order.ExpectedDate).IsRequired();
+            entity.Property(order => order.OrderNumber).HasMaxLength(80).IsRequired();
+            entity.Property(order => order.Status).HasConversion<int>().IsRequired();
+            entity.Ignore(order => order.TotalAmount);
+            entity.HasIndex(order => order.OrderNumber).IsUnique();
+
+            entity.OwnsMany(order => order.Lines, line =>
+            {
+                line.ToTable("sales_order_lines");
+                line.WithOwner().HasForeignKey("SalesOrderId");
+                line.HasKey(current => current.Id);
+                line.Property(current => current.ItemId).IsRequired();
+                line.Property(current => current.Description).HasMaxLength(300).IsRequired();
+                ConfigureMoney(line.Property(current => current.Quantity));
+                ConfigureMoney(line.Property(current => current.UnitPrice));
+                line.Ignore(current => current.LineTotal);
+            });
+
+            entity.Navigation(order => order.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
     }
 

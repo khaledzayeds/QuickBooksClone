@@ -263,6 +263,86 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.ToTable("customers", (string)null);
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.Estimates.Estimate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("DeclinedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EstimateDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EstimateNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ExpirationDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
+                    b.HasIndex("EstimateNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SyncStatus");
+
+                    b.ToTable("estimates", (string)null);
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.InventoryAdjustments.InventoryAdjustment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1040,6 +1120,83 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.ToTable("inventory_receipts", (string)null);
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.SalesOrders.SalesOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ExpectedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("OpenedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("OrderDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SyncStatus");
+
+                    b.ToTable("sales_orders", (string)null);
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.SalesReturns.SalesReturn", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1563,6 +1720,46 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Navigation("Lines");
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.Estimates.Estimate", b =>
+                {
+                    b.OwnsMany("QuickBooksClone.Core.Estimates.EstimateLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("EstimateId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("ItemId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("Quantity")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("UnitPrice")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("EstimateId");
+
+                            b1.ToTable("estimate_lines", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("EstimateId");
+                        });
+
+                    b.Navigation("Lines");
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.Invoices.Invoice", b =>
                 {
                     b.OwnsMany("QuickBooksClone.Core.Invoices.InvoiceLine", "Lines", b1 =>
@@ -1811,6 +2008,46 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("InventoryReceiptId");
+                        });
+
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.SalesOrders.SalesOrder", b =>
+                {
+                    b.OwnsMany("QuickBooksClone.Core.SalesOrders.SalesOrderLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("ItemId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("Quantity")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid>("SalesOrderId")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<decimal>("UnitPrice")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("TEXT");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("SalesOrderId");
+
+                            b1.ToTable("sales_order_lines", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("SalesOrderId");
                         });
 
                     b.Navigation("Lines");

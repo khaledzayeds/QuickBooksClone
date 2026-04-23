@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.CustomerCredits;
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.Estimates;
 using QuickBooksClone.Core.InventoryAdjustments;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
@@ -11,6 +12,7 @@ using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.ReceiveInventory;
+using QuickBooksClone.Core.SalesOrders;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.VendorPayments;
@@ -147,6 +149,20 @@ public sealed class EfCustomerRepository : ICustomerRepository
     public Task<bool> UseCreditAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.UseCredit(amount), cancellationToken);
     public Task<bool> ApplyCreditToInvoiceAsync(Guid id, decimal amount, CancellationToken cancellationToken = default) => MutateAsync(id, customer => customer.ApplyCreditToInvoice(amount), cancellationToken);
     private async Task<bool> MutateAsync(Guid id, Action<Customer> mutation, CancellationToken cancellationToken) { var customer = await GetByIdAsync(id, cancellationToken); if (customer is null) return false; mutation(customer); await _db.SaveChangesAsync(cancellationToken); return true; }
+}
+
+public sealed class EfEstimateRepository : IEstimateRepository
+{
+    private readonly QuickBooksCloneDbContext _db;
+    public EfEstimateRepository(QuickBooksCloneDbContext db) => _db = db;
+    private IQueryable<Estimate> Query() => _db.Estimates.Include(estimate => estimate.Lines);
+    public async Task<EstimateListResult> SearchAsync(EstimateSearch search, CancellationToken cancellationToken = default) { var page = Math.Max(search.Page, 1); var pageSize = Math.Clamp(search.PageSize, 1, 100); var query = Query(); if (!search.IncludeClosed) query = query.Where(estimate => estimate.Status != EstimateStatus.Accepted && estimate.Status != EstimateStatus.Declined); if (!search.IncludeCancelled) query = query.Where(estimate => estimate.Status != EstimateStatus.Cancelled); if (search.CustomerId is not null) query = query.Where(estimate => estimate.CustomerId == search.CustomerId); if (!string.IsNullOrWhiteSpace(search.Search)) { var term = EfAccountRepository.Like(search.Search); query = query.Where(estimate => EF.Functions.Like(estimate.EstimateNumber, term)); } var total = await query.CountAsync(cancellationToken); var items = await query.OrderByDescending(estimate => estimate.EstimateDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken); return new EstimateListResult(items, total, page, pageSize); }
+    public Task<Estimate?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Query().FirstOrDefaultAsync(estimate => estimate.Id == id, cancellationToken);
+    public async Task<Estimate> AddAsync(Estimate estimate, CancellationToken cancellationToken = default) { _db.Estimates.Add(estimate); await _db.SaveChangesAsync(cancellationToken); return estimate; }
+    public async Task<bool> MarkSentAsync(Guid id, CancellationToken cancellationToken = default) { var estimate = await GetByIdAsync(id, cancellationToken); if (estimate is null) return false; estimate.MarkSent(); await _db.SaveChangesAsync(cancellationToken); return true; }
+    public async Task<bool> AcceptAsync(Guid id, CancellationToken cancellationToken = default) { var estimate = await GetByIdAsync(id, cancellationToken); if (estimate is null) return false; estimate.Accept(); await _db.SaveChangesAsync(cancellationToken); return true; }
+    public async Task<bool> DeclineAsync(Guid id, CancellationToken cancellationToken = default) { var estimate = await GetByIdAsync(id, cancellationToken); if (estimate is null) return false; estimate.Decline(); await _db.SaveChangesAsync(cancellationToken); return true; }
+    public async Task<bool> CancelAsync(Guid id, CancellationToken cancellationToken = default) { var estimate = await GetByIdAsync(id, cancellationToken); if (estimate is null) return false; estimate.Cancel(); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
 
 public sealed class EfVendorRepository : IVendorRepository
@@ -327,6 +343,19 @@ public sealed class EfSalesReturnRepository : ISalesReturnRepository
     public async Task<SalesReturn> AddAsync(SalesReturn salesReturn, CancellationToken cancellationToken = default) { _db.SalesReturns.Add(salesReturn); await _db.SaveChangesAsync(cancellationToken); return salesReturn; }
     public async Task<bool> MarkPostedAsync(Guid id, Guid transactionId, CancellationToken cancellationToken = default) { var salesReturn = await GetByIdAsync(id, cancellationToken); if (salesReturn is null) return false; salesReturn.MarkPosted(transactionId); await _db.SaveChangesAsync(cancellationToken); return true; }
     public async Task<bool> VoidAsync(Guid id, Guid? reversalTransactionId = null, CancellationToken cancellationToken = default) { var salesReturn = await GetByIdAsync(id, cancellationToken); if (salesReturn is null) return false; salesReturn.Void(reversalTransactionId); await _db.SaveChangesAsync(cancellationToken); return true; }
+}
+
+public sealed class EfSalesOrderRepository : ISalesOrderRepository
+{
+    private readonly QuickBooksCloneDbContext _db;
+    public EfSalesOrderRepository(QuickBooksCloneDbContext db) => _db = db;
+    private IQueryable<SalesOrder> Query() => _db.SalesOrders.Include(order => order.Lines);
+    public async Task<SalesOrderListResult> SearchAsync(SalesOrderSearch search, CancellationToken cancellationToken = default) { var page = Math.Max(search.Page, 1); var pageSize = Math.Clamp(search.PageSize, 1, 100); var query = Query(); if (!search.IncludeClosed) query = query.Where(order => order.Status != SalesOrderStatus.Closed); if (!search.IncludeCancelled) query = query.Where(order => order.Status != SalesOrderStatus.Cancelled); if (search.CustomerId is not null) query = query.Where(order => order.CustomerId == search.CustomerId); if (!string.IsNullOrWhiteSpace(search.Search)) { var term = EfAccountRepository.Like(search.Search); query = query.Where(order => EF.Functions.Like(order.OrderNumber, term)); } var total = await query.CountAsync(cancellationToken); var items = await query.OrderByDescending(order => order.OrderDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken); return new SalesOrderListResult(items, total, page, pageSize); }
+    public Task<SalesOrder?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Query().FirstOrDefaultAsync(order => order.Id == id, cancellationToken);
+    public async Task<SalesOrder> AddAsync(SalesOrder order, CancellationToken cancellationToken = default) { _db.SalesOrders.Add(order); await _db.SaveChangesAsync(cancellationToken); return order; }
+    public async Task<bool> MarkOpenAsync(Guid id, CancellationToken cancellationToken = default) { var order = await GetByIdAsync(id, cancellationToken); if (order is null) return false; order.MarkOpen(); await _db.SaveChangesAsync(cancellationToken); return true; }
+    public async Task<bool> CloseAsync(Guid id, CancellationToken cancellationToken = default) { var order = await GetByIdAsync(id, cancellationToken); if (order is null) return false; order.Close(); await _db.SaveChangesAsync(cancellationToken); return true; }
+    public async Task<bool> CancelAsync(Guid id, CancellationToken cancellationToken = default) { var order = await GetByIdAsync(id, cancellationToken); if (order is null) return false; order.Cancel(); await _db.SaveChangesAsync(cancellationToken); return true; }
 }
 
 public sealed class EfPurchaseReturnRepository : IPurchaseReturnRepository
