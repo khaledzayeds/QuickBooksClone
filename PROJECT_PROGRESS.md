@@ -363,11 +363,14 @@ Architectural baseline is now fixed:
 - [x] Purchase workflow planning contracts
   - [x] Add backend `Purchase Order -> Receive Inventory` receiving-plan contract
   - [x] Add backend `Receive Inventory -> Purchase Bill` billing-plan contract
+  - [x] Add backend `Purchase Bill -> Vendor Payment` payment-plan contract
   - [x] Expose ordered/received/remaining quantities per PO line
   - [x] Expose received/billed/remaining quantities per receipt line
+  - [x] Expose payable balance and linked vendor payment references per purchase bill
   - [x] Expose linked downstream receipt and bill references
   - [x] Keep workflow DTOs frontend-agnostic for Blazor now and Flutter later
   - [x] Add repeatable `scripts/smoke-purchase-workflow-plans.ps1`
+  - [x] Add repeatable `scripts/smoke-purchase-bill-payment-plan.ps1`
 - [x] Reporting foundation
   - [x] Add financial reporting service over posted accounting transactions
   - [x] Add live `Trial Balance` API endpoint
@@ -475,6 +478,7 @@ Architectural baseline is now fixed:
 - Receive Inventory is now live as the operational bridge between Purchase Orders and Purchase Bills; it increases stock and credits the temporary `Inventory Received Not Billed` liability without changing vendor balances.
 - Purchase Bills can now clear `Inventory Received Not Billed` against previously posted inventory receipts, so the bill creates Accounts Payable without increasing stock a second time.
 - Purchase workflow contracts now expose receiving and billing plans with remaining quantities and linked downstream references, so the UI no longer needs to guess how to prefill PO-driven receipts or receipt-driven bills.
+- Purchase workflow contracts now also expose bill-to-payment plans with live balance due and linked vendor payments, so future frontends can drive payable workflows without custom joins.
 - Sales and purchase returns now have backend reversal workflows instead of being one-way posting documents.
 - Reports are now starting from posted accounting transactions and current open-document balances instead of page-level totals, now including live Trial Balance, Balance Sheet, Profit and Loss, A/R Aging, A/P Aging, and Inventory Valuation / Stock Movement.
 - Current inventory valuation reconstructs opening/closing quantities from dated stock movement and uses the item's current purchase price for valuation until full costing layers are introduced.

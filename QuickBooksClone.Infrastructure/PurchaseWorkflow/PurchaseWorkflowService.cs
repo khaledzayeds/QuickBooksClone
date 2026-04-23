@@ -3,6 +3,7 @@ using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseWorkflow;
 using QuickBooksClone.Core.ReceiveInventory;
+using QuickBooksClone.Core.VendorPayments;
 using QuickBooksClone.Infrastructure.Persistence;
 
 namespace QuickBooksClone.Infrastructure.PurchaseWorkflow;
@@ -136,5 +137,41 @@ public sealed class PurchaseWorkflowService : IPurchaseWorkflowService
             totalRemaining,
             lines,
             linkedBills);
+    }
+
+    public async Task<PurchaseBillPaymentPlan?> GetPaymentPlanAsync(Guid purchaseBillId, CancellationToken cancellationToken = default)
+    {
+        var bill = await _bills.GetByIdAsync(purchaseBillId, cancellationToken);
+        if (bill is null)
+        {
+            return null;
+        }
+
+        var linkedPayments = await _db.VendorPayments
+            .AsNoTracking()
+            .Where(payment => payment.PurchaseBillId == bill.Id && payment.Status != VendorPaymentStatus.Void)
+            .OrderByDescending(payment => payment.PaymentDate)
+            .ThenByDescending(payment => payment.PaymentNumber)
+            .Select(payment => new LinkedVendorPaymentReference(
+                payment.Id,
+                payment.PaymentNumber,
+                payment.PaymentDate,
+                payment.Status,
+                payment.Amount))
+            .ToListAsync(cancellationToken);
+
+        return new PurchaseBillPaymentPlan(
+            bill.Id,
+            bill.BillNumber,
+            bill.VendorId,
+            bill.Status,
+            (bill.Status is PurchaseBillStatus.Posted or PurchaseBillStatus.PartiallyPaid) && bill.BalanceDue > 0m,
+            bill.BalanceDue == 0m,
+            bill.TotalAmount,
+            bill.PaidAmount,
+            bill.CreditAppliedAmount,
+            bill.ReturnedAmount,
+            bill.BalanceDue,
+            linkedPayments);
     }
 }

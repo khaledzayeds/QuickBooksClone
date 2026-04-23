@@ -1271,6 +1271,18 @@ Validation:
 - Accounts Payable must exist before posting.
 - Current workflow contract for bill creation planning is exposed through `GET /api/receive-inventory/{id}/billing-plan`.
 
+### Get Purchase Bill Payment Plan
+
+```http
+GET /api/purchase-bills/{id}/payment-plan
+```
+
+This endpoint is the backend workflow contract for `Purchase Bill -> Vendor Payment`.
+
+- It exposes the live payable balance directly from the purchase-bill aggregate.
+- It lists all non-void linked vendor payments for the bill.
+- `canPay` is only true for posted or partially paid purchase bills with a positive balance.
+
 ### Post Purchase Bill
 
 ```http

@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.PurchaseBills;
+using QuickBooksClone.Api.Contracts.PurchaseWorkflow;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.ReceiveInventory;
+using QuickBooksClone.Core.PurchaseWorkflow;
 using QuickBooksClone.Core.Vendors;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -18,6 +20,7 @@ public sealed class PurchaseBillsController : ControllerBase
     private readonly IInventoryReceiptRepository _receipts;
     private readonly IPurchaseBillPostingService _postingService;
     private readonly IDocumentNumberService _documentNumbers;
+    private readonly IPurchaseWorkflowService _workflow;
 
     public PurchaseBillsController(
         IPurchaseBillRepository bills,
@@ -25,7 +28,8 @@ public sealed class PurchaseBillsController : ControllerBase
         IItemRepository items,
         IInventoryReceiptRepository receipts,
         IPurchaseBillPostingService postingService,
-        IDocumentNumberService documentNumbers)
+        IDocumentNumberService documentNumbers,
+        IPurchaseWorkflowService workflow)
     {
         _bills = bills;
         _vendors = vendors;
@@ -33,6 +37,7 @@ public sealed class PurchaseBillsController : ControllerBase
         _receipts = receipts;
         _postingService = postingService;
         _documentNumbers = documentNumbers;
+        _workflow = workflow;
     }
 
     [HttpGet]
@@ -64,6 +69,39 @@ public sealed class PurchaseBillsController : ControllerBase
     {
         var bill = await _bills.GetByIdAsync(id, cancellationToken);
         return bill is null ? NotFound() : Ok(await ToDtoAsync(bill, cancellationToken));
+    }
+
+    [HttpGet("{id:guid}/payment-plan")]
+    [ProducesResponseType(typeof(PurchaseBillPaymentPlanDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PurchaseBillPaymentPlanDto>> GetPaymentPlan(Guid id, CancellationToken cancellationToken = default)
+    {
+        var plan = await _workflow.GetPaymentPlanAsync(id, cancellationToken);
+        if (plan is null)
+        {
+            return NotFound();
+        }
+
+        var vendor = await _vendors.GetByIdAsync(plan.VendorId, cancellationToken);
+        return Ok(new PurchaseBillPaymentPlanDto(
+            plan.PurchaseBillId,
+            plan.BillNumber,
+            plan.VendorId,
+            vendor?.DisplayName,
+            plan.Status,
+            plan.CanPay,
+            plan.IsFullyPaid,
+            plan.TotalAmount,
+            plan.PaidAmount,
+            plan.CreditAppliedAmount,
+            plan.ReturnedAmount,
+            plan.BalanceDue,
+            plan.LinkedPayments.Select(payment => new LinkedVendorPaymentReferenceDto(
+                payment.Id,
+                payment.PaymentNumber,
+                payment.PaymentDate,
+                payment.Status,
+                payment.Amount)).ToList()));
     }
 
     [HttpPost]

@@ -1,6 +1,7 @@
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.ReceiveInventory;
+using QuickBooksClone.Core.VendorPayments;
 
 namespace QuickBooksClone.Core.PurchaseWorkflow;
 
@@ -8,6 +9,7 @@ public interface IPurchaseWorkflowService
 {
     Task<PurchaseOrderReceivingPlan?> GetReceivingPlanAsync(Guid purchaseOrderId, CancellationToken cancellationToken = default);
     Task<InventoryReceiptBillingPlan?> GetBillingPlanAsync(Guid inventoryReceiptId, CancellationToken cancellationToken = default);
+    Task<PurchaseBillPaymentPlan?> GetPaymentPlanAsync(Guid purchaseBillId, CancellationToken cancellationToken = default);
 }
 
 public sealed record PurchaseOrderReceivingPlan(
@@ -69,3 +71,24 @@ public sealed record LinkedPurchaseBillReference(
     string BillNumber,
     DateOnly BillDate,
     PurchaseBillStatus Status);
+
+public sealed record PurchaseBillPaymentPlan(
+    Guid PurchaseBillId,
+    string BillNumber,
+    Guid VendorId,
+    PurchaseBillStatus Status,
+    bool CanPay,
+    bool IsFullyPaid,
+    decimal TotalAmount,
+    decimal PaidAmount,
+    decimal CreditAppliedAmount,
+    decimal ReturnedAmount,
+    decimal BalanceDue,
+    IReadOnlyList<LinkedVendorPaymentReference> LinkedPayments);
+
+public sealed record LinkedVendorPaymentReference(
+    Guid Id,
+    string PaymentNumber,
+    DateOnly PaymentDate,
+    VendorPaymentStatus Status,
+    decimal Amount);
