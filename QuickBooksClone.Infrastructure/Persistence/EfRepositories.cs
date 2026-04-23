@@ -297,6 +297,7 @@ public sealed class EfInventoryReceiptRepository : IInventoryReceiptRepository
         }
 
         return await Query()
+            .AsNoTracking()
             .Where(receipt => receipt.Status != InventoryReceiptStatus.Void)
             .SelectMany(receipt => receipt.Lines)
             .Where(line => line.PurchaseOrderLineId.HasValue && lineIds.Contains(line.PurchaseOrderLineId.Value))

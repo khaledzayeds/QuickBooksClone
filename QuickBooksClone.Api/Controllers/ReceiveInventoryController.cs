@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Contracts.PurchaseWorkflow;
 using QuickBooksClone.Api.Contracts.ReceiveInventory;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.PurchaseOrders;
+using QuickBooksClone.Core.PurchaseWorkflow;
 using QuickBooksClone.Core.ReceiveInventory;
 using QuickBooksClone.Core.Vendors;
 
@@ -19,6 +21,7 @@ public sealed class ReceiveInventoryController : ControllerBase
     private readonly IPurchaseOrderRepository _orders;
     private readonly IItemRepository _items;
     private readonly IDocumentNumberService _documentNumbers;
+    private readonly IPurchaseWorkflowService _workflow;
 
     public ReceiveInventoryController(
         IInventoryReceiptRepository receipts,
@@ -26,7 +29,8 @@ public sealed class ReceiveInventoryController : ControllerBase
         IVendorRepository vendors,
         IPurchaseOrderRepository orders,
         IItemRepository items,
-        IDocumentNumberService documentNumbers)
+        IDocumentNumberService documentNumbers,
+        IPurchaseWorkflowService workflow)
     {
         _receipts = receipts;
         _postingService = postingService;
@@ -34,6 +38,7 @@ public sealed class ReceiveInventoryController : ControllerBase
         _orders = orders;
         _items = items;
         _documentNumbers = documentNumbers;
+        _workflow = workflow;
     }
 
     [HttpGet]
@@ -64,6 +69,54 @@ public sealed class ReceiveInventoryController : ControllerBase
     {
         var receipt = await _receipts.GetByIdAsync(id, cancellationToken);
         return receipt is null ? NotFound() : Ok(await ToDtoAsync(receipt, cancellationToken));
+    }
+
+    [HttpGet("{id:guid}/billing-plan")]
+    [ProducesResponseType(typeof(InventoryReceiptBillingPlanDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InventoryReceiptBillingPlanDto>> GetBillingPlan(Guid id, CancellationToken cancellationToken = default)
+    {
+        var plan = await _workflow.GetBillingPlanAsync(id, cancellationToken);
+        if (plan is null)
+        {
+            return NotFound();
+        }
+
+        var vendor = await _vendors.GetByIdAsync(plan.VendorId, cancellationToken);
+        PurchaseOrder? order = null;
+        if (plan.PurchaseOrderId is not null)
+        {
+            order = await _orders.GetByIdAsync(plan.PurchaseOrderId.Value, cancellationToken);
+        }
+
+        return Ok(new InventoryReceiptBillingPlanDto(
+            plan.InventoryReceiptId,
+            plan.ReceiptNumber,
+            plan.VendorId,
+            vendor?.DisplayName,
+            plan.PurchaseOrderId,
+            order?.OrderNumber,
+            plan.Status,
+            plan.CanBill,
+            plan.IsFullyBilled,
+            plan.TotalReceivedQuantity,
+            plan.TotalBilledQuantity,
+            plan.TotalRemainingQuantity,
+            plan.Lines.Select(line => new InventoryReceiptBillingPlanLineDto(
+                line.InventoryReceiptLineId,
+                line.ItemId,
+                line.PurchaseOrderLineId,
+                line.Description,
+                line.ReceivedQuantity,
+                line.BilledQuantity,
+                line.RemainingQuantity,
+                line.SuggestedBillQuantity,
+                line.UnitCost)).ToList(),
+            plan.LinkedBills.Select(bill => new LinkedPurchaseBillReferenceDto(
+                bill.Id,
+                bill.BillNumber,
+                bill.BillDate,
+                bill.Status)).ToList()));
     }
 
     [HttpPost]

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.PurchaseOrders;
+using QuickBooksClone.Api.Contracts.PurchaseWorkflow;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.PurchaseOrders;
+using QuickBooksClone.Core.PurchaseWorkflow;
 using QuickBooksClone.Core.Vendors;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -15,13 +17,15 @@ public sealed class PurchaseOrdersController : ControllerBase
     private readonly IVendorRepository _vendors;
     private readonly IItemRepository _items;
     private readonly IDocumentNumberService _documentNumbers;
+    private readonly IPurchaseWorkflowService _workflow;
 
-    public PurchaseOrdersController(IPurchaseOrderRepository orders, IVendorRepository vendors, IItemRepository items, IDocumentNumberService documentNumbers)
+    public PurchaseOrdersController(IPurchaseOrderRepository orders, IVendorRepository vendors, IItemRepository items, IDocumentNumberService documentNumbers, IPurchaseWorkflowService workflow)
     {
         _orders = orders;
         _vendors = vendors;
         _items = items;
         _documentNumbers = documentNumbers;
+        _workflow = workflow;
     }
 
     [HttpGet]
@@ -52,6 +56,45 @@ public sealed class PurchaseOrdersController : ControllerBase
     {
         var order = await _orders.GetByIdAsync(id, cancellationToken);
         return order is null ? NotFound() : Ok(await ToDtoAsync(order, cancellationToken));
+    }
+
+    [HttpGet("{id:guid}/receiving-plan")]
+    [ProducesResponseType(typeof(PurchaseOrderReceivingPlanDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PurchaseOrderReceivingPlanDto>> GetReceivingPlan(Guid id, CancellationToken cancellationToken = default)
+    {
+        var plan = await _workflow.GetReceivingPlanAsync(id, cancellationToken);
+        if (plan is null)
+        {
+            return NotFound();
+        }
+
+        var vendor = await _vendors.GetByIdAsync(plan.VendorId, cancellationToken);
+        return Ok(new PurchaseOrderReceivingPlanDto(
+            plan.PurchaseOrderId,
+            plan.OrderNumber,
+            plan.VendorId,
+            vendor?.DisplayName,
+            plan.Status,
+            plan.CanReceive,
+            plan.IsFullyReceived,
+            plan.TotalOrderedQuantity,
+            plan.TotalReceivedQuantity,
+            plan.TotalRemainingQuantity,
+            plan.Lines.Select(line => new PurchaseOrderReceivingPlanLineDto(
+                line.PurchaseOrderLineId,
+                line.ItemId,
+                line.Description,
+                line.OrderedQuantity,
+                line.ReceivedQuantity,
+                line.RemainingQuantity,
+                line.SuggestedReceiveQuantity,
+                line.UnitCost)).ToList(),
+            plan.LinkedReceipts.Select(receipt => new LinkedInventoryReceiptReferenceDto(
+                receipt.Id,
+                receipt.ReceiptNumber,
+                receipt.ReceiptDate,
+                receipt.Status)).ToList()));
     }
 
     [HttpPost]

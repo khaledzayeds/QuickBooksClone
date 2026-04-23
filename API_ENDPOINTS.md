@@ -900,6 +900,57 @@ GET /api/purchase-orders?search=&vendorId=&includeClosed=false&includeCancelled=
 GET /api/purchase-orders/{id}
 ```
 
+### Get Purchase Order Receiving Plan
+
+```http
+GET /api/purchase-orders/{id}/receiving-plan
+```
+
+Response:
+
+```json
+{
+  "purchaseOrderId": "guid",
+  "orderNumber": "DEV01-2026-00001",
+  "vendorId": "guid",
+  "vendorName": "Cairo Office Supplies",
+  "status": 2,
+  "canReceive": true,
+  "isFullyReceived": false,
+  "totalOrderedQuantity": 5.0,
+  "totalReceivedQuantity": 2.0,
+  "totalRemainingQuantity": 3.0,
+  "lines": [
+    {
+      "purchaseOrderLineId": "guid",
+      "itemId": "guid",
+      "description": "Receipt Printer",
+      "orderedQuantity": 5.0,
+      "receivedQuantity": 2.0,
+      "remainingQuantity": 3.0,
+      "suggestedReceiveQuantity": 3.0,
+      "unitCost": 10.0
+    }
+  ],
+  "linkedReceipts": [
+    {
+      "id": "guid",
+      "receiptNumber": "DEV01-2026-00001",
+      "receiptDate": "2026-04-23",
+      "status": 2
+    }
+  ]
+}
+```
+
+Notes:
+
+- This endpoint is the backend workflow contract for `Purchase Order -> Receive Inventory`.
+- It is frontend-agnostic and intended for Blazor now and future Flutter/mobile clients later.
+- `suggestedReceiveQuantity` always mirrors the current remaining receivable quantity.
+- `linkedReceipts` exposes already-created downstream receipt references so the client does not need to infer document history.
+- `canReceive` becomes `false` when the order is not open or when all ordered quantities are already received.
+
 ### Create Purchase Order
 
 ```http
@@ -989,6 +1040,60 @@ GET /api/receive-inventory?search=&vendorId=&purchaseOrderId=&includeVoid=false&
 GET /api/receive-inventory/{id}
 ```
 
+### Get Inventory Receipt Billing Plan
+
+```http
+GET /api/receive-inventory/{id}/billing-plan
+```
+
+Response:
+
+```json
+{
+  "inventoryReceiptId": "guid",
+  "receiptNumber": "DEV01-2026-00001",
+  "vendorId": "guid",
+  "vendorName": "Cairo Office Supplies",
+  "purchaseOrderId": "guid",
+  "purchaseOrderNumber": "DEV01-2026-00001",
+  "status": 2,
+  "canBill": true,
+  "isFullyBilled": false,
+  "totalReceivedQuantity": 2.0,
+  "totalBilledQuantity": 1.0,
+  "totalRemainingQuantity": 1.0,
+  "lines": [
+    {
+      "inventoryReceiptLineId": "guid",
+      "itemId": "guid",
+      "purchaseOrderLineId": "guid",
+      "description": "Receipt Printer",
+      "receivedQuantity": 2.0,
+      "billedQuantity": 1.0,
+      "remainingQuantity": 1.0,
+      "suggestedBillQuantity": 1.0,
+      "unitCost": 10.0
+    }
+  ],
+  "linkedBills": [
+    {
+      "id": "guid",
+      "billNumber": "DEV01-2026-00001",
+      "billDate": "2026-04-23",
+      "status": 2
+    }
+  ]
+}
+```
+
+Notes:
+
+- This endpoint is the backend workflow contract for `Receive Inventory -> Purchase Bill`.
+- It keeps the original purchase-order linkage visible when the receipt came from a PO.
+- `suggestedBillQuantity` always mirrors the current remaining unbilled quantity on each receipt line.
+- `linkedBills` exposes already-created downstream bill references so clients can show related documents without custom aggregation.
+- `canBill` becomes `false` when the receipt is not posted or when all received quantities are already billed.
+
 ### Create Inventory Receipt
 
 ```http
@@ -1044,6 +1149,7 @@ Document behavior:
 - draft receipts save without stock or accounting impact
 - `SaveAndPost` posts immediately through the dedicated inventory-receipt posting service
 - current posting is idempotent by source document
+- current workflow contract for PO-driven receiving is exposed through `GET /api/purchase-orders/{id}/receiving-plan`
 
 Transactions use:
 
@@ -1163,6 +1269,7 @@ Validation:
 - Inventory items need an inventory asset account before posting.
 - Service/non-inventory items need an expense account before posting.
 - Accounts Payable must exist before posting.
+- Current workflow contract for bill creation planning is exposed through `GET /api/receive-inventory/{id}/billing-plan`.
 
 ### Post Purchase Bill
 
