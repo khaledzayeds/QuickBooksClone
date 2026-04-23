@@ -411,6 +411,10 @@ Architectural baseline is now fixed:
   - [x] Add SQLite migration for sales workflow links
   - [x] Add SQL Server migration for sales workflow links
   - [x] Add repeatable `scripts/smoke-sales-workflow-plans.ps1`
+- [x] Cross-frontend backend verification
+  - [x] Add consolidated `scripts/smoke-core-backend.ps1`
+  - [x] Add `FRONTEND_INTEGRATION_GUIDE.md` for Windows Forms / Flutter style clients
+  - [x] Document workflow-first API consumption order
 
 ## In Progress
 
