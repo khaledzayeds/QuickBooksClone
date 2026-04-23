@@ -48,7 +48,7 @@ public sealed class Estimate : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkSent()
@@ -60,7 +60,7 @@ public sealed class Estimate : SyncDocumentBase, ITenantEntity
 
         Status = EstimateStatus.Sent;
         SentAt ??= DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Accept()
@@ -77,7 +77,7 @@ public sealed class Estimate : SyncDocumentBase, ITenantEntity
 
         Status = EstimateStatus.Accepted;
         AcceptedAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Decline()
@@ -94,7 +94,7 @@ public sealed class Estimate : SyncDocumentBase, ITenantEntity
 
         Status = EstimateStatus.Declined;
         DeclinedAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Cancel()
@@ -111,6 +111,6 @@ public sealed class Estimate : SyncDocumentBase, ITenantEntity
 
         Status = EstimateStatus.Cancelled;
         CancelledAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }

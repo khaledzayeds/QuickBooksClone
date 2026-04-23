@@ -81,7 +81,7 @@ public sealed class VendorPayment : SyncDocumentBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = VendorPaymentStatus.Posted;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Void(Guid? reversalTransactionId = null)
@@ -91,7 +91,7 @@ public sealed class VendorPayment : SyncDocumentBase, ITenantEntity
             if (ReversalTransactionId is null && reversalTransactionId is not null)
             {
                 ReversalTransactionId = reversalTransactionId;
-                UpdatedAt = DateTimeOffset.UtcNow;
+                TouchForLocalChange();
             }
 
             return;
@@ -100,6 +100,6 @@ public sealed class VendorPayment : SyncDocumentBase, ITenantEntity
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = VendorPaymentStatus.Void;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }

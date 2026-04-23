@@ -17,6 +17,7 @@ using QuickBooksClone.Core.SalesOrders;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.SalesWorkflow;
 using QuickBooksClone.Core.Settings;
+using QuickBooksClone.Core.Sync;
 using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.VendorPayments;
 using QuickBooksClone.Core.Vendors;
@@ -704,11 +705,14 @@ public sealed class QuickBooksCloneDbContext : DbContext
         entity.Property(document => document.DeviceId).HasMaxLength(20).IsRequired();
         entity.Property(document => document.DocumentNo).HasMaxLength(80).IsRequired();
         entity.Property(document => document.SyncStatus).HasConversion<int>().IsRequired();
+        entity.Property(document => document.LastModifiedAt).IsRequired();
+        entity.Property(document => document.SyncVersion).IsRequired();
         entity.Property(document => document.LastSyncAt);
         entity.Property(document => document.SyncError).HasMaxLength(500);
         entity.HasIndex(document => document.DocumentNo).IsUnique();
         entity.HasIndex(document => document.DeviceId);
         entity.HasIndex(document => document.SyncStatus);
+        entity.HasIndex(document => document.LastModifiedAt);
     }
 
     private static void ConfigureMoney(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<decimal> property)

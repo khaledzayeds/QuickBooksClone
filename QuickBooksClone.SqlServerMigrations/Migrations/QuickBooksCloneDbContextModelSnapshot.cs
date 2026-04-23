@@ -157,6 +157,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<Guid?>("InvoiceId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -188,6 +191,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -199,6 +205,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("ReferenceNumber")
                         .IsUnique();
@@ -313,6 +321,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<DateOnly>("ExpirationDate")
                         .HasColumnType("date");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -329,6 +340,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -343,6 +357,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("EstimateNumber")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("SyncStatus");
 
@@ -384,6 +400,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<Guid>("ItemId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -412,6 +431,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -430,6 +452,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("SyncStatus");
 
@@ -478,6 +502,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -521,6 +548,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal>("TaxAmount")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -542,6 +572,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("InvoiceNumber")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("SyncStatus");
 
@@ -657,6 +689,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -684,6 +719,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -701,6 +739,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("EntryNumber")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("SyncStatus");
 
@@ -741,6 +781,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -776,6 +819,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -790,6 +836,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("PaymentNumber")
                         .IsUnique();
@@ -838,6 +886,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<Guid?>("InventoryReceiptId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -868,6 +919,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -888,6 +942,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("SyncStatus");
 
@@ -924,6 +980,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<DateOnly>("ExpectedDate")
                         .HasColumnType("date");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -948,6 +1007,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -962,6 +1024,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique();
@@ -991,6 +1055,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
@@ -1025,6 +1092,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1042,6 +1112,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("ReturnNumber")
                         .IsUnique();
@@ -1071,6 +1143,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
@@ -1105,6 +1180,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1122,6 +1200,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("ReceiptNumber")
                         .IsUnique();
@@ -1167,6 +1247,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<DateOnly>("ExpectedDate")
                         .HasColumnType("date");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1191,6 +1274,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1202,6 +1288,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique();
@@ -1238,6 +1326,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1268,6 +1359,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1282,6 +1376,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("ReturnNumber")
                         .IsUnique();
@@ -1486,6 +1582,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1517,6 +1616,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1531,6 +1633,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("ReferenceNumber")
                         .IsUnique();
@@ -1564,6 +1668,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset?>("LastSyncAt")
                         .HasColumnType("datetimeoffset");
@@ -1606,6 +1713,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<int>("SyncStatus")
                         .HasColumnType("int");
 
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1623,6 +1733,8 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.HasIndex("DocumentNo")
                         .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
 
                     b.HasIndex("PaymentNumber")
                         .IsUnique();

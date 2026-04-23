@@ -47,7 +47,7 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkOpen()
@@ -64,7 +64,7 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
 
         Status = PurchaseOrderStatus.Open;
         OpenedAt ??= DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Close()
@@ -81,7 +81,7 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
 
         Status = PurchaseOrderStatus.Closed;
         ClosedAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Cancel()
@@ -98,6 +98,6 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
 
         Status = PurchaseOrderStatus.Cancelled;
         CancelledAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }

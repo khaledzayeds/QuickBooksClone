@@ -53,7 +53,7 @@ public sealed class InventoryReceipt : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkPosted(Guid transactionId)
@@ -71,7 +71,7 @@ public sealed class InventoryReceipt : SyncDocumentBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = InventoryReceiptStatus.Posted;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Void(Guid? reversalTransactionId = null)
@@ -81,7 +81,7 @@ public sealed class InventoryReceipt : SyncDocumentBase, ITenantEntity
             if (ReversalTransactionId is null && reversalTransactionId is not null)
             {
                 ReversalTransactionId = reversalTransactionId;
-                UpdatedAt = DateTimeOffset.UtcNow;
+                TouchForLocalChange();
             }
 
             return;
@@ -90,6 +90,6 @@ public sealed class InventoryReceipt : SyncDocumentBase, ITenantEntity
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = InventoryReceiptStatus.Void;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }

@@ -62,7 +62,7 @@ public sealed class JournalEntry : SyncDocumentBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = JournalEntryStatus.Posted;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Void(Guid? reversalTransactionId)
@@ -75,7 +75,7 @@ public sealed class JournalEntry : SyncDocumentBase, ITenantEntity
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = JournalEntryStatus.Void;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     private void ValidateBalanced()

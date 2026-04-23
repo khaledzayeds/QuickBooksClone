@@ -74,7 +74,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkSent()
@@ -82,7 +82,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         if (Status == InvoiceStatus.Draft)
         {
             Status = InvoiceStatus.Sent;
-            UpdatedAt = DateTimeOffset.UtcNow;
+            TouchForLocalChange();
         }
     }
 
@@ -93,7 +93,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
             if (ReversalTransactionId is null && reversalTransactionId is not null)
             {
                 ReversalTransactionId = reversalTransactionId;
-                UpdatedAt = DateTimeOffset.UtcNow;
+                TouchForLocalChange();
             }
 
             return;
@@ -107,7 +107,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = InvoiceStatus.Void;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkPosted(Guid transactionId)
@@ -125,7 +125,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = InvoiceStatus.Posted;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ApplyPayment(decimal amount)
@@ -147,7 +147,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
 
         PaidAmount += amount;
         Status = BalanceDue == 0 ? InvoiceStatus.Paid : InvoiceStatus.PartiallyPaid;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void LinkReceiptPayment(Guid paymentId)
@@ -168,7 +168,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         }
 
         ReceiptPaymentId = paymentId;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ReversePayment(decimal amount)
@@ -185,7 +185,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
 
         PaidAmount -= amount;
         Status = PaidAmount == 0 ? InvoiceStatus.Posted : InvoiceStatus.PartiallyPaid;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ApplyCredit(decimal amount)
@@ -207,7 +207,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
 
         CreditAppliedAmount += amount;
         Status = BalanceDue == 0 ? InvoiceStatus.Paid : InvoiceStatus.PartiallyPaid;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ApplyReturn(decimal amount)
@@ -245,7 +245,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
             Status = InvoiceStatus.Posted;
         }
 
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ReverseReturn(decimal amount)
@@ -274,6 +274,6 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
             Status = InvoiceStatus.Posted;
         }
 
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }

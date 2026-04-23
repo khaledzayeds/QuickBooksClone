@@ -58,7 +58,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
         }
 
         InventoryReceiptId = inventoryReceiptId;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void AddLine(PurchaseBillLine line)
@@ -69,7 +69,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkPosted(Guid transactionId)
@@ -87,7 +87,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = PurchaseBillStatus.Posted;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Void(Guid? reversalTransactionId = null)
@@ -97,7 +97,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
             if (ReversalTransactionId is null && reversalTransactionId is not null)
             {
                 ReversalTransactionId = reversalTransactionId;
-                UpdatedAt = DateTimeOffset.UtcNow;
+                TouchForLocalChange();
             }
 
             return;
@@ -111,7 +111,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = PurchaseBillStatus.Void;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ApplyPayment(decimal amount)
@@ -133,7 +133,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
 
         PaidAmount += amount;
         Status = BalanceDue == 0 ? PurchaseBillStatus.Paid : PurchaseBillStatus.PartiallyPaid;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ReversePayment(decimal amount)
@@ -150,7 +150,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
 
         PaidAmount -= amount;
         Status = PaidAmount == 0 ? PurchaseBillStatus.Posted : PurchaseBillStatus.PartiallyPaid;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ApplyReturn(decimal amount)
@@ -188,7 +188,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
             Status = PurchaseBillStatus.Posted;
         }
 
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ApplyCredit(decimal amount)
@@ -210,7 +210,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
 
         CreditAppliedAmount += amount;
         Status = BalanceDue == 0 ? PurchaseBillStatus.Paid : PurchaseBillStatus.PartiallyPaid;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void ReverseReturn(decimal amount)
@@ -239,6 +239,6 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
             Status = PurchaseBillStatus.Posted;
         }
 
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }

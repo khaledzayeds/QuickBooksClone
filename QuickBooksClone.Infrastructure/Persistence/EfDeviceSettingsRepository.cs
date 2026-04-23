@@ -31,8 +31,15 @@ public sealed class EfDeviceSettingsRepository : IDeviceSettingsRepository
 
     public async Task<DeviceSettings> UpsertAsync(string deviceId, string? deviceName, CancellationToken cancellationToken = default)
     {
+        var existing = await _db.DeviceSettings.SingleOrDefaultAsync(cancellationToken);
+        if (existing is not null)
+        {
+            existing.Update(deviceId, deviceName);
+            await _db.SaveChangesAsync(cancellationToken);
+            return existing;
+        }
+
         var validated = new DeviceSettings(deviceId, deviceName);
-        await _db.DeviceSettings.ExecuteDeleteAsync(cancellationToken);
         _db.DeviceSettings.Add(validated);
         await _db.SaveChangesAsync(cancellationToken);
         return validated;

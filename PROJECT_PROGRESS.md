@@ -21,8 +21,20 @@ Architectural baseline is now fixed:
 - future `Sync Layer -> Central SQL Server`
 - business logic stays in the API
 - sync readiness is being added to document headers before the sync engine itself ships
+- sync hardening now includes `lastModifiedAt`, `syncVersion`, diagnostics endpoints, and explicit requeue support
 
 ## Completed
+
+- [x] Sync hardening foundation
+  - [x] Sync-ready headers now expose `lastModifiedAt` and `syncVersion`
+  - [x] Local document mutations now move previously synced documents back to `PendingSync`
+  - [x] Device settings updates no longer replace the entire row
+  - [x] Add sync diagnostics API:
+    - [x] `GET /api/sync/overview`
+    - [x] `GET /api/sync/documents`
+    - [x] `POST /api/sync/documents/{documentType}/{id}/mark-pending`
+  - [x] Add SQLite and SQL Server migrations for sync metadata hardening
+  - [x] Add `smoke-sync-diagnostics.ps1`
 
 - [x] Project structure
   - [x] `QuickBooksClone.Api`

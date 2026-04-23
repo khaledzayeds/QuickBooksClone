@@ -7,11 +7,15 @@ public abstract class SyncDocumentBase : EntityBase, ISyncDocument
         DeviceId = "LOCAL";
         DocumentNo = string.Empty;
         SyncStatus = SyncStatus.LocalOnly;
+        LastModifiedAt = CreatedAt;
+        SyncVersion = 1;
     }
 
     public string DeviceId { get; private set; }
     public string DocumentNo { get; private set; }
     public SyncStatus SyncStatus { get; private set; }
+    public DateTimeOffset LastModifiedAt { get; private set; }
+    public long SyncVersion { get; private set; }
     public DateTimeOffset? LastSyncAt { get; private set; }
     public string? SyncError { get; private set; }
 
@@ -21,7 +25,9 @@ public abstract class SyncDocumentBase : EntityBase, ISyncDocument
         DocumentNo = NormalizeRequired(documentNo, nameof(documentNo)).ToUpperInvariant();
         SyncStatus = SyncStatus.LocalOnly;
         SyncError = null;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        LastSyncAt = null;
+        LastModifiedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = LastModifiedAt;
     }
 
     public void MarkPendingSync()
@@ -47,6 +53,20 @@ public abstract class SyncDocumentBase : EntityBase, ISyncDocument
         SyncStatus = SyncStatus.SyncFailed;
         SyncError = NormalizeRequired(error, nameof(error));
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    protected void TouchForLocalChange()
+    {
+        LastModifiedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = LastModifiedAt;
+
+        if (SyncStatus is SyncStatus.Synced or SyncStatus.SyncFailed)
+        {
+            SyncStatus = SyncStatus.PendingSync;
+        }
+
+        SyncError = null;
+        SyncVersion++;
     }
 
     private void EnsureIdentityAssigned()

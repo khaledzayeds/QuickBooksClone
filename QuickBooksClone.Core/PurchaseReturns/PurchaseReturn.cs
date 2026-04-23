@@ -42,7 +42,7 @@ public sealed class PurchaseReturn : SyncDocumentBase, ITenantEntity
     {
         if (Status != PurchaseReturnStatus.Draft) throw new InvalidOperationException("Cannot change a posted or void purchase return.");
         _lines.Add(line);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkPosted(Guid transactionId)
@@ -52,7 +52,7 @@ public sealed class PurchaseReturn : SyncDocumentBase, ITenantEntity
         PostedTransactionId = transactionId;
         PostedAt = DateTimeOffset.UtcNow;
         Status = PurchaseReturnStatus.Posted;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Void(Guid? reversalTransactionId = null)
@@ -62,7 +62,7 @@ public sealed class PurchaseReturn : SyncDocumentBase, ITenantEntity
             if (ReversalTransactionId is null && reversalTransactionId is not null)
             {
                 ReversalTransactionId = reversalTransactionId;
-                UpdatedAt = DateTimeOffset.UtcNow;
+                TouchForLocalChange();
             }
 
             return;
@@ -71,6 +71,6 @@ public sealed class PurchaseReturn : SyncDocumentBase, ITenantEntity
         ReversalTransactionId = reversalTransactionId;
         VoidedAt = DateTimeOffset.UtcNow;
         Status = PurchaseReturnStatus.Void;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }

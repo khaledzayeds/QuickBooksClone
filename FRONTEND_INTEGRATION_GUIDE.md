@@ -20,6 +20,12 @@ Future sync target:
 Local API/SQLite -> Sync Layer -> Central SQL Server
 ```
 
+Current sync diagnostics before the sync engine ships:
+
+- `GET /api/sync/overview`
+- `GET /api/sync/documents`
+- `POST /api/sync/documents/{documentType}/{id}/mark-pending`
+
 ## 1. Runtime Check First
 
 Always begin with:
@@ -186,5 +192,7 @@ If building a new frontend, start from these:
 - `GET /api/estimates/{id}/sales-order-plan`
 - `GET /api/sales-orders/{id}/invoice-plan`
 - `GET /api/invoices/{id}/payment-plan`
+- `GET /api/sync/overview`
+- `GET /api/sync/documents?status=PendingSync&take=50`
 
 These are the key workflow-intelligence endpoints that prevent frontend guesswork.

@@ -54,7 +54,7 @@ public sealed class SalesOrder : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void MarkOpen()
@@ -71,7 +71,7 @@ public sealed class SalesOrder : SyncDocumentBase, ITenantEntity
 
         Status = SalesOrderStatus.Open;
         OpenedAt ??= DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Close()
@@ -88,7 +88,7 @@ public sealed class SalesOrder : SyncDocumentBase, ITenantEntity
 
         Status = SalesOrderStatus.Closed;
         ClosedAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 
     public void Cancel()
@@ -105,6 +105,6 @@ public sealed class SalesOrder : SyncDocumentBase, ITenantEntity
 
         Status = SalesOrderStatus.Cancelled;
         CancelledAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        TouchForLocalChange();
     }
 }
