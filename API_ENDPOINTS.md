@@ -2015,6 +2015,18 @@ Required before posting:
 
 Posted invoices are immutable. Change business meaning through void/reversal, payment, customer credit, or sales return workflows instead of editing the posted invoice.
 
+### Get Invoice Payment Plan
+
+```http
+GET /api/invoices/{id}/payment-plan
+```
+
+This endpoint is the backend workflow contract for `Invoice -> Payment`.
+
+- It exposes the live balance due directly from the invoice aggregate.
+- It lists all non-void linked payments for the invoice.
+- `canReceivePayment` is only true for posted or partially paid credit invoices with a positive balance.
+
 ## Sales Receipts
 
 Sales receipts are paid-now customer sales.
@@ -2374,9 +2386,47 @@ POST /api/estimates/{id}/decline
 PATCH /api/estimates/{id}/cancel
 ```
 
+### Get Estimate Sales-Order Plan
+
+```http
+GET /api/estimates/{id}/sales-order-plan
+```
+
+This endpoint is the backend workflow contract for `Estimate -> Sales Order`.
+
+- Remaining quantities are calculated from already-created downstream sales orders linked to estimate lines.
+- `linkedSalesOrders` exposes the downstream references directly, so clients do not need to build their own joins.
+
+### Convert Estimate To Sales Order
+
+```http
+POST /api/estimates/{id}/convert-to-sales-order
+Content-Type: application/json
+```
+
+```json
+{
+  "orderDate": "2026-04-23",
+  "expectedDate": "2026-04-30",
+  "saveMode": 2,
+  "lines": [
+    {
+      "estimateLineId": "guid",
+      "quantity": 3
+    }
+  ]
+}
+```
+
+Notes:
+
+- `lines` may be omitted or empty; the API will then convert all currently remaining estimate quantities.
+- Converted sales-order lines keep `estimateLineId` links so later invoice planning can trace quantity lineage.
+- Converting to an open sales order automatically accepts the source estimate.
+
 ## Sales Orders
 
-Sales Orders are non-posting customer commitments. They are operational documents only until later fulfillment and invoicing steps are introduced.
+Sales Orders are non-posting customer commitments. They are operational documents only, but they now participate in the downstream invoice workflow.
 
 ### List Sales Orders
 
@@ -2438,6 +2488,47 @@ POST /api/sales-orders/{id}/close
 ```http
 PATCH /api/sales-orders/{id}/cancel
 ```
+
+### Get Sales-Order Invoice Plan
+
+```http
+GET /api/sales-orders/{id}/invoice-plan
+```
+
+This endpoint is the backend workflow contract for `Sales Order -> Invoice`.
+
+- Remaining quantities are calculated from already-created linked credit invoices.
+- Void invoices are excluded from conversion totals.
+- When a sales order reaches zero remaining quantity, it closes automatically after conversion.
+
+### Convert Sales Order To Invoice
+
+```http
+POST /api/sales-orders/{id}/convert-to-invoice
+Content-Type: application/json
+```
+
+```json
+{
+  "invoiceDate": "2026-04-23",
+  "dueDate": "2026-05-23",
+  "saveMode": 2,
+  "lines": [
+    {
+      "salesOrderLineId": "guid",
+      "quantity": 2,
+      "discountPercent": 0
+    }
+  ]
+}
+```
+
+Notes:
+
+- `lines` may be omitted or empty; the API will then convert all currently remaining sales-order quantities.
+- Converted invoice lines keep `salesOrderLineId` links for future reconciliation and reporting.
+- `saveMode=2` posts the created invoice immediately through the standard invoice posting engine.
+- Quantity conversion is capped by the remaining uninvoiced quantity on each source sales-order line.
 
 ## Payments
 

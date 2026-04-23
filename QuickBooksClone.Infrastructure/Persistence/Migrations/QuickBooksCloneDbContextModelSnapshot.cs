@@ -502,6 +502,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("ReversalTransactionId")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("SalesOrderId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -1150,6 +1153,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("EstimateId")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("ExpectedDate")
                         .HasColumnType("TEXT");
 
@@ -1787,6 +1793,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                                 .HasPrecision(18, 4)
                                 .HasColumnType("TEXT");
 
+                            b1.Property<Guid?>("SalesOrderLineId")
+                                .HasColumnType("TEXT");
+
                             b1.Property<decimal>("UnitPrice")
                                 .HasPrecision(18, 4)
                                 .HasColumnType("TEXT");
@@ -2024,6 +2033,9 @@ namespace QuickBooksClone.Infrastructure.Persistence.Migrations
                             b1.Property<string>("Description")
                                 .IsRequired()
                                 .HasMaxLength(300)
+                                .HasColumnType("TEXT");
+
+                            b1.Property<Guid?>("EstimateLineId")
                                 .HasColumnType("TEXT");
 
                             b1.Property<Guid>("ItemId")

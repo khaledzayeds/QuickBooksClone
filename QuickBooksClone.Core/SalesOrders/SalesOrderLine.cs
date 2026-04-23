@@ -7,7 +7,7 @@ public sealed class SalesOrderLine
         Description = string.Empty;
     }
 
-    public SalesOrderLine(Guid itemId, string description, decimal quantity, decimal unitPrice)
+    public SalesOrderLine(Guid itemId, string description, decimal quantity, decimal unitPrice, Guid? estimateLineId = null)
     {
         if (itemId == Guid.Empty)
         {
@@ -25,6 +25,7 @@ public sealed class SalesOrderLine
         }
 
         ItemId = itemId;
+        EstimateLineId = estimateLineId;
         Description = string.IsNullOrWhiteSpace(description) ? "Item" : description.Trim();
         Quantity = quantity;
         UnitPrice = unitPrice;
@@ -32,6 +33,7 @@ public sealed class SalesOrderLine
 
     public Guid Id { get; } = Guid.NewGuid();
     public Guid ItemId { get; }
+    public Guid? EstimateLineId { get; }
     public string Description { get; }
     public decimal Quantity { get; }
     public decimal UnitPrice { get; }

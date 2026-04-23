@@ -97,6 +97,7 @@ public sealed class InvoicesController : ControllerBase
             request.CustomerId,
             request.InvoiceDate,
             request.DueDate,
+            null,
             allocation.DocumentNo);
         invoice.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
@@ -205,6 +206,7 @@ public sealed class InvoicesController : ControllerBase
             invoice.InvoiceNumber,
             invoice.CustomerId,
             customer?.DisplayName,
+            invoice.SalesOrderId,
             invoice.InvoiceDate,
             invoice.DueDate,
             invoice.PaymentMode,
@@ -228,6 +230,7 @@ public sealed class InvoicesController : ControllerBase
             invoice.Lines.Select(line => new InvoiceLineDto(
                 line.Id,
                 line.ItemId,
+                line.SalesOrderLineId,
                 line.Description,
                 line.Quantity,
                 line.UnitPrice,

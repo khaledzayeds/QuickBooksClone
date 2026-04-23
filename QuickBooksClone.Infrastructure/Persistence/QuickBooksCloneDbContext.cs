@@ -15,6 +15,7 @@ using QuickBooksClone.Core.PurchaseReturns;
 using QuickBooksClone.Core.ReceiveInventory;
 using QuickBooksClone.Core.SalesOrders;
 using QuickBooksClone.Core.SalesReturns;
+using QuickBooksClone.Core.SalesWorkflow;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.VendorPayments;
@@ -231,6 +232,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             ConfigureTenant(entity);
             ConfigureSyncDocument(entity);
             entity.Property(invoice => invoice.CustomerId).IsRequired();
+            entity.Property(invoice => invoice.SalesOrderId);
             entity.Property(invoice => invoice.InvoiceDate).IsRequired();
             entity.Property(invoice => invoice.DueDate).IsRequired();
             entity.Property(invoice => invoice.DepositAccountId);
@@ -257,6 +259,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.WithOwner().HasForeignKey("InvoiceId");
                 line.HasKey(current => current.Id);
                 line.Property(current => current.ItemId).IsRequired();
+                line.Property(current => current.SalesOrderLineId);
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitPrice));
@@ -536,6 +539,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             ConfigureTenant(entity);
             ConfigureSyncDocument(entity);
             entity.Property(order => order.CustomerId).IsRequired();
+            entity.Property(order => order.EstimateId);
             entity.Property(order => order.OrderDate).IsRequired();
             entity.Property(order => order.ExpectedDate).IsRequired();
             entity.Property(order => order.OrderNumber).HasMaxLength(80).IsRequired();
@@ -549,6 +553,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.WithOwner().HasForeignKey("SalesOrderId");
                 line.HasKey(current => current.Id);
                 line.Property(current => current.ItemId).IsRequired();
+                line.Property(current => current.EstimateLineId);
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitPrice));

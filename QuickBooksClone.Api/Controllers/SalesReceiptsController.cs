@@ -104,6 +104,7 @@ public sealed class SalesReceiptsController : ControllerBase
             request.CustomerId,
             request.ReceiptDate,
             request.ReceiptDate,
+            null,
             allocation.DocumentNo,
             paymentMode: InvoicePaymentMode.Cash,
             depositAccountId: request.DepositAccountId,
@@ -187,6 +188,7 @@ public sealed class SalesReceiptsController : ControllerBase
             receipt.InvoiceNumber,
             receipt.CustomerId,
             customer?.DisplayName,
+            receipt.SalesOrderId,
             receipt.InvoiceDate,
             receipt.DueDate,
             receipt.PaymentMode,
@@ -210,6 +212,7 @@ public sealed class SalesReceiptsController : ControllerBase
             receipt.Lines.Select(line => new InvoiceLineDto(
                 line.Id,
                 line.ItemId,
+                line.SalesOrderLineId,
                 line.Description,
                 line.Quantity,
                 line.UnitPrice,

@@ -13,6 +13,11 @@ public sealed class SalesOrder : SyncDocumentBase, ITenantEntity
     }
 
     public SalesOrder(Guid customerId, DateOnly orderDate, DateOnly expectedDate, string? orderNumber = null, Guid? companyId = null)
+        : this(customerId, orderDate, expectedDate, null, orderNumber, companyId)
+    {
+    }
+
+    public SalesOrder(Guid customerId, DateOnly orderDate, DateOnly expectedDate, Guid? estimateId, string? orderNumber = null, Guid? companyId = null)
     {
         if (customerId == Guid.Empty)
         {
@@ -21,6 +26,7 @@ public sealed class SalesOrder : SyncDocumentBase, ITenantEntity
 
         CompanyId = companyId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
         CustomerId = customerId;
+        EstimateId = estimateId;
         OrderNumber = string.IsNullOrWhiteSpace(orderNumber) ? $"SO-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}" : orderNumber.Trim();
         OrderDate = orderDate;
         ExpectedDate = expectedDate;
@@ -29,6 +35,7 @@ public sealed class SalesOrder : SyncDocumentBase, ITenantEntity
 
     public Guid CompanyId { get; }
     public Guid CustomerId { get; }
+    public Guid? EstimateId { get; }
     public string OrderNumber { get; }
     public DateOnly OrderDate { get; }
     public DateOnly ExpectedDate { get; private set; }

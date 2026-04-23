@@ -7,6 +7,7 @@ public sealed record InvoiceDto(
     string InvoiceNumber,
     Guid CustomerId,
     string? CustomerName,
+    Guid? SalesOrderId,
     DateOnly InvoiceDate,
     DateOnly DueDate,
     InvoicePaymentMode PaymentMode,

@@ -16,6 +16,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         Guid customerId,
         DateOnly invoiceDate,
         DateOnly dueDate,
+        Guid? salesOrderId = null,
         string? invoiceNumber = null,
         Guid? companyId = null,
         InvoicePaymentMode paymentMode = InvoicePaymentMode.Credit,
@@ -29,6 +30,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
 
         CompanyId = companyId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
         CustomerId = customerId;
+        SalesOrderId = salesOrderId;
         var defaultPrefix = paymentMode == InvoicePaymentMode.Cash ? "SR" : "INV";
         InvoiceNumber = string.IsNullOrWhiteSpace(invoiceNumber) ? $"{defaultPrefix}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}" : invoiceNumber.Trim();
         InvoiceDate = invoiceDate;
@@ -41,6 +43,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
 
     public Guid CompanyId { get; }
     public Guid CustomerId { get; }
+    public Guid? SalesOrderId { get; }
     public string InvoiceNumber { get; }
     public DateOnly InvoiceDate { get; }
     public DateOnly DueDate { get; }

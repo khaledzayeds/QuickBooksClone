@@ -7,6 +7,7 @@ public sealed record SalesOrderDto(
     string OrderNumber,
     Guid CustomerId,
     string? CustomerName,
+    Guid? EstimateId,
     DateOnly OrderDate,
     DateOnly ExpectedDate,
     SalesOrderStatus Status,

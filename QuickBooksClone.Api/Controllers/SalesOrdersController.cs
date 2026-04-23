@@ -185,6 +185,7 @@ public sealed class SalesOrdersController : ControllerBase
             order.OrderNumber,
             order.CustomerId,
             customer?.DisplayName,
+            order.EstimateId,
             order.OrderDate,
             order.ExpectedDate,
             order.Status,
@@ -195,6 +196,7 @@ public sealed class SalesOrdersController : ControllerBase
             order.Lines.Select(line => new SalesOrderLineDto(
                 line.Id,
                 line.ItemId,
+                line.EstimateLineId,
                 line.Description,
                 line.Quantity,
                 line.UnitPrice,

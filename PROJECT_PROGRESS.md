@@ -396,6 +396,18 @@ Architectural baseline is now fixed:
   - [x] Add SQL Server migration for estimates and sales orders
   - [x] Add repeatable `scripts/smoke-estimates-sales-orders.ps1`
   - [x] Hook both workflows into MAUI navigation and the Home workflow map
+- [x] Sales workflow planning and conversion contracts
+  - [x] Add backend `Estimate -> Sales Order` planning contract
+  - [x] Add backend `Sales Order -> Invoice` planning contract
+  - [x] Add backend `Invoice -> Payment` planning contract
+  - [x] Add explicit conversion endpoints for estimate-to-sales-order and sales-order-to-invoice
+  - [x] Persist source-document links on sales orders, invoices, and downstream lines
+  - [x] Expose remaining quantities and linked downstream references for future frontends
+  - [x] Auto-accept estimates when converted into open sales orders
+  - [x] Auto-close sales orders when all ordered quantities are invoiced
+  - [x] Add SQLite migration for sales workflow links
+  - [x] Add SQL Server migration for sales workflow links
+  - [x] Add repeatable `scripts/smoke-sales-workflow-plans.ps1`
 
 ## In Progress
 
@@ -410,8 +422,9 @@ Architectural baseline is now fixed:
 - [ ] Customer workflow expansion
   - [x] Estimates
   - [x] Sales Orders
-  - [ ] Convert accepted estimates into downstream workflow
-  - [ ] Convert open sales orders into fulfillment/invoicing workflow
+  - [x] Convert estimates into downstream sales-order workflow
+  - [x] Convert open sales orders into downstream invoicing workflow
+  - [x] Add invoice payment planning contract
 - [ ] Core accounting reports
   - [x] Trial Balance
   - [x] Balance Sheet
@@ -458,6 +471,7 @@ Architectural baseline is now fixed:
 - SQL Server and SQLite groundwork is intentionally parked for now while the remaining backend slices continue on the SQLite runtime path.
 - Purchase orders are now live as non-posting operational documents; they intentionally do not touch inventory, vendor balances, or accounting transactions.
 - Estimates and Sales Orders are now live as customer-side non-posting operational documents; they intentionally stop before receivables, inventory movement, or posting.
+- Customer-side workflow contracts now expose estimate-to-order, order-to-invoice, and invoice-to-payment plans with remaining quantities and linked downstream references.
 - Receive Inventory is now live as the operational bridge between Purchase Orders and Purchase Bills; it increases stock and credits the temporary `Inventory Received Not Billed` liability without changing vendor balances.
 - Purchase Bills can now clear `Inventory Received Not Billed` against previously posted inventory receipts, so the bill creates Accounts Payable without increasing stock a second time.
 - Purchase workflow contracts now expose receiving and billing plans with remaining quantities and linked downstream references, so the UI no longer needs to guess how to prefill PO-driven receipts or receipt-driven bills.
