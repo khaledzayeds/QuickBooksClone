@@ -2795,3 +2795,184 @@ DELETE /api/documents/{documentType}/{documentId}/metadata/attachments/{attachme
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke-document-metadata.ps1
 ```
+
+## Security
+
+The first security slice is a backend foundation for users, roles, and permissions. It is not yet enforcing authorization on every business endpoint. Enforcement and audit logging are the next security slices.
+
+Seeded roles:
+
+```text
+ADMIN
+MANAGER
+ACCOUNTANT
+CASHIER
+INVENTORY
+READONLY
+```
+
+Seeded user:
+
+```text
+userName=admin
+role=ADMIN
+```
+
+### Permission Catalog
+
+```http
+GET /api/security/permissions
+```
+
+Returns all known permission keys grouped by area/name/description.
+
+### List Roles
+
+```http
+GET /api/security/roles?search=&includeInactive=false&page=1&pageSize=25
+```
+
+### Get Role
+
+```http
+GET /api/security/roles/{id}
+```
+
+### Create Role
+
+```http
+POST /api/security/roles
+Content-Type: application/json
+```
+
+```json
+{
+  "roleKey": "STORE-MANAGER",
+  "name": "Store Manager",
+  "description": "Store operations access",
+  "permissions": [
+    "Sales.Invoice.Manage",
+    "Sales.Payment.Manage",
+    "Reports.View"
+  ]
+}
+```
+
+### Update Role Details
+
+```http
+PUT /api/security/roles/{id}
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Store Manager",
+  "description": "Updated description"
+}
+```
+
+### Activate Or Deactivate Role
+
+```http
+PATCH /api/security/roles/{id}/active
+Content-Type: application/json
+```
+
+```json
+{
+  "isActive": true
+}
+```
+
+System roles cannot be deactivated.
+
+### Replace Role Permissions
+
+```http
+PUT /api/security/roles/{id}/permissions
+Content-Type: application/json
+```
+
+```json
+{
+  "permissions": [
+    "Reports.View",
+    "Accounting.View"
+  ]
+}
+```
+
+### List Users
+
+```http
+GET /api/security/users?search=&includeInactive=false&page=1&pageSize=25
+```
+
+### Get User
+
+```http
+GET /api/security/users/{id}
+```
+
+### Create User
+
+```http
+POST /api/security/users
+Content-Type: application/json
+```
+
+```json
+{
+  "userName": "cashier01",
+  "displayName": "Cashier 01",
+  "email": null,
+  "roleIds": ["guid"]
+}
+```
+
+### Update User Details
+
+```http
+PUT /api/security/users/{id}
+Content-Type: application/json
+```
+
+```json
+{
+  "displayName": "Cashier 01",
+  "email": "cashier01@example.com"
+}
+```
+
+### Activate Or Deactivate User
+
+```http
+PATCH /api/security/users/{id}/active
+Content-Type: application/json
+```
+
+```json
+{
+  "isActive": true
+}
+```
+
+### Replace User Roles
+
+```http
+PUT /api/security/users/{id}/roles
+Content-Type: application/json
+```
+
+```json
+{
+  "roleIds": ["guid"]
+}
+```
+
+### Smoke Test
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-security-foundation.ps1
+```

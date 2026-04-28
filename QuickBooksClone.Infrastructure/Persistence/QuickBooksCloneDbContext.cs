@@ -17,6 +17,7 @@ using QuickBooksClone.Core.ReceiveInventory;
 using QuickBooksClone.Core.SalesOrders;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.SalesWorkflow;
+using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.Sync;
 using QuickBooksClone.Core.VendorCredits;
@@ -50,6 +51,10 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
     public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<SecurityRole> SecurityRoles => Set<SecurityRole>();
+    public DbSet<SecurityUser> SecurityUsers => Set<SecurityUser>();
+    public DbSet<UserRoleAssignment> UserRoleAssignments => Set<UserRoleAssignment>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
     public DbSet<DeviceSettings> DeviceSettings => Set<DeviceSettings>();
     public DbSet<DocumentSequenceCounter> DocumentSequenceCounters => Set<DocumentSequenceCounter>();
@@ -76,6 +81,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigurePurchaseReturns(modelBuilder);
         ConfigureSalesOrders(modelBuilder);
         ConfigureSalesReturns(modelBuilder);
+        ConfigureSecurity(modelBuilder);
         ConfigureSettings(modelBuilder);
         ConfigureDeviceSettings(modelBuilder);
         ConfigureDocumentSequenceCounters(modelBuilder);
@@ -661,6 +667,67 @@ public sealed class QuickBooksCloneDbContext : DbContext
             ConfigureMoney(entity.Property(settings => settings.DefaultSalesTaxRate));
             ConfigureMoney(entity.Property(settings => settings.DefaultPurchaseTaxRate));
             entity.HasIndex(settings => settings.CompanyId).IsUnique();
+        });
+    }
+
+    private static void ConfigureSecurity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SecurityRole>(entity =>
+        {
+            entity.ToTable("security_roles");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(role => role.RoleKey).HasMaxLength(80).IsRequired();
+            entity.Property(role => role.Name).HasMaxLength(120).IsRequired();
+            entity.Property(role => role.Description).HasMaxLength(500);
+            entity.Property(role => role.IsSystem).IsRequired();
+            entity.Property(role => role.IsActive).IsRequired();
+            entity.HasIndex(role => role.RoleKey).IsUnique();
+            entity
+                .HasMany(role => role.Permissions)
+                .WithOne()
+                .HasForeignKey(permission => permission.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(role => role.Permissions).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("security_role_permissions");
+            ConfigureEntityBase(entity);
+            entity.Property(permission => permission.RoleId).IsRequired();
+            entity.Property(permission => permission.Permission).HasMaxLength(160).IsRequired();
+            entity.HasIndex(permission => new { permission.RoleId, permission.Permission }).IsUnique();
+        });
+
+        modelBuilder.Entity<SecurityUser>(entity =>
+        {
+            entity.ToTable("security_users");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(user => user.UserName).HasMaxLength(80).IsRequired();
+            entity.Property(user => user.DisplayName).HasMaxLength(160).IsRequired();
+            entity.Property(user => user.Email).HasMaxLength(250);
+            entity.Property(user => user.PasswordHash).HasMaxLength(500);
+            entity.Property(user => user.IsActive).IsRequired();
+            entity.Property(user => user.LastLoginAt);
+            entity.HasIndex(user => user.UserName).IsUnique();
+            entity.HasIndex(user => user.Email);
+            entity
+                .HasMany(user => user.RoleAssignments)
+                .WithOne()
+                .HasForeignKey(assignment => assignment.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(user => user.RoleAssignments).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<UserRoleAssignment>(entity =>
+        {
+            entity.ToTable("security_user_roles");
+            ConfigureEntityBase(entity);
+            entity.Property(assignment => assignment.UserId).IsRequired();
+            entity.Property(assignment => assignment.RoleId).IsRequired();
+            entity.HasIndex(assignment => new { assignment.UserId, assignment.RoleId }).IsUnique();
         });
     }
 

@@ -20,6 +20,7 @@ using QuickBooksClone.Core.Reports;
 using QuickBooksClone.Core.SalesOrders;
 using QuickBooksClone.Core.SalesReturns;
 using QuickBooksClone.Core.SalesWorkflow;
+using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.Sync;
 using QuickBooksClone.Core.Vendors;
@@ -43,6 +44,7 @@ using QuickBooksClone.Infrastructure.ReceiveInventory;
 using QuickBooksClone.Infrastructure.Reports;
 using QuickBooksClone.Infrastructure.SalesWorkflow;
 using QuickBooksClone.Infrastructure.SalesReturns;
+using QuickBooksClone.Infrastructure.Security;
 using QuickBooksClone.Infrastructure.Sync;
 using QuickBooksClone.Infrastructure.Vendors;
 using QuickBooksClone.Infrastructure.VendorCredits;
@@ -99,6 +101,7 @@ builder.Services.AddScoped<IVendorCreditActivityRepository, EfVendorCreditActivi
 builder.Services.AddScoped<IVendorCreditPostingService, VendorCreditPostingService>();
 builder.Services.AddScoped<ISalesReturnRepository, EfSalesReturnRepository>();
 builder.Services.AddScoped<ISalesReturnPostingService, SalesReturnPostingService>();
+builder.Services.AddScoped<ISecurityRepository, EfSecurityRepository>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>

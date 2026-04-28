@@ -436,6 +436,15 @@ Architectural baseline is now fixed:
   - [x] Add SQLite migration for document metadata
   - [x] Add SQL Server migration for document metadata
   - [x] Add repeatable `scripts/smoke-document-metadata.ps1`
+- [x] Security foundation
+  - [x] Add backend permission catalog
+  - [x] Add users, roles, role permissions, and user role assignments
+  - [x] Seed system roles: Admin, Manager, Accountant, Cashier, Inventory, ReadOnly
+  - [x] Seed local admin user
+  - [x] Add security management API endpoints
+  - [x] Add SQLite migration for security tables
+  - [x] Add SQL Server migration for security tables
+  - [x] Add repeatable `scripts/smoke-security-foundation.ps1`
 
 ## In Progress
 
@@ -456,7 +465,13 @@ Architectural baseline is now fixed:
 - [ ] API contract completion for future frontends
   - [x] Workflow DTOs are frontend-agnostic
   - [x] Document metadata hooks are API-first and sync-ready
+  - [x] User/role/permission management contracts are API-first
   - [ ] Final OpenAPI/contract review pass after users and printing are added
+- [ ] Security enforcement and audit
+  - [x] User, role, and permission data foundation
+  - [ ] Authentication/session layer
+  - [ ] Endpoint authorization enforcement
+  - [ ] Audit trail for create/update/post/void/cancel/restore actions
 - [ ] Core accounting reports
   - [x] Trial Balance
   - [x] Balance Sheet
@@ -514,3 +529,4 @@ Architectural baseline is now fixed:
 - Recent hardening pass closed four accounting-safety gaps: reports are posted-only, payments reject unposted sent invoices, billed receipts cannot be voided, and purchase-bill posting revalidates linked receipt quantities inside the posting layer.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.
 - Document metadata is now separate from posting logic: notes, templates, ship-to, external references, and attachment references can be consumed by MAUI or Flutter without embedding business rules in the UI.
+- Security foundation now exists as backend data and API contracts; endpoint enforcement is intentionally the next slice, not mixed into the first data-foundation slice.

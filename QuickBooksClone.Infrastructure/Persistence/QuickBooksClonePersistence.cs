@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Items;
+using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.Vendors;
 
@@ -189,7 +190,55 @@ public static class QuickBooksClonePersistence
                 defaultPurchaseTaxRate: 0));
         }
 
+        await SeedSecurityAsync(dbContext);
+
         await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task SeedSecurityAsync(QuickBooksCloneDbContext dbContext)
+    {
+        var roles = new[]
+        {
+            new { Key = "ADMIN", Name = "Administrator", Description = "Full system access." },
+            new { Key = "MANAGER", Name = "Manager", Description = "Operational management access except user administration." },
+            new { Key = "ACCOUNTANT", Name = "Accountant", Description = "Accounting, reports, sales, and purchase workflow access." },
+            new { Key = "CASHIER", Name = "Cashier", Description = "Sales, payments, and customer-facing workflow access." },
+            new { Key = "INVENTORY", Name = "Inventory", Description = "Items, receiving, inventory adjustments, and stock reporting." },
+            new { Key = "READONLY", Name = "Read Only", Description = "Read-only accounting and report access." }
+        };
+
+        foreach (var seed in roles)
+        {
+            var role = await dbContext.SecurityRoles
+                .Include(current => current.Permissions)
+                .FirstOrDefaultAsync(current => current.RoleKey == seed.Key);
+
+            if (role is null)
+            {
+                role = new SecurityRole(seed.Key, seed.Name, seed.Description, isSystem: true);
+                role.ReplacePermissions(PermissionCatalog.ForRole(seed.Key));
+                dbContext.SecurityRoles.Add(role);
+                continue;
+            }
+
+            role.Update(seed.Name, seed.Description);
+            role.ReplacePermissions(PermissionCatalog.ForRole(seed.Key));
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        if (!await dbContext.SecurityUsers.AnyAsync())
+        {
+            var adminRole = await dbContext.SecurityRoles.FirstOrDefaultAsync(role => role.RoleKey == "ADMIN");
+            var admin = new SecurityUser("admin", "System Administrator", "admin@quickbooksclone.local");
+            dbContext.SecurityUsers.Add(admin);
+            await dbContext.SaveChangesAsync();
+
+            if (adminRole is not null)
+            {
+                dbContext.UserRoleAssignments.Add(new UserRoleAssignment(admin.Id, adminRole.Id));
+            }
+        }
     }
 
     private static async Task EnsureAccountAsync(

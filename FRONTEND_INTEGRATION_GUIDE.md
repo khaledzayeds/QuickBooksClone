@@ -208,6 +208,9 @@ If building a new frontend, start from these:
 - `GET /api/customers`
 - `GET /api/vendors`
 - `GET /api/items`
+- `GET /api/security/permissions`
+- `GET /api/security/roles`
+- `GET /api/security/users`
 - `GET /api/purchase-orders/{id}/receiving-plan`
 - `GET /api/receive-inventory/{id}/billing-plan`
 - `GET /api/purchase-bills/{id}/payment-plan`
