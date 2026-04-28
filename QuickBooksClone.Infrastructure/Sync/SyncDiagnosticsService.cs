@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.CustomerCredits;
+using QuickBooksClone.Core.Documents;
 using QuickBooksClone.Core.Estimates;
 using QuickBooksClone.Core.InventoryAdjustments;
 using QuickBooksClone.Core.Invoices;
@@ -45,7 +46,8 @@ public sealed class SyncDiagnosticsService : ISyncDiagnosticsService
             await GetSummaryAsync<CustomerCreditActivity>("customer-credit", cancellationToken),
             await GetSummaryAsync<VendorCreditActivity>("vendor-credit", cancellationToken),
             await GetSummaryAsync<JournalEntry>("journal-entry", cancellationToken),
-            await GetSummaryAsync<InventoryAdjustment>("inventory-adjustment", cancellationToken)
+            await GetSummaryAsync<InventoryAdjustment>("inventory-adjustment", cancellationToken),
+            await GetSummaryAsync<DocumentMetadata>("document-metadata", cancellationToken)
         };
 
         return new SyncOverview(
@@ -82,6 +84,7 @@ public sealed class SyncDiagnosticsService : ISyncDiagnosticsService
         await AppendDocumentsAsync<VendorCreditActivity>(snapshots, "vendor-credit", normalizedType, status, cancellationToken);
         await AppendDocumentsAsync<JournalEntry>(snapshots, "journal-entry", normalizedType, status, cancellationToken);
         await AppendDocumentsAsync<InventoryAdjustment>(snapshots, "inventory-adjustment", normalizedType, status, cancellationToken);
+        await AppendDocumentsAsync<DocumentMetadata>(snapshots, "document-metadata", normalizedType, status, cancellationToken);
 
         return snapshots
             .OrderByDescending(current => current.LastModifiedAt)
@@ -111,6 +114,7 @@ public sealed class SyncDiagnosticsService : ISyncDiagnosticsService
             "vendor-credit" => await _db.VendorCreditActivities.SingleOrDefaultAsync(current => current.Id == id, cancellationToken),
             "journal-entry" => await _db.JournalEntries.SingleOrDefaultAsync(current => current.Id == id, cancellationToken),
             "inventory-adjustment" => await _db.InventoryAdjustments.SingleOrDefaultAsync(current => current.Id == id, cancellationToken),
+            "document-metadata" => await _db.DocumentMetadata.SingleOrDefaultAsync(current => current.Id == id, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(documentType), "Unsupported document type.")
         };
 
@@ -205,6 +209,7 @@ public sealed class SyncDiagnosticsService : ISyncDiagnosticsService
             "vendor-credit" or "vendorcredit" or "vendorcredits" => "vendor-credit",
             "journal-entry" or "journalentry" or "journalentries" => "journal-entry",
             "inventory-adjustment" or "inventoryadjustment" or "inventoryadjustments" => "inventory-adjustment",
+            "document-metadata" or "documentmetadata" => "document-metadata",
             _ => throw new ArgumentOutOfRangeException(nameof(documentType), "Unsupported document type.")
         };
     }

@@ -277,6 +277,159 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.ToTable("customers", (string)null);
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.Documents.DocumentAttachmentMetadata", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("DocumentMetadataId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentMetadataId");
+
+                    b.ToTable("document_attachment_metadata", (string)null);
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.Documents.DocumentMetadata", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DocumentNo")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("InternalNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("LastModifiedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("PublicMemo")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ShipToAddressLine1")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ShipToAddressLine2")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ShipToCity")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("ShipToCountry")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("ShipToName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ShipToPostalCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ShipToRegion")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("SyncError")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("int");
+
+                    b.Property<long>("SyncVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TemplateName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("DocumentNo")
+                        .IsUnique();
+
+                    b.HasIndex("LastModifiedAt");
+
+                    b.HasIndex("SyncStatus");
+
+                    b.HasIndex("DocumentType", "DocumentId")
+                        .IsUnique();
+
+                    b.ToTable("document_metadata", (string)null);
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.Estimates.Estimate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1847,6 +2000,15 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Navigation("Lines");
                 });
 
+            modelBuilder.Entity("QuickBooksClone.Core.Documents.DocumentAttachmentMetadata", b =>
+                {
+                    b.HasOne("QuickBooksClone.Core.Documents.DocumentMetadata", null)
+                        .WithMany("Attachments")
+                        .HasForeignKey("DocumentMetadataId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("QuickBooksClone.Core.Estimates.Estimate", b =>
                 {
                     b.OwnsMany("QuickBooksClone.Core.Estimates.EstimateLine", "Lines", b1 =>
@@ -2231,6 +2393,11 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         });
 
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.Documents.DocumentMetadata", b =>
+                {
+                    b.Navigation("Attachments");
                 });
 #pragma warning restore 612, 618
         }

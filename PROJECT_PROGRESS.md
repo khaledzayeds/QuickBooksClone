@@ -427,6 +427,15 @@ Architectural baseline is now fixed:
   - [x] Add consolidated `scripts/smoke-core-backend.ps1`
   - [x] Add `FRONTEND_INTEGRATION_GUIDE.md` for Windows Forms / Flutter style clients
   - [x] Document workflow-first API consumption order
+- [x] Sync-ready document metadata hooks
+  - [x] Add reusable document metadata model for memos, internal notes, external references, template names, and ship-to fields
+  - [x] Add attachment metadata references without storing file bytes in the document row
+  - [x] Add `GET/PUT /api/documents/{documentType}/{documentId}/metadata`
+  - [x] Add attachment metadata add/remove endpoints
+  - [x] Include document metadata in sync diagnostics
+  - [x] Add SQLite migration for document metadata
+  - [x] Add SQL Server migration for document metadata
+  - [x] Add repeatable `scripts/smoke-document-metadata.ps1`
 
 ## In Progress
 
@@ -444,6 +453,10 @@ Architectural baseline is now fixed:
   - [x] Convert estimates into downstream sales-order workflow
   - [x] Convert open sales orders into downstream invoicing workflow
   - [x] Add invoice payment planning contract
+- [ ] API contract completion for future frontends
+  - [x] Workflow DTOs are frontend-agnostic
+  - [x] Document metadata hooks are API-first and sync-ready
+  - [ ] Final OpenAPI/contract review pass after users and printing are added
 - [ ] Core accounting reports
   - [x] Trial Balance
   - [x] Balance Sheet
@@ -500,3 +513,4 @@ Architectural baseline is now fixed:
 - Current inventory valuation reconstructs opening/closing quantities from dated stock movement and uses the item's current purchase price for valuation until full costing layers are introduced.
 - Recent hardening pass closed four accounting-safety gaps: reports are posted-only, payments reject unposted sent invoices, billed receipts cannot be voided, and purchase-bill posting revalidates linked receipt quantities inside the posting layer.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.
+- Document metadata is now separate from posting logic: notes, templates, ship-to, external references, and attachment references can be consumed by MAUI or Flutter without embedding business rules in the UI.

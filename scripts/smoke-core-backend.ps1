@@ -21,6 +21,7 @@ $tests = @(
     @{ Name = "Estimates and Sales Orders"; Script = "smoke-estimates-sales-orders.ps1" },
     @{ Name = "Sales Workflow Plans"; Script = "smoke-sales-workflow-plans.ps1" },
     @{ Name = "Sales Receipts"; Script = "smoke-sales-receipts.ps1" },
+    @{ Name = "Document Metadata"; Script = "smoke-document-metadata.ps1" },
     @{ Name = "Settings"; Script = "smoke-settings.ps1" },
     @{ Name = "Backup Policy"; Script = "smoke-backup-policy.ps1" }
 )

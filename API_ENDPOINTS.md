@@ -2706,3 +2706,92 @@ GET /api/transactions/{id}
 ```
 
 Transactions are currently read-only from the API. They are created by posting workflows.
+
+## Document Metadata
+
+Document metadata is a frontend-agnostic companion record for business documents. It does not change accounting, inventory, A/R, or A/P. Use it for UI-facing document details that should travel with the document now and sync later.
+
+Supported document types:
+
+```text
+estimate
+sales-order
+invoice
+payment
+purchase-order
+inventory-receipt
+purchase-bill
+vendor-payment
+sales-return
+purchase-return
+customer-credit
+vendor-credit
+journal-entry
+inventory-adjustment
+```
+
+### Get Or Create Metadata
+
+```http
+GET /api/documents/{documentType}/{documentId}/metadata
+```
+
+Creates an empty metadata row if the source document exists and no metadata row exists yet.
+
+### Update Metadata
+
+```http
+PUT /api/documents/{documentType}/{documentId}/metadata
+Content-Type: application/json
+```
+
+```json
+{
+  "publicMemo": "Visible memo on the document",
+  "internalNote": "Internal office note",
+  "externalReference": "EXT-001",
+  "templateName": "Default Purchase Order",
+  "shipToName": "Main Warehouse",
+  "shipToAddressLine1": "Warehouse Street 1",
+  "shipToAddressLine2": "Dock 2",
+  "shipToCity": "Cairo",
+  "shipToRegion": "Cairo",
+  "shipToPostalCode": "11511",
+  "shipToCountry": "Egypt"
+}
+```
+
+Rules:
+
+- Metadata belongs to an existing document.
+- Metadata has its own sync identity: `deviceId`, `documentNo`, `syncStatus`, `syncVersion`, and `lastModifiedAt`.
+- Updating metadata marks it as `PendingSync`.
+- Attachment metadata stores file references only, not file bytes.
+
+### Add Attachment Metadata
+
+```http
+POST /api/documents/{documentType}/{documentId}/metadata/attachments
+Content-Type: application/json
+```
+
+```json
+{
+  "fileName": "purchase-order.pdf",
+  "contentType": "application/pdf",
+  "fileSizeBytes": 2048,
+  "storageKey": "local/purchase-orders/{documentId}/purchase-order.pdf"
+}
+```
+
+### Remove Attachment Metadata
+
+```http
+DELETE /api/documents/{documentType}/{documentId}/metadata/attachments/{attachmentId}
+```
+
+### Smoke Test
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-document-metadata.ps1
+```

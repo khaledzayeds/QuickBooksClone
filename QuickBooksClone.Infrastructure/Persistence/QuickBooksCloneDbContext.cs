@@ -3,6 +3,7 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.CustomerCredits;
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.Documents;
 using QuickBooksClone.Core.Estimates;
 using QuickBooksClone.Core.InventoryAdjustments;
 using QuickBooksClone.Core.Invoices;
@@ -35,6 +36,8 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<AccountingTransaction> AccountingTransactions => Set<AccountingTransaction>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerCreditActivity> CustomerCreditActivities => Set<CustomerCreditActivity>();
+    public DbSet<DocumentAttachmentMetadata> DocumentAttachmentMetadata => Set<DocumentAttachmentMetadata>();
+    public DbSet<DocumentMetadata> DocumentMetadata => Set<DocumentMetadata>();
     public DbSet<Estimate> Estimates => Set<Estimate>();
     public DbSet<InventoryAdjustment> InventoryAdjustments => Set<InventoryAdjustment>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
@@ -60,6 +63,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigureAccountingTransactions(modelBuilder);
         ConfigureCustomers(modelBuilder);
         ConfigureCustomerCredits(modelBuilder);
+        ConfigureDocumentMetadata(modelBuilder);
         ConfigureEstimates(modelBuilder);
         ConfigureInventoryAdjustments(modelBuilder);
         ConfigureInvoices(modelBuilder);
@@ -168,6 +172,52 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(activity => activity.Status).HasConversion<int>().IsRequired();
             ConfigureMoney(entity.Property(activity => activity.Amount));
             entity.HasIndex(activity => activity.ReferenceNumber).IsUnique();
+        });
+    }
+
+    private static void ConfigureDocumentMetadata(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DocumentMetadata>(entity =>
+        {
+            entity.ToTable("document_metadata");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            ConfigureSyncDocument(entity);
+            entity.Property(metadata => metadata.DocumentType).HasMaxLength(80).IsRequired();
+            entity.Property(metadata => metadata.DocumentId).IsRequired();
+            entity.Property(metadata => metadata.PublicMemo).HasMaxLength(1000);
+            entity.Property(metadata => metadata.InternalNote).HasMaxLength(2000);
+            entity.Property(metadata => metadata.ExternalReference).HasMaxLength(120);
+            entity.Property(metadata => metadata.TemplateName).HasMaxLength(120);
+            entity.Property(metadata => metadata.ShipToName).HasMaxLength(200);
+            entity.Property(metadata => metadata.ShipToAddressLine1).HasMaxLength(200);
+            entity.Property(metadata => metadata.ShipToAddressLine2).HasMaxLength(200);
+            entity.Property(metadata => metadata.ShipToCity).HasMaxLength(120);
+            entity.Property(metadata => metadata.ShipToRegion).HasMaxLength(120);
+            entity.Property(metadata => metadata.ShipToPostalCode).HasMaxLength(40);
+            entity.Property(metadata => metadata.ShipToCountry).HasMaxLength(120);
+            entity.HasIndex(metadata => new { metadata.DocumentType, metadata.DocumentId }).IsUnique();
+
+            entity
+                .HasMany(metadata => metadata.Attachments)
+                .WithOne()
+                .HasForeignKey("DocumentMetadataId")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Navigation(metadata => metadata.Attachments).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<DocumentAttachmentMetadata>(entity =>
+        {
+            entity.ToTable("document_attachment_metadata");
+            ConfigureEntityBase(entity);
+            entity.Property<Guid>("DocumentMetadataId").IsRequired();
+            entity.Property(current => current.FileName).HasMaxLength(260).IsRequired();
+            entity.Property(current => current.ContentType).HasMaxLength(120).IsRequired();
+            entity.Property(current => current.FileSizeBytes).IsRequired();
+            entity.Property(current => current.StorageKey).HasMaxLength(500).IsRequired();
+            entity.Property(current => current.UploadedAt).IsRequired();
+            entity.HasIndex("DocumentMetadataId");
         });
     }
 

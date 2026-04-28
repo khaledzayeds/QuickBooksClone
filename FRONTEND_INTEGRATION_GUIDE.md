@@ -167,7 +167,29 @@ The frontend should avoid:
 - assuming document relationships that the API does not expose
 - embedding accounting rules in the client
 
-## 9. Best Smoke Tests Before Trying a New Frontend
+## 9. Document Metadata Hooks
+
+Use document metadata endpoints for fields that belong to a document but should not change the accounting result:
+
+- public memo
+- internal note
+- external reference
+- selected template name
+- ship-to fields
+- attachment metadata references
+
+Endpoints:
+
+- `GET /api/documents/{documentType}/{documentId}/metadata`
+- `PUT /api/documents/{documentType}/{documentId}/metadata`
+- `POST /api/documents/{documentType}/{documentId}/metadata/attachments`
+- `DELETE /api/documents/{documentType}/{documentId}/metadata/attachments/{attachmentId}`
+
+Important rule:
+
+- The frontend may edit these fields through the API, but must not use them to drive posting, inventory, A/R, or A/P behavior.
+
+## 10. Best Smoke Tests Before Trying a New Frontend
 
 Run this first:
 
@@ -177,7 +199,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke-core-backend.ps1
 
 If this passes, the backend core is in a good state for another frontend to exercise.
 
-## 10. Most Important Endpoints For UI Builders
+## 11. Most Important Endpoints For UI Builders
 
 If building a new frontend, start from these:
 
@@ -192,6 +214,7 @@ If building a new frontend, start from these:
 - `GET /api/estimates/{id}/sales-order-plan`
 - `GET /api/sales-orders/{id}/invoice-plan`
 - `GET /api/invoices/{id}/payment-plan`
+- `GET /api/documents/{documentType}/{documentId}/metadata`
 - `GET /api/sync/overview`
 - `GET /api/sync/documents?status=PendingSync&take=50`
 
