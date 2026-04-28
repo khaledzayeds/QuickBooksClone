@@ -147,6 +147,8 @@ Recommended frontend behavior:
 - show the response text/message directly during testing
 - do not replace backend business errors with generic UI messages
 - keep the full response body/log available during Windows Forms testing
+- send `Authorization: Bearer {token}` to protected endpoints after login
+- treat `401` as login/session-expired and `403` as permission denied
 
 ## 8. Stable DTO Expectations
 

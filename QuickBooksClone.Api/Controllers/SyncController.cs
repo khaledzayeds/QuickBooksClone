@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Sync;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Sync;
 
@@ -7,6 +8,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/sync")]
+[RequirePermission("Data.Sync.Manage")]
 public sealed class SyncController : ControllerBase
 {
     private readonly ISyncDiagnosticsService _diagnostics;

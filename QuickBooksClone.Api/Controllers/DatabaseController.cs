@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Database;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Infrastructure.Persistence;
 
 namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/database")]
+[RequirePermission("Data.BackupRestore")]
 public sealed class DatabaseController : ControllerBase
 {
     private readonly IDatabaseMaintenanceService _databaseMaintenance;

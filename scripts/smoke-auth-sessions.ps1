@@ -133,7 +133,7 @@ try {
     Assert-True ($me.user.id -eq $login.user.id) "Current session did not return the logged-in user."
 
     Write-Step "Changing password invalidates current sessions."
-    Invoke-RestMethod -Method Put -Uri "$BaseUrl/api/auth/users/$($login.user.id)/password" -ContentType "application/json" -Body (@{ newPassword = "new-admin-pass" } | ConvertTo-Json) -TimeoutSec 30 | Out-Null
+    Invoke-RestMethod -Method Put -Uri "$BaseUrl/api/auth/users/$($login.user.id)/password" -Headers @{ Authorization = "Bearer $($login.token)" } -ContentType "application/json" -Body (@{ newPassword = "new-admin-pass" } | ConvertTo-Json) -TimeoutSec 30 | Out-Null
 
     try {
         Invoke-Json -Method Get -Uri "$BaseUrl/api/auth/me" -Token $login.token | Out-Null

@@ -470,7 +470,8 @@ Architectural baseline is now fixed:
 - [ ] Security enforcement and audit
   - [x] User, role, and permission data foundation
   - [x] Authentication/session layer
-  - [ ] Endpoint authorization enforcement
+  - [x] Endpoint authorization enforcement foundation
+  - [ ] Apply endpoint authorization to every business workflow controller
   - [ ] Audit trail for create/update/post/void/cancel/restore actions
 - [ ] Core accounting reports
   - [x] Trial Balance
@@ -531,3 +532,4 @@ Architectural baseline is now fixed:
 - Document metadata is now separate from posting logic: notes, templates, ship-to, external references, and attachment references can be consumed by MAUI or Flutter without embedding business rules in the UI.
 - Security foundation now exists as backend data and API contracts; endpoint enforcement is intentionally the next slice, not mixed into the first data-foundation slice.
 - Auth sessions are local/offline-first: passwords are PBKDF2-hashed, session tokens are stored as hashes, and password changes revoke active sessions.
+- Authorization middleware now enforces bearer sessions and permissions on security, settings, backup/restore, and sync endpoints; business workflow controllers are the next permission-mapping slice.

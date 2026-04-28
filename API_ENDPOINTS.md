@@ -3043,6 +3043,32 @@ Content-Type: application/json
 
 Changing a password revokes all active sessions for that user.
 
+## Authorization Enforcement
+
+The API now supports permission enforcement through bearer sessions.
+
+Protected endpoints return:
+
+- `401 Unauthorized` when the token is missing, invalid, expired, or revoked.
+- `403 Forbidden` when the token is valid but the user lacks the required permission.
+
+Currently enforced areas:
+
+- Auth session inspection/logout requires a valid session.
+- Security management requires `Users.Manage`.
+- Password changes require `Users.Manage`.
+- Company/device settings updates require `Settings.Manage`.
+- Database backup/restore endpoints require `Data.BackupRestore`.
+- Sync diagnostics and mark-pending endpoints require `Data.Sync.Manage`.
+
+Public endpoints kept open intentionally:
+
+- `POST /api/auth/login`
+- `GET /api/security/permissions`
+- `GET /api/settings/runtime`
+
+Future slices will attach permissions to the remaining business workflow controllers.
+
 ### Smoke Test
 
 ```powershell

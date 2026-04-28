@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QuickBooksClone.Api.Contracts.Security;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Core.Security;
 
 namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/security")]
+[RequirePermission("Users.Manage")]
 public sealed class SecurityController : ControllerBase
 {
     private readonly ISecurityRepository _security;
@@ -16,6 +19,7 @@ public sealed class SecurityController : ControllerBase
     }
 
     [HttpGet("permissions")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(IReadOnlyList<PermissionDto>), StatusCodes.Status200OK)]
     public ActionResult<IReadOnlyList<PermissionDto>> GetPermissions()
     {

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QuickBooksClone.Api.Contracts.Settings;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Infrastructure.Persistence;
 
@@ -27,6 +29,7 @@ public sealed class SettingsController : ControllerBase
     }
 
     [HttpGet("company")]
+    [RequireAuthenticated]
     [ProducesResponseType(typeof(CompanySettingsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CompanySettingsDto>> GetCompany(CancellationToken cancellationToken = default)
@@ -36,6 +39,7 @@ public sealed class SettingsController : ControllerBase
     }
 
     [HttpPut("company")]
+    [RequirePermission("Settings.Manage")]
     [ProducesResponseType(typeof(CompanySettingsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CompanySettingsDto>> UpdateCompany(UpdateCompanySettingsRequest request, CancellationToken cancellationToken = default)
@@ -72,6 +76,7 @@ public sealed class SettingsController : ControllerBase
     }
 
     [HttpGet("device")]
+    [RequireAuthenticated]
     [ProducesResponseType(typeof(DeviceSettingsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DeviceSettingsDto>> GetDevice(CancellationToken cancellationToken = default)
     {
@@ -80,6 +85,7 @@ public sealed class SettingsController : ControllerBase
     }
 
     [HttpPut("device")]
+    [RequirePermission("Settings.Manage")]
     [ProducesResponseType(typeof(DeviceSettingsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DeviceSettingsDto>> UpdateDevice(UpdateDeviceSettingsRequest request, CancellationToken cancellationToken = default)
@@ -96,6 +102,7 @@ public sealed class SettingsController : ControllerBase
     }
 
     [HttpGet("runtime")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(RuntimeSettingsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<RuntimeSettingsDto>> GetRuntime(CancellationToken cancellationToken = default)
     {

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QuickBooksClone.Api.Contracts.Security;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Core.Security;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -18,6 +20,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken cancellationToken = default)
@@ -34,6 +37,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("me")]
+    [RequireAuthenticated]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Me(CancellationToken cancellationToken = default)
@@ -49,6 +53,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
+    [RequireAuthenticated]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken = default)
     {
@@ -62,6 +67,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPut("users/{id:guid}/password")]
+    [RequirePermission("Users.Manage")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SetPassword(Guid id, SetPasswordRequest request, CancellationToken cancellationToken = default)

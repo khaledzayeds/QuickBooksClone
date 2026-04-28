@@ -14,15 +14,21 @@ function Invoke-Json {
     param(
         [Parameter(Mandatory = $true)][string]$Method,
         [Parameter(Mandatory = $true)][string]$Uri,
-        [object]$Body = $null
+        [object]$Body = $null,
+        [string]$Token = $null
     )
 
+    $headers = @{}
+    if (-not [string]::IsNullOrWhiteSpace($Token)) {
+        $headers["Authorization"] = "Bearer $Token"
+    }
+
     if ($null -eq $Body) {
-        return Invoke-RestMethod -Method $Method -Uri $Uri -TimeoutSec 30
+        return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers -TimeoutSec 30
     }
 
     $json = $Body | ConvertTo-Json -Depth 10
-    return Invoke-RestMethod -Method $Method -Uri $Uri -ContentType "application/json" -Body $json -TimeoutSec 30
+    return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers -ContentType "application/json" -Body $json -TimeoutSec 30
 }
 
 function Wait-ForApi {
@@ -114,20 +120,37 @@ try {
     $permissions = Invoke-Json -Method Get -Uri "$BaseUrl/api/security/permissions"
     Assert-True ($permissions.Count -ge 10) "Expected seeded permission catalog."
 
-    $roles = Invoke-Json -Method Get -Uri "$BaseUrl/api/security/roles?pageSize=50"
+    try {
+        Invoke-Json -Method Get -Uri "$BaseUrl/api/security/roles?pageSize=1" | Out-Null
+        throw "Security roles should require an authentication token."
+    }
+    catch {
+        if ($_.Exception.Response.StatusCode.value__ -ne 401) {
+            throw
+        }
+    }
+
+    $login = Invoke-Json -Method Post -Uri "$BaseUrl/api/auth/login" -Body @{
+        userName = "admin"
+        password = "admin"
+    }
+
+    Assert-True (-not [string]::IsNullOrWhiteSpace($login.token)) "Expected admin login token."
+
+    $roles = Invoke-Json -Method Get -Uri "$BaseUrl/api/security/roles?pageSize=50" -Token $login.token
     Assert-True ($roles.totalCount -ge 6) "Expected seeded system roles."
 
     $adminRole = $roles.items | Where-Object { $_.roleKey -eq "ADMIN" } | Select-Object -First 1
     Assert-True ($null -ne $adminRole) "Expected ADMIN role."
     Assert-True ($adminRole.permissions.Count -eq $permissions.Count) "ADMIN role should have every known permission."
 
-    $users = Invoke-Json -Method Get -Uri "$BaseUrl/api/security/users?pageSize=50"
+    $users = Invoke-Json -Method Get -Uri "$BaseUrl/api/security/users?pageSize=50" -Token $login.token
     $adminUser = $users.items | Where-Object { $_.userName -eq "admin" } | Select-Object -First 1
     Assert-True ($null -ne $adminUser) "Expected seeded admin user."
     Assert-True (@($adminUser.roles | Where-Object { $_.roleKey -eq "ADMIN" }).Count -eq 1) "Admin user should have ADMIN role."
 
     Write-Step "Creating custom role and assigning it to a user."
-    $customRole = Invoke-Json -Method Post -Uri "$BaseUrl/api/security/roles" -Body @{
+    $customRole = Invoke-Json -Method Post -Uri "$BaseUrl/api/security/roles" -Token $login.token -Body @{
         roleKey = "TEST-CASHIER"
         name = "Test Cashier"
         description = "Smoke test cashier role"
@@ -137,7 +160,7 @@ try {
     Assert-True ($customRole.roleKey -eq "TEST-CASHIER") "Custom role was not created."
     Assert-True ($customRole.permissions.Count -eq 2) "Custom role permissions were not saved."
 
-    $user = Invoke-Json -Method Post -Uri "$BaseUrl/api/security/users" -Body @{
+    $user = Invoke-Json -Method Post -Uri "$BaseUrl/api/security/users" -Token $login.token -Body @{
         userName = "smoke.cashier"
         displayName = "Smoke Cashier"
         email = $null
@@ -149,13 +172,13 @@ try {
     Assert-True (@($user.effectivePermissions | Where-Object { $_ -eq "Sales.Payment.Manage" }).Count -eq 1) "Effective permissions were not calculated."
 
     Write-Step "Replacing role permissions."
-    $updatedRole = Invoke-Json -Method Put -Uri "$BaseUrl/api/security/roles/$($customRole.id)/permissions" -Body @{
+    $updatedRole = Invoke-Json -Method Put -Uri "$BaseUrl/api/security/roles/$($customRole.id)/permissions" -Token $login.token -Body @{
         permissions = @("Reports.View")
     }
 
     Assert-True ($updatedRole.permissions.Count -eq 1) "Role permissions were not replaced."
 
-    $updatedUser = Invoke-Json -Method Get -Uri "$BaseUrl/api/security/users/$($user.id)"
+    $updatedUser = Invoke-Json -Method Get -Uri "$BaseUrl/api/security/users/$($user.id)" -Token $login.token
     Assert-True (@($updatedUser.effectivePermissions | Where-Object { $_ -eq "Reports.View" }).Count -eq 1) "Updated effective permissions were not reflected."
 
     [pscustomobject]@{

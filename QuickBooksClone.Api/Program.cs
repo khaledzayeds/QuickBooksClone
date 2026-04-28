@@ -125,6 +125,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("DesktopClient");
 
+app.UseRouting();
+app.UseMiddleware<PermissionAuthorizationMiddleware>();
 app.UseMiddleware<TransactionalWriteMiddleware>();
 
 app.UseAuthorization();
