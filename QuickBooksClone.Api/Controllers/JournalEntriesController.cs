@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.JournalEntries;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
@@ -8,6 +9,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/journal-entries")]
+[RequirePermission("Accounting.Manage")]
 public sealed class JournalEntriesController : ControllerBase
 {
     private readonly IJournalEntryRepository _journalEntries;

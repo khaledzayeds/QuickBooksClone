@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Accounting;
 using QuickBooksClone.Core.Accounting;
 
@@ -6,6 +7,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/transactions")]
+[RequirePermission("Accounting.View")]
 public sealed class TransactionsController : ControllerBase
 {
     private readonly IAccountingTransactionRepository _transactions;

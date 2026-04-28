@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Invoices;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
@@ -11,6 +12,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/sales-receipts")]
+[RequirePermission("Sales.Invoice.Manage")]
 public sealed class SalesReceiptsController : ControllerBase
 {
     private readonly IInvoiceRepository _invoices;

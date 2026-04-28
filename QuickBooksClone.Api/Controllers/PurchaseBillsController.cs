@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.PurchaseBills;
 using QuickBooksClone.Api.Contracts.PurchaseWorkflow;
 using QuickBooksClone.Core.Common;
@@ -12,6 +13,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/purchase-bills")]
+[RequirePermission("Purchases.Bill.Manage")]
 public sealed class PurchaseBillsController : ControllerBase
 {
     private readonly IPurchaseBillRepository _bills;

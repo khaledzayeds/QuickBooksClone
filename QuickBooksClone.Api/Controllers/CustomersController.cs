@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Customers;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.OpeningBalances;
@@ -7,6 +8,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/customers")]
+[RequirePermission("Customers.Manage")]
 public sealed class CustomersController : ControllerBase
 {
     private readonly ICustomerRepository _customers;

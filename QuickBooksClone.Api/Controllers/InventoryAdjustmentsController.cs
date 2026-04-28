@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.InventoryAdjustments;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
@@ -9,6 +10,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/inventory-adjustments")]
+[RequirePermission("Inventory.Adjust.Manage")]
 public sealed class InventoryAdjustmentsController : ControllerBase
 {
     private readonly IInventoryAdjustmentRepository _adjustments;

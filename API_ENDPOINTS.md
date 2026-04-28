@@ -2798,7 +2798,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke-document-metadata.ps1
 
 ## Security
 
-The first security slice is a backend foundation for users, roles, and permissions. It is not yet enforcing authorization on every business endpoint. Enforcement and audit logging are the next security slices.
+The security layer now includes users, roles, permissions, bearer sessions, and endpoint authorization enforcement for the core business API. Audit logging is the next security slice.
 
 Seeded roles:
 
@@ -3045,7 +3045,7 @@ Changing a password revokes all active sessions for that user.
 
 ## Authorization Enforcement
 
-The API now supports permission enforcement through bearer sessions.
+The API enforces permissions through bearer sessions. Frontends should use `POST /api/auth/login`, store the returned token securely, send `Authorization: Bearer {token}` on protected calls, and use `GET /api/auth/me` to drive menu/button visibility from `effectivePermissions`.
 
 Protected endpoints return:
 
@@ -3060,6 +3060,16 @@ Currently enforced areas:
 - Company/device settings updates require `Settings.Manage`.
 - Database backup/restore endpoints require `Data.BackupRestore`.
 - Sync diagnostics and mark-pending endpoints require `Data.Sync.Manage`.
+- Reports require `Reports.View`.
+- Chart of Accounts and accounting transaction reads require `Accounting.View`.
+- Account create/update/activate/deactivate and manual journals require `Accounting.Manage`.
+- Customers require `Customers.Manage`.
+- Vendors require `Vendors.Manage`.
+- Items require `Inventory.Items.Manage`.
+- Inventory adjustments require `Inventory.Adjust.Manage`.
+- Sales workflows require their matching sales permissions such as `Sales.Estimate.Manage`, `Sales.Order.Manage`, `Sales.Invoice.Manage`, `Sales.Payment.Manage`, and `Sales.Return.Manage`.
+- Purchase workflows require their matching purchase permissions such as `Purchases.Order.Manage`, `Purchases.Receive.Manage`, `Purchases.Bill.Manage`, `Purchases.Payment.Manage`, and `Purchases.Return.Manage`.
+- Document metadata requires `Documents.Metadata.Manage`.
 
 Public endpoints kept open intentionally:
 
@@ -3067,10 +3077,11 @@ Public endpoints kept open intentionally:
 - `GET /api/security/permissions`
 - `GET /api/settings/runtime`
 
-Future slices will attach permissions to the remaining business workflow controllers.
+Authorization is enforced in the API, not only in the UI. A user without `Accounting.View` cannot call Chart of Accounts endpoints even if a future frontend accidentally shows the screen.
 
 ### Smoke Test
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke-auth-sessions.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-business-authorization.ps1
 ```

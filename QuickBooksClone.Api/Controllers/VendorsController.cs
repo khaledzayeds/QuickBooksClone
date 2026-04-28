@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Vendors;
 using QuickBooksClone.Core.OpeningBalances;
 using QuickBooksClone.Core.Vendors;
@@ -7,6 +8,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/vendors")]
+[RequirePermission("Vendors.Manage")]
 public sealed class VendorsController : ControllerBase
 {
     private readonly IVendorRepository _vendors;

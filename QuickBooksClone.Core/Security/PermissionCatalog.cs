@@ -9,6 +9,8 @@ public static class PermissionCatalog
         new("Reports.View", "Reports", "View reports", "View accounting, inventory, and aging reports."),
         new("Accounting.View", "Accounting", "View accounting", "View chart of accounts and transactions."),
         new("Accounting.Manage", "Accounting", "Manage accounting", "Create and manage accounts, journal entries, and adjustments."),
+        new("Customers.Manage", "Customers", "Manage customers", "View, create, and update customer records."),
+        new("Vendors.Manage", "Vendors", "Manage vendors", "View, create, and update vendor records."),
         new("Sales.Estimate.Manage", "Sales", "Manage estimates", "Create, edit, accept, decline, and cancel estimates."),
         new("Sales.Order.Manage", "Sales", "Manage sales orders", "Create, edit, close, and cancel sales orders."),
         new("Sales.Invoice.Manage", "Sales", "Manage invoices", "Create, edit, send, post, void, and convert invoices."),
@@ -61,6 +63,8 @@ public static class PermissionCatalog
             "ACCOUNTANT" => all.Where(permission =>
                 permission.StartsWith("Accounting.", StringComparison.Ordinal) ||
                 permission.StartsWith("Reports.", StringComparison.Ordinal) ||
+                permission.StartsWith("Customers.", StringComparison.Ordinal) ||
+                permission.StartsWith("Vendors.", StringComparison.Ordinal) ||
                 permission.StartsWith("Sales.", StringComparison.Ordinal) ||
                 permission.StartsWith("Purchases.", StringComparison.Ordinal) ||
                 permission.StartsWith("Documents.", StringComparison.Ordinal)).ToList(),
@@ -69,6 +73,7 @@ public static class PermissionCatalog
                 "Sales.Invoice.Manage",
                 "Sales.Payment.Manage",
                 "Sales.Return.Manage",
+                "Customers.Manage",
                 "Inventory.Items.Manage",
                 "Documents.Metadata.Manage"
             ],
@@ -76,6 +81,7 @@ public static class PermissionCatalog
             [
                 "Inventory.Items.Manage",
                 "Inventory.Adjust.Manage",
+                "Vendors.Manage",
                 "Purchases.Order.Manage",
                 "Purchases.Receive.Manage",
                 "Reports.View",

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Payments;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
@@ -10,6 +11,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/payments")]
+[RequirePermission("Sales.Payment.Manage")]
 public sealed class PaymentsController : ControllerBase
 {
     private readonly IPaymentRepository _payments;

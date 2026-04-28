@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace QuickBooksClone.Api.Controllers
 {
@@ -12,6 +13,7 @@ namespace QuickBooksClone.Api.Controllers
         ];
 
         [HttpGet(Name = "GetWeatherForecast")]
+        [AllowAnonymous]
         public IEnumerable<WeatherForecast> Get()
         {
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.PurchaseOrders;
 using QuickBooksClone.Api.Contracts.PurchaseWorkflow;
 using QuickBooksClone.Core.Common;
@@ -11,6 +12,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/purchase-orders")]
+[RequirePermission("Purchases.Order.Manage")]
 public sealed class PurchaseOrdersController : ControllerBase
 {
     private readonly IPurchaseOrderRepository _orders;

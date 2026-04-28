@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.VendorPayments;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
@@ -10,6 +11,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/vendor-payments")]
+[RequirePermission("Purchases.Payment.Manage")]
 public sealed class VendorPaymentsController : ControllerBase
 {
     private readonly IVendorPaymentRepository _payments;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.PurchaseWorkflow;
 using QuickBooksClone.Api.Contracts.ReceiveInventory;
 using QuickBooksClone.Core.Accounting;
@@ -13,6 +14,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/receive-inventory")]
+[RequirePermission("Purchases.Receive.Manage")]
 public sealed class ReceiveInventoryController : ControllerBase
 {
     private readonly IInventoryReceiptRepository _receipts;

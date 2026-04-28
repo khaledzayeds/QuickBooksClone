@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Documents;
 using QuickBooksClone.Core.Documents;
 
@@ -6,6 +7,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/documents/{documentType}/{documentId:guid}/metadata")]
+[RequirePermission("Documents.Metadata.Manage")]
 public sealed class DocumentMetadataController : ControllerBase
 {
     private readonly IDocumentMetadataService _metadata;

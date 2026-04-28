@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Estimates;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
@@ -9,6 +10,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/estimates")]
+[RequirePermission("Sales.Estimate.Manage")]
 public sealed class EstimatesController : ControllerBase
 {
     private readonly IEstimateRepository _estimates;

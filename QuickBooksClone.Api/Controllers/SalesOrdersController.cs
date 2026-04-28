@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.SalesOrders;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
@@ -9,6 +10,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/sales-orders")]
+[RequirePermission("Sales.Order.Manage")]
 public sealed class SalesOrdersController : ControllerBase
 {
     private readonly ISalesOrderRepository _orders;

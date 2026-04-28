@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Invoices;
 using QuickBooksClone.Api.Contracts.Payments;
 using QuickBooksClone.Api.Contracts.SalesOrders;
@@ -41,6 +42,7 @@ public sealed class SalesWorkflowController : ControllerBase
     }
 
     [HttpGet("estimates/{id:guid}/sales-order-plan")]
+    [RequirePermission("Sales.Estimate.Manage")]
     [ProducesResponseType(typeof(EstimateSalesOrderPlanDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EstimateSalesOrderPlanDto>> GetSalesOrderPlan(Guid id, CancellationToken cancellationToken = default)
@@ -80,6 +82,7 @@ public sealed class SalesWorkflowController : ControllerBase
     }
 
     [HttpPost("estimates/{id:guid}/convert-to-sales-order")]
+    [RequirePermission("Sales.Order.Manage")]
     [ProducesResponseType(typeof(SalesOrderDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -110,6 +113,7 @@ public sealed class SalesWorkflowController : ControllerBase
     }
 
     [HttpGet("sales-orders/{id:guid}/invoice-plan")]
+    [RequirePermission("Sales.Order.Manage")]
     [ProducesResponseType(typeof(SalesOrderInvoicePlanDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SalesOrderInvoicePlanDto>> GetInvoicePlan(Guid id, CancellationToken cancellationToken = default)
@@ -158,6 +162,7 @@ public sealed class SalesWorkflowController : ControllerBase
     }
 
     [HttpPost("sales-orders/{id:guid}/convert-to-invoice")]
+    [RequirePermission("Sales.Invoice.Manage")]
     [ProducesResponseType(typeof(InvoiceDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -188,6 +193,7 @@ public sealed class SalesWorkflowController : ControllerBase
     }
 
     [HttpGet("invoices/{id:guid}/payment-plan")]
+    [RequirePermission("Sales.Payment.Manage")]
     [ProducesResponseType(typeof(InvoicePaymentPlanDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<InvoicePaymentPlanDto>> GetPaymentPlan(Guid id, CancellationToken cancellationToken = default)

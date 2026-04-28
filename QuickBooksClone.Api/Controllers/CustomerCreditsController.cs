@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.CustomerCredits;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
@@ -10,6 +11,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/customer-credits")]
+[RequirePermission("Sales.Return.Manage")]
 public sealed class CustomerCreditsController : ControllerBase
 {
     private readonly ICustomerCreditActivityRepository _activities;

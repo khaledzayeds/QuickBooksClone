@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Items;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Items;
@@ -8,6 +9,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/items")]
+[RequirePermission("Inventory.Items.Manage")]
 public sealed class ItemsController : ControllerBase
 {
     private readonly IItemRepository _items;

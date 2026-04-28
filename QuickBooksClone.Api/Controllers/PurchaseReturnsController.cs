@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.PurchaseReturns;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.PurchaseBills;
@@ -9,6 +10,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/purchase-returns")]
+[RequirePermission("Purchases.Return.Manage")]
 public sealed class PurchaseReturnsController : ControllerBase
 {
     private readonly IPurchaseReturnRepository _returns;

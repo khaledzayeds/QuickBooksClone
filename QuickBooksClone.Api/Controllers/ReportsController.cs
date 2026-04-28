@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Reports;
 using QuickBooksClone.Core.Reports;
 
@@ -6,6 +7,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/reports")]
+[RequirePermission("Reports.View")]
 public sealed class ReportsController : ControllerBase
 {
     private readonly IFinancialReportService _reports;

@@ -445,6 +445,11 @@ Architectural baseline is now fixed:
   - [x] Add SQLite migration for security tables
   - [x] Add SQL Server migration for security tables
   - [x] Add repeatable `scripts/smoke-security-foundation.ps1`
+- [x] Business endpoint authorization
+  - [x] Protect accounting, reports, customers, vendors, items, inventory, sales, purchase, and document metadata controllers
+  - [x] Split Chart of Accounts read access from account-management access
+  - [x] Add customer/vendor permissions for role-based screen access
+  - [x] Add repeatable `scripts/smoke-business-authorization.ps1`
 
 ## In Progress
 
@@ -471,7 +476,7 @@ Architectural baseline is now fixed:
   - [x] User, role, and permission data foundation
   - [x] Authentication/session layer
   - [x] Endpoint authorization enforcement foundation
-  - [ ] Apply endpoint authorization to every business workflow controller
+  - [x] Apply endpoint authorization to every business workflow controller
   - [ ] Audit trail for create/update/post/void/cancel/restore actions
 - [ ] Core accounting reports
   - [x] Trial Balance
@@ -530,6 +535,6 @@ Architectural baseline is now fixed:
 - Recent hardening pass closed four accounting-safety gaps: reports are posted-only, payments reject unposted sent invoices, billed receipts cannot be voided, and purchase-bill posting revalidates linked receipt quantities inside the posting layer.
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.
 - Document metadata is now separate from posting logic: notes, templates, ship-to, external references, and attachment references can be consumed by MAUI or Flutter without embedding business rules in the UI.
-- Security foundation now exists as backend data and API contracts; endpoint enforcement is intentionally the next slice, not mixed into the first data-foundation slice.
+- Security foundation now exists as backend data and API contracts.
 - Auth sessions are local/offline-first: passwords are PBKDF2-hashed, session tokens are stored as hashes, and password changes revoke active sessions.
-- Authorization middleware now enforces bearer sessions and permissions on security, settings, backup/restore, and sync endpoints; business workflow controllers are the next permission-mapping slice.
+- Authorization middleware now enforces bearer sessions and permissions on security, settings, backup/restore, sync, accounting, reports, customers, vendors, items, inventory, sales, purchase, and document-metadata endpoints.

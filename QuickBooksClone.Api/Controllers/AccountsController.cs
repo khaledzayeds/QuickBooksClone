@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Accounting;
 using QuickBooksClone.Core.Accounting;
 
@@ -6,6 +7,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/accounts")]
+[RequirePermission("Accounting.View")]
 public sealed class AccountsController : ControllerBase
 {
     private readonly IAccountRepository _accounts;
@@ -48,6 +50,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("Accounting.Manage")]
     [ProducesResponseType(typeof(AccountDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -72,6 +75,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission("Accounting.Manage")]
     [ProducesResponseType(typeof(AccountDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -100,6 +104,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/active")]
+    [RequirePermission("Accounting.Manage")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SetActive(Guid id, SetAccountActiveRequest request, CancellationToken cancellationToken = default)
