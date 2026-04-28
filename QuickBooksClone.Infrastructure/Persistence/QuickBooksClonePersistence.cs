@@ -7,6 +7,7 @@ using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.Vendors;
+using QuickBooksClone.Infrastructure.Security;
 
 namespace QuickBooksClone.Infrastructure.Persistence;
 
@@ -230,7 +231,11 @@ public static class QuickBooksClonePersistence
         if (!await dbContext.SecurityUsers.AnyAsync())
         {
             var adminRole = await dbContext.SecurityRoles.FirstOrDefaultAsync(role => role.RoleKey == "ADMIN");
-            var admin = new SecurityUser("admin", "System Administrator", "admin@quickbooksclone.local");
+            var admin = new SecurityUser(
+                "admin",
+                "System Administrator",
+                "admin@quickbooksclone.local",
+                new PasswordHasher().HashPassword("admin"));
             dbContext.SecurityUsers.Add(admin);
             await dbContext.SaveChangesAsync();
 

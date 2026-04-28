@@ -469,7 +469,7 @@ Architectural baseline is now fixed:
   - [ ] Final OpenAPI/contract review pass after users and printing are added
 - [ ] Security enforcement and audit
   - [x] User, role, and permission data foundation
-  - [ ] Authentication/session layer
+  - [x] Authentication/session layer
   - [ ] Endpoint authorization enforcement
   - [ ] Audit trail for create/update/post/void/cancel/restore actions
 - [ ] Core accounting reports
@@ -530,3 +530,4 @@ Architectural baseline is now fixed:
 - Real sync execution, conflict handling, and multi-device reconciliation are still intentionally deferred until the core workflows are finished.
 - Document metadata is now separate from posting logic: notes, templates, ship-to, external references, and attachment references can be consumed by MAUI or Flutter without embedding business rules in the UI.
 - Security foundation now exists as backend data and API contracts; endpoint enforcement is intentionally the next slice, not mixed into the first data-foundation slice.
+- Auth sessions are local/offline-first: passwords are PBKDF2-hashed, session tokens are stored as hashes, and password changes revoke active sessions.

@@ -43,7 +43,7 @@ public sealed class SecurityUser : EntityBase, ITenantEntity
 
     public void SetPasswordHash(string passwordHash)
     {
-        PasswordHash = SecurityRole.NormalizeRequired(passwordHash, nameof(passwordHash), 500);
+        PasswordHash = SecurityRole.NormalizeRequired(passwordHash, nameof(passwordHash), 1000);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

@@ -188,6 +188,32 @@ public sealed class EfSecurityRepository : ISecurityRepository
         return true;
     }
 
+    public async Task<bool> SetUserPasswordHashAsync(Guid id, string passwordHash, CancellationToken cancellationToken = default)
+    {
+        var user = await GetUserByIdAsync(id, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.SetPasswordHash(passwordHash);
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> MarkUserLoginAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var user = await GetUserByIdAsync(id, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.MarkLogin();
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<SecurityUser?> ReplaceUserRolesAsync(Guid id, IEnumerable<Guid> roleIds, CancellationToken cancellationToken = default)
     {
         var user = await GetUserByIdAsync(id, cancellationToken);
@@ -216,6 +242,47 @@ public sealed class EfSecurityRepository : ISecurityRepository
             .Distinct()
             .OrderBy(permission => permission)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<SecuritySession> AddSessionAsync(SecuritySession session, CancellationToken cancellationToken = default)
+    {
+        _db.SecuritySessions.Add(session);
+        await _db.SaveChangesAsync(cancellationToken);
+        return session;
+    }
+
+    public async Task<SecuritySession?> GetActiveSessionByTokenHashAsync(string tokenHash, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        var session = await _db.SecuritySessions.FirstOrDefaultAsync(current => current.TokenHash == tokenHash, cancellationToken);
+        return session is not null && session.IsActive(now) ? session : null;
+    }
+
+    public async Task<bool> RevokeSessionAsync(string tokenHash, CancellationToken cancellationToken = default)
+    {
+        var session = await _db.SecuritySessions.FirstOrDefaultAsync(current => current.TokenHash == tokenHash, cancellationToken);
+        if (session is null)
+        {
+            return false;
+        }
+
+        session.Revoke();
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<int> RevokeUserSessionsAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var sessions = await _db.SecuritySessions
+            .Where(session => session.UserId == userId && !session.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in sessions)
+        {
+            session.Revoke();
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return sessions.Count;
     }
 
     private IQueryable<SecurityRole> RoleQuery() => _db.SecurityRoles.Include(role => role.Permissions);

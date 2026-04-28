@@ -102,6 +102,8 @@ builder.Services.AddScoped<IVendorCreditPostingService, VendorCreditPostingServi
 builder.Services.AddScoped<ISalesReturnRepository, EfSalesReturnRepository>();
 builder.Services.AddScoped<ISalesReturnPostingService, SalesReturnPostingService>();
 builder.Services.AddScoped<ISecurityRepository, EfSecurityRepository>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>

@@ -19,6 +19,13 @@ public interface ISecurityRepository
     Task<SecurityUser> AddUserAsync(SecurityUser user, IEnumerable<Guid> roleIds, CancellationToken cancellationToken = default);
     Task<SecurityUser?> UpdateUserAsync(Guid id, string displayName, string? email, CancellationToken cancellationToken = default);
     Task<bool> SetUserActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default);
+    Task<bool> SetUserPasswordHashAsync(Guid id, string passwordHash, CancellationToken cancellationToken = default);
+    Task<bool> MarkUserLoginAsync(Guid id, CancellationToken cancellationToken = default);
     Task<SecurityUser?> ReplaceUserRolesAsync(Guid id, IEnumerable<Guid> roleIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<string>> GetEffectivePermissionsAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<SecuritySession> AddSessionAsync(SecuritySession session, CancellationToken cancellationToken = default);
+    Task<SecuritySession?> GetActiveSessionByTokenHashAsync(string tokenHash, DateTimeOffset now, CancellationToken cancellationToken = default);
+    Task<bool> RevokeSessionAsync(string tokenHash, CancellationToken cancellationToken = default);
+    Task<int> RevokeUserSessionsAsync(Guid userId, CancellationToken cancellationToken = default);
 }

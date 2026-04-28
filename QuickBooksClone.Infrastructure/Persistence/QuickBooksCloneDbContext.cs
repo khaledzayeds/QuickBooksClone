@@ -53,6 +53,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<SecurityRole> SecurityRoles => Set<SecurityRole>();
+    public DbSet<SecuritySession> SecuritySessions => Set<SecuritySession>();
     public DbSet<SecurityUser> SecurityUsers => Set<SecurityUser>();
     public DbSet<UserRoleAssignment> UserRoleAssignments => Set<UserRoleAssignment>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
@@ -708,7 +709,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(user => user.UserName).HasMaxLength(80).IsRequired();
             entity.Property(user => user.DisplayName).HasMaxLength(160).IsRequired();
             entity.Property(user => user.Email).HasMaxLength(250);
-            entity.Property(user => user.PasswordHash).HasMaxLength(500);
+            entity.Property(user => user.PasswordHash).HasMaxLength(1000);
             entity.Property(user => user.IsActive).IsRequired();
             entity.Property(user => user.LastLoginAt);
             entity.HasIndex(user => user.UserName).IsUnique();
@@ -719,6 +720,21 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 .HasForeignKey(assignment => assignment.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(user => user.RoleAssignments).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<SecuritySession>(entity =>
+        {
+            entity.ToTable("security_sessions");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(session => session.UserId).IsRequired();
+            entity.Property(session => session.TokenHash).HasMaxLength(500).IsRequired();
+            entity.Property(session => session.ExpiresAt).IsRequired();
+            entity.Property(session => session.RevokedAt);
+            entity.Property(session => session.IsRevoked).IsRequired();
+            entity.HasIndex(session => session.TokenHash).IsUnique();
+            entity.HasIndex(session => session.UserId);
+            entity.HasIndex(session => session.ExpiresAt);
         });
 
         modelBuilder.Entity<UserRoleAssignment>(entity =>

@@ -208,6 +208,9 @@ If building a new frontend, start from these:
 - `GET /api/customers`
 - `GET /api/vendors`
 - `GET /api/items`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
 - `GET /api/security/permissions`
 - `GET /api/security/roles`
 - `GET /api/security/users`

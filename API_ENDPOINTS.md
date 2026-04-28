@@ -2976,3 +2976,75 @@ Content-Type: application/json
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke-security-foundation.ps1
 ```
+
+## Auth Sessions
+
+Authentication is local/offline-first. The API stores only password hashes and session token hashes. Clients receive the raw bearer token only once at login.
+
+Development seed:
+
+```text
+userName=admin
+password=admin
+```
+
+This default password is for local development and smoke testing only. A setup/forced-change flow should replace it before production use.
+
+### Login
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "userName": "admin",
+  "password": "admin"
+}
+```
+
+Response includes:
+
+- `token`
+- `expiresAt`
+- `user`
+- `user.roles`
+- `user.effectivePermissions`
+
+### Current Session
+
+```http
+GET /api/auth/me
+Authorization: Bearer {token}
+```
+
+### Logout
+
+```http
+POST /api/auth/logout
+Authorization: Bearer {token}
+```
+
+Logout revokes the current session token.
+
+### Set User Password
+
+```http
+PUT /api/auth/users/{id}/password
+Content-Type: application/json
+```
+
+```json
+{
+  "newPassword": "new-secure-password"
+}
+```
+
+Changing a password revokes all active sessions for that user.
+
+### Smoke Test
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-auth-sessions.ps1
+```
