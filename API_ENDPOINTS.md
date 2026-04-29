@@ -41,6 +41,7 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Settings smoke test: `.\scripts\smoke-settings.ps1`.
 - Sync diagnostics smoke test: `.\scripts\smoke-sync-diagnostics.ps1`.
 - Tax/VAT foundation smoke test: `.\scripts\smoke-tax-foundation.ps1`.
+- API contract smoke test: `.\scripts\smoke-api-contract.ps1`.
 - Current authentication is not enabled yet.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.

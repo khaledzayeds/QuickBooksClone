@@ -214,6 +214,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke-core-backend.ps1
 
 If this passes, the backend core is in a good state for another frontend to exercise.
 
+For a faster API-contract guard while building a new client, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-api-contract.ps1
+```
+
+This verifies OpenAPI route presence plus live DTO shape for runtime settings, auth login, tax codes, and tax summary.
+
 ## 11. Most Important Endpoints For UI Builders
 
 If building a new frontend, start from these:

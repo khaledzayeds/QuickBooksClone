@@ -427,6 +427,7 @@ Architectural baseline is now fixed:
   - [x] Add consolidated `scripts/smoke-core-backend.ps1`
   - [x] Add `FRONTEND_INTEGRATION_GUIDE.md` for Windows Forms / Flutter style clients
   - [x] Document workflow-first API consumption order
+  - [x] Add API contract smoke guard over OpenAPI route surface and live DTO shape
 - [x] Sync-ready document metadata hooks
   - [x] Add reusable document metadata model for memos, internal notes, external references, template names, and ship-to fields
   - [x] Add attachment metadata references without storing file bytes in the document row
@@ -491,6 +492,7 @@ Architectural baseline is now fixed:
   - [x] Workflow DTOs are frontend-agnostic
   - [x] Document metadata hooks are API-first and sync-ready
   - [x] User/role/permission management contracts are API-first
+  - [x] API contract smoke guard validates key OpenAPI paths and DTO fields
   - [ ] Final OpenAPI/contract review pass after users and printing are added
 - [ ] Security enforcement and audit
   - [x] User, role, and permission data foundation
@@ -568,3 +570,4 @@ Architectural baseline is now fixed:
 - Audit trail now records successful authenticated write requests with user/action/route/permission metadata, giving future MAUI and Flutter admin screens a stable activity history API.
 - Tax/VAT is now configurable and disabled by default for compatibility. When enabled, posting documents separate net line amounts from output/input tax through tax-code accounts, while A/R and A/P use gross document totals.
 - Tax summary reporting now exposes taxable sales, output tax, taxable purchases, input tax, and net payable by tax code. Formal filing/submission workflow and optional tax previews on estimates, sales orders, and purchase orders are still future slices.
+- API contract smoke now checks the OpenAPI surface and live DTO shape for the most important frontend entry points before a new MAUI or Flutter client builds on them.
