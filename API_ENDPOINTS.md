@@ -47,6 +47,51 @@ Iterative contract. Stable enough for current frontend work, but not final.
 
 ## Reports
 
+### Tax Summary
+
+```http
+GET /api/reports/tax-summary?fromDate=2026-04-01&toDate=2026-04-30&includeZeroRows=false
+```
+
+Response:
+
+```json
+{
+  "fromDate": "2026-04-01",
+  "toDate": "2026-04-30",
+  "items": [
+    {
+      "taxCodeId": "guid",
+      "taxCode": "VAT14-S",
+      "taxCodeName": "Sales VAT 14%",
+      "taxAccountId": "guid",
+      "taxAccountCode": "2100",
+      "taxAccountName": "Sales Tax Payable",
+      "ratePercent": 14,
+      "taxableSales": 100,
+      "outputTax": 14,
+      "taxablePurchases": 0,
+      "inputTax": 0,
+      "netTaxPayable": 14
+    }
+  ],
+  "totalTaxableSales": 100,
+  "totalOutputTax": 14,
+  "totalTaxablePurchases": 50,
+  "totalInputTax": 7,
+  "netTaxPayable": 7
+}
+```
+
+Notes:
+
+- Tax summary includes posted, non-void invoices, sales receipts, and purchase bills.
+- Draft, sent-but-unposted, and voided documents are excluded.
+- Sales-side tax is reported as `outputTax`.
+- Purchase-side tax is reported as `inputTax`.
+- `netTaxPayable = totalOutputTax - totalInputTax`.
+- This is a management/tax review report, not a full tax-return filing workflow yet.
+
 ### Trial Balance
 
 ```http

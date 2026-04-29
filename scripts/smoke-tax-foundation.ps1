@@ -191,11 +191,18 @@ try {
     $taxLine = $transaction.lines | Where-Object { $_.accountName -eq "Sales Tax Payable" -and [decimal]$_.credit -eq 14 } | Select-Object -First 1
     Assert-True ($null -ne $taxLine) "Expected Sales Tax Payable credit line."
 
+    $taxSummary = Invoke-Json -Method Get -Uri "$BaseUrl/api/reports/tax-summary?fromDate=2026-04-01&toDate=2026-04-30" -Token $login.token
+    Assert-True ([decimal]$taxSummary.totalTaxableSales -eq 100) "Expected tax summary taxable sales to be 100."
+    Assert-True ([decimal]$taxSummary.totalOutputTax -eq 14) "Expected tax summary output tax to be 14."
+    Assert-True ([decimal]$taxSummary.netTaxPayable -eq 14) "Expected tax summary net tax payable to be 14."
+
     [pscustomobject]@{
         invoiceNumber = $invoice.invoiceNumber
         taxAmount = $invoice.taxAmount
         totalAmount = $invoice.totalAmount
         taxAccountCredited = $taxLine.accountName
+        reportOutputTax = $taxSummary.totalOutputTax
+        reportNetTaxPayable = $taxSummary.netTaxPayable
     } | ConvertTo-Json
 }
 finally {

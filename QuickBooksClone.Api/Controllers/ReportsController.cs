@@ -250,4 +250,54 @@ public sealed class ReportsController : ControllerBase
             report.TotalQuantityOutValue,
             report.TotalClosingValue));
     }
+
+    [HttpGet("tax-summary")]
+    [ProducesResponseType(typeof(TaxSummaryReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<TaxSummaryReportDto>> GetTaxSummary(
+        [FromQuery] DateOnly? fromDate,
+        [FromQuery] DateOnly? toDate,
+        [FromQuery] bool includeZeroRows = false,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedToDate = toDate ?? DateOnly.FromDateTime(DateTime.Today);
+        var resolvedFromDate = fromDate ?? new DateOnly(resolvedToDate.Year, 1, 1);
+
+        try
+        {
+            var report = await _reports.GetTaxSummaryAsync(
+                resolvedFromDate,
+                resolvedToDate,
+                includeZeroRows,
+                cancellationToken);
+
+            return Ok(new TaxSummaryReportDto(
+                report.FromDate,
+                report.ToDate,
+                report.Items
+                    .Select(row => new TaxSummaryRowDto(
+                        row.TaxCodeId,
+                        row.TaxCode,
+                        row.TaxCodeName,
+                        row.TaxAccountId,
+                        row.TaxAccountCode,
+                        row.TaxAccountName,
+                        row.RatePercent,
+                        row.TaxableSales,
+                        row.OutputTax,
+                        row.TaxablePurchases,
+                        row.InputTax,
+                        row.NetTaxPayable))
+                    .ToList(),
+                report.TotalTaxableSales,
+                report.TotalOutputTax,
+                report.TotalTaxablePurchases,
+                report.TotalInputTax,
+                report.NetTaxPayable));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+    }
 }

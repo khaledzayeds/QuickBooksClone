@@ -241,5 +241,6 @@ If building a new frontend, start from these:
 - `GET /api/documents/{documentType}/{documentId}/metadata`
 - `GET /api/sync/overview`
 - `GET /api/sync/documents?status=PendingSync&take=50`
+- `GET /api/reports/tax-summary?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD`
 
 These are the key workflow-intelligence endpoints that prevent frontend guesswork.

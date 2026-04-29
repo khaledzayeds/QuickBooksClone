@@ -41,6 +41,12 @@ public interface IFinancialReportService
         bool includeZeroBalances,
         bool includeInactiveItems,
         CancellationToken cancellationToken = default);
+
+    Task<TaxSummaryReport> GetTaxSummaryAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroRows,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record TrialBalanceReport(
@@ -176,3 +182,27 @@ public sealed record InventoryValuationRow(
     decimal QuantityInValue,
     decimal QuantityOutValue,
     decimal ClosingValue);
+
+public sealed record TaxSummaryReport(
+    DateOnly FromDate,
+    DateOnly ToDate,
+    IReadOnlyList<TaxSummaryRow> Items,
+    decimal TotalTaxableSales,
+    decimal TotalOutputTax,
+    decimal TotalTaxablePurchases,
+    decimal TotalInputTax,
+    decimal NetTaxPayable);
+
+public sealed record TaxSummaryRow(
+    Guid TaxCodeId,
+    string TaxCode,
+    string TaxCodeName,
+    Guid TaxAccountId,
+    string? TaxAccountCode,
+    string? TaxAccountName,
+    decimal RatePercent,
+    decimal TaxableSales,
+    decimal OutputTax,
+    decimal TaxablePurchases,
+    decimal InputTax,
+    decimal NetTaxPayable);

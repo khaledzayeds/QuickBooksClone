@@ -465,6 +465,11 @@ Architectural baseline is now fixed:
   - [x] Purchase-bill posting debits input VAT/tax receivable separately from net inventory/expense
   - [x] Add SQLite and SQL Server migrations for the tax foundation
   - [x] Add repeatable `scripts/smoke-tax-foundation.ps1`
+- [x] Tax/VAT summary report
+  - [x] Add `GET /api/reports/tax-summary`
+  - [x] Report taxable sales, output tax, taxable purchases, input tax, and net tax payable by tax code
+  - [x] Include posted non-void invoices, sales receipts, and purchase bills only
+  - [x] Keep draft, unposted, and voided documents out of tax totals
 
 ## In Progress
 
@@ -504,8 +509,9 @@ Architectural baseline is now fixed:
   - [x] Configurable tax codes and company tax settings
   - [x] Backend tax calculation for posted sales and purchase documents
   - [x] GL-safe output/input tax posting
+  - [x] Tax summary report by date range
   - [ ] Tax preview fields on non-posting documents if required
-  - [ ] Tax return / tax summary reports
+  - [ ] Formal tax return filing workflow
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
   - [x] Add restore confirmation/audit metadata
@@ -561,4 +567,4 @@ Architectural baseline is now fixed:
 - Authorization middleware now enforces bearer sessions and permissions on security, settings, backup/restore, sync, accounting, reports, customers, vendors, items, inventory, sales, purchase, and document-metadata endpoints.
 - Audit trail now records successful authenticated write requests with user/action/route/permission metadata, giving future MAUI and Flutter admin screens a stable activity history API.
 - Tax/VAT is now configurable and disabled by default for compatibility. When enabled, posting documents separate net line amounts from output/input tax through tax-code accounts, while A/R and A/P use gross document totals.
-- Tax reports/returns and optional tax previews on estimates, sales orders, and purchase orders are still future slices; the accounting-safe posting foundation is in place first.
+- Tax summary reporting now exposes taxable sales, output tax, taxable purchases, input tax, and net payable by tax code. Formal filing/submission workflow and optional tax previews on estimates, sales orders, and purchase orders are still future slices.

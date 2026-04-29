@@ -527,6 +527,130 @@ public sealed class FinancialReportService : IFinancialReportService
             rows.Sum(row => row.ClosingValue));
     }
 
+    public async Task<TaxSummaryReport> GetTaxSummaryAsync(
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool includeZeroRows,
+        CancellationToken cancellationToken = default)
+    {
+        if (toDate < fromDate)
+        {
+            throw new InvalidOperationException("The report end date cannot be earlier than the start date.");
+        }
+
+        var taxCodes = await _db.TaxCodes
+            .AsNoTracking()
+            .OrderBy(taxCode => taxCode.Code)
+            .ThenBy(taxCode => taxCode.Name)
+            .ToListAsync(cancellationToken);
+
+        var taxAccountIds = taxCodes.Select(taxCode => taxCode.TaxAccountId).Distinct().ToList();
+        var taxAccounts = await _db.Accounts
+            .AsNoTracking()
+            .Where(account => taxAccountIds.Contains(account.Id))
+            .ToDictionaryAsync(account => account.Id, cancellationToken);
+
+        var salesTax = await _db.Invoices
+            .AsNoTracking()
+            .Where(invoice =>
+                invoice.PostedTransactionId != null &&
+                invoice.Status != Core.Invoices.InvoiceStatus.Void &&
+                invoice.InvoiceDate >= fromDate &&
+                invoice.InvoiceDate <= toDate)
+            .SelectMany(
+                invoice => invoice.Lines,
+                (invoice, line) => new
+                {
+                    line.TaxCodeId,
+                    TaxableAmount = line.Quantity * line.UnitPrice - (line.Quantity * line.UnitPrice * line.DiscountPercent / 100m),
+                    line.TaxAmount
+                })
+            .Where(line => line.TaxCodeId != null)
+            .GroupBy(line => line.TaxCodeId!.Value)
+            .Select(group => new
+            {
+                TaxCodeId = group.Key,
+                TaxableAmount = group.Sum(line => line.TaxableAmount),
+                TaxAmount = group.Sum(line => line.TaxAmount)
+            })
+            .ToDictionaryAsync(
+                entry => entry.TaxCodeId,
+                entry => (entry.TaxableAmount, entry.TaxAmount),
+                cancellationToken);
+
+        var purchaseTax = await _db.PurchaseBills
+            .AsNoTracking()
+            .Where(bill =>
+                bill.PostedTransactionId != null &&
+                bill.Status != PurchaseBillStatus.Void &&
+                bill.BillDate >= fromDate &&
+                bill.BillDate <= toDate)
+            .SelectMany(
+                bill => bill.Lines,
+                (bill, line) => new
+                {
+                    line.TaxCodeId,
+                    TaxableAmount = line.Quantity * line.UnitCost,
+                    line.TaxAmount
+                })
+            .Where(line => line.TaxCodeId != null)
+            .GroupBy(line => line.TaxCodeId!.Value)
+            .Select(group => new
+            {
+                TaxCodeId = group.Key,
+                TaxableAmount = group.Sum(line => line.TaxableAmount),
+                TaxAmount = group.Sum(line => line.TaxAmount)
+            })
+            .ToDictionaryAsync(
+                entry => entry.TaxCodeId,
+                entry => (entry.TaxableAmount, entry.TaxAmount),
+                cancellationToken);
+
+        var activeTaxCodeIds = salesTax.Keys.Concat(purchaseTax.Keys).ToHashSet();
+        var rows = taxCodes
+            .Where(taxCode => includeZeroRows || activeTaxCodeIds.Contains(taxCode.Id))
+            .Select(taxCode =>
+            {
+                salesTax.TryGetValue(taxCode.Id, out var sales);
+                purchaseTax.TryGetValue(taxCode.Id, out var purchases);
+                taxAccounts.TryGetValue(taxCode.TaxAccountId, out var taxAccount);
+
+                return new TaxSummaryRow(
+                    taxCode.Id,
+                    taxCode.Code,
+                    taxCode.Name,
+                    taxCode.TaxAccountId,
+                    taxAccount?.Code,
+                    taxAccount?.Name,
+                    taxCode.RatePercent,
+                    sales.TaxableAmount,
+                    sales.TaxAmount,
+                    purchases.TaxableAmount,
+                    purchases.TaxAmount,
+                    sales.TaxAmount - purchases.TaxAmount);
+            })
+            .Where(row =>
+                includeZeroRows ||
+                row.TaxableSales != 0m ||
+                row.OutputTax != 0m ||
+                row.TaxablePurchases != 0m ||
+                row.InputTax != 0m)
+            .ToList();
+
+        var totalOutputTax = rows.Sum(row => row.OutputTax);
+        var totalInputTax = rows.Sum(row => row.InputTax);
+
+        return new TaxSummaryReport(
+            fromDate,
+            toDate,
+            rows,
+            rows.Sum(row => row.TaxableSales),
+            totalOutputTax,
+            rows.Sum(row => row.TaxablePurchases),
+            totalInputTax,
+            totalOutputTax - totalInputTax);
+    }
+
     private async Task<(List<QuickBooksClone.Core.Accounting.Account> Accounts, Dictionary<Guid, (decimal TotalDebit, decimal TotalCredit)> Balances)>
         LoadBalancesAsync(
             DateOnly asOfDate,
