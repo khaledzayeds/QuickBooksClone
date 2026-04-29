@@ -7,7 +7,7 @@ public sealed class InvoiceLine
         Description = string.Empty;
     }
 
-    public InvoiceLine(Guid itemId, string description, decimal quantity, decimal unitPrice, decimal discountPercent = 0, Guid? salesOrderLineId = null)
+    public InvoiceLine(Guid itemId, string description, decimal quantity, decimal unitPrice, decimal discountPercent = 0, Guid? salesOrderLineId = null, Guid? taxCodeId = null, decimal taxRatePercent = 0, decimal taxAmount = 0)
     {
         if (itemId == Guid.Empty)
         {
@@ -25,6 +25,9 @@ public sealed class InvoiceLine
         Quantity = quantity;
         UnitPrice = unitPrice;
         DiscountPercent = Math.Clamp(discountPercent, 0, 100);
+        TaxCodeId = taxCodeId == Guid.Empty ? null : taxCodeId;
+        TaxRatePercent = Math.Clamp(taxRatePercent, 0, 100);
+        TaxAmount = taxAmount < 0 ? throw new ArgumentOutOfRangeException(nameof(taxAmount), "Tax amount cannot be negative.") : taxAmount;
     }
 
     public Guid Id { get; } = Guid.NewGuid();
@@ -34,6 +37,9 @@ public sealed class InvoiceLine
     public decimal Quantity { get; }
     public decimal UnitPrice { get; }
     public decimal DiscountPercent { get; }
+    public Guid? TaxCodeId { get; }
+    public decimal TaxRatePercent { get; }
+    public decimal TaxAmount { get; }
     public decimal GrossAmount => Quantity * UnitPrice;
     public decimal DiscountAmount => GrossAmount * (DiscountPercent / 100);
     public decimal LineTotal => GrossAmount - DiscountAmount;

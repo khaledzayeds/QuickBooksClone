@@ -2,6 +2,7 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.ReceiveInventory;
+using QuickBooksClone.Core.Taxes;
 using QuickBooksClone.Core.Vendors;
 
 namespace QuickBooksClone.Infrastructure.PurchaseBills;
@@ -19,6 +20,7 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
     private readonly IAccountingTransactionRepository _transactions;
+    private readonly ITaxCodeRepository _taxCodes;
 
     public PurchaseBillPostingService(
         IPurchaseBillRepository bills,
@@ -26,7 +28,8 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
         IVendorRepository vendors,
         IItemRepository items,
         IAccountRepository accounts,
-        IAccountingTransactionRepository transactions)
+        IAccountingTransactionRepository transactions,
+        ITaxCodeRepository taxCodes)
     {
         _bills = bills;
         _receipts = receipts;
@@ -34,6 +37,7 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
         _items = items;
         _accounts = accounts;
         _transactions = transactions;
+        _taxCodes = taxCodes;
     }
 
     public async Task<PurchaseBillPostingResult> PostAsync(Guid purchaseBillId, CancellationToken cancellationToken = default)
@@ -108,6 +112,7 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
         }
 
         var lineItems = new List<(PurchaseBillLine Line, Item Item)>();
+        var taxCodesById = new Dictionary<Guid, TaxCode>();
         foreach (var line in bill.Lines)
         {
             var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
@@ -157,10 +162,26 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
                 return PurchaseBillPostingResult.Failure($"Non-inventory/service item '{item.Name}' is missing an expense account.");
             }
 
+            if (line.TaxAmount > 0)
+            {
+                if (line.TaxCodeId is null)
+                {
+                    return PurchaseBillPostingResult.Failure("Taxed purchase bill lines must have a tax code.");
+                }
+
+                var taxCode = await _taxCodes.GetByIdAsync(line.TaxCodeId.Value, cancellationToken);
+                if (taxCode is null || !taxCode.IsActive || !taxCode.CanApplyTo(TaxTransactionType.Purchase))
+                {
+                    return PurchaseBillPostingResult.Failure("Purchase bill tax code is missing, inactive, or not valid for purchases.");
+                }
+
+                taxCodesById[taxCode.Id] = taxCode;
+            }
+
             lineItems.Add((line, item));
         }
 
-        var transaction = BuildAccountingTransaction(bill, apAccount.Id, grniAccount.Id, lineItems, linkedReceipt);
+        var transaction = BuildAccountingTransaction(bill, apAccount.Id, grniAccount.Id, lineItems, linkedReceipt, taxCodesById);
         var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
 
         foreach (var (line, item) in lineItems.Where(current => current.Item.ItemType == ItemType.Inventory && current.Line.InventoryReceiptLineId is null))
@@ -266,7 +287,8 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
         Guid accountsPayableAccountId,
         Guid goodsReceivedNotBilledAccountId,
         IReadOnlyList<(PurchaseBillLine Line, Item Item)> lineItems,
-        InventoryReceipt? linkedReceipt)
+        InventoryReceipt? linkedReceipt,
+        IReadOnlyDictionary<Guid, TaxCode> taxCodesById)
     {
         var transaction = new AccountingTransaction(
             "PurchaseBill",
@@ -316,6 +338,18 @@ public sealed class PurchaseBillPostingService : IPurchaseBillPostingService
                 debitAccountId,
                 line.Description,
                 line.LineTotal,
+                0));
+        }
+
+        foreach (var group in lineItems
+            .Where(current => current.Line.TaxAmount > 0 && current.Line.TaxCodeId is not null)
+            .GroupBy(current => current.Line.TaxCodeId!.Value))
+        {
+            var taxCode = taxCodesById[group.Key];
+            transaction.AddLine(new AccountingTransactionLine(
+                taxCode.TaxAccountId,
+                $"Purchase tax {taxCode.Code} - {bill.BillNumber}",
+                group.Sum(current => current.Line.TaxAmount),
                 0));
         }
 

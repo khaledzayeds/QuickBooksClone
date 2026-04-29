@@ -456,6 +456,15 @@ Architectural baseline is now fixed:
   - [x] Store user, action, route, permissions, status, IP, and user-agent metadata
   - [x] Add SQLite and SQL Server migrations for audit logs
   - [x] Add repeatable `scripts/smoke-audit-trail.ps1`
+- [x] Configurable tax/VAT foundation
+  - [x] Add tax code entity, repository, API contract, and management endpoints
+  - [x] Add company-level tax enable/disable, default tax codes, tax accounts, tax-inclusive price, and rounding settings
+  - [x] Add line-level tax metadata to sales invoices, sales receipts, and purchase bills
+  - [x] Keep tax calculation and validation in backend controllers/posting services, not UI components
+  - [x] Sales posting credits output tax separately from net income
+  - [x] Purchase-bill posting debits input VAT/tax receivable separately from net inventory/expense
+  - [x] Add SQLite and SQL Server migrations for the tax foundation
+  - [x] Add repeatable `scripts/smoke-tax-foundation.ps1`
 
 ## In Progress
 
@@ -491,6 +500,12 @@ Architectural baseline is now fixed:
   - [x] Accounts Receivable Aging
   - [x] Accounts Payable Aging
   - [x] Inventory valuation and stock movement
+- [ ] Tax/VAT completion
+  - [x] Configurable tax codes and company tax settings
+  - [x] Backend tax calculation for posted sales and purchase documents
+  - [x] GL-safe output/input tax posting
+  - [ ] Tax preview fields on non-posting documents if required
+  - [ ] Tax return / tax summary reports
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
   - [x] Add restore confirmation/audit metadata
@@ -545,3 +560,5 @@ Architectural baseline is now fixed:
 - Auth sessions are local/offline-first: passwords are PBKDF2-hashed, session tokens are stored as hashes, and password changes revoke active sessions.
 - Authorization middleware now enforces bearer sessions and permissions on security, settings, backup/restore, sync, accounting, reports, customers, vendors, items, inventory, sales, purchase, and document-metadata endpoints.
 - Audit trail now records successful authenticated write requests with user/action/route/permission metadata, giving future MAUI and Flutter admin screens a stable activity history API.
+- Tax/VAT is now configurable and disabled by default for compatibility. When enabled, posting documents separate net line amounts from output/input tax through tax-code accounts, while A/R and A/P use gross document totals.
+- Tax reports/returns and optional tax previews on estimates, sales orders, and purchase orders are still future slices; the accounting-safe posting foundation is in place first.

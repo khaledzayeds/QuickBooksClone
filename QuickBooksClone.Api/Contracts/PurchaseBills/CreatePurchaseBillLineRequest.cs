@@ -9,4 +9,5 @@ public sealed record CreatePurchaseBillLineRequest(
     [Range(0.01, 999999999)]
     decimal Quantity,
     [Range(0, 999999999)]
-    decimal UnitCost);
+    decimal UnitCost,
+    Guid? TaxCodeId);

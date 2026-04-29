@@ -2,6 +2,7 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
+using QuickBooksClone.Core.Taxes;
 
 namespace QuickBooksClone.Infrastructure.Invoices;
 
@@ -15,19 +16,22 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
     private readonly IAccountingTransactionRepository _transactions;
+    private readonly ITaxCodeRepository _taxCodes;
 
     public SalesInvoicePostingService(
         IInvoiceRepository invoices,
         ICustomerRepository customers,
         IItemRepository items,
         IAccountRepository accounts,
-        IAccountingTransactionRepository transactions)
+        IAccountingTransactionRepository transactions,
+        ITaxCodeRepository taxCodes)
     {
         _invoices = invoices;
         _customers = customers;
         _items = items;
         _accounts = accounts;
         _transactions = transactions;
+        _taxCodes = taxCodes;
     }
 
     public async Task<InvoicePostingResult> PostAsync(Guid invoiceId, CancellationToken cancellationToken = default)
@@ -67,6 +71,7 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
         }
 
         var lineItems = new List<(InvoiceLine Line, Item Item)>();
+        var taxCodesById = new Dictionary<Guid, TaxCode>();
         foreach (var line in invoice.Lines)
         {
             var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
@@ -93,10 +98,26 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
                 }
             }
 
+            if (line.TaxAmount > 0)
+            {
+                if (line.TaxCodeId is null)
+                {
+                    return InvoicePostingResult.Failure("Taxed invoice lines must have a tax code.");
+                }
+
+                var taxCode = await _taxCodes.GetByIdAsync(line.TaxCodeId.Value, cancellationToken);
+                if (taxCode is null || !taxCode.IsActive || !taxCode.CanApplyTo(TaxTransactionType.Sales))
+                {
+                    return InvoicePostingResult.Failure("Invoice tax code is missing, inactive, or not valid for sales.");
+                }
+
+                taxCodesById[taxCode.Id] = taxCode;
+            }
+
             lineItems.Add((line, item));
         }
 
-        var transaction = BuildAccountingTransaction(invoice, arAccount.Id, lineItems);
+        var transaction = BuildAccountingTransaction(invoice, arAccount.Id, lineItems, taxCodesById);
         var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
 
         foreach (var (line, item) in lineItems.Where(current => current.Item.ItemType == ItemType.Inventory))
@@ -177,7 +198,8 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
     private static AccountingTransaction BuildAccountingTransaction(
         Invoice invoice,
         Guid accountsReceivableAccountId,
-        IReadOnlyList<(InvoiceLine Line, Item Item)> lineItems)
+        IReadOnlyList<(InvoiceLine Line, Item Item)> lineItems,
+        IReadOnlyDictionary<Guid, TaxCode> taxCodesById)
     {
         var transaction = new AccountingTransaction(
             "Invoice",
@@ -222,6 +244,18 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
                 $"Inventory relief - {line.Description}",
                 0,
                 costAmount));
+        }
+
+        foreach (var group in lineItems
+            .Where(current => current.Line.TaxAmount > 0 && current.Line.TaxCodeId is not null)
+            .GroupBy(current => current.Line.TaxCodeId!.Value))
+        {
+            var taxCode = taxCodesById[group.Key];
+            transaction.AddLine(new AccountingTransactionLine(
+                taxCode.TaxAccountId,
+                $"Sales tax {taxCode.Code} - {invoice.InvoiceNumber}",
+                0,
+                group.Sum(current => current.Line.TaxAmount)));
         }
 
         return transaction;

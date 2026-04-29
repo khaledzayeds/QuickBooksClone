@@ -704,10 +704,6 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<long>("SyncVersion")
                         .HasColumnType("bigint");
 
-                    b.Property<decimal>("TaxAmount")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
-
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1852,9 +1848,21 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<Guid?>("DefaultPurchaseTaxCodeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("DefaultPurchaseTaxRate")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid?>("DefaultPurchaseTaxReceivableAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DefaultSalesTaxCodeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DefaultSalesTaxPayableAccountId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("DefaultSalesTaxRate")
                         .HasPrecision(18, 4)
@@ -1882,6 +1890,9 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Region")
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
@@ -1889,6 +1900,12 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<string>("TaxRegistrationNumber")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("TaxRoundingMode")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TaxesEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<string>("TimeZoneId")
                         .IsRequired()
@@ -1968,6 +1985,59 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                         .IsUnique();
 
                     b.ToTable("document_sequence_counters", (string)null);
+                });
+
+            modelBuilder.Entity("QuickBooksClone.Core.Taxes.TaxCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<decimal>("RatePercent")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TaxAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("Scope");
+
+                    b.ToTable("tax_codes", (string)null);
                 });
 
             modelBuilder.Entity("QuickBooksClone.Core.VendorCredits.VendorCreditActivity", b =>
@@ -2348,6 +2418,17 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                             b1.Property<Guid?>("SalesOrderLineId")
                                 .HasColumnType("uniqueidentifier");
 
+                            b1.Property<decimal>("TaxAmount")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<Guid?>("TaxCodeId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("TaxRatePercent")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
                             b1.Property<decimal>("UnitPrice")
                                 .HasPrecision(18, 4)
                                 .HasColumnType("decimal(18,4)");
@@ -2428,6 +2509,17 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                                 .HasColumnType("uniqueidentifier");
 
                             b1.Property<decimal>("Quantity")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<decimal>("TaxAmount")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<Guid?>("TaxCodeId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("TaxRatePercent")
                                 .HasPrecision(18, 4)
                                 .HasColumnType("decimal(18,4)");
 

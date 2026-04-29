@@ -12,6 +12,7 @@ public sealed record PurchaseBillDto(
     DateOnly BillDate,
     DateOnly DueDate,
     PurchaseBillStatus Status,
+    decimal TaxAmount,
     decimal TotalAmount,
     decimal PaidAmount,
     decimal CreditAppliedAmount,

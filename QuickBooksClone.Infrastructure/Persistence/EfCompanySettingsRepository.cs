@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Core.Settings;
+using QuickBooksClone.Core.Taxes;
 
 namespace QuickBooksClone.Infrastructure.Persistence;
 
@@ -41,6 +42,13 @@ public sealed class EfCompanySettingsRepository : ICompanySettingsRepository
         int fiscalYearStartDay,
         decimal defaultSalesTaxRate,
         decimal defaultPurchaseTaxRate,
+        bool taxesEnabled,
+        Guid? defaultSalesTaxCodeId,
+        Guid? defaultPurchaseTaxCodeId,
+        bool pricesIncludeTax,
+        TaxRoundingMode taxRoundingMode,
+        Guid? defaultSalesTaxPayableAccountId,
+        Guid? defaultPurchaseTaxReceivableAccountId,
         CancellationToken cancellationToken = default)
     {
         var settings = await GetAsync(cancellationToken)
@@ -64,7 +72,14 @@ public sealed class EfCompanySettingsRepository : ICompanySettingsRepository
             fiscalYearStartMonth,
             fiscalYearStartDay,
             defaultSalesTaxRate,
-            defaultPurchaseTaxRate);
+            defaultPurchaseTaxRate,
+            taxesEnabled,
+            defaultSalesTaxCodeId,
+            defaultPurchaseTaxCodeId,
+            pricesIncludeTax,
+            taxRoundingMode,
+            defaultSalesTaxPayableAccountId,
+            defaultPurchaseTaxReceivableAccountId);
 
         await _db.SaveChangesAsync(cancellationToken);
         return settings;

@@ -7,7 +7,7 @@ public sealed class PurchaseBillLine
         Description = string.Empty;
     }
 
-    public PurchaseBillLine(Guid itemId, string description, decimal quantity, decimal unitCost, Guid? inventoryReceiptLineId = null)
+    public PurchaseBillLine(Guid itemId, string description, decimal quantity, decimal unitCost, Guid? inventoryReceiptLineId = null, Guid? taxCodeId = null, decimal taxRatePercent = 0, decimal taxAmount = 0)
     {
         if (itemId == Guid.Empty)
         {
@@ -29,6 +29,9 @@ public sealed class PurchaseBillLine
         Description = string.IsNullOrWhiteSpace(description) ? "Item" : description.Trim();
         Quantity = quantity;
         UnitCost = unitCost;
+        TaxCodeId = taxCodeId == Guid.Empty ? null : taxCodeId;
+        TaxRatePercent = Math.Clamp(taxRatePercent, 0, 100);
+        TaxAmount = taxAmount < 0 ? throw new ArgumentOutOfRangeException(nameof(taxAmount), "Tax amount cannot be negative.") : taxAmount;
     }
 
     public Guid Id { get; } = Guid.NewGuid();
@@ -37,5 +40,8 @@ public sealed class PurchaseBillLine
     public string Description { get; }
     public decimal Quantity { get; }
     public decimal UnitCost { get; }
+    public Guid? TaxCodeId { get; }
+    public decimal TaxRatePercent { get; }
+    public decimal TaxAmount { get; }
     public decimal LineTotal => Quantity * UnitCost;
 }

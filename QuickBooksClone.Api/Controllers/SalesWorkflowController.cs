@@ -301,6 +301,9 @@ public sealed class SalesWorkflowController : ControllerBase
                 line.Quantity,
                 line.UnitPrice,
                 line.DiscountPercent,
+                line.TaxCodeId,
+                line.TaxRatePercent,
+                line.TaxAmount,
                 line.LineTotal)).ToList());
     }
 }

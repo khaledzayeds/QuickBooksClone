@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuickBooksClone.Core.Taxes;
 
 namespace QuickBooksClone.Api.Contracts.Settings;
 
@@ -20,4 +21,11 @@ public sealed record UpdateCompanySettingsRequest(
     [Range(1, 12)] int FiscalYearStartMonth,
     [Range(1, 31)] int FiscalYearStartDay,
     [Range(0, 100)] decimal DefaultSalesTaxRate,
-    [Range(0, 100)] decimal DefaultPurchaseTaxRate);
+    [Range(0, 100)] decimal DefaultPurchaseTaxRate,
+    bool TaxesEnabled,
+    Guid? DefaultSalesTaxCodeId,
+    Guid? DefaultPurchaseTaxCodeId,
+    bool PricesIncludeTax,
+    TaxRoundingMode TaxRoundingMode,
+    Guid? DefaultSalesTaxPayableAccountId,
+    Guid? DefaultPurchaseTaxReceivableAccountId);

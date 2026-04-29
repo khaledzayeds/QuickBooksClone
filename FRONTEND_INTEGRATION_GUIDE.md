@@ -49,8 +49,17 @@ Before workflows, load the basic masters:
 - `GET /api/customers`
 - `GET /api/vendors`
 - `GET /api/items`
+- `GET /api/settings/company`
+- `GET /api/tax-codes?includeInactive=false`
 
 These endpoints are the foundation for dropdowns and document creation.
+
+Tax/VAT rule:
+
+- If `taxesEnabled=false`, keep tax selectors hidden or disabled.
+- If `taxesEnabled=true`, let the user choose an active sales or purchase tax code per posting line.
+- The frontend sends `taxCodeId`; the API calculates tax rate, net amount, tax amount, and gross document total.
+- Do not calculate final tax, A/R, A/P, income, expense, or inventory effects in the frontend.
 
 ## 3. Purchase Flow
 
@@ -161,6 +170,7 @@ The frontend should rely on:
 - explicit ids
 - explicit status values
 - backend-calculated totals
+- backend-calculated tax amounts
 - backend-calculated balances
 - backend-calculated remaining quantities
 - linked document ids/numbers when exposed
@@ -168,6 +178,7 @@ The frontend should rely on:
 The frontend should avoid:
 
 - recalculating workflow remaining quantities
+- recalculating final tax totals
 - assuming document relationships that the API does not expose
 - embedding accounting rules in the client
 
@@ -212,6 +223,8 @@ If building a new frontend, start from these:
 - `GET /api/customers`
 - `GET /api/vendors`
 - `GET /api/items`
+- `GET /api/settings/company`
+- `GET /api/tax-codes?includeInactive=false`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`

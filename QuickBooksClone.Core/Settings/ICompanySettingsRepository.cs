@@ -1,3 +1,5 @@
+using QuickBooksClone.Core.Taxes;
+
 namespace QuickBooksClone.Core.Settings;
 
 public interface ICompanySettingsRepository
@@ -23,5 +25,12 @@ public interface ICompanySettingsRepository
         int fiscalYearStartDay,
         decimal defaultSalesTaxRate,
         decimal defaultPurchaseTaxRate,
+        bool taxesEnabled,
+        Guid? defaultSalesTaxCodeId,
+        Guid? defaultPurchaseTaxCodeId,
+        bool pricesIncludeTax,
+        TaxRoundingMode taxRoundingMode,
+        Guid? defaultSalesTaxPayableAccountId,
+        Guid? defaultPurchaseTaxReceivableAccountId,
         CancellationToken cancellationToken = default);
 }

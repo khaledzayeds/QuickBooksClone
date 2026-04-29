@@ -20,6 +20,7 @@ using QuickBooksClone.Core.SalesWorkflow;
 using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Core.Sync;
+using QuickBooksClone.Core.Taxes;
 using QuickBooksClone.Core.VendorCredits;
 using QuickBooksClone.Core.VendorPayments;
 using QuickBooksClone.Core.Vendors;
@@ -60,6 +61,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
     public DbSet<DeviceSettings> DeviceSettings => Set<DeviceSettings>();
     public DbSet<DocumentSequenceCounter> DocumentSequenceCounters => Set<DocumentSequenceCounter>();
+    public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<VendorCreditActivity> VendorCreditActivities => Set<VendorCreditActivity>();
     public DbSet<VendorPayment> VendorPayments => Set<VendorPayment>();
@@ -88,6 +90,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigureSettings(modelBuilder);
         ConfigureDeviceSettings(modelBuilder);
         ConfigureDocumentSequenceCounters(modelBuilder);
+        ConfigureTaxCodes(modelBuilder);
         ConfigureVendors(modelBuilder);
         ConfigureVendorCredits(modelBuilder);
         ConfigureVendorPayments(modelBuilder);
@@ -324,6 +327,9 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitPrice));
                 ConfigureMoney(line.Property(current => current.DiscountPercent));
+                line.Property(current => current.TaxCodeId);
+                ConfigureMoney(line.Property(current => current.TaxRatePercent));
+                ConfigureMoney(line.Property(current => current.TaxAmount));
                 line.Ignore(current => current.GrossAmount);
                 line.Ignore(current => current.DiscountAmount);
                 line.Ignore(current => current.LineTotal);
@@ -426,6 +432,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(bill => bill.ReversalTransactionId);
             entity.Property(bill => bill.BillNumber).HasMaxLength(80).IsRequired();
             entity.Property(bill => bill.Status).HasConversion<int>().IsRequired();
+            ConfigureMoney(entity.Property(bill => bill.TaxAmount));
             ConfigureMoney(entity.Property(bill => bill.PaidAmount));
             ConfigureMoney(entity.Property(bill => bill.CreditAppliedAmount));
             ConfigureMoney(entity.Property(bill => bill.ReturnedAmount));
@@ -443,6 +450,9 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitCost));
+                line.Property(current => current.TaxCodeId);
+                ConfigureMoney(line.Property(current => current.TaxRatePercent));
+                ConfigureMoney(line.Property(current => current.TaxAmount));
                 line.Ignore(current => current.LineTotal);
             });
 
@@ -669,7 +679,33 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(settings => settings.FiscalYearStartDay).IsRequired();
             ConfigureMoney(entity.Property(settings => settings.DefaultSalesTaxRate));
             ConfigureMoney(entity.Property(settings => settings.DefaultPurchaseTaxRate));
+            entity.Property(settings => settings.TaxesEnabled).IsRequired();
+            entity.Property(settings => settings.DefaultSalesTaxCodeId);
+            entity.Property(settings => settings.DefaultPurchaseTaxCodeId);
+            entity.Property(settings => settings.PricesIncludeTax).IsRequired();
+            entity.Property(settings => settings.TaxRoundingMode).HasConversion<int>().IsRequired();
+            entity.Property(settings => settings.DefaultSalesTaxPayableAccountId);
+            entity.Property(settings => settings.DefaultPurchaseTaxReceivableAccountId);
             entity.HasIndex(settings => settings.CompanyId).IsUnique();
+        });
+    }
+
+    private static void ConfigureTaxCodes(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TaxCode>(entity =>
+        {
+            entity.ToTable("tax_codes");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(taxCode => taxCode.Code).HasMaxLength(40).IsRequired();
+            entity.Property(taxCode => taxCode.Name).HasMaxLength(120).IsRequired();
+            entity.Property(taxCode => taxCode.Scope).HasConversion<int>().IsRequired();
+            ConfigureMoney(entity.Property(taxCode => taxCode.RatePercent));
+            entity.Property(taxCode => taxCode.TaxAccountId).IsRequired();
+            entity.Property(taxCode => taxCode.Description).HasMaxLength(500);
+            entity.Property(taxCode => taxCode.IsActive).IsRequired();
+            entity.HasIndex(taxCode => taxCode.Code).IsUnique();
+            entity.HasIndex(taxCode => taxCode.Scope);
         });
     }
 

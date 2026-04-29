@@ -1,4 +1,5 @@
 using QuickBooksClone.Core.Common;
+using QuickBooksClone.Core.Taxes;
 
 namespace QuickBooksClone.Core.Settings;
 
@@ -33,6 +34,13 @@ public sealed class CompanySettings : EntityBase, ITenantEntity
         int fiscalYearStartDay = 1,
         decimal defaultSalesTaxRate = 0,
         decimal defaultPurchaseTaxRate = 0,
+        bool taxesEnabled = false,
+        Guid? defaultSalesTaxCodeId = null,
+        Guid? defaultPurchaseTaxCodeId = null,
+        bool pricesIncludeTax = false,
+        TaxRoundingMode taxRoundingMode = TaxRoundingMode.PerLine,
+        Guid? defaultSalesTaxPayableAccountId = null,
+        Guid? defaultPurchaseTaxReceivableAccountId = null,
         Guid? companyId = null)
     {
         CompanyId = companyId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -54,7 +62,14 @@ public sealed class CompanySettings : EntityBase, ITenantEntity
             fiscalYearStartMonth,
             fiscalYearStartDay,
             defaultSalesTaxRate,
-            defaultPurchaseTaxRate);
+            defaultPurchaseTaxRate,
+            taxesEnabled,
+            defaultSalesTaxCodeId,
+            defaultPurchaseTaxCodeId,
+            pricesIncludeTax,
+            taxRoundingMode,
+            defaultSalesTaxPayableAccountId,
+            defaultPurchaseTaxReceivableAccountId);
     }
 
     public Guid CompanyId { get; }
@@ -76,6 +91,13 @@ public sealed class CompanySettings : EntityBase, ITenantEntity
     public int FiscalYearStartDay { get; private set; }
     public decimal DefaultSalesTaxRate { get; private set; }
     public decimal DefaultPurchaseTaxRate { get; private set; }
+    public bool TaxesEnabled { get; private set; }
+    public Guid? DefaultSalesTaxCodeId { get; private set; }
+    public Guid? DefaultPurchaseTaxCodeId { get; private set; }
+    public bool PricesIncludeTax { get; private set; }
+    public TaxRoundingMode TaxRoundingMode { get; private set; }
+    public Guid? DefaultSalesTaxPayableAccountId { get; private set; }
+    public Guid? DefaultPurchaseTaxReceivableAccountId { get; private set; }
 
     public void Update(
         string companyName,
@@ -95,7 +117,14 @@ public sealed class CompanySettings : EntityBase, ITenantEntity
         int fiscalYearStartMonth,
         int fiscalYearStartDay,
         decimal defaultSalesTaxRate,
-        decimal defaultPurchaseTaxRate)
+        decimal defaultPurchaseTaxRate,
+        bool taxesEnabled,
+        Guid? defaultSalesTaxCodeId,
+        Guid? defaultPurchaseTaxCodeId,
+        bool pricesIncludeTax,
+        TaxRoundingMode taxRoundingMode,
+        Guid? defaultSalesTaxPayableAccountId,
+        Guid? defaultPurchaseTaxReceivableAccountId)
     {
         CompanyName = NormalizeRequired(companyName, nameof(companyName));
         Currency = NormalizeRequired(currency, nameof(currency)).ToUpperInvariant();
@@ -136,6 +165,13 @@ public sealed class CompanySettings : EntityBase, ITenantEntity
         FiscalYearStartDay = fiscalYearStartDay;
         DefaultSalesTaxRate = defaultSalesTaxRate;
         DefaultPurchaseTaxRate = defaultPurchaseTaxRate;
+        TaxesEnabled = taxesEnabled;
+        DefaultSalesTaxCodeId = defaultSalesTaxCodeId == Guid.Empty ? null : defaultSalesTaxCodeId;
+        DefaultPurchaseTaxCodeId = defaultPurchaseTaxCodeId == Guid.Empty ? null : defaultPurchaseTaxCodeId;
+        PricesIncludeTax = pricesIncludeTax;
+        TaxRoundingMode = Enum.IsDefined(taxRoundingMode) ? taxRoundingMode : TaxRoundingMode.PerLine;
+        DefaultSalesTaxPayableAccountId = defaultSalesTaxPayableAccountId == Guid.Empty ? null : defaultSalesTaxPayableAccountId;
+        DefaultPurchaseTaxReceivableAccountId = defaultPurchaseTaxReceivableAccountId == Guid.Empty ? null : defaultPurchaseTaxReceivableAccountId;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

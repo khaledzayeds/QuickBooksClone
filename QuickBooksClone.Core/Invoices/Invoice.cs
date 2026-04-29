@@ -74,6 +74,7 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
+        TaxAmount += line.TaxAmount;
         TouchForLocalChange();
     }
 

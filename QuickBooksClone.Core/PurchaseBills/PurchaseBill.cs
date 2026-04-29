@@ -35,7 +35,8 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
     public DateOnly DueDate { get; }
     public PurchaseBillStatus Status { get; private set; }
     public IReadOnlyList<PurchaseBillLine> Lines => _lines;
-    public decimal TotalAmount => _lines.Sum(line => line.LineTotal);
+    public decimal TaxAmount { get; private set; }
+    public decimal TotalAmount => _lines.Sum(line => line.LineTotal) + TaxAmount;
     public decimal PaidAmount { get; private set; }
     public decimal CreditAppliedAmount { get; private set; }
     public decimal ReturnedAmount { get; private set; }
@@ -69,6 +70,7 @@ public sealed class PurchaseBill : SyncDocumentBase, ITenantEntity
         }
 
         _lines.Add(line);
+        TaxAmount += line.TaxAmount;
         TouchForLocalChange();
     }
 

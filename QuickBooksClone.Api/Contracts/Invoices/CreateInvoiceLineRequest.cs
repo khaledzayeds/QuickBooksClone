@@ -10,4 +10,5 @@ public sealed record CreateInvoiceLineRequest(
     [Range(0, 999999999)]
     decimal UnitPrice,
     [Range(0, 100)]
-    decimal DiscountPercent);
+    decimal DiscountPercent,
+    Guid? TaxCodeId);

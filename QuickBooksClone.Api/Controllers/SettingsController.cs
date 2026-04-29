@@ -65,6 +65,13 @@ public sealed class SettingsController : ControllerBase
                 request.FiscalYearStartDay,
                 request.DefaultSalesTaxRate,
                 request.DefaultPurchaseTaxRate,
+                request.TaxesEnabled,
+                request.DefaultSalesTaxCodeId,
+                request.DefaultPurchaseTaxCodeId,
+                request.PricesIncludeTax,
+                request.TaxRoundingMode == 0 ? QuickBooksClone.Core.Taxes.TaxRoundingMode.PerLine : request.TaxRoundingMode,
+                request.DefaultSalesTaxPayableAccountId,
+                request.DefaultPurchaseTaxReceivableAccountId,
                 cancellationToken);
 
             return Ok(ToDto(settings));
@@ -136,7 +143,14 @@ public sealed class SettingsController : ControllerBase
             settings.FiscalYearStartMonth,
             settings.FiscalYearStartDay,
             settings.DefaultSalesTaxRate,
-            settings.DefaultPurchaseTaxRate);
+            settings.DefaultPurchaseTaxRate,
+            settings.TaxesEnabled,
+            settings.DefaultSalesTaxCodeId,
+            settings.DefaultPurchaseTaxCodeId,
+            settings.PricesIncludeTax,
+            settings.TaxRoundingMode,
+            settings.DefaultSalesTaxPayableAccountId,
+            settings.DefaultPurchaseTaxReceivableAccountId);
 
     private static DeviceSettingsDto ToDto(DeviceSettings settings) =>
         new(settings.Id, settings.DeviceId, settings.DeviceName);

@@ -6,6 +6,7 @@ using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
+using QuickBooksClone.Core.Taxes;
 using QuickBooksClone.Core.Vendors;
 using QuickBooksClone.Infrastructure.Security;
 
@@ -123,6 +124,10 @@ public static class QuickBooksClonePersistence
         var inventoryAccountId = Guid.Parse("10000000-0000-0000-0000-000000000003");
         var apAccountId = Guid.Parse("10000000-0000-0000-0000-000000000004");
         var grniAccountId = Guid.Parse("10000000-0000-0000-0000-000000000009");
+        var salesTaxPayableAccountId = Guid.Parse("10000000-0000-0000-0000-000000000010");
+        var purchaseTaxReceivableAccountId = Guid.Parse("10000000-0000-0000-0000-000000000011");
+        var salesVat14Id = Guid.Parse("20000000-0000-0000-0000-000000000001");
+        var purchaseVat14Id = Guid.Parse("20000000-0000-0000-0000-000000000002");
         var equityAccountId = Guid.Parse("10000000-0000-0000-0000-000000000005");
         var incomeAccountId = Guid.Parse("10000000-0000-0000-0000-000000000006");
         var cogsAccountId = Guid.Parse("10000000-0000-0000-0000-000000000007");
@@ -141,6 +146,8 @@ public static class QuickBooksClonePersistence
                 new Account("1200", "Inventory Asset", AccountType.InventoryAsset) { Id = inventoryAccountId },
                 new Account("2000", "Accounts Payable", AccountType.AccountsPayable) { Id = apAccountId },
                 new Account("2050", "Inventory Received Not Billed", AccountType.OtherCurrentLiability) { Id = grniAccountId },
+                new Account("2100", "Sales Tax Payable", AccountType.OtherCurrentLiability) { Id = salesTaxPayableAccountId },
+                new Account("1300", "Input VAT Receivable", AccountType.OtherCurrentAsset) { Id = purchaseTaxReceivableAccountId },
                 new Account("3000", "Owner Equity", AccountType.Equity) { Id = equityAccountId },
                 new Account("4000", "Sales Income", AccountType.Income) { Id = incomeAccountId },
                 new Account("5000", "Cost of Goods Sold", AccountType.CostOfGoodsSold) { Id = cogsAccountId },
@@ -149,6 +156,15 @@ public static class QuickBooksClonePersistence
         else
         {
             await EnsureAccountAsync(dbContext, grniAccountId, "2050", "Inventory Received Not Billed", AccountType.OtherCurrentLiability);
+            await EnsureAccountAsync(dbContext, salesTaxPayableAccountId, "2100", "Sales Tax Payable", AccountType.OtherCurrentLiability);
+            await EnsureAccountAsync(dbContext, purchaseTaxReceivableAccountId, "1300", "Input VAT Receivable", AccountType.OtherCurrentAsset);
+        }
+
+        if (!await dbContext.TaxCodes.AnyAsync())
+        {
+            dbContext.TaxCodes.AddRange(
+                new TaxCode("VAT14-S", "VAT 14% Sales", TaxCodeScope.Sales, 14, salesTaxPayableAccountId, "Default sales VAT code.") { Id = salesVat14Id },
+                new TaxCode("VAT14-P", "VAT 14% Purchase", TaxCodeScope.Purchase, 14, purchaseTaxReceivableAccountId, "Default purchase VAT code.") { Id = purchaseVat14Id });
         }
 
         if (!await dbContext.Customers.AnyAsync())
@@ -188,7 +204,14 @@ public static class QuickBooksClonePersistence
                 fiscalYearStartMonth: 1,
                 fiscalYearStartDay: 1,
                 defaultSalesTaxRate: 0,
-                defaultPurchaseTaxRate: 0));
+                defaultPurchaseTaxRate: 0,
+                taxesEnabled: false,
+                defaultSalesTaxCodeId: salesVat14Id,
+                defaultPurchaseTaxCodeId: purchaseVat14Id,
+                pricesIncludeTax: false,
+                taxRoundingMode: TaxRoundingMode.PerLine,
+                defaultSalesTaxPayableAccountId: salesTaxPayableAccountId,
+                defaultPurchaseTaxReceivableAccountId: purchaseTaxReceivableAccountId));
         }
 
         await SeedSecurityAsync(dbContext);

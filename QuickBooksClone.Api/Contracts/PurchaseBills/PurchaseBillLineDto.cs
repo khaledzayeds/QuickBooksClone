@@ -7,4 +7,7 @@ public sealed record PurchaseBillLineDto(
     string Description,
     decimal Quantity,
     decimal UnitCost,
+    Guid? TaxCodeId,
+    decimal TaxRatePercent,
+    decimal TaxAmount,
     decimal LineTotal);

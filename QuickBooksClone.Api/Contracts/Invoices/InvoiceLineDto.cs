@@ -8,4 +8,7 @@ public sealed record InvoiceLineDto(
     decimal Quantity,
     decimal UnitPrice,
     decimal DiscountPercent,
+    Guid? TaxCodeId,
+    decimal TaxRatePercent,
+    decimal TaxAmount,
     decimal LineTotal);

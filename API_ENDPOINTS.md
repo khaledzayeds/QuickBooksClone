@@ -40,6 +40,7 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Backup/restore smoke test: `.\scripts\smoke-backup-restore.ps1`.
 - Settings smoke test: `.\scripts\smoke-settings.ps1`.
 - Sync diagnostics smoke test: `.\scripts\smoke-sync-diagnostics.ps1`.
+- Tax/VAT foundation smoke test: `.\scripts\smoke-tax-foundation.ps1`.
 - Current authentication is not enabled yet.
 - Model validation errors return `400 Bad Request`.
 - Duplicate business keys return `409 Conflict` with a simple message.
@@ -596,7 +597,14 @@ Response:
   "fiscalYearStartMonth": 1,
   "fiscalYearStartDay": 1,
   "defaultSalesTaxRate": 0,
-  "defaultPurchaseTaxRate": 0
+  "defaultPurchaseTaxRate": 0,
+  "taxesEnabled": false,
+  "defaultSalesTaxCodeId": "guid-or-null",
+  "defaultPurchaseTaxCodeId": "guid-or-null",
+  "pricesIncludeTax": false,
+  "taxRoundingMode": "PerLine",
+  "defaultSalesTaxPayableAccountId": "guid-or-null",
+  "defaultPurchaseTaxReceivableAccountId": "guid-or-null"
 }
 ```
 
@@ -628,9 +636,120 @@ Request:
   "fiscalYearStartMonth": 4,
   "fiscalYearStartDay": 1,
   "defaultSalesTaxRate": 15,
-  "defaultPurchaseTaxRate": 15
+  "defaultPurchaseTaxRate": 15,
+  "taxesEnabled": true,
+  "defaultSalesTaxCodeId": "guid",
+  "defaultPurchaseTaxCodeId": "guid",
+  "pricesIncludeTax": false,
+  "taxRoundingMode": "PerLine",
+  "defaultSalesTaxPayableAccountId": "guid",
+  "defaultPurchaseTaxReceivableAccountId": "guid"
 }
 ```
+
+Notes:
+
+- `taxesEnabled=false` keeps existing non-tax workflows working exactly as before.
+- When taxes are enabled, invoices, sales receipts, and purchase bills can send line-level `taxCodeId`.
+- If a line omits `taxCodeId`, the backend can use the configured default sales or purchase tax code.
+- `pricesIncludeTax=true` means the API treats submitted line prices as tax-inclusive and stores/post the net line amount plus separated tax.
+- The frontend should not calculate final tax totals. Send the selected tax code and display backend-calculated `taxRatePercent`, `taxAmount`, and document totals.
+
+## Tax Codes
+
+Tax codes are the flexible VAT/sales-tax foundation. They are managed through settings permissions and can point to different GL accounts per tax type or region.
+
+### List Tax Codes
+
+```http
+GET /api/tax-codes?search=&scope=&includeInactive=false&page=1&pageSize=50
+```
+
+`scope` values:
+
+```text
+Sales
+Purchase
+Both
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "id": "guid",
+      "code": "VAT14-S",
+      "name": "Sales VAT 14%",
+      "scope": "Sales",
+      "ratePercent": 14,
+      "taxAccountId": "guid",
+      "description": "Default sales VAT",
+      "isActive": true
+    }
+  ],
+  "totalCount": 1,
+  "page": 1,
+  "pageSize": 50
+}
+```
+
+### Get Tax Code
+
+```http
+GET /api/tax-codes/{id}
+```
+
+### Create Tax Code
+
+```http
+POST /api/tax-codes
+Content-Type: application/json
+```
+
+```json
+{
+  "code": "VAT14-S",
+  "name": "Sales VAT 14%",
+  "scope": "Sales",
+  "ratePercent": 14,
+  "taxAccountId": "guid",
+  "description": "Default sales VAT"
+}
+```
+
+### Update Tax Code
+
+```http
+PUT /api/tax-codes/{id}
+```
+
+### Activate / Deactivate Tax Code
+
+```http
+PATCH /api/tax-codes/{id}/active
+Content-Type: application/json
+```
+
+```json
+{
+  "isActive": false
+}
+```
+
+Accounting behavior:
+
+- Sales invoices and sales receipts credit the selected tax code account for output tax.
+- Purchase bills debit the selected tax code account for input VAT/tax receivable.
+- Accounts Receivable and Accounts Payable use the document gross total.
+- Income, inventory, expense, and COGS stay on net amounts.
+- Posting validates that the tax code is active and valid for the transaction type.
+
+Current gaps:
+
+- Tax return filing/reporting is not implemented yet.
+- Non-posting documents such as estimates, sales orders, and purchase orders do not yet carry tax preview fields; tax is enforced when the posting document is created.
 
 ### Get Runtime Settings
 
