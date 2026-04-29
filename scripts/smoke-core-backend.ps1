@@ -27,6 +27,7 @@ $tests = @(
     @{ Name = "Business Authorization"; Script = "smoke-business-authorization.ps1" },
     @{ Name = "Audit Trail"; Script = "smoke-audit-trail.ps1" },
     @{ Name = "Tax Foundation"; Script = "smoke-tax-foundation.ps1" },
+    @{ Name = "Non-posting Tax Preview"; Script = "smoke-nonposting-tax-preview.ps1" },
     @{ Name = "API Contract"; Script = "smoke-api-contract.ps1" },
     @{ Name = "Settings"; Script = "smoke-settings.ps1" },
     @{ Name = "Backup Policy"; Script = "smoke-backup-policy.ps1" }

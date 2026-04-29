@@ -11,6 +11,8 @@ public sealed record SalesOrderDto(
     DateOnly OrderDate,
     DateOnly ExpectedDate,
     SalesOrderStatus Status,
+    decimal Subtotal,
+    decimal TaxAmount,
     decimal TotalAmount,
     DateTimeOffset? OpenedAt,
     DateTimeOffset? ClosedAt,

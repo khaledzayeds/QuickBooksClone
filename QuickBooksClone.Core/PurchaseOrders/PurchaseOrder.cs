@@ -34,7 +34,9 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
     public DateOnly ExpectedDate { get; private set; }
     public PurchaseOrderStatus Status { get; private set; }
     public IReadOnlyList<PurchaseOrderLine> Lines => _lines;
-    public decimal TotalAmount => _lines.Sum(line => line.LineTotal);
+    public decimal Subtotal => _lines.Sum(line => line.LineTotal);
+    public decimal TaxAmount => _lines.Sum(line => line.TaxAmount);
+    public decimal TotalAmount => Subtotal + TaxAmount;
     public DateTimeOffset? OpenedAt { get; private set; }
     public DateTimeOffset? ClosedAt { get; private set; }
     public DateTimeOffset? CancelledAt { get; private set; }

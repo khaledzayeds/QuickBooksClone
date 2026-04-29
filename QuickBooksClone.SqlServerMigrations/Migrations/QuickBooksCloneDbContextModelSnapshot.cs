@@ -704,6 +704,10 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                     b.Property<long>("SyncVersion")
                         .HasColumnType("bigint");
 
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -1070,6 +1074,10 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                     b.Property<long>("SyncVersion")
                         .HasColumnType("bigint");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
@@ -2371,6 +2379,17 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                                 .HasPrecision(18, 4)
                                 .HasColumnType("decimal(18,4)");
 
+                            b1.Property<decimal>("TaxAmount")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<Guid?>("TaxCodeId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("TaxRatePercent")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
                             b1.Property<decimal>("UnitPrice")
                                 .HasPrecision(18, 4)
                                 .HasColumnType("decimal(18,4)");
@@ -2563,6 +2582,17 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
                                 .HasPrecision(18, 4)
                                 .HasColumnType("decimal(18,4)");
 
+                            b1.Property<decimal>("TaxAmount")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<Guid?>("TaxCodeId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("TaxRatePercent")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
                             b1.Property<decimal>("UnitCost")
                                 .HasPrecision(18, 4)
                                 .HasColumnType("decimal(18,4)");
@@ -2691,6 +2721,17 @@ namespace QuickBooksClone.SqlServerMigrations.Migrations
 
                             b1.Property<Guid>("SalesOrderId")
                                 .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("TaxAmount")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
+
+                            b1.Property<Guid?>("TaxCodeId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<decimal>("TaxRatePercent")
+                                .HasPrecision(18, 4)
+                                .HasColumnType("decimal(18,4)");
 
                             b1.Property<decimal>("UnitPrice")
                                 .HasPrecision(18, 4)

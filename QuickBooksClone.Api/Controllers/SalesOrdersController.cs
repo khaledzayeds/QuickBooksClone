@@ -5,6 +5,8 @@ using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.SalesOrders;
+using QuickBooksClone.Core.Settings;
+using QuickBooksClone.Core.Taxes;
 
 namespace QuickBooksClone.Api.Controllers;
 
@@ -17,13 +19,23 @@ public sealed class SalesOrdersController : ControllerBase
     private readonly ICustomerRepository _customers;
     private readonly IItemRepository _items;
     private readonly IDocumentNumberService _documentNumbers;
+    private readonly ICompanySettingsRepository _companySettings;
+    private readonly ITaxCodeRepository _taxCodes;
 
-    public SalesOrdersController(ISalesOrderRepository orders, ICustomerRepository customers, IItemRepository items, IDocumentNumberService documentNumbers)
+    public SalesOrdersController(
+        ISalesOrderRepository orders,
+        ICustomerRepository customers,
+        IItemRepository items,
+        IDocumentNumberService documentNumbers,
+        ICompanySettingsRepository companySettings,
+        ITaxCodeRepository taxCodes)
     {
         _orders = orders;
         _customers = customers;
         _items = items;
         _documentNumbers = documentNumbers;
+        _companySettings = companySettings;
+        _taxCodes = taxCodes;
     }
 
     [HttpGet]
@@ -84,6 +96,7 @@ public sealed class SalesOrdersController : ControllerBase
         }
 
         var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.SalesOrder, cancellationToken);
+        var taxSettings = await _companySettings.GetAsync(cancellationToken);
         var order = new SalesOrder(request.CustomerId, request.OrderDate, request.ExpectedDate, allocation.DocumentNo);
         order.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
 
@@ -102,7 +115,17 @@ public sealed class SalesOrdersController : ControllerBase
 
             var unitPrice = line.UnitPrice > 0 ? line.UnitPrice : item.SalesPrice;
             var description = string.IsNullOrWhiteSpace(line.Description) ? item.Name : line.Description;
-            order.AddLine(new SalesOrderLine(item.Id, description, line.Quantity, unitPrice));
+            TaxLineCalculation tax;
+            try
+            {
+                tax = await ResolveSalesTaxAsync(line.TaxCodeId, taxSettings, unitPrice, line.Quantity, cancellationToken);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(exception.Message);
+            }
+
+            order.AddLine(new SalesOrderLine(item.Id, description, line.Quantity, tax.NetUnitPrice, taxCodeId: tax.TaxCodeId, taxRatePercent: tax.RatePercent, taxAmount: tax.TaxAmount));
         }
 
         await _orders.AddAsync(order, cancellationToken);
@@ -191,6 +214,8 @@ public sealed class SalesOrdersController : ControllerBase
             order.OrderDate,
             order.ExpectedDate,
             order.Status,
+            order.Subtotal,
+            order.TaxAmount,
             order.TotalAmount,
             order.OpenedAt,
             order.ClosedAt,
@@ -202,6 +227,51 @@ public sealed class SalesOrdersController : ControllerBase
                 line.Description,
                 line.Quantity,
                 line.UnitPrice,
+                line.TaxCodeId,
+                line.TaxRatePercent,
+                line.TaxAmount,
                 line.LineTotal)).ToList());
     }
+
+    private async Task<TaxLineCalculation> ResolveSalesTaxAsync(
+        Guid? requestedTaxCodeId,
+        QuickBooksClone.Core.Settings.CompanySettings? settings,
+        decimal unitPrice,
+        decimal quantity,
+        CancellationToken cancellationToken)
+    {
+        if (settings?.TaxesEnabled != true)
+        {
+            return new TaxLineCalculation(null, 0, 0, unitPrice);
+        }
+
+        var taxCodeId = requestedTaxCodeId == Guid.Empty ? null : requestedTaxCodeId;
+        taxCodeId ??= settings.DefaultSalesTaxCodeId;
+        if (taxCodeId is null)
+        {
+            return new TaxLineCalculation(null, 0, 0, unitPrice);
+        }
+
+        var taxCode = await _taxCodes.GetByIdAsync(taxCodeId.Value, cancellationToken)
+            ?? throw new InvalidOperationException("Tax code does not exist.");
+        if (!taxCode.IsActive || !taxCode.CanApplyTo(TaxTransactionType.Sales))
+        {
+            throw new InvalidOperationException("Tax code is not active or cannot be applied to sales.");
+        }
+
+        var rate = taxCode.RatePercent;
+        var taxableAmount = unitPrice * quantity;
+        var netUnitPrice = unitPrice;
+        if (settings.PricesIncludeTax && rate > 0)
+        {
+            var netLine = taxableAmount / (1 + rate / 100);
+            netUnitPrice = quantity == 0 ? unitPrice : netLine / quantity;
+            taxableAmount = netLine;
+        }
+
+        var taxAmount = Math.Round(taxableAmount * (rate / 100), 2, MidpointRounding.AwayFromZero);
+        return new TaxLineCalculation(taxCode.Id, rate, taxAmount, netUnitPrice);
+    }
+
+    private sealed record TaxLineCalculation(Guid? TaxCodeId, decimal RatePercent, decimal TaxAmount, decimal NetUnitPrice);
 }

@@ -258,6 +258,9 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitPrice));
+                line.Property(current => current.TaxCodeId);
+                ConfigureMoney(line.Property(current => current.TaxRatePercent));
+                ConfigureMoney(line.Property(current => current.TaxAmount));
                 line.Ignore(current => current.LineTotal);
             });
 
@@ -489,7 +492,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitCost));
                 line.Ignore(current => current.LineTotal);
-            });
+              });
 
             entity.Navigation(receipt => receipt.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
@@ -520,6 +523,9 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitCost));
+                line.Property(current => current.TaxCodeId);
+                ConfigureMoney(line.Property(current => current.TaxRatePercent));
+                ConfigureMoney(line.Property(current => current.TaxAmount));
                 line.Ignore(current => current.LineTotal);
             });
 
@@ -627,6 +633,9 @@ public sealed class QuickBooksCloneDbContext : DbContext
                 line.Property(current => current.Description).HasMaxLength(300).IsRequired();
                 ConfigureMoney(line.Property(current => current.Quantity));
                 ConfigureMoney(line.Property(current => current.UnitPrice));
+                line.Property(current => current.TaxCodeId);
+                ConfigureMoney(line.Property(current => current.TaxRatePercent));
+                ConfigureMoney(line.Property(current => current.TaxAmount));
                 line.Ignore(current => current.LineTotal);
             });
 

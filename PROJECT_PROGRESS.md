@@ -471,6 +471,12 @@ Architectural baseline is now fixed:
   - [x] Report taxable sales, output tax, taxable purchases, input tax, and net tax payable by tax code
   - [x] Include posted non-void invoices, sales receipts, and purchase bills only
   - [x] Keep draft, unposted, and voided documents out of tax totals
+- [x] Non-posting tax preview
+  - [x] Add tax preview fields to estimates, sales orders, and purchase orders
+  - [x] Keep these documents non-posting with no GL, A/R, A/P, or inventory effect
+  - [x] Preserve tax code and prorated tax through `Estimate -> Sales Order -> Invoice`
+  - [x] Add SQLite and SQL Server migrations for non-posting tax preview fields
+  - [x] Add repeatable `scripts/smoke-nonposting-tax-preview.ps1`
 
 ## In Progress
 
@@ -512,7 +518,7 @@ Architectural baseline is now fixed:
   - [x] Backend tax calculation for posted sales and purchase documents
   - [x] GL-safe output/input tax posting
   - [x] Tax summary report by date range
-  - [ ] Tax preview fields on non-posting documents if required
+  - [x] Tax preview fields on non-posting sales and purchase documents
   - [ ] Formal tax return filing workflow
 - [ ] Backup and restore polish
   - [x] Add automatic backup schedule option
@@ -569,5 +575,6 @@ Architectural baseline is now fixed:
 - Authorization middleware now enforces bearer sessions and permissions on security, settings, backup/restore, sync, accounting, reports, customers, vendors, items, inventory, sales, purchase, and document-metadata endpoints.
 - Audit trail now records successful authenticated write requests with user/action/route/permission metadata, giving future MAUI and Flutter admin screens a stable activity history API.
 - Tax/VAT is now configurable and disabled by default for compatibility. When enabled, posting documents separate net line amounts from output/input tax through tax-code accounts, while A/R and A/P use gross document totals.
-- Tax summary reporting now exposes taxable sales, output tax, taxable purchases, input tax, and net payable by tax code. Formal filing/submission workflow and optional tax previews on estimates, sales orders, and purchase orders are still future slices.
+- Tax summary reporting now exposes taxable sales, output tax, taxable purchases, input tax, and net payable by tax code. Formal filing/submission workflow is still a future slice.
+- Estimates, sales orders, and purchase orders now expose backend-calculated tax preview totals while remaining non-posting. Sales conversions preserve tax code and prorate tax when converting partial quantities.
 - API contract smoke now checks the OpenAPI surface and live DTO shape for the most important frontend entry points before a new MAUI or Flutter client builds on them.

@@ -155,7 +155,17 @@ public sealed class SalesWorkflowService : ISalesWorkflowService
                 throw new InvalidOperationException($"Cannot use inactive item on a sales order: {item.Name}");
             }
 
-            order.AddLine(new SalesOrderLine(planLine.ItemId, planLine.Description, requestLine.Quantity, planLine.UnitPrice, planLine.EstimateLineId));
+            var estimateLine = estimate.Lines.First(line => line.Id == planLine.EstimateLineId);
+            var taxAmount = ProrateTax(estimateLine.TaxAmount, estimateLine.Quantity, requestLine.Quantity);
+            order.AddLine(new SalesOrderLine(
+                planLine.ItemId,
+                planLine.Description,
+                requestLine.Quantity,
+                planLine.UnitPrice,
+                planLine.EstimateLineId,
+                estimateLine.TaxCodeId,
+                estimateLine.TaxRatePercent,
+                taxAmount));
         }
 
         await _orders.AddAsync(order, cancellationToken);
@@ -283,7 +293,18 @@ public sealed class SalesWorkflowService : ISalesWorkflowService
             var item = await _items.GetByIdAsync(planLine.ItemId, cancellationToken)
                 ?? throw new InvalidOperationException($"Item does not exist: {planLine.ItemId}");
 
-            invoice.AddLine(new InvoiceLine(planLine.ItemId, planLine.Description, requestLine.Quantity, planLine.UnitPrice, requestLine.DiscountPercent, planLine.SalesOrderLineId));
+            var orderLine = order.Lines.First(line => line.Id == planLine.SalesOrderLineId);
+            var taxAmount = ProrateTax(orderLine.TaxAmount, orderLine.Quantity, requestLine.Quantity);
+            invoice.AddLine(new InvoiceLine(
+                planLine.ItemId,
+                planLine.Description,
+                requestLine.Quantity,
+                planLine.UnitPrice,
+                requestLine.DiscountPercent,
+                planLine.SalesOrderLineId,
+                orderLine.TaxCodeId,
+                orderLine.TaxRatePercent,
+                taxAmount));
         }
 
         await _invoices.AddAsync(invoice, cancellationToken);
@@ -342,5 +363,15 @@ public sealed class SalesWorkflowService : ISalesWorkflowService
             invoice.ReturnedAmount,
             invoice.BalanceDue,
             linkedPayments);
+    }
+
+    private static decimal ProrateTax(decimal sourceTaxAmount, decimal sourceQuantity, decimal targetQuantity)
+    {
+        if (sourceTaxAmount == 0m || sourceQuantity <= 0m)
+        {
+            return 0m;
+        }
+
+        return Math.Round(sourceTaxAmount * targetQuantity / sourceQuantity, 2, MidpointRounding.AwayFromZero);
     }
 }

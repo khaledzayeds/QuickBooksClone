@@ -10,6 +10,8 @@ public sealed record EstimateDto(
     DateOnly EstimateDate,
     DateOnly ExpirationDate,
     EstimateStatus Status,
+    decimal Subtotal,
+    decimal TaxAmount,
     decimal TotalAmount,
     DateTimeOffset? SentAt,
     DateTimeOffset? AcceptedAt,

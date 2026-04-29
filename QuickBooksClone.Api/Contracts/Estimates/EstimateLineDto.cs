@@ -6,4 +6,7 @@ public sealed record EstimateLineDto(
     string Description,
     decimal Quantity,
     decimal UnitPrice,
+    Guid? TaxCodeId,
+    decimal TaxRatePercent,
+    decimal TaxAmount,
     decimal LineTotal);

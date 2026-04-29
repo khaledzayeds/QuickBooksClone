@@ -4,4 +4,5 @@ public sealed record CreateSalesOrderLineRequest(
     Guid ItemId,
     string? Description,
     decimal Quantity,
-    decimal UnitPrice);
+    decimal UnitPrice,
+    Guid? TaxCodeId);

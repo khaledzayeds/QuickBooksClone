@@ -34,7 +34,9 @@ public sealed class Estimate : SyncDocumentBase, ITenantEntity
     public DateOnly ExpirationDate { get; private set; }
     public EstimateStatus Status { get; private set; }
     public IReadOnlyList<EstimateLine> Lines => _lines;
-    public decimal TotalAmount => _lines.Sum(line => line.LineTotal);
+    public decimal Subtotal => _lines.Sum(line => line.LineTotal);
+    public decimal TaxAmount => _lines.Sum(line => line.TaxAmount);
+    public decimal TotalAmount => Subtotal + TaxAmount;
     public DateTimeOffset? SentAt { get; private set; }
     public DateTimeOffset? AcceptedAt { get; private set; }
     public DateTimeOffset? DeclinedAt { get; private set; }

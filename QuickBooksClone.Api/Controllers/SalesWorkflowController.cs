@@ -246,6 +246,8 @@ public sealed class SalesWorkflowController : ControllerBase
             order.OrderDate,
             order.ExpectedDate,
             order.Status,
+            order.Subtotal,
+            order.TaxAmount,
             order.TotalAmount,
             order.OpenedAt,
             order.ClosedAt,
@@ -257,6 +259,9 @@ public sealed class SalesWorkflowController : ControllerBase
                 line.Description,
                 line.Quantity,
                 line.UnitPrice,
+                line.TaxCodeId,
+                line.TaxRatePercent,
+                line.TaxAmount,
                 line.LineTotal)).ToList());
     }
 

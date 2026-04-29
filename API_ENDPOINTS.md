@@ -41,6 +41,7 @@ Iterative contract. Stable enough for current frontend work, but not final.
 - Settings smoke test: `.\scripts\smoke-settings.ps1`.
 - Sync diagnostics smoke test: `.\scripts\smoke-sync-diagnostics.ps1`.
 - Tax/VAT foundation smoke test: `.\scripts\smoke-tax-foundation.ps1`.
+- Non-posting tax preview smoke test: `.\scripts\smoke-nonposting-tax-preview.ps1`.
 - API contract smoke test: `.\scripts\smoke-api-contract.ps1`.
 - Current authentication is not enabled yet.
 - Model validation errors return `400 Bad Request`.
@@ -92,6 +93,38 @@ Notes:
 - Purchase-side tax is reported as `inputTax`.
 - `netTaxPayable = totalOutputTax - totalInputTax`.
 - This is a management/tax review report, not a full tax-return filing workflow yet.
+
+### Non-Posting Tax Preview
+
+Estimates, sales orders, and purchase orders are still non-posting documents. They do not affect GL, A/R, A/P, inventory, or tax payable accounts.
+
+When taxes are enabled, their line DTOs include preview fields:
+
+```json
+{
+  "taxCodeId": "guid-or-null",
+  "taxRatePercent": 14,
+  "taxAmount": 28,
+  "lineTotal": 200
+}
+```
+
+Document DTOs include:
+
+```json
+{
+  "subtotal": 200,
+  "taxAmount": 28,
+  "totalAmount": 228
+}
+```
+
+Rules:
+
+- The API calculates these preview totals from the selected tax code or the configured default tax code.
+- The frontend should display these values, not recalculate them.
+- `Estimate -> Sales Order -> Invoice` preserves tax code and prorates line tax during partial conversion.
+- `Purchase Order` preserves purchase tax preview for later purchase workflow use, but tax is not posted until a posting purchase document is created.
 
 ### Trial Balance
 

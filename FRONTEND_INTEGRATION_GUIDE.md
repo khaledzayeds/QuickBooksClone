@@ -57,9 +57,11 @@ These endpoints are the foundation for dropdowns and document creation.
 Tax/VAT rule:
 
 - If `taxesEnabled=false`, keep tax selectors hidden or disabled.
-- If `taxesEnabled=true`, let the user choose an active sales or purchase tax code per posting line.
+- If `taxesEnabled=true`, let the user choose an active sales or purchase tax code per document line.
 - The frontend sends `taxCodeId`; the API calculates tax rate, net amount, tax amount, and gross document total.
 - Do not calculate final tax, A/R, A/P, income, expense, or inventory effects in the frontend.
+- Estimates, sales orders, and purchase orders expose tax preview only. They remain non-posting and have no GL, A/R, A/P, or inventory effect.
+- Converted sales documents preserve tax code and prorate tax during partial conversion.
 
 ## 3. Purchase Flow
 

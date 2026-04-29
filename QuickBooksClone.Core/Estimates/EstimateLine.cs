@@ -7,7 +7,14 @@ public sealed class EstimateLine
         Description = string.Empty;
     }
 
-    public EstimateLine(Guid itemId, string description, decimal quantity, decimal unitPrice)
+    public EstimateLine(
+        Guid itemId,
+        string description,
+        decimal quantity,
+        decimal unitPrice,
+        Guid? taxCodeId = null,
+        decimal taxRatePercent = 0,
+        decimal taxAmount = 0)
     {
         if (itemId == Guid.Empty)
         {
@@ -28,6 +35,9 @@ public sealed class EstimateLine
         Description = string.IsNullOrWhiteSpace(description) ? "Item" : description.Trim();
         Quantity = quantity;
         UnitPrice = unitPrice;
+        TaxCodeId = taxCodeId == Guid.Empty ? null : taxCodeId;
+        TaxRatePercent = taxRatePercent;
+        TaxAmount = taxAmount;
     }
 
     public Guid Id { get; } = Guid.NewGuid();
@@ -35,5 +45,8 @@ public sealed class EstimateLine
     public string Description { get; }
     public decimal Quantity { get; }
     public decimal UnitPrice { get; }
+    public Guid? TaxCodeId { get; }
+    public decimal TaxRatePercent { get; }
+    public decimal TaxAmount { get; }
     public decimal LineTotal => Quantity * UnitPrice;
 }

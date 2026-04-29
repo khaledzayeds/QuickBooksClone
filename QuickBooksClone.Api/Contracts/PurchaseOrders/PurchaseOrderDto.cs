@@ -10,6 +10,8 @@ public sealed record PurchaseOrderDto(
     DateOnly OrderDate,
     DateOnly ExpectedDate,
     PurchaseOrderStatus Status,
+    decimal Subtotal,
+    decimal TaxAmount,
     decimal TotalAmount,
     DateTimeOffset? OpenedAt,
     DateTimeOffset? ClosedAt,
