@@ -215,6 +215,7 @@ If building a new frontend, start from these:
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
+- `GET /api/audit`
 - `GET /api/security/permissions`
 - `GET /api/security/roles`
 - `GET /api/security/users`

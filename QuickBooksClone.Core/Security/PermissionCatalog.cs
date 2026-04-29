@@ -6,6 +6,7 @@ public static class PermissionCatalog
     [
         new("Settings.Manage", "Settings", "Manage settings", "Change company, device, backup, and runtime settings."),
         new("Users.Manage", "Security", "Manage users", "Create users, roles, and permission assignments."),
+        new("Audit.View", "Security", "View audit trail", "View user activity and protected business action history."),
         new("Reports.View", "Reports", "View reports", "View accounting, inventory, and aging reports."),
         new("Accounting.View", "Accounting", "View accounting", "View chart of accounts and transactions."),
         new("Accounting.Manage", "Accounting", "Manage accounting", "Create and manage accounts, journal entries, and adjustments."),
@@ -63,6 +64,7 @@ public static class PermissionCatalog
             "ACCOUNTANT" => all.Where(permission =>
                 permission.StartsWith("Accounting.", StringComparison.Ordinal) ||
                 permission.StartsWith("Reports.", StringComparison.Ordinal) ||
+                permission.StartsWith("Audit.", StringComparison.Ordinal) ||
                 permission.StartsWith("Customers.", StringComparison.Ordinal) ||
                 permission.StartsWith("Vendors.", StringComparison.Ordinal) ||
                 permission.StartsWith("Sales.", StringComparison.Ordinal) ||

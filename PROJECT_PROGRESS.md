@@ -450,6 +450,12 @@ Architectural baseline is now fixed:
   - [x] Split Chart of Accounts read access from account-management access
   - [x] Add customer/vendor permissions for role-based screen access
   - [x] Add repeatable `scripts/smoke-business-authorization.ps1`
+- [x] Audit trail
+  - [x] Add audit log entity, repository, API contract, and read endpoint
+  - [x] Record successful authenticated write requests inside the database transaction
+  - [x] Store user, action, route, permissions, status, IP, and user-agent metadata
+  - [x] Add SQLite and SQL Server migrations for audit logs
+  - [x] Add repeatable `scripts/smoke-audit-trail.ps1`
 
 ## In Progress
 
@@ -477,7 +483,7 @@ Architectural baseline is now fixed:
   - [x] Authentication/session layer
   - [x] Endpoint authorization enforcement foundation
   - [x] Apply endpoint authorization to every business workflow controller
-  - [ ] Audit trail for create/update/post/void/cancel/restore actions
+  - [x] Audit trail for successful create/update/post/void/cancel/restore API actions
 - [ ] Core accounting reports
   - [x] Trial Balance
   - [x] Balance Sheet
@@ -538,3 +544,4 @@ Architectural baseline is now fixed:
 - Security foundation now exists as backend data and API contracts.
 - Auth sessions are local/offline-first: passwords are PBKDF2-hashed, session tokens are stored as hashes, and password changes revoke active sessions.
 - Authorization middleware now enforces bearer sessions and permissions on security, settings, backup/restore, sync, accounting, reports, customers, vendors, items, inventory, sales, purchase, and document-metadata endpoints.
+- Audit trail now records successful authenticated write requests with user/action/route/permission metadata, giving future MAUI and Flutter admin screens a stable activity history API.

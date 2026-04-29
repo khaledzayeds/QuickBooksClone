@@ -52,6 +52,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
     public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<SecurityRole> SecurityRoles => Set<SecurityRole>();
     public DbSet<SecuritySession> SecuritySessions => Set<SecuritySession>();
     public DbSet<SecurityUser> SecurityUsers => Set<SecurityUser>();
@@ -82,6 +83,7 @@ public sealed class QuickBooksCloneDbContext : DbContext
         ConfigurePurchaseReturns(modelBuilder);
         ConfigureSalesOrders(modelBuilder);
         ConfigureSalesReturns(modelBuilder);
+        ConfigureAuditLog(modelBuilder);
         ConfigureSecurity(modelBuilder);
         ConfigureSettings(modelBuilder);
         ConfigureDeviceSettings(modelBuilder);
@@ -744,6 +746,32 @@ public sealed class QuickBooksCloneDbContext : DbContext
             entity.Property(assignment => assignment.UserId).IsRequired();
             entity.Property(assignment => assignment.RoleId).IsRequired();
             entity.HasIndex(assignment => new { assignment.UserId, assignment.RoleId }).IsUnique();
+        });
+    }
+
+    private static void ConfigureAuditLog(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AuditLogEntry>(entity =>
+        {
+            entity.ToTable("audit_log_entries");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(entry => entry.UserId);
+            entity.Property(entry => entry.UserName).HasMaxLength(160).IsRequired();
+            entity.Property(entry => entry.Action).HasMaxLength(160).IsRequired();
+            entity.Property(entry => entry.HttpMethod).HasMaxLength(20).IsRequired();
+            entity.Property(entry => entry.Path).HasMaxLength(500).IsRequired();
+            entity.Property(entry => entry.StatusCode).IsRequired();
+            entity.Property(entry => entry.Controller).HasMaxLength(160);
+            entity.Property(entry => entry.EndpointAction).HasMaxLength(160);
+            entity.Property(entry => entry.RequiredPermissions).HasMaxLength(1000);
+            entity.Property(entry => entry.IpAddress).HasMaxLength(80);
+            entity.Property(entry => entry.UserAgent).HasMaxLength(500);
+            entity.Property(entry => entry.OccurredAt).IsRequired();
+            entity.HasIndex(entry => entry.OccurredAt);
+            entity.HasIndex(entry => entry.UserId);
+            entity.HasIndex(entry => entry.Controller);
+            entity.HasIndex(entry => entry.Action);
         });
     }
 

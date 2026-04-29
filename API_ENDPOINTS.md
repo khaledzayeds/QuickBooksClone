@@ -2798,7 +2798,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke-document-metadata.ps1
 
 ## Security
 
-The security layer now includes users, roles, permissions, bearer sessions, and endpoint authorization enforcement for the core business API. Audit logging is the next security slice.
+The security layer now includes users, roles, permissions, bearer sessions, endpoint authorization enforcement for the core business API, and an audit trail for successful protected write actions.
 
 Seeded roles:
 
@@ -3084,4 +3084,63 @@ Authorization is enforced in the API, not only in the UI. A user without `Accoun
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke-auth-sessions.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke-business-authorization.ps1
+```
+
+## Audit Trail
+
+Successful authenticated write requests are recorded automatically after the business transaction succeeds and before the database transaction commits.
+
+Audit entries include:
+
+- user id and user name
+- action name, usually `{Controller}.{Action}`
+- HTTP method and path
+- response status code
+- controller/action route values
+- permissions required by the endpoint
+- IP address and user agent
+- UTC occurrence time
+
+Failed writes are not committed to the audit log because the surrounding database transaction rolls back with the failed business operation.
+
+### List Audit Entries
+
+```http
+GET /api/audit?userId=&userName=&action=&controller=&from=&to=&page=1&pageSize=50
+Authorization: Bearer {token}
+```
+
+Requires `Audit.View`.
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "id": "guid",
+      "userId": "guid",
+      "userName": "admin",
+      "action": "Accounts.Create",
+      "httpMethod": "POST",
+      "path": "/api/accounts",
+      "statusCode": 201,
+      "controller": "Accounts",
+      "endpointAction": "Create",
+      "requiredPermissions": "Accounting.Manage,Accounting.View",
+      "ipAddress": "::1",
+      "userAgent": "client",
+      "occurredAt": "2026-04-29T00:00:00+00:00"
+    }
+  ],
+  "totalCount": 1,
+  "page": 1,
+  "pageSize": 50
+}
+```
+
+### Smoke Test
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-audit-trail.ps1
 ```
