@@ -30,6 +30,11 @@ import '../features/purchase_orders/screens/purchase_order_list_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_form_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_details_screen.dart';
 
+// Receive Inventory
+import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
+import '../features/receive_inventory/screens/receive_inventory_form_screen.dart';
+import '../features/receive_inventory/screens/receive_inventory_details_screen.dart';
+
 // Invoices
 import '../features/invoices/screens/invoice_form_screen.dart';
 
@@ -232,21 +237,20 @@ class AppRouter {
                 id: s.pathParameters['id']!),
           ),
 
-          // ── Receive Inventory (placeholder) ───
+          // ── Receive Inventory ─────────────────
           GoRoute(
             path: AppRoutes.receiveInventory,
-            builder: (c, s) => _PlaceholderScreen(
-                title: AppLocalizations.of(c)!.receiveInventory),
+            pageBuilder: (c, s) =>
+                const NoTransitionPage(child: ReceiveInventoryListScreen()),
           ),
           GoRoute(
             path: AppRoutes.receiveInventoryNew,
-            builder: (c, s) => _PlaceholderScreen(
-                title: '${AppLocalizations.of(c)!.receiveInventory} (${AppLocalizations.of(c)!.newText})'),
+            builder: (c, s) => const ReceiveInventoryFormScreen(),
           ),
           GoRoute(
             path: AppRoutes.receiveInventoryDetails,
-            builder: (c, s) => _PlaceholderScreen(
-                title: '${AppLocalizations.of(c)!.receiveInventory} ${s.pathParameters['id']}'),
+            builder: (c, s) => ReceiveInventoryDetailsScreen(
+                id: s.pathParameters['id']!),
           ),
 
           // ── Purchase Bills (placeholder) ──────
