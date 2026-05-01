@@ -51,7 +51,7 @@ class SidebarMenu extends ConsumerWidget {
               child: TextField(
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: InputDecoration(
-                  hintText: 'Search Company or Help',
+                  hintText: l10n.searchHelp,
                   hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
                   prefixIcon: const Icon(Icons.search, size: 14, color: Colors.white54),
                   fillColor: Colors.white.withValues(alpha: 0.1),
@@ -66,13 +66,13 @@ class SidebarMenu extends ConsumerWidget {
 
           // ── Shortcuts Section ─────────────────────
           if (!isCollapsed)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  Text('My Shortcuts', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                  Spacer(),
-                  Icon(Icons.settings, size: 12, color: Colors.white38),
+                  Text(l10n.myShortcuts.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                  const Spacer(),
+                  const Icon(Icons.settings, size: 12, color: Colors.white38),
                 ],
               ),
             ),
@@ -81,22 +81,22 @@ class SidebarMenu extends ConsumerWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _ShortcutItem(icon: Icons.home_outlined, label: 'Home', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.business_outlined, label: 'My Company', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: 'Cash Flow Hub', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.trending_up_outlined, label: 'Income Tracker', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.receipt_outlined, label: 'Bill Tracker', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.calendar_today_outlined, label: 'Calendar', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.camera_alt_outlined, label: 'Snapshots', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.home_outlined, label: l10n.home, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.business_outlined, label: l10n.myCompany, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: l10n.cashFlowHub, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.trending_up_outlined, label: l10n.incomeTracker, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.receipt_outlined, label: l10n.billTracker, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.calendar_today_outlined, label: l10n.calendar, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.camera_alt_outlined, label: l10n.snapshots, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
                 
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(color: Colors.white12, height: 1),
                 ),
 
-                _ShortcutItem(icon: Icons.list_alt_outlined, label: 'View Balances', path: AppRoutes.chartOfAccounts, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.description_outlined, label: 'Run Favorite Reports', path: AppRoutes.reports, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.window_outlined, label: 'Open Windows', path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.list_alt_outlined, label: l10n.viewBalances, path: AppRoutes.chartOfAccounts, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.description_outlined, label: l10n.runFavoriteReports, path: AppRoutes.reports, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.window_outlined, label: l10n.openWindows, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
               ],
             ),
           ),

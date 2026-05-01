@@ -1,8 +1,10 @@
 // receive_inventory_list_screen.dart
+// Fully localized and aligned with QuickBooks aesthetic.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
 import '../data/models/receive_inventory_model.dart';
@@ -14,14 +16,15 @@ class ReceiveInventoryListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final receiptsAsync = ref.watch(receiveInventoryListProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('استلام المخزون | Inventory Receipts'),
+        title: Text(l10n.inventoryReceipts),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'تحديث | Refresh',
+            tooltip: l10n.retry,
             onPressed: () => ref.invalidate(receiveInventoryListProvider),
           ),
         ],
@@ -59,7 +62,7 @@ class ReceiveInventoryListScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
-        label: const Text('استلام جديد | New Receipt'),
+        label: Text(l10n.newReceipt),
         onPressed: () => context.push(AppRoutes.receiveInventoryNew),
       ),
     );
@@ -75,8 +78,9 @@ class _ReceiptCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n  = AppLocalizations.of(context)!;
     final title = receipt.receiptNumber.isEmpty
-        ? 'استلام #${receipt.id.substring(0, 8)}'
+        ? '${l10n.receipt} #${receipt.id.substring(0, 8)}'
         : receipt.receiptNumber;
 
     return Card(
@@ -104,14 +108,14 @@ class _ReceiptCard extends StatelessWidget {
             Text(receipt.vendorName),
             const SizedBox(height: 2),
             Text(
-              '${receipt.receiptDate.day}/${receipt.receiptDate.month}/${receipt.receiptDate.year}  •  ${receipt.lines.length} صنف',
+              '${receipt.receiptDate.day}/${receipt.receiptDate.month}/${receipt.receiptDate.year}  •  ${receipt.lines.length} ${l10n.items}',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.hintColor),
             ),
           ],
         ),
         trailing: Chip(
-          label: Text(receipt.status,
+          label: Text(receipt.status, // We should localize status too eventually
               style: const TextStyle(fontSize: 11)),
           backgroundColor: theme.colorScheme.primaryContainer,
           padding: EdgeInsets.zero,
@@ -128,6 +132,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -139,14 +144,14 @@ class _EmptyState extends StatelessWidget {
                   .primary
                   .withValues(alpha: 0.3)),
           const SizedBox(height: 16),
-          const Text('لا توجد سندات استلام',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          Text(l10n.noInventoryReceipts,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          const Text('ابدأ باستلام مخزون من أمر شراء مفتوح'),
+          Text(l10n.startReceivingFromPO),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.add),
-            label: const Text('استلام جديد | New Receipt'),
+            label: Text(l10n.newReceipt),
             onPressed: onNew,
           ),
         ],
@@ -163,6 +168,7 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -176,7 +182,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               icon: const Icon(Icons.refresh),
-              label: const Text('إعادة المحاولة | Retry'),
+              label: Text(l10n.retry),
               onPressed: onRetry,
             ),
           ],

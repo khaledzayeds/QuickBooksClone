@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 import '../widgets/dashboard_flowchart.dart';
 import '../widgets/dashboard_insights.dart';
 
@@ -31,6 +32,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F9),
@@ -45,24 +47,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
             tabAlignment: TabAlignment.start,
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
-            indicator: BoxDecoration(
-              color: const Color(0xFF0078D4), // QuickBooks Tab Blue
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            indicator: const BoxDecoration(
+              color: Color(0xFF0078D4), // QuickBooks Tab Blue
+              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
             ),
             labelColor: Colors.white,
             unselectedLabelColor: cs.onSurface.withValues(alpha: 0.7),
             labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            tabs: const [
-              Tab(text: 'Home Page'),
-              Tab(text: 'Insights'),
+            tabs: [
+              Tab(text: l10n.homePage),
+              Tab(text: l10n.insights),
             ],
           ),
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          const DashboardFlowchart(),
+        children: const [
+          DashboardFlowchart(),
           const DashboardInsights(),
         ],
       ),

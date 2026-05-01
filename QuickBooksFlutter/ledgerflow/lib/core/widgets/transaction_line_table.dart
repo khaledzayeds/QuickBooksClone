@@ -1,12 +1,13 @@
 // transaction_line_table.dart
 // Optimized QuickBooks-style editable grid with inline searchable item picker.
+// Enhanced for Scanner support (Enter key handling and auto-line addition).
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 import '../../features/items/data/models/item_model.dart';
 import '../../features/items/providers/items_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/purchase_orders/data/models/order_line_entry.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 
 class TransactionLineTable extends ConsumerStatefulWidget {
   const TransactionLineTable({
@@ -44,6 +45,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
       final line = widget.lines.removeAt(index);
       line.dispose();
     });
+    if (widget.lines.isEmpty) _addLine();
     widget.onChanged();
   }
 
@@ -57,6 +59,11 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
       if (line.qty == 0) {
         line.qty = 1;
         line.qtyCtrl.text = "1";
+      }
+      
+      // If this is the last line and we just picked an item, add a new empty line automatically (QuickBooks behavior)
+      if (index == widget.lines.length - 1) {
+        _addLine();
       }
     });
     widget.onChanged();
@@ -75,7 +82,6 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
     const double colQty    = 80;
     const double colRate   = 120;
     const double colTotal  = 120;
-    // Added 2px safety margin to prevent overflow warnings
     const double totalWidth = colAction + colItem + colDesc + colQty + colRate + colTotal + 2;
 
     return Container(
@@ -129,6 +135,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                   SizedBox(
                     width: colItem,
                     child: _InlineItemPicker(
+                      key: ValueKey('item_$i'),
                       initialValue: line.itemName,
                       onPicked: (item) => _onItemPicked(i, item),
                     ),
@@ -225,8 +232,6 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
   }
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────
-
 class _InlineTextField extends StatelessWidget {
   const _InlineTextField({
     required this.controller,
@@ -262,7 +267,7 @@ class _InlineTextField extends StatelessWidget {
 }
 
 class _InlineItemPicker extends ConsumerWidget {
-  const _InlineItemPicker({required this.initialValue, required this.onPicked});
+  const _InlineItemPicker({super.key, required this.initialValue, required this.onPicked});
   final String             initialValue;
   final Function(ItemModel) onPicked;
 
@@ -290,12 +295,19 @@ class _InlineItemPicker extends ConsumerWidget {
             focusNode:  focusNode,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             onSubmitted: (_) {
-              // Exact match or first match for scanner speed
-              final text = controller.text.toLowerCase();
-              final matches = items.where((i) => i.name.toLowerCase() == text || i.sku?.toLowerCase() == text).toList();
-              if (matches.isNotEmpty) {
-                onPicked(matches.first);
+              // Standard scanner logic: Exact match SKU or Name -> Pick first and auto-add line
+              final text = controller.text.toLowerCase().trim();
+              if (text.isEmpty) return;
+
+              final exact = items.where((i) => 
+                (i.sku?.toLowerCase() == text) || 
+                (i.name.toLowerCase() == text)
+              ).toList();
+
+              if (exact.isNotEmpty) {
+                onPicked(exact.first);
               } else {
+                // If no exact match, pick the first partial match
                 final partial = items.where((i) => i.name.toLowerCase().contains(text)).toList();
                 if (partial.isNotEmpty) onPicked(partial.first);
               }
@@ -327,7 +339,7 @@ class _InlineItemPicker extends ConsumerWidget {
                     return ListTile(
                       dense: true,
                       title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text('${item.purchasePrice} ج.م | Stock: ${item.quantityOnHand}'),
+                      subtitle: Text('${item.purchasePrice.toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}'),
                       onTap: () => onSelected(item),
                     );
                   },

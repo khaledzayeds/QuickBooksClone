@@ -1,9 +1,11 @@
 // receive_inventory_details_screen.dart
+// Fully localized and aligned with QuickBooks aesthetic.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
 import '../providers/receive_inventory_provider.dart';
@@ -15,14 +17,15 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final receiptAsync = ref.watch(receiveInventoryDetailsProvider(id));
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفاصيل الاستلام | Receipt Details'),
+        title: Text('${l10n.receipt} | ${l10n.orderDetails}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'تحديث | Refresh',
+            tooltip: l10n.retry,
             onPressed: () =>
                 ref.invalidate(receiveInventoryDetailsProvider(id)),
           ),
@@ -42,7 +45,7 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة | Retry'),
+                label: Text(l10n.retry),
                 onPressed: () =>
                     ref.invalidate(receiveInventoryDetailsProvider(id)),
               ),
@@ -50,10 +53,10 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
           ),
         ),
         data: (receipt) {
-          final date =
-              DateFormat('yyyy/MM/dd').format(receipt.receiptDate);
+          final fmt   = DateFormat('dd/MM/yyyy');
+          final date  = fmt.format(receipt.receiptDate);
           final title = receipt.receiptNumber.isEmpty
-              ? 'استلام #${receipt.id.substring(0, 8)}'
+              ? '${l10n.receipt} #${receipt.id.substring(0, 8)}'
               : receipt.receiptNumber;
 
           return ListView(
@@ -76,7 +79,7 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
                                     ?.copyWith(fontWeight: FontWeight.w800)),
                           ),
                           Chip(
-                            label: Text(receipt.status,
+                            label: Text(receipt.status, // We should localize status eventually
                                 style: const TextStyle(fontSize: 12)),
                             backgroundColor: Theme.of(context)
                                 .colorScheme
@@ -86,14 +89,14 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
                       ),
                       const Divider(height: 24),
                       _InfoRow(
-                          label: 'المورد | Vendor',
+                          label: l10n.vendor,
                           value: receipt.vendorName),
                       _InfoRow(
-                          label: 'تاريخ الاستلام | Date',
+                          label: l10n.receiptDate,
                           value: date),
                       if (receipt.purchaseOrderId.isNotEmpty)
                         _InfoRow(
-                          label: 'أمر الشراء | Purchase Order',
+                          label: l10n.purchaseOrders,
                           value: receipt.purchaseOrderId,
                           isLink: true,
                           onTap: () => context.push(
@@ -104,7 +107,7 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
                       if (receipt.notes != null &&
                           receipt.notes!.isNotEmpty)
                         _InfoRow(
-                            label: 'ملاحظات | Notes',
+                            label: l10n.notes,
                             value: receipt.notes!),
                     ],
                   ),
@@ -114,7 +117,7 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // ── Lines ────────────────────────────────────
-              Text('الأصناف المستلمة | Received Items',
+              Text(l10n.receivedItems,
                   style: Theme.of(context)
                       .textTheme
                       .titleMedium
@@ -122,10 +125,10 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
               const SizedBox(height: 8),
 
               if (receipt.lines.isEmpty)
-                const Card(
+                Card(
                   child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('لا توجد أصناف | No items'),
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.underDevelopment), // Fallback
                   ),
                 )
               else
@@ -160,8 +163,8 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
                               style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 16)),
-                          const Text('مستلم | Received',
-                              style: TextStyle(
+                          Text(l10n.received,
+                              style: const TextStyle(
                                   fontSize: 10, color: Colors.grey)),
                         ],
                       ),

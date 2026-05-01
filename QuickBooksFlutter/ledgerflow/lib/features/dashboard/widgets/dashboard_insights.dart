@@ -10,24 +10,23 @@ class DashboardInsights extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
         // ── Profit & Loss Header ──────────────────
         _InsightCard(
-          title: 'Profit & Loss',
-          action: 'This Fiscal Year-to-date',
+          title: l10n.profitAndLoss,
+          action: l10n.fiscalYearToDate,
           child: Column(
             children: [
               Row(
                 children: [
-                  _Metric(label: 'NET INCOME', value: '150.00', color: Colors.blue.shade900),
+                  _Metric(label: l10n.netIncome.toUpperCase(), value: '150.00', color: Colors.blue.shade900),
                   const SizedBox(width: 24),
-                  _Metric(label: 'INCOME', value: '400.00', color: const Color(0xFF2CA01C)),
+                  _Metric(label: l10n.income.toUpperCase(), value: '400.00', color: const Color(0xFF2CA01C)),
                   const SizedBox(width: 24),
-                  _Metric(label: 'EXPENSES', value: '250.00', color: const Color(0xFF0078D4)),
+                  _Metric(label: l10n.expensesByCategory.split(' ')[0].toUpperCase(), value: '250.00', color: const Color(0xFF0078D4)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -67,13 +66,13 @@ class DashboardInsights extends StatelessWidget {
           children: [
             Expanded(
               child: _InsightCard(
-                title: 'Income',
-                action: 'Create Invoice',
+                title: l10n.income,
+                action: l10n.createInvoice,
                 child: Column(
                   children: [
-                    _ProgressBar(label: 'UNPAID', value: 500.00, color: Colors.orange, maxValue: 1000),
+                    _ProgressBar(label: l10n.unpaid.toUpperCase(), value: 500.00, color: Colors.orange, maxValue: 1000),
                     const SizedBox(height: 12),
-                    _ProgressBar(label: 'PAID', value: 0.00, color: const Color(0xFF2CA01C), maxValue: 1000),
+                    _ProgressBar(label: l10n.paid.toUpperCase(), value: 0.00, color: const Color(0xFF2CA01C), maxValue: 1000),
                   ],
                 ),
               ),
@@ -81,8 +80,8 @@ class DashboardInsights extends StatelessWidget {
             const SizedBox(width: 24),
             Expanded(
               child: _InsightCard(
-                title: 'Expenses',
-                action: 'Create Bill',
+                title: l10n.moneyBarExpenses,
+                action: l10n.createBill,
                 child: SizedBox(
                   height: 150,
                   child: PieChart(

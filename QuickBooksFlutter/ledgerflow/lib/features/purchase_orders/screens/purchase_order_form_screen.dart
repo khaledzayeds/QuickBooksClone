@@ -12,7 +12,6 @@ import '../../../../core/widgets/transaction_line_table.dart';
 import '../../../../core/widgets/transaction_vendor_picker.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../data/models/purchase_order_model.dart';
-import '../data/models/order_line_entry.dart';
 import '../providers/purchase_orders_provider.dart';
 import '../../../../app/router.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -220,7 +219,7 @@ class _PurchaseOrderFormScreenState
               Expanded(flex: 2, child: Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.blue.shade900, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text(l10n.totalAmount.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
                 const SizedBox(height: 8),
-                Text('${_total.toStringAsFixed(2)} ج.م', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+                Text('${_total.toStringAsFixed(2)} ${l10n.egp}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
               ]))),
             ],
           ),
@@ -229,8 +228,6 @@ class _PurchaseOrderFormScreenState
     );
   }
 }
-
-// ── Components (Same as before but corrected path) ──────────────────
 
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.label);
@@ -267,15 +264,17 @@ class _VendorSidebar extends StatelessWidget {
   final VendorModel vendor;
   @override Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n  = AppLocalizations.of(context)!;
+
     return Container(width: 280, padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.white, border: Border(left: BorderSide(color: Colors.grey.shade300))), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       CircleAvatar(backgroundColor: Colors.blue.shade900, radius: 32, child: Text(vendor.initials, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900))),
       const SizedBox(height: 16), Text(vendor.displayName, textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
       const SizedBox(height: 8), Text(vendor.companyName ?? '', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
       const SizedBox(height: 32), const Divider(), const SizedBox(height: 16),
-      _SidebarItem(label: 'CURRENT BALANCE', value: '${vendor.balance.toStringAsFixed(2)} ج.م', isBold: true, color: vendor.balance > 0 ? Colors.orange.shade900 : Colors.green.shade900),
-      const SizedBox(height: 16), _SidebarItem(label: 'EMAIL', value: vendor.email ?? 'No email'),
-      const SizedBox(height: 16), _SidebarItem(label: 'PHONE', value: vendor.phone ?? 'No phone'),
-      const Spacer(), OutlinedButton(onPressed: () {}, child: const Text('VIEW VENDOR PROFILE')),
+      _SidebarItem(label: l10n.currentBalance.toUpperCase(), value: '${vendor.balance.toStringAsFixed(2)} ${l10n.egp}', isBold: true, color: vendor.balance > 0 ? Colors.orange.shade900 : Colors.green.shade900),
+      const SizedBox(height: 16), _SidebarItem(label: l10n.email.toUpperCase(), value: vendor.email ?? 'No email'),
+      const SizedBox(height: 16), _SidebarItem(label: l10n.phone.toUpperCase(), value: vendor.phone ?? 'No phone'),
+      const Spacer(), OutlinedButton(onPressed: () {}, child: Text(l10n.viewVendorProfile.toUpperCase())),
     ]));
   }
 }

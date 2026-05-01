@@ -1,5 +1,9 @@
 // purchase_order_model.dart
 // Aligned with backend contract and super-safe against type errors.
+// Localization enabled for statuses.
+
+import 'package:flutter/material.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 
 class PurchaseOrderModel {
   const PurchaseOrderModel({
@@ -65,18 +69,26 @@ class PurchaseOrderModel {
 }
 
 enum PurchaseOrderStatus {
-  draft(1, 'Draft', 'مسودة'),
-  open(2, 'Open', 'مفتوح'),
-  closed(3, 'Closed', 'مغلق'),
-  cancelled(4, 'Cancelled', 'ملغي');
+  draft(1, 'Draft'),
+  open(2, 'Open'),
+  closed(3, 'Closed'),
+  cancelled(4, 'Cancelled');
 
-  const PurchaseOrderStatus(this.value, this.label, this.labelAr);
+  const PurchaseOrderStatus(this.value, this.label);
   final int    value;
   final String label;
-  final String labelAr;
+
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (this) {
+      PurchaseOrderStatus.draft     => l10n.statusDraft,
+      PurchaseOrderStatus.open      => l10n.statusOpen,
+      PurchaseOrderStatus.closed    => l10n.statusClosed,
+      PurchaseOrderStatus.cancelled => l10n.statusCancelled,
+    };
+  }
 
   static PurchaseOrderStatus fromValue(dynamic v) {
-    // Check if it's the int value directly
     final intVal = int.tryParse(v?.toString() ?? '');
     if (intVal != null) {
       return PurchaseOrderStatus.values.firstWhere(
@@ -84,7 +96,6 @@ enum PurchaseOrderStatus {
         orElse: () => PurchaseOrderStatus.draft,
       );
     }
-    // Check if it's the label string
     final s = v?.toString() ?? '';
     return PurchaseOrderStatus.values.firstWhere(
       (e) => e.label.toLowerCase() == s.toLowerCase(),

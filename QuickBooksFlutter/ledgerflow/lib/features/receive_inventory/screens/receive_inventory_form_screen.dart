@@ -1,8 +1,10 @@
 // receive_inventory_form_screen.dart
+// Fully localized and aligned with QuickBooks aesthetic.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../purchase_orders/data/models/purchase_order_model.dart';
 import '../../purchase_orders/providers/purchase_orders_provider.dart';
@@ -10,7 +12,7 @@ import '../data/models/create_receive_inventory_dto.dart';
 import '../providers/receive_inventory_provider.dart';
 
 class ReceiveInventoryFormScreen extends ConsumerStatefulWidget {
-  /// اختياري — لو جاي من PO Details يتحدد الأمر تلقائياً
+  /// Optional — if coming from PO Details, pre-select the order.
   const ReceiveInventoryFormScreen({super.key, this.purchaseOrderId});
   final String? purchaseOrderId;
 
@@ -65,9 +67,10 @@ class _ReceiveInventoryFormScreenState
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
     final order = _selectedOrder;
     if (order == null) {
-      _showError('اختر أمر شراء مفتوح أولاً');
+      _showError(l10n.selectOpenPO);
       return;
     }
 
@@ -79,7 +82,7 @@ class _ReceiveInventoryFormScreenState
       if (qty <= 0) continue;
       if (qty > line.quantity) {
         _showError(
-            'كمية "${line.description}" أكبر من المطلوب (${line.quantity.toStringAsFixed(2)})');
+            '${line.description}: ${l10n.qty} > ${line.quantity.toStringAsFixed(2)}');
         return;
       }
       lines.add(CreateReceiveInventoryLineDto(
@@ -92,7 +95,7 @@ class _ReceiveInventoryFormScreenState
     }
 
     if (lines.isEmpty) {
-      _showError('أدخل كمية استلام واحدة على الأقل');
+      _showError(l10n.minOneQty);
       return;
     }
 
@@ -112,8 +115,8 @@ class _ReceiveInventoryFormScreenState
           ref.read(purchaseOrdersProvider.notifier).refresh();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('تم تسجيل استلام المخزون بنجاح ✅')),
+              SnackBar(
+                  content: Text('${l10n.riSavedSuccess} ✅')),
             );
             context.pop();
           }
@@ -137,10 +140,11 @@ class _ReceiveInventoryFormScreenState
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(openPurchaseOrdersProvider);
+    final l10n        = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('استلام مخزون جديد | New Receipt'),
+        title: Text('${l10n.newReceipt} | ${l10n.inventoryReceipts}'),
       ),
       body: ordersAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -153,10 +157,10 @@ class _ReceiveInventoryFormScreenState
               // PO Dropdown
               DropdownButtonFormField<PurchaseOrderModel>(
                 value: _selectedOrder,
-                decoration: const InputDecoration(
-                  labelText: 'أمر الشراء المفتوح | Open Purchase Order',
-                  prefixIcon: Icon(Icons.receipt_long_outlined),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.openPO,
+                  prefixIcon: const Icon(Icons.receipt_long_outlined),
+                  border: const OutlineInputBorder(),
                 ),
                 items: orders
                     .map((o) => DropdownMenuItem(
@@ -181,10 +185,10 @@ class _ReceiveInventoryFormScreenState
                   if (d != null) setState(() => _receiptDate = d);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'تاريخ الاستلام | Receipt Date',
-                    prefixIcon: Icon(Icons.calendar_today_outlined),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.receiptDate,
+                    prefixIcon: const Icon(Icons.calendar_today_outlined),
+                    border: const OutlineInputBorder(),
                   ),
                   child: Text(
                       '${_receiptDate.day}/${_receiptDate.month}/${_receiptDate.year}'),
@@ -203,10 +207,10 @@ class _ReceiveInventoryFormScreenState
               TextField(
                 controller: _notesCtrl,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'ملاحظات | Notes',
-                  hintText: 'ملاحظات اختيارية...',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.notes,
+                  hintText: '${l10n.notes}...',
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 80),
@@ -226,7 +230,7 @@ class _ReceiveInventoryFormScreenState
                         strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.save_outlined),
-            label: Text(_saving ? 'جاري الحفظ...' : 'حفظ الاستلام | Save'),
+            label: Text(_saving ? l10n.saving : l10n.saveReceipt),
             onPressed: _saving ? null : _save,
           ),
         ),
@@ -235,20 +239,20 @@ class _ReceiveInventoryFormScreenState
   }
 
   List<Widget> _buildLines(BuildContext context, PurchaseOrderModel order) {
+    final l10n  = AppLocalizations.of(context)!;
     final lines = order.lines.where((l) => l.quantity > 0).toList();
 
     if (lines.isEmpty) {
       return [
-        const Card(
+        Card(
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.check_circle_outline, color: Colors.green),
-                SizedBox(width: 12),
+                const Icon(Icons.check_circle_outline, color: Colors.green),
+                const SizedBox(width: 12),
                 Expanded(
-                    child: Text(
-                        'لا توجد أصناف في هذا الأمر.\nNo items in this order.')),
+                    child: Text(l10n.noInventoryReceipts)),
               ],
             ),
           ),
@@ -257,7 +261,7 @@ class _ReceiveInventoryFormScreenState
     }
 
     return [
-      Text('الأصناف | Items',
+      Text(l10n.items,
           style: Theme.of(context)
               .textTheme
               .titleMedium
@@ -276,10 +280,10 @@ class _ReceiveInventoryFormScreenState
                   const SizedBox(height: 6),
                   Row(children: [
                     _QtyChip(
-                        label: 'مطلوب | Ordered', value: line.quantity),
+                        label: l10n.ordered, value: line.quantity),
                     const SizedBox(width: 8),
                     _QtyChip(
-                        label: 'سعر الوحدة | Unit Cost',
+                        label: l10n.rate,
                         value: line.unitCost,
                         color: Colors.blue),
                   ]),
@@ -289,11 +293,11 @@ class _ReceiveInventoryFormScreenState
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
-                      labelText: 'كمية الاستلام | Qty to Receive',
+                      labelText: l10n.qtyToReceive,
                       border: const OutlineInputBorder(),
                       isDense: true,
                       suffixText:
-                          'من ${line.quantity.toStringAsFixed(2)}',
+                          '${l10n.from} ${line.quantity.toStringAsFixed(2)}',
                     ),
                   ),
                 ],
@@ -306,20 +310,22 @@ class _ReceiveInventoryFormScreenState
 
 class _HintCard extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: const [
-              Icon(Icons.info_outline, color: Colors.blue),
-              SizedBox(width: 12),
-              Expanded(
-                  child: Text(
-                      'اختر أمر شراء مفتوح لعرض الكميات.\nSelect an open PO to see remaining quantities.')),
-            ],
-          ),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Colors.blue),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Text(l10n.selectOpenPOHint)),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _QtyChip extends StatelessWidget {

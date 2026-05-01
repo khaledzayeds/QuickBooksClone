@@ -1,10 +1,11 @@
 // purchase_order_details_screen.dart
-// Aligned with backend PurchaseOrderDto contract.
+// Aligned with backend PurchaseOrderDto contract and full localization.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 import '../providers/purchase_orders_provider.dart';
 import '../data/models/purchase_order_model.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
@@ -17,48 +18,49 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orderAsync = ref.watch(purchaseOrderProvider(id));
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفاصيل أمر الشراء | PO Details'),
+        title: Text('${l10n.purchaseOrders} | ${l10n.orderDetails}'),
         actions: [
           orderAsync.whenOrNull(
             data: (o) => PopupMenuButton<_Action>(
               onSelected: (a) => _handleAction(context, ref, o, a),
               itemBuilder: (_) => [
                 if (o.canEdit)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _Action.open,
                     child: ListTile(
-                      leading: Icon(Icons.lock_open_outlined),
-                      title: Text('فتح الأمر | Open'),
+                      leading: const Icon(Icons.lock_open_outlined),
+                      title: Text(l10n.openOrder),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 if (o.canReceive)
                   PopupMenuItem(
                     value: _Action.receive,
-                    child: const ListTile(
-                      leading: Icon(Icons.inventory_2_outlined),
-                      title: Text('استلام مخزون | Receive'),
+                    child: ListTile(
+                      leading: const Icon(Icons.inventory_2_outlined),
+                      title: Text(l10n.receiveInventoryAction),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 if (o.isOpen)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _Action.close,
                     child: ListTile(
-                      leading: Icon(Icons.lock_outline),
-                      title: Text('إغلاق الأمر | Close'),
+                      leading: const Icon(Icons.lock_outline),
+                      title: Text(l10n.closeOrder),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 if (o.canCancel)
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: _Action.cancel,
                     child: ListTile(
-                      leading: Icon(Icons.cancel_outlined, color: Colors.red),
-                      title: Text('إلغاء الأمر | Cancel'),
+                      leading: const Icon(Icons.cancel_outlined, color: Colors.red),
+                      title: Text(l10n.cancelOrder),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -80,7 +82,7 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               TextButton.icon(
                 icon: const Icon(Icons.refresh),
-                label: const Text('إعادة المحاولة | Retry'),
+                label: Text(l10n.retry),
                 onPressed: () => ref.invalidate(purchaseOrderProvider(id)),
               ),
             ],
@@ -97,6 +99,8 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
     PurchaseOrderModel order,
     _Action action,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
+    
     // Receive inventory → navigate
     if (action == _Action.receive) {
       context.push('${AppRoutes.receiveInventoryNew}?purchaseOrderId=${order.id}');
@@ -108,9 +112,9 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
     if (action == _Action.cancel) {
       final confirmed = await showConfirmDialog(
         context: context,
-        title: 'إلغاء الأمر | Cancel Order',
-        message: 'هل أنت متأكد من إلغاء أمر الشراء ${order.orderNumber}؟',
-        confirmLabel: 'إلغاء الأمر | Cancel',
+        title: l10n.cancelOrder,
+        message: '${l10n.confirmCancelPO} (${order.orderNumber})',
+        confirmLabel: l10n.cancel,
         isDangerous: true,
       );
       if (confirmed != true) return;
@@ -129,7 +133,7 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
         ref.read(purchaseOrdersProvider.notifier).refresh();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_successMsg(action))),
+            SnackBar(content: Text(_successMsg(action, l10n))),
           );
         }
       },
@@ -146,10 +150,10 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
     );
   }
 
-  String _successMsg(_Action a) => switch (a) {
-        _Action.open    => 'تم فتح الأمر ✅',
-        _Action.close   => 'تم إغلاق الأمر ✅',
-        _Action.cancel  => 'تم إلغاء الأمر',
+  String _successMsg(_Action a, AppLocalizations l10n) => switch (a) {
+        _Action.open    => l10n.poOpenedSuccess,
+        _Action.close   => l10n.poClosedSuccess,
+        _Action.cancel  => l10n.poCancelledSuccess,
         _Action.receive => '',
       };
 }
@@ -165,6 +169,7 @@ class _OrderDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs    = theme.colorScheme;
+    final l10n  = AppLocalizations.of(context)!;
     final fmt   = DateFormat('dd/MM/yyyy');
 
     return ListView(
@@ -192,15 +197,15 @@ class _OrderDetails extends StatelessWidget {
                 const SizedBox(height: 12),
                 _InfoRow(
                     icon: Icons.business_outlined,
-                    label: 'المورد | Vendor',
+                    label: l10n.vendor,
                     value: order.vendorName),
                 _InfoRow(
                     icon: Icons.calendar_today_outlined,
-                    label: 'تاريخ الأمر | Date',
+                    label: l10n.poDate,
                     value: fmt.format(order.orderDate)),
                 _InfoRow(
                     icon: Icons.event_outlined,
-                    label: 'تاريخ التسليم | Expected',
+                    label: l10n.expectedDate,
                     value: fmt.format(order.expectedDate)),
               ],
             ),
@@ -216,20 +221,20 @@ class _OrderDetails extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('الأصناف | Items (${order.lines.length})',
+                Text('${l10n.items} (${order.lines.length})',
                     style: theme.textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 const Divider(height: 24),
                 // Table header
                 Row(
                   children: [
-                    Expanded(flex: 3, child: Text('الصنف | Item',
+                    Expanded(flex: 3, child: Text(l10n.itemService,
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
-                    Expanded(child: Text('الكمية', textAlign: TextAlign.center,
+                    Expanded(child: Text(l10n.qty, textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
-                    Expanded(child: Text('السعر', textAlign: TextAlign.center,
+                    Expanded(child: Text(l10n.rate, textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
-                    Expanded(child: Text('الإجمالي', textAlign: TextAlign.end,
+                    Expanded(child: Text(l10n.amount, textAlign: TextAlign.end,
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
                   ],
                 ),
@@ -249,20 +254,20 @@ class _OrderDetails extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _SummaryRow('المبلغ الفرعي | Subtotal',
-                    '${order.subtotal.toStringAsFixed(2)} ج.م'),
+                _SummaryRow(l10n.subtotal,
+                    '${order.subtotal.toStringAsFixed(2)}'),
                 if (order.taxAmount > 0)
-                  _SummaryRow('الضريبة | Tax',
-                      '${order.taxAmount.toStringAsFixed(2)} ج.م'),
+                  _SummaryRow(l10n.tax,
+                      '${order.taxAmount.toStringAsFixed(2)}'),
                 const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('الإجمالي الكلي | Total',
-                        style: TextStyle(
+                    Text(l10n.total,
+                        style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 16)),
                     Text(
-                      '${order.totalAmount.toStringAsFixed(2)} ج.م',
+                      '${order.totalAmount.toStringAsFixed(2)}',
                       style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 20,
@@ -301,7 +306,7 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        status.labelAr,
+        status.localizedLabel(context), 
         style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );
