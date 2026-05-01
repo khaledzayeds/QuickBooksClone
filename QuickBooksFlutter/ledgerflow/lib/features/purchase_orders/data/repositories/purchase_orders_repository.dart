@@ -1,4 +1,6 @@
-﻿import '../../../../core/api/api_result.dart';
+// purchase_orders_repository.dart
+
+import '../../../../core/api/api_result.dart';
 import '../datasources/purchase_orders_remote_datasource.dart';
 import '../models/purchase_order_model.dart';
 
@@ -6,8 +8,18 @@ class PurchaseOrdersRepository {
   PurchaseOrdersRepository(this._remote);
   final PurchaseOrdersRemoteDatasource _remote;
 
-  Future<ApiResult<List<PurchaseOrderModel>>> getAll({String? status}) =>
-      _remote.getAll(status: status);
+  Future<ApiResult<List<PurchaseOrderModel>>> getAll({
+    String? search,
+    String? vendorId,
+    bool includeClosed    = false,
+    bool includeCancelled = false,
+  }) =>
+      _remote.getAll(
+        search: search,
+        vendorId: vendorId,
+        includeClosed: includeClosed,
+        includeCancelled: includeCancelled,
+      );
 
   Future<ApiResult<PurchaseOrderModel>> getById(String id) =>
       _remote.getById(id);

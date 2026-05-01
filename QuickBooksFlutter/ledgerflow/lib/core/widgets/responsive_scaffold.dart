@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'sidebar_menu.dart';
 import 'top_bar.dart';
+import 'top_menu_bar.dart';
 
 class ResponsiveScaffold extends StatelessWidget {
   const ResponsiveScaffold({super.key, required this.child});
@@ -17,14 +18,21 @@ class ResponsiveScaffold extends StatelessWidget {
 
     if (isWide) {
       return Scaffold(
-        body: Row(
+        body: Column(
           children: [
-            const SidebarMenu(),
+            const TopMenuBar(), // QuickBooks Desktop Top Menu
             Expanded(
-              child: Column(
+              child: Row(
                 children: [
-                  const TopBar(),
-                  Expanded(child: child),
+                  const SidebarMenu(),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const TopBar(),
+                        Expanded(child: child),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -37,9 +45,6 @@ class ResponsiveScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('LedgerFlow'),
-        actions: const [
-          // Simplified topbar items could go here for mobile
-        ],
       ),
       drawer: const Drawer(child: SidebarMenu()),
       body: child,

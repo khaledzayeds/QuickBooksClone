@@ -118,4 +118,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get income => 'Income';
+
+  @override
+  String get newPurchaseOrder => 'New Purchase Order';
+
+  @override
+  String get saveDraft => 'Save Draft';
+
+  @override
+  String get saveAndOpen => 'Save & Open';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get vendor => 'Vendor';
+
+  @override
+  String get poDate => 'PO Date';
+
+  @override
+  String get expectedDate => 'Expected Date';
+
+  @override
+  String get itemService => 'Item / Service';
+
+  @override
+  String get description => 'Description';
+
+  @override
+  String get qty => 'Qty';
+
+  @override
+  String get rate => 'Rate';
+
+  @override
+  String get amount => 'Amount';
+
+  @override
+  String get totalAmount => 'Total Amount';
+
+  @override
+  String get memoInternal => 'Memo / Internal Notes';
+
+  @override
+  String get addLine => 'Add line';
+
+  @override
+  String get selectItem => 'Select an item...';
+
+  @override
+  String get selectVendor => 'Select a vendor...';
+
+  @override
+  String get poCreatedSuccess => 'Purchase order created successfully';
+
+  @override
+  String get poSavedAsDraft => 'Draft saved successfully';
+
+  @override
+  String get poSavedAsOpen => 'Purchase order saved and opened successfully';
 }

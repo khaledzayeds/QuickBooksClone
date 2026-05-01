@@ -10,40 +10,25 @@ class OrderLinesEditor extends StatelessWidget {
     required this.onRemove,
   });
 
-  final List<OrderLineEntry>      lines;   // ← public الآن
-  final void Function(int index)  onRemove;
+  final List<TransactionLineEntry> lines; // ← public الآن
+  final void Function(int index) onRemove;
 
   @override
   Widget build(BuildContext context) {
     if (lines.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          border:       Border.all(color: Theme.of(context).dividerColor),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            'لم تتم إضافة أصناف بعد',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.color
-                      ?.withValues(alpha: 0.4),
-                ),
-          ),
-        ),
+        child: const Text('لا توجد أصناف مضافة'),
       );
     }
 
     return Column(
       children: lines.asMap().entries.map((entry) {
-        final i    = entry.key;
+        final i = entry.key;
         final line = entry.value;
         return _OrderLineRow(
-          line:     line,
-          index:    i,
+          line: line,
+          index: i,
           onRemove: lines.length > 1 ? () => onRemove(i) : null,
         );
       }).toList(),
@@ -53,14 +38,10 @@ class OrderLinesEditor extends StatelessWidget {
 
 // ─── Row Widget ───────────────────────────────────
 class _OrderLineRow extends StatefulWidget {
-  const _OrderLineRow({
-    required this.line,
-    required this.index,
-    this.onRemove,
-  });
-  final OrderLineEntry line;       // ← public
-  final int            index;
-  final VoidCallback?  onRemove;
+  const _OrderLineRow({required this.line, required this.index, this.onRemove});
+  final TransactionLineEntry line; // ← public
+  final int index;
+  final VoidCallback? onRemove;
 
   @override
   State<_OrderLineRow> createState() => _OrderLineRowState();
@@ -82,17 +63,20 @@ class _OrderLineRowState extends State<_OrderLineRow> {
                 Text(
                   'صنف ${widget.index + 1}',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 const Spacer(),
                 if (widget.onRemove != null)
                   IconButton(
-                    icon: const Icon(Icons.remove_circle_outline,
-                        size: 18, color: Colors.red),
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+                      size: 18,
+                      color: Colors.red,
+                    ),
                     onPressed: widget.onRemove,
-                    tooltip:     'حذف',
-                    padding:     EdgeInsets.zero,
+                    tooltip: 'حذف',
+                    padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
               ],
@@ -101,15 +85,13 @@ class _OrderLineRowState extends State<_OrderLineRow> {
 
             // ── Item Selector ───────────────────
             InkWell(
-              onTap: () async {
-               
-              },
+              onTap: () async {},
               borderRadius: BorderRadius.circular(8),
               child: InputDecorator(
                 decoration: const InputDecoration(
-                  labelText:  'الصنف *',
+                  labelText: 'الصنف *',
                   suffixIcon: Icon(Icons.arrow_drop_down),
-                  isDense:    true,
+                  isDense: true,
                 ),
                 child: Text(
                   widget.line.itemName.isEmpty
@@ -133,10 +115,11 @@ class _OrderLineRowState extends State<_OrderLineRow> {
                     controller: widget.line.qtyCtrl,
                     decoration: const InputDecoration(
                       labelText: 'الكمية',
-                      isDense:   true,
+                      isDense: true,
                     ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     onChanged: (_) => setState(() {}),
                     validator: (v) {
                       final n = double.tryParse(v ?? '');
@@ -148,13 +131,14 @@ class _OrderLineRowState extends State<_OrderLineRow> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
-                    controller: widget.line.costCtrl,
+                    controller: widget.line.rateCtrl,
                     decoration: const InputDecoration(
                       labelText: 'سعر الشراء',
-                      isDense:   true,
+                      isDense: true,
                     ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     onChanged: (_) => setState(() {}),
                     validator: (v) {
                       final n = double.tryParse(v ?? '');
@@ -167,20 +151,21 @@ class _OrderLineRowState extends State<_OrderLineRow> {
                 // Line Total
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.08),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     widget.line.lineTotal.toStringAsFixed(2), // ← إصلاح warning
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color:      Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],

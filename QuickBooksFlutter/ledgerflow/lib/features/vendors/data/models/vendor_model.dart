@@ -1,4 +1,4 @@
-﻿// vendor_model.dart
+// vendor_model.dart
 // vendor_model.dart
 
 class VendorModel {
@@ -25,15 +25,15 @@ class VendorModel {
   final String currency;
 
   factory VendorModel.fromJson(Map<String, dynamic> json) => VendorModel(
-        id:            json['id'] as String,
-        displayName:   json['displayName'] as String,
-        isActive:      json['isActive'] as bool,
-        balance:       (json['balance'] as num).toDouble(),
-        creditBalance: (json['creditBalance'] as num? ?? 0).toDouble(),
-        companyName:   json['companyName'] as String?,
-        email:         json['email'] as String?,
-        phone:         json['phone'] as String?,
-        currency:      json['currency'] as String? ?? 'EGP',
+        id:            json['id']?.toString() ?? '',
+        displayName:   json['displayName']?.toString() ?? '',
+        isActive:      json['isActive'] == true || json['isActive'] == 1,
+        balance:       double.tryParse(json['balance']?.toString() ?? '') ?? 0,
+        creditBalance: double.tryParse(json['creditBalance']?.toString() ?? '') ?? 0,
+        companyName:   json['companyName']?.toString(),
+        email:         json['email']?.toString(),
+        phone:         json['phone']?.toString(),
+        currency:      json['currency']?.toString() ?? 'EGP',
       );
 
   Map<String, dynamic> toCreateJson() => {

@@ -1,8 +1,8 @@
-﻿// purchase_order_card.dart
 // purchase_order_card.dart
+// Shared PO card widget — aligned with updated model.
 
 import 'package:flutter/material.dart';
-import '../../../core/utils/date_formatter.dart';
+import 'package:intl/intl.dart';
 import '../data/models/purchase_order_model.dart';
 import 'order_status_badge.dart';
 
@@ -21,6 +21,7 @@ class PurchaseOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final fmt   = DateFormat('dd/MM/yyyy');
 
     return Card(
       child: ListTile(
@@ -61,7 +62,7 @@ class PurchaseOrderCard extends StatelessWidget {
               ),
             ),
             Text(
-              DateFormatter.format(order.orderDate),
+              fmt.format(order.orderDate),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.textTheme.bodyMedium?.color
                     ?.withValues(alpha: 0.4),

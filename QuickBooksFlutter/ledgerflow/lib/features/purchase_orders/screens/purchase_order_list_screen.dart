@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+// purchase_order_list_screen.dart
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/purchase_orders_provider.dart';
 import '../data/models/purchase_order_model.dart';
-import '../widgets/order_status_badge.dart';
 import '../../../app/router.dart';
 
 class PurchaseOrderListScreen extends ConsumerStatefulWidget {
@@ -16,14 +17,14 @@ class PurchaseOrderListScreen extends ConsumerStatefulWidget {
 
 class _PurchaseOrderListScreenState
     extends ConsumerState<PurchaseOrderListScreen> {
-  String? _selectedStatus;
+  PurchaseOrderStatus? _selectedStatus;
 
-  static const _statuses = [
-    (null, 'الكل'),
-    ('Draft', 'مسودة'),
-    ('Open', 'مفتوح'),
-    ('Closed', 'مغلق'),
-    ('Cancelled', 'ملغي'),
+  static const _filters = [
+    (null, 'الكل | All'),
+    (PurchaseOrderStatus.draft, 'مسودة | Draft'),
+    (PurchaseOrderStatus.open, 'مفتوح | Open'),
+    (PurchaseOrderStatus.closed, 'مغلق | Closed'),
+    (PurchaseOrderStatus.cancelled, 'ملغي | Cancelled'),
   ];
 
   @override
@@ -33,7 +34,7 @@ class _PurchaseOrderListScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('أوامر الشراء'),
+        title: const Text('أوامر الشراء | Purchase Orders'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -43,26 +44,26 @@ class _PurchaseOrderListScreenState
         ],
       ),
 
-      // ── Filter Chips ──────────────────────────────────────────────
       body: Column(
         children: [
+          // ── Filter Chips ──────────────────────────────────────────
           SizedBox(
             height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              children: _statuses.map((s) {
-                final isSelected = _selectedStatus == s.$1;
+              children: _filters.map((f) {
+                final isSelected = _selectedStatus == f.$1;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
-                    label: Text(s.$2),
+                    label: Text(f.$2),
                     selected: isSelected,
                     onSelected: (_) {
-                      setState(() => _selectedStatus = s.$1);
+                      setState(() => _selectedStatus = f.$1);
                       ref
                           .read(purchaseOrdersProvider.notifier)
-                          .setStatus(s.$1);
+                          .setStatusFilter(f.$1);
                     },
                   ),
                 );
@@ -87,7 +88,7 @@ class _PurchaseOrderListScreenState
                     const SizedBox(height: 12),
                     TextButton.icon(
                       icon: const Icon(Icons.refresh),
-                      label: const Text('إعادة المحاولة'),
+                      label: const Text('إعادة المحاولة | Retry'),
                       onPressed: () => ref
                           .read(purchaseOrdersProvider.notifier)
                           .refresh(),
@@ -122,7 +123,7 @@ class _PurchaseOrderListScreenState
 
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
-        label: const Text('أمر جديد'),
+        label: const Text('أمر جديد | New Order'),
         onPressed: () => context.push(AppRoutes.purchaseOrderNew),
       ),
     );
@@ -160,7 +161,7 @@ class _PoCard extends StatelessWidget {
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w600)),
             ),
-            OrderStatusBadge(status: order.status),
+            _StatusBadge(status: order.status),
           ],
         ),
         subtitle: Column(
@@ -186,6 +187,34 @@ class _PoCard extends StatelessWidget {
   }
 }
 
+// ─── Status Badge ─────────────────────────────────────────────────────
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+  final PurchaseOrderStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color bg, Color fg) = switch (status) {
+      PurchaseOrderStatus.draft     => (Colors.grey.shade200, Colors.grey.shade700),
+      PurchaseOrderStatus.open      => (Colors.green.shade100, Colors.green.shade800),
+      PurchaseOrderStatus.closed    => (Colors.blue.shade100, Colors.blue.shade800),
+      PurchaseOrderStatus.cancelled => (Colors.red.shade100, Colors.red.shade800),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        status.labelAr,
+        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
 // ─── Empty State ──────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onNew});
@@ -203,15 +232,14 @@ class _EmptyState extends StatelessWidget {
                     .primary
                     .withValues(alpha: 0.3)),
             const SizedBox(height: 16),
-            const Text('لا توجد أوامر شراء',
+            const Text('لا توجد أوامر شراء | No purchase orders',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            const Text('ابدأ بإنشاء أمر شراء جديد',
-                style: TextStyle(color: Colors.grey)),
+            const Text('ابدأ بإنشاء أمر شراء جديد'),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               icon: const Icon(Icons.add),
-              label: const Text('أمر جديد'),
+              label: const Text('أمر جديد | New Order'),
               onPressed: onNew,
             ),
           ],

@@ -118,4 +118,64 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get income => 'دخل';
+
+  @override
+  String get newPurchaseOrder => 'أمر شراء جديد';
+
+  @override
+  String get saveDraft => 'حفظ مسودة';
+
+  @override
+  String get saveAndOpen => 'حفظ وفتح';
+
+  @override
+  String get clear => 'مسح';
+
+  @override
+  String get vendor => 'المورد';
+
+  @override
+  String get poDate => 'تاريخ الأمر';
+
+  @override
+  String get expectedDate => 'التاريخ المتوقع';
+
+  @override
+  String get itemService => 'الصنف / الخدمة';
+
+  @override
+  String get description => 'الوصف';
+
+  @override
+  String get qty => 'الكمية';
+
+  @override
+  String get rate => 'السعر';
+
+  @override
+  String get amount => 'الإجمالي';
+
+  @override
+  String get totalAmount => 'الإجمالي الكلي';
+
+  @override
+  String get memoInternal => 'ملاحظات داخلية';
+
+  @override
+  String get addLine => 'إضافة سطر';
+
+  @override
+  String get selectItem => 'اختر صنفاً...';
+
+  @override
+  String get selectVendor => 'اختر مورداً...';
+
+  @override
+  String get poCreatedSuccess => 'تم حفظ أمر الشراء بنجاح';
+
+  @override
+  String get poSavedAsDraft => 'تم حفظ المسودة بنجاح';
+
+  @override
+  String get poSavedAsOpen => 'تم حفظ وفتح أمر الشراء بنجاح';
 }

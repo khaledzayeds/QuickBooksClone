@@ -1,4 +1,4 @@
-﻿// item_model.dart
+// item_model.dart
 // item_model.dart
 
 class ItemModel {
@@ -43,24 +43,25 @@ class ItemModel {
   final String?  expenseAccountName;
 
   factory ItemModel.fromJson(Map<String, dynamic> json) => ItemModel(
-        id:                       json['id'] as String,
-        name:                     json['name'] as String,
-        itemType:                 ItemType.fromValue(json['itemType'] as int),
-        salesPrice:               (json['salesPrice'] as num).toDouble(),
-        purchasePrice:            (json['purchasePrice'] as num).toDouble(),
-        quantityOnHand:           (json['quantityOnHand'] as num).toDouble(),
-        isActive:                 json['isActive'] as bool,
-        sku:                      json['sku'] as String?,
-        barcode:                  json['barcode'] as String?,
-        unit:                     json['unit'] as String?,
-        incomeAccountId:          json['incomeAccountId'] as String?,
-        incomeAccountName:        json['incomeAccountName'] as String?,
-        inventoryAssetAccountId:  json['inventoryAssetAccountId'] as String?,
-        inventoryAssetAccountName:json['inventoryAssetAccountName'] as String?,
-        cogsAccountId:            json['cogsAccountId'] as String?,
-        cogsAccountName:          json['cogsAccountName'] as String?,
-        expenseAccountId:         json['expenseAccountId'] as String?,
-        expenseAccountName:       json['expenseAccountName'] as String?,
+        id:                        json['id']?.toString() ?? '',
+        name:                      json['name']?.toString() ?? '',
+        itemType:                  ItemType.fromValue(
+                                     int.tryParse(json['itemType']?.toString() ?? '') ?? 1),
+        salesPrice:                double.tryParse(json['salesPrice']?.toString() ?? '') ?? 0,
+        purchasePrice:             double.tryParse(json['purchasePrice']?.toString() ?? '') ?? 0,
+        quantityOnHand:            double.tryParse(json['quantityOnHand']?.toString() ?? '') ?? 0,
+        isActive:                  json['isActive'] == true || json['isActive'] == 1,
+        sku:                       json['sku']?.toString(),
+        barcode:                   json['barcode']?.toString(),
+        unit:                      json['unit']?.toString(),
+        incomeAccountId:           json['incomeAccountId']?.toString(),
+        incomeAccountName:         json['incomeAccountName']?.toString(),
+        inventoryAssetAccountId:   json['inventoryAssetAccountId']?.toString(),
+        inventoryAssetAccountName: json['inventoryAssetAccountName']?.toString(),
+        cogsAccountId:             json['cogsAccountId']?.toString(),
+        cogsAccountName:           json['cogsAccountName']?.toString(),
+        expenseAccountId:          json['expenseAccountId']?.toString(),
+        expenseAccountName:        json['expenseAccountName']?.toString(),
       );
 
   Map<String, dynamic> toCreateJson() => {

@@ -319,6 +319,126 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'دخل'**
   String get income;
+
+  /// No description provided for @newPurchaseOrder.
+  ///
+  /// In ar, this message translates to:
+  /// **'أمر شراء جديد'**
+  String get newPurchaseOrder;
+
+  /// No description provided for @saveDraft.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ مسودة'**
+  String get saveDraft;
+
+  /// No description provided for @saveAndOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ وفتح'**
+  String get saveAndOpen;
+
+  /// No description provided for @clear.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح'**
+  String get clear;
+
+  /// No description provided for @vendor.
+  ///
+  /// In ar, this message translates to:
+  /// **'المورد'**
+  String get vendor;
+
+  /// No description provided for @poDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الأمر'**
+  String get poDate;
+
+  /// No description provided for @expectedDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'التاريخ المتوقع'**
+  String get expectedDate;
+
+  /// No description provided for @itemService.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصنف / الخدمة'**
+  String get itemService;
+
+  /// No description provided for @description.
+  ///
+  /// In ar, this message translates to:
+  /// **'الوصف'**
+  String get description;
+
+  /// No description provided for @qty.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكمية'**
+  String get qty;
+
+  /// No description provided for @rate.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get rate;
+
+  /// No description provided for @amount.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي'**
+  String get amount;
+
+  /// No description provided for @totalAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي الكلي'**
+  String get totalAmount;
+
+  /// No description provided for @memoInternal.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظات داخلية'**
+  String get memoInternal;
+
+  /// No description provided for @addLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة سطر'**
+  String get addLine;
+
+  /// No description provided for @selectItem.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر صنفاً...'**
+  String get selectItem;
+
+  /// No description provided for @selectVendor.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر مورداً...'**
+  String get selectVendor;
+
+  /// No description provided for @poCreatedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ أمر الشراء بنجاح'**
+  String get poCreatedSuccess;
+
+  /// No description provided for @poSavedAsDraft.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ المسودة بنجاح'**
+  String get poSavedAsDraft;
+
+  /// No description provided for @poSavedAsOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ وفتح أمر الشراء بنجاح'**
+  String get poSavedAsOpen;
 }
 
 class _AppLocalizationsDelegate

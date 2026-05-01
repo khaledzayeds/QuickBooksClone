@@ -25,6 +25,8 @@ class AppColors {
   static const offsetDark      = Color(0xFF181818);
   static const dividerDark     = Color(0xFF333333);
   static const borderDark      = Color(0xFF333333);
+  static const sidebarBg       = Color(0xFF2E3344); // QuickBooks Dark Navy
+  static const sidebarActive   = Color(0xFF3E4459);
 
   // ─── Text (Light) ───────────────────────────────
   static const textLight       = Color(0xFF393A3D);

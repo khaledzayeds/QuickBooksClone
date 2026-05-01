@@ -1,13 +1,21 @@
-﻿import 'package:flutter/material.dart';
+// purchase_order_form_screen.dart
+// Premium QuickBooks-style Purchase Order form.
+// Aligned with backend CreatePurchaseOrderRequest contract.
+// Fully localized using AppLocalizations.
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../items/providers/items_provider.dart';
-import '../../vendors/providers/vendors_provider.dart';
-import '../providers/purchase_orders_provider.dart';
-import '../data/models/purchase_order_model.dart';
-import '../../../../core/widgets/app_text_field.dart';
 
+import '../../../../core/widgets/transaction_line_table.dart';
+import '../../../../core/widgets/transaction_vendor_picker.dart';
+import '../../vendors/data/models/vendor_model.dart';
+import '../data/models/purchase_order_model.dart';
+import '../data/models/order_line_entry.dart';
+import '../providers/purchase_orders_provider.dart';
+import '../../../../app/router.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PurchaseOrderFormScreen extends ConsumerStatefulWidget {
   const PurchaseOrderFormScreen({super.key});
@@ -19,581 +27,261 @@ class PurchaseOrderFormScreen extends ConsumerStatefulWidget {
 
 class _PurchaseOrderFormScreenState
     extends ConsumerState<PurchaseOrderFormScreen> {
-  final _formKey = GlobalKey<FormState>();
 
-  // Header fields
-  String?  _vendorId;
-  String   _vendorName  = '';
-  DateTime _orderDate   = DateTime.now();
-  DateTime? _expectedDate;
-  final    _notesCtrl   = TextEditingController();
-
-  // Lines
-  final List<_LineEntry> _lines = [];
-
+  // ── State (Mixed Riverpod + Local State) ───────────────────────────
+  VendorModel? _vendor;
+  DateTime     _orderDate    = DateTime.now();
+  DateTime     _expectedDate = DateTime.now().add(const Duration(days: 7));
+  final List<TransactionLineEntry> _lines = [];
   bool _saving = false;
-  int  _step   = 0; // 0=Vendor, 1=Lines, 2=Review
+
+  @override
+  void initState() {
+    super.initState();
+    _lines.add(TransactionLineEntry());
+  }
 
   @override
   void dispose() {
-    _notesCtrl.dispose();
     for (final l in _lines) l.dispose();
     super.dispose();
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-  double get _total =>
-      _lines.fold(0, (s, l) => s + l.quantity * l.unitCost);
+  double get _total => _lines.fold(0, (s, l) => s + l.amount);
 
   Future<void> _save(SaveMode mode) async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_vendorId == null) {
-      _showError('اختر المورد أولاً');
-      return;
+    final l10n = AppLocalizations.of(context)!;
+    if (_vendor == null) { 
+      _showErr(l10n.selectVendor); 
+      return; 
     }
-    if (_lines.isEmpty) {
-      _showError('أضف صنفاً واحداً على الأقل');
-      return;
+    
+    final validLines = _lines.where((l) => l.itemId != null && l.qty > 0).toList();
+    if (validLines.isEmpty) { 
+      _showErr(l10n.selectItem); 
+      return; 
     }
 
     setState(() => _saving = true);
     try {
       final dto = CreatePurchaseOrderDto(
-        vendorId:     _vendorId!,
+        vendorId:     _vendor!.id,
         orderDate:    _orderDate,
         expectedDate: _expectedDate,
-        notes:        _notesCtrl.text.trim().isEmpty
-            ? null
-            : _notesCtrl.text.trim(),
-        saveMode: mode,
-        lines: _lines
-            .map((l) => CreatePurchaseLineDto(
-                  itemId:      l.itemId!,
-                  quantity:    l.quantity,
-                  unitCost:    l.unitCost,
-                  description: l.descriptionCtrl.text.trim().isEmpty
-                      ? null
-                      : l.descriptionCtrl.text.trim(),
-                ))
-            .toList(),
+        saveMode:     mode,
+        lines: validLines.map((l) => CreatePurchaseLineDto(
+          itemId:      l.itemId!,
+          quantity:    l.qty,
+          unitCost:    l.rate,
+          description: l.descCtrl.text.trim().isEmpty ? null : l.descCtrl.text.trim(),
+        )).toList(),
       );
-
-      final result = await ref
-          .read(purchaseOrdersRepoProvider)
-          .create(dto);
-
+      
+      final repo   = ref.read(purchaseOrdersRepoProvider);
+      final result = await repo.create(dto);
+      
       result.when(
-        success: (_) {
+        success: (newOrder) {
           ref.read(purchaseOrdersProvider.notifier).refresh();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('تم إنشاء أمر الشراء بنجاح ✅')),
-            );
-            context.pop();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(mode == SaveMode.saveAsOpen
+                  ? l10n.poSavedAsOpen
+                  : l10n.poSavedAsDraft),
+              backgroundColor: Colors.green.shade700,
+            ));
+            context.pushReplacement(
+                AppRoutes.purchaseOrderDetails.replaceFirst(':id', newOrder.id));
           }
         },
-        failure: (e) => _showError(e.message),
+        failure: (e) => _showErr(e.message),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(msg),
-          backgroundColor: Theme.of(context).colorScheme.error),
-    );
+  void _showErr(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: Colors.red.shade800,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────
+  Future<void> _pickDate(bool isExpected) async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: isExpected ? _expectedDate : _orderDate,
+      firstDate: DateTime(2024),
+      lastDate:  DateTime(2030),
+    );
+    if (d == null) return;
+    setState(() {
+      if (isExpected) _expectedDate = d; else _orderDate = d;
+    });
+  }
+
+  void _clear() {
+    setState(() {
+      _vendor = null;
+      _orderDate = DateTime.now();
+      _expectedDate = DateTime.now().add(const Duration(days: 7));
+      for (final l in _lines) l.dispose();
+      _lines.clear();
+      _lines.add(TransactionLineEntry()); 
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme  = Theme.of(context);
+    final l10n   = AppLocalizations.of(context)!;
+    final isWide = MediaQuery.sizeOf(context).width > 1100;
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F7F9),
       appBar: AppBar(
-        title: const Text('أمر شراء جديد'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: _StepIndicator(current: _step),
-        ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: IndexedStack(
-          index: _step,
-          children: [
-            _buildVendorStep(),
-            _buildLinesStep(),
-            _buildReviewStep(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomBar(),
-    );
-  }
-
-  // ── Step 0: Vendor ────────────────────────────────────────────────────
-  Widget _buildVendorStep() {
-    final vendorsAsync = ref.watch(vendorsProvider);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Vendor dropdown
-        vendorsAsync.when(
-          loading: () => const LinearProgressIndicator(),
-          error: (e, _) => Text('خطأ: $e'),
-          data: (vendors) => DropdownButtonFormField<String>(
-            value: _vendorId,
-            decoration: const InputDecoration(
-              labelText: 'المورد *',
-              prefixIcon: Icon(Icons.business_outlined),
-            ),
-            items: vendors
-                .map((v) => DropdownMenuItem(
-                      value: v.id,
-                      child: Text(v.displayName),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              setState(() {
-                _vendorId   = v;
-                _vendorName = vendors
-                    .firstWhere((x) => x.id == v)
-                    .displayName;
-              });
-            },
-            validator: (v) => v == null ? 'اختر المورد' : null,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Order Date
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.calendar_today_outlined),
-          title: const Text('تاريخ الأمر'),
-          subtitle: Text(DateFormat('yyyy/MM/dd').format(_orderDate)),
-          onTap: () async {
-            final d = await showDatePicker(
-              context: context,
-              initialDate: _orderDate,
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2030),
-            );
-            if (d != null) setState(() => _orderDate = d);
-          },
-        ),
-
-        const Divider(),
-
-        // Expected Date
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.event_outlined),
-          title: const Text('تاريخ التسليم المتوقع'),
-          subtitle: Text(_expectedDate != null
-              ? DateFormat('yyyy/MM/dd').format(_expectedDate!)
-              : 'اختياري'),
-          trailing: _expectedDate != null
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => setState(() => _expectedDate = null),
-                )
-              : null,
-          onTap: () async {
-            final d = await showDatePicker(
-              context: context,
-              initialDate: _expectedDate ?? DateTime.now(),
-              firstDate: DateTime.now(),
-              lastDate: DateTime(2030),
-            );
-            if (d != null) setState(() => _expectedDate = d);
-          },
-        ),
-
-        const SizedBox(height: 16),
-
-        AppTextField(
-          label: 'ملاحظات',
-          controller: _notesCtrl,
-          maxLines: 3,
-          hint: 'ملاحظات اختيارية...',
-        ),
-      ],
-    );
-  }
-
-  // ── Step 1: Lines ─────────────────────────────────────────────────────
-  Widget _buildLinesStep() {
-    final itemsAsync = ref.watch(itemsProvider);
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              ..._lines.asMap().entries.map((e) =>
-                  _LineEditor(
-                    entry:      e.value,
-                    index:      e.key,
-                    itemsAsync: itemsAsync,
-                    onDelete: () => setState(() => _lines.removeAt(e.key)),
-                    onChanged: () => setState(() {}),
-                  )),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('إضافة صنف'),
-                onPressed: () => setState(() => _lines.add(_LineEntry())),
-              ),
-            ],
-          ),
-        ),
-
-        // Total bar
-        Container(
-          color: Theme.of(context)
-              .colorScheme
-              .primaryContainer
-              .withValues(alpha: 0.3),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('الإجمالي',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              Text('${_total.toStringAsFixed(2)} ج.م',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      color:
-                          Theme.of(context).colorScheme.primary)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Step 2: Review ────────────────────────────────────────────────────
-  Widget _buildReviewStep() => ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _ReviewSection(
-            title: 'بيانات الأمر',
-            rows: [
-              ('المورد',          _vendorName),
-              ('تاريخ الأمر',
-                  DateFormat('yyyy/MM/dd').format(_orderDate)),
-              if (_expectedDate != null)
-                ('تاريخ التسليم',
-                    DateFormat('yyyy/MM/dd').format(_expectedDate!)),
-              if (_notesCtrl.text.isNotEmpty)
-                ('ملاحظات', _notesCtrl.text),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _ReviewSection(
-            title: 'الأصناف (${_lines.length})',
-            rows: _lines.map((l) => (l.itemName, '${l.quantity} × ${l.unitCost} = ${(l.quantity * l.unitCost).toStringAsFixed(2)}')).toList(),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .primaryContainer
-                  .withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('الإجمالي الكلي',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 16)),
-                Text('${_total.toStringAsFixed(2)} ج.م',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                        color:
-                            Theme.of(context).colorScheme.primary)),
-              ],
-            ),
-          ),
+        backgroundColor: Colors.white,
+        title: Text(l10n.newPurchaseOrder, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        actions: [
+          _ActionButton(label: l10n.clear, icon: Icons.refresh_outlined, onPressed: _clear, isSecondary: true),
+          const SizedBox(width: 8),
+          _ActionButton(label: l10n.saveDraft, icon: Icons.save_outlined, onPressed: _saving ? null : () => _save(SaveMode.draft), isSecondary: true, isLoading: _saving),
+          const SizedBox(width: 8),
+          _ActionButton(label: l10n.saveAndOpen, icon: Icons.check_circle_outline, onPressed: _saving ? null : () => _save(SaveMode.saveAsOpen), isLoading: _saving),
+          const SizedBox(width: 16),
         ],
-      );
+      ),
 
-  // ── Bottom Bar ────────────────────────────────────────────────────────
-  Widget _buildBottomBar() => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              if (_step > 0)
-                OutlinedButton(
-                  onPressed: () => setState(() => _step--),
-                  child: const Text('السابق'),
-                ),
-              const Spacer(),
-              if (_step < 2)
-                ElevatedButton(
-                  onPressed: _canNext()
-                      ? () => setState(() => _step++)
-                      : null,
-                  child: const Text('التالي'),
-                )
-              else ...[
-                OutlinedButton(
-                  onPressed: _saving ? null : () => _save(SaveMode.draft),
-                  child: const Text('حفظ كمسودة'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed:
-                      _saving ? null : () => _save(SaveMode.saveAndOpen),
-                  child: _saving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('حفظ وفتح'),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-
-  bool _canNext() {
-    if (_step == 0) return _vendorId != null;
-    if (_step == 1) return _lines.isNotEmpty && _lines.every((l) => l.isValid);
-    return true;
-  }
-}
-
-// ─── Line Entry (State) ───────────────────────────────────────────────
-class _LineEntry {
-  String?  itemId;
-  String   itemName  = '';
-  double   quantity  = 1;
-  double   unitCost  = 0;
-  final    descriptionCtrl = TextEditingController();
-  bool get isValid => itemId != null && quantity > 0 && unitCost > 0;
-  void dispose() => descriptionCtrl.dispose();
-}
-
-// ─── Line Editor Widget ───────────────────────────────────────────────
-class _LineEditor extends ConsumerStatefulWidget {
-  const _LineEditor({
-    required this.entry,
-    required this.index,
-    required this.itemsAsync,
-    required this.onDelete,
-    required this.onChanged,
-  });
-  final _LineEntry     entry;
-  final int            index;
-  final AsyncValue     itemsAsync;
-  final VoidCallback   onDelete;
-  final VoidCallback   onChanged;
-
-  @override
-  ConsumerState<_LineEditor> createState() => _LineEditorState();
-}
-
-class _LineEditorState extends ConsumerState<_LineEditor> {
-  final _qtyCtrl  = TextEditingController(text: '1');
-  final _costCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _qtyCtrl.dispose();
-    _costCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('صنف ${widget.index + 1}',
-                    style: Theme.of(context).textTheme.labelSmall),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  color: Theme.of(context).colorScheme.error,
-                  onPressed: widget.onDelete,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Item selector
-            widget.itemsAsync.when(
-              loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text('$e'),
-              data: (items) => DropdownButtonFormField<String>(
-                value: widget.entry.itemId,
-                decoration: const InputDecoration(
-                  labelText: 'الصنف *',
-                  isDense: true,
-                ),
-                items: (items as dynamic).map<DropdownMenuItem<String>>((i) =>
-                    DropdownMenuItem(value: i.id, child: Text(i.name))).toList(),
-                onChanged: (v) {
-                  setState(() {
-                    widget.entry.itemId   = v;
-                    widget.entry.itemName = (items as dynamic)
-                        .firstWhere((i) => i.id == v)
-                        .name as String;
-                  });
-                  widget.onChanged();
-                },
-              ),
-            ),
-
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _qtyCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'الكمية', isDense: true),
-                    keyboardType: TextInputType.number,
-                    onChanged: (v) {
-                      widget.entry.quantity =
-                          double.tryParse(v) ?? 0;
-                      widget.onChanged();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _costCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'التكلفة', isDense: true),
-                    keyboardType: TextInputType.number,
-                    onChanged: (v) {
-                      widget.entry.unitCost =
-                          double.tryParse(v) ?? 0;
-                      widget.onChanged();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${(widget.entry.quantity * widget.entry.unitCost).toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
-          ],
-        ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _buildMainForm(theme, l10n, DateFormat('dd/MM/yyyy'))),
+          if (isWide && _vendor != null) _VendorSidebar(vendor: _vendor!),
+        ],
       ),
     );
   }
-}
 
-// ─── Step Indicator ───────────────────────────────────────────────────
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.current});
-  final int current;
-
-  static const _steps = ['المورد', 'الأصناف', 'مراجعة'];
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: _steps.asMap().entries.map((e) {
-        final active = e.key == current;
-        final done   = e.key < current;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 12,
-                backgroundColor: done || active ? cs.primary : cs.outline,
-                child: done
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
-                    : Text('${e.key + 1}',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: active ? Colors.white : cs.onSurface)),
-              ),
-              const SizedBox(width: 4),
-              Text(e.value,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: active
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: active ? cs.primary : cs.onSurface)),
-            ],
+  Widget _buildMainForm(ThemeData theme, AppLocalizations l10n, DateFormat fmt) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(l10n.purchaseOrders.toUpperCase(), style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900, color: Colors.blue.shade900)),
+                    if (_vendor != null) _InfoBadge(label: l10n.vendor.toUpperCase(), value: _vendor!.displayName),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 20,
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  children: [
+                    SizedBox(width: 350, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      _FieldLabel(l10n.vendor.toUpperCase()),
+                      const SizedBox(height: 8),
+                      VendorPickerField(value: _vendor, onChanged: (v) => setState(() => _vendor = v), label: l10n.vendor),
+                    ])),
+                    _DateField(label: l10n.poDate.toUpperCase(), value: _orderDate, fmt: fmt, onTap: () => _pickDate(false)),
+                    _DateField(label: l10n.expectedDate.toUpperCase(), value: _expectedDate, fmt: fmt, onTap: () => _pickDate(true)),
+                  ],
+                ),
+              ],
+            ),
           ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// ─── Review Section ───────────────────────────────────────────────────
-class _ReviewSection extends StatelessWidget {
-  const _ReviewSection({required this.title, required this.rows});
-  final String title;
-  final List<(String, String)> rows;
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+            clipBehavior: Clip.antiAlias,
+            child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: TransactionLineTable(lines: _lines, onChanged: () => setState(() {}))),
+          ),
+          const SizedBox(height: 24),
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700)),
-              const Divider(height: 16),
-              ...rows.map((r) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Text(r.$1,
-                            style: TextStyle(
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.color
-                                    ?.withValues(alpha: 0.6))),
-                        const Spacer(),
-                        Text(r.$2,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  )),
+              Expanded(flex: 3, child: Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _FieldLabel(l10n.memoInternal.toUpperCase()),
+                const SizedBox(height: 8),
+                TextField(maxLines: 3, decoration: InputDecoration(hintText: '${l10n.memoInternal}...', filled: true, fillColor: const Color(0xFFFAFAFA), border: const OutlineInputBorder())),
+              ]))),
+              const SizedBox(width: 24),
+              Expanded(flex: 2, child: Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.blue.shade900, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(l10n.totalAmount.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                const SizedBox(height: 8),
+                Text('${_total.toStringAsFixed(2)} ج.م', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+              ]))),
             ],
           ),
-        ),
-      );
+        ],
+      ),
+    );
+  }
+}
+
+// ── Components (Same as before but corrected path) ──────────────────
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.label);
+  final String label;
+  @override Widget build(BuildContext context) => Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.blueGrey, letterSpacing: 0.5));
+}
+
+class _DateField extends StatelessWidget {
+  const _DateField({required this.label, required this.value, required this.fmt, required this.onTap});
+  final String label; final DateTime value; final DateFormat fmt; final VoidCallback onTap;
+  @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    _FieldLabel(label), const SizedBox(height: 8),
+    InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8), child: Container(width: 160, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)), child: Row(children: [Expanded(child: Text(fmt.format(value), style: const TextStyle(fontWeight: FontWeight.w600))), const Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey)]))),
+  ]);
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({required this.label, required this.icon, this.onPressed, this.isSecondary = false, this.isLoading = false});
+  final String label; final IconData icon; final VoidCallback? onPressed; final bool isSecondary; final bool isLoading;
+  @override Widget build(BuildContext context) {
+    if (isSecondary) return OutlinedButton.icon(onPressed: onPressed, style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), side: BorderSide(color: Colors.blue.shade800), foregroundColor: Colors.blue.shade800), icon: isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(icon, size: 18), label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)));
+    return FilledButton.icon(onPressed: onPressed, style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), backgroundColor: Colors.blue.shade800), icon: isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Icon(icon, size: 18), label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)));
+  }
+}
+
+class _InfoBadge extends StatelessWidget {
+  const _InfoBadge({required this.label, required this.value});
+  final String label; final String value;
+  @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(20)), child: Row(children: [Text('$label: ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.blue.shade900)), Text(value, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.blue.shade800))]));
+}
+
+class _VendorSidebar extends StatelessWidget {
+  const _VendorSidebar({required this.vendor});
+  final VendorModel vendor;
+  @override Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(width: 280, padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.white, border: Border(left: BorderSide(color: Colors.grey.shade300))), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      CircleAvatar(backgroundColor: Colors.blue.shade900, radius: 32, child: Text(vendor.initials, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900))),
+      const SizedBox(height: 16), Text(vendor.displayName, textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+      const SizedBox(height: 8), Text(vendor.companyName ?? '', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+      const SizedBox(height: 32), const Divider(), const SizedBox(height: 16),
+      _SidebarItem(label: 'CURRENT BALANCE', value: '${vendor.balance.toStringAsFixed(2)} ج.م', isBold: true, color: vendor.balance > 0 ? Colors.orange.shade900 : Colors.green.shade900),
+      const SizedBox(height: 16), _SidebarItem(label: 'EMAIL', value: vendor.email ?? 'No email'),
+      const SizedBox(height: 16), _SidebarItem(label: 'PHONE', value: vendor.phone ?? 'No phone'),
+      const Spacer(), OutlinedButton(onPressed: () {}, child: const Text('VIEW VENDOR PROFILE')),
+    ]));
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  const _SidebarItem({required this.label, required this.value, this.isBold = false, this.color});
+  final String label; final String value; final bool isBold; final Color? color;
+  @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey, letterSpacing: 1)), const SizedBox(height: 4), Text(value, style: TextStyle(fontSize: 14, fontWeight: isBold ? FontWeight.w800 : FontWeight.w600, color: color))]);
 }

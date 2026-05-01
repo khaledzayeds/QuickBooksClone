@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import '../constants/app_constants.dart';
 import 'api_interceptors.dart';
 
@@ -8,6 +8,7 @@ class ApiClient {
 
   late final Dio _dio;
   bool _initialized = false;
+  String? _token;
 
   void init({String? baseUrl}) {
     if (_initialized) return;
@@ -39,6 +40,20 @@ class ApiClient {
   }
 
   void updateBaseUrl(String baseUrl) => _dio.options.baseUrl = baseUrl;
+
+  /// Called by AuthNotifier after successful login
+  void setToken(String token) {
+    _token = token;
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+
+  /// Called by AuthNotifier on logout
+  void clearToken() {
+    _token = null;
+    _dio.options.headers.remove('Authorization');
+  }
+
+  String? get currentToken => _token;
 
   Future<Response<T>> get<T>(String path,
           {Map<String, dynamic>? queryParameters}) =>

@@ -15,6 +15,7 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentLocale = ref.watch(localeProvider);
+    final router        = ref.watch(routerProvider); // ← Riverpod-aware router with auth redirect
 
     return MaterialApp.router(
       title: 'LedgerFlow',
@@ -31,12 +32,12 @@ class App extends ConsumerWidget {
       locale: currentLocale,
 
       // ─── Theme ─────────────────────────────────────
-      theme: AppTheme.lightTheme(currentLocale.languageCode),
+      theme:     AppTheme.lightTheme(currentLocale.languageCode),
       darkTheme: AppTheme.darkTheme(currentLocale.languageCode),
       themeMode: ThemeMode.system,
 
-      // ── Router ────────────────────────────────────
-      routerConfig: AppRouter.router,
+      // ── Router (with auth guard) ──────────────────
+      routerConfig: router,
     );
   }
 }

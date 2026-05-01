@@ -1,4 +1,8 @@
-﻿import 'package:dio/dio.dart';
+// purchase_orders_remote_datasource.dart
+// Aligned with backend: GET /api/purchase-orders uses includeClosed/includeCancelled,
+// NOT a status string param.
+
+import 'package:dio/dio.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/error_handler.dart';
@@ -7,35 +11,51 @@ import '../models/purchase_order_model.dart';
 class PurchaseOrdersRemoteDatasource {
   final _client = ApiClient.instance;
 
+  /// GET /api/purchase-orders
+  /// Query: search, vendorId, includeClosed, includeCancelled, page, pageSize
   Future<ApiResult<List<PurchaseOrderModel>>> getAll({
-    String? status,
+    String? search,
     String? vendorId,
-    int page  = 1,
-    int limit = 50,
+    bool includeClosed    = false,
+    bool includeCancelled = false,
+    int page     = 1,
+    int pageSize = 50,
   }) async {
     try {
       final r = await _client.get<dynamic>(
         '/api/purchase-orders',
         queryParameters: {
-          if (status   != null) 'status':   status,
+          if (search   != null && search.isNotEmpty) 'search': search,
           if (vendorId != null) 'vendorId': vendorId,
-          'page':  page,
-          'limit': limit,
+          'includeClosed':    includeClosed,
+          'includeCancelled': includeCancelled,
+          'page':     page,
+          'pageSize': pageSize,
         },
       );
+
+      // Response is PurchaseOrderListResponse: { items: [...], totalCount, page, pageSize }
       final data = r.data;
-      final list = (data is List
-          ? data
-          : (data['items'] ?? data['data'] ?? [])) as List<dynamic>;
+      final List<dynamic> list;
+      if (data is List) {
+        list = data;
+      } else if (data is Map) {
+        list = (data['items'] ?? data['data'] ?? []) as List<dynamic>;
+      } else {
+        list = [];
+      }
+
       return Success(
-        list.map((e) =>
-            PurchaseOrderModel.fromJson(e as Map<String, dynamic>)).toList(),
+        list
+            .map((e) => PurchaseOrderModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
   }
 
+  /// GET /api/purchase-orders/{id}
   Future<ApiResult<PurchaseOrderModel>> getById(String id) async {
     try {
       final r = await _client
@@ -46,6 +66,7 @@ class PurchaseOrdersRemoteDatasource {
     }
   }
 
+  /// POST /api/purchase-orders
   Future<ApiResult<PurchaseOrderModel>> create(
       CreatePurchaseOrderDto dto) async {
     try {
@@ -59,6 +80,7 @@ class PurchaseOrdersRemoteDatasource {
     }
   }
 
+  /// POST /api/purchase-orders/{id}/open
   Future<ApiResult<PurchaseOrderModel>> openOrder(String id) async {
     try {
       final r = await _client
@@ -69,6 +91,7 @@ class PurchaseOrdersRemoteDatasource {
     }
   }
 
+  /// POST /api/purchase-orders/{id}/close
   Future<ApiResult<PurchaseOrderModel>> closeOrder(String id) async {
     try {
       final r = await _client
@@ -79,6 +102,7 @@ class PurchaseOrdersRemoteDatasource {
     }
   }
 
+  /// PATCH /api/purchase-orders/{id}/cancel
   Future<ApiResult<PurchaseOrderModel>> cancelOrder(String id) async {
     try {
       final r = await _client
