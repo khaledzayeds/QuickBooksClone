@@ -65,7 +65,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
         controller: _tabController,
         children: const [
           DashboardFlowchart(),
-          const DashboardInsights(),
+          DashboardInsights(),
         ],
       ),
     );

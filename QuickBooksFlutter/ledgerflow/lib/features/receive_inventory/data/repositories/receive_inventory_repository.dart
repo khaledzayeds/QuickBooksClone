@@ -4,17 +4,21 @@ import '../../../../core/api/api_result.dart';
 import '../datasources/receive_inventory_remote_datasource.dart';
 import '../models/create_receive_inventory_dto.dart';
 import '../models/receive_inventory_model.dart';
+import '../models/receiving_plan_model.dart';
 
 class ReceiveInventoryRepository {
   ReceiveInventoryRepository(this._remote);
   final ReceiveInventoryRemoteDatasource _remote;
 
-  Future<ApiResult<List<ReceiveInventoryModel>>> getAll({String? purchaseOrderId}) =>
-      _remote.getAll(purchaseOrderId: purchaseOrderId);
+  Future<ApiResult<List<ReceiveInventoryModel>>> getAll({String? purchaseOrderId, String? vendorId}) =>
+      _remote.getAll(purchaseOrderId: purchaseOrderId, vendorId: vendorId);
 
   Future<ApiResult<ReceiveInventoryModel>> getById(String id) =>
       _remote.getById(id);
 
   Future<ApiResult<ReceiveInventoryModel>> create(CreateReceiveInventoryDto dto) =>
       _remote.create(dto);
+
+  Future<ApiResult<ReceivingPlanModel>> getReceivingPlan(String poId) =>
+      _remote.getReceivingPlan(poId);
 }

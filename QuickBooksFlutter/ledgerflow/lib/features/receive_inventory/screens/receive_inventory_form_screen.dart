@@ -1,5 +1,5 @@
 // receive_inventory_form_screen.dart
-// Fully localized and aligned with QuickBooks aesthetic.
+// Fully localized and aligned with backend receiving-plan flow.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +9,9 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 import '../../purchase_orders/data/models/purchase_order_model.dart';
 import '../../purchase_orders/providers/purchase_orders_provider.dart';
 import '../data/models/create_receive_inventory_dto.dart';
+import '../data/models/receiving_plan_model.dart';
 import '../providers/receive_inventory_provider.dart';
+import '../../../../core/widgets/transaction_sidebar.dart';
 
 class ReceiveInventoryFormScreen extends ConsumerStatefulWidget {
   /// Optional — if coming from PO Details, pre-select the order.
@@ -24,6 +26,9 @@ class ReceiveInventoryFormScreen extends ConsumerStatefulWidget {
 class _ReceiveInventoryFormScreenState
     extends ConsumerState<ReceiveInventoryFormScreen> {
   PurchaseOrderModel? _selectedOrder;
+  ReceivingPlanModel? _activePlan;
+  bool _loadingPlan = false;
+
   DateTime _receiptDate = DateTime.now();
   final _notesCtrl = TextEditingController();
   final Map<String, TextEditingController> _qtyControllers = {};
@@ -33,7 +38,9 @@ class _ReceiveInventoryFormScreenState
   @override
   void dispose() {
     _notesCtrl.dispose();
-    for (final c in _qtyControllers.values) c.dispose();
+    for (final c in _qtyControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -51,46 +58,72 @@ class _ReceiveInventoryFormScreenState
     }
   }
 
-  void _selectOrder(PurchaseOrderModel? order) {
+  Future<void> _selectOrder(PurchaseOrderModel? order) async {
     setState(() {
       _selectedOrder = order;
-      for (final c in _qtyControllers.values) c.dispose();
-      _qtyControllers.clear();
-      for (final line in order?.lines ?? <PurchaseOrderLine>[]) {
-        if (line.quantity > 0) {
-          _qtyControllers[line.id] = TextEditingController(
-            text: line.quantity.toStringAsFixed(2),
-          );
-        }
+      _activePlan = null;
+      for (final c in _qtyControllers.values) {
+        c.dispose();
       }
+      _qtyControllers.clear();
     });
+
+    if (order == null) return;
+
+    setState(() => _loadingPlan = true);
+    try {
+      final result = await ref.read(receiveInventoryRepoProvider).getReceivingPlan(order.id);
+      result.when(
+        success: (plan) {
+          if (mounted) {
+            setState(() {
+              _activePlan = plan;
+              for (final line in plan.lines) {
+                // Use suggested quantity as default
+                _qtyControllers[line.purchaseOrderLineId] = TextEditingController(
+                  text: line.suggestedReceiveQuantity.toStringAsFixed(2),
+                );
+              }
+            });
+          }
+        },
+        failure: (error) => _showError(error.message),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingPlan = false);
+    }
   }
 
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
     final order = _selectedOrder;
-    if (order == null) {
+    final plan = _activePlan;
+    
+    if (order == null || plan == null) {
       _showError(l10n.selectOpenPO);
       return;
     }
 
     final lines = <CreateReceiveInventoryLineDto>[];
-    for (final line in order.lines) {
+    for (final line in plan.lines) {
       final qty = double.tryParse(
-              _qtyControllers[line.id]?.text.trim() ?? '') ??
+              _qtyControllers[line.purchaseOrderLineId]?.text.trim() ?? '') ??
           0;
       if (qty <= 0) continue;
-      if (qty > line.quantity) {
+      
+      // Strict validation: cannot exceed remaining quantity
+      if (qty > line.remainingQuantity) {
         _showError(
-            '${line.description}: ${l10n.qty} > ${line.quantity.toStringAsFixed(2)}');
+            '${line.description}: ${l10n.qty} > ${line.remainingQuantity.toStringAsFixed(2)}');
         return;
       }
+      
       lines.add(CreateReceiveInventoryLineDto(
-        itemId: line.itemId,
-        quantity: qty,
-        unitCost: line.unitCost,
-        description: line.description,
-        purchaseOrderLineId: line.id,
+        itemId:              line.itemId,
+        quantity:            qty, // Backend expects 'quantity'
+        unitCost:            line.unitCost,
+        description:         line.description,
+        purchaseOrderLineId: line.purchaseOrderLineId,
       ));
     }
 
@@ -102,11 +135,13 @@ class _ReceiveInventoryFormScreenState
     setState(() => _saving = true);
     try {
       final dto = CreateReceiveInventoryDto(
-        vendorId: order.vendorId,
-        purchaseOrderId: order.id,
-        receiptDate: _receiptDate,
-        lines: lines,
+        vendorId:        plan.vendorId, // Using vendor from plan
+        purchaseOrderId: plan.purchaseOrderId,
+        receiptDate:     _receiptDate,
+        saveMode:        2, // Always SaveAndPost as requested
+        lines:           lines,
       );
+      
       final result = await ref.read(receiveInventoryRepoProvider).create(dto);
       result.when(
         success: (_) {
@@ -115,8 +150,7 @@ class _ReceiveInventoryFormScreenState
           ref.read(purchaseOrdersProvider.notifier).refresh();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('${l10n.riSavedSuccess} ✅')),
+              SnackBar(content: Text('${l10n.riSavedSuccess} ✅')),
             );
             context.pop();
           }
@@ -151,12 +185,16 @@ class _ReceiveInventoryFormScreenState
         error: (e, _) => Center(child: Text(e.toString())),
         data: (orders) {
           _tryPreselect(orders);
-          return ListView(
-            padding: const EdgeInsets.all(16),
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
               // PO Dropdown
               DropdownButtonFormField<PurchaseOrderModel>(
-                value: _selectedOrder,
+                initialValue: _selectedOrder,
                 decoration: InputDecoration(
                   labelText: l10n.openPO,
                   prefixIcon: const Icon(Icons.receipt_long_outlined),
@@ -169,7 +207,7 @@ class _ReceiveInventoryFormScreenState
                               Text('${o.orderNumber} — ${o.vendorName}'),
                         ))
                     .toList(),
-                onChanged: _selectOrder,
+                onChanged: (v) => _selectOrder(v),
               ),
               const SizedBox(height: 16),
 
@@ -199,8 +237,16 @@ class _ReceiveInventoryFormScreenState
               // Lines
               if (_selectedOrder == null)
                 _HintCard()
+              else if (_loadingPlan)
+                const Center(child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ))
+              else if (_activePlan != null)
+                ..._buildPlanLines(context, _activePlan!)
               else
-                ..._buildLines(context, _selectedOrder!),
+                _HintCard(),
+              
               const SizedBox(height: 16),
 
               // Notes
@@ -213,7 +259,11 @@ class _ReceiveInventoryFormScreenState
                   border: const OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 80),
+                    const SizedBox(height: 80),
+                  ],
+                ),
+              ),
+              TransactionSidebar(vendorId: _selectedOrder?.vendorId),
             ],
           );
         },
@@ -231,16 +281,16 @@ class _ReceiveInventoryFormScreenState
                   )
                 : const Icon(Icons.save_outlined),
             label: Text(_saving ? l10n.saving : l10n.saveReceipt),
-            onPressed: _saving ? null : _save,
+            onPressed: _saving || _loadingPlan ? null : _save,
           ),
         ),
       ),
     );
   }
 
-  List<Widget> _buildLines(BuildContext context, PurchaseOrderModel order) {
+  List<Widget> _buildPlanLines(BuildContext context, ReceivingPlanModel plan) {
     final l10n  = AppLocalizations.of(context)!;
-    final lines = order.lines.where((l) => l.quantity > 0).toList();
+    final lines = plan.lines;
 
     if (lines.isEmpty) {
       return [
@@ -280,16 +330,17 @@ class _ReceiveInventoryFormScreenState
                   const SizedBox(height: 6),
                   Row(children: [
                     _QtyChip(
-                        label: l10n.ordered, value: line.quantity),
+                        label: l10n.ordered, value: line.orderedQuantity),
                     const SizedBox(width: 8),
                     _QtyChip(
-                        label: l10n.rate,
-                        value: line.unitCost,
-                        color: Colors.blue),
+                        label: '${l10n.received} (Prev)', value: line.receivedQuantity, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    _QtyChip(
+                        label: 'Rem.', value: line.remainingQuantity, color: Colors.orange.shade900),
                   ]),
                   const SizedBox(height: 8),
                   TextField(
-                    controller: _qtyControllers[line.id],
+                    controller: _qtyControllers[line.purchaseOrderLineId],
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     decoration: InputDecoration(
@@ -297,7 +348,7 @@ class _ReceiveInventoryFormScreenState
                       border: const OutlineInputBorder(),
                       isDense: true,
                       suffixText:
-                          '${l10n.from} ${line.quantity.toStringAsFixed(2)}',
+                          '${l10n.from} ${line.remainingQuantity.toStringAsFixed(2)}',
                     ),
                   ),
                 ],

@@ -210,7 +210,7 @@ class _VendorSearchDialogState extends ConsumerState<_VendorSearchDialog> {
                             : null,
                         trailing: v.balance != 0
                             ? Text(
-                                '${v.balance.toStringAsFixed(2)}',
+                                v.balance.toStringAsFixed(2),
                                 style: TextStyle(
                                     color: v.balance > 0
                                         ? Colors.orange

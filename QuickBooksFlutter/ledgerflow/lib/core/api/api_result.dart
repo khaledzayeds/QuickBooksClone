@@ -40,10 +40,12 @@ sealed class ApiResult<T> {
 
 final class Success<T> extends ApiResult<T> {
   const Success(this.data);
+  @override
   final T data;
 }
 
 final class Failure<T> extends ApiResult<T> {
   const Failure(this.error);
+  @override
   final AppError error;
 }

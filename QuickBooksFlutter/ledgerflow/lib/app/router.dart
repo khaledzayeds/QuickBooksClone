@@ -14,6 +14,12 @@ import '../features/items/screens/item_list_screen.dart';
 import '../features/vendors/screens/vendor_list_screen.dart';
 import '../features/customers/screens/customer_list_screen.dart';
 import '../features/accounts/screens/chart_of_accounts_screen.dart';
+import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
+import '../features/receive_inventory/screens/receive_inventory_form_screen.dart';
+import '../features/receive_inventory/screens/receive_inventory_details_screen.dart';
+import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
+import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
+import '../features/vendor_payments/screens/vendor_payment_form_screen.dart';
 import '../core/widgets/responsive_scaffold.dart';
 
 class AppRoutes {
@@ -135,13 +141,38 @@ final routerProvider = Provider<GoRouter>((ref) {
           _placeholder(AppRoutes.payments),
           _placeholder(AppRoutes.invoiceNew),
           _placeholder(AppRoutes.paymentNew),
-          _placeholder(AppRoutes.purchaseBillNew),
-          _placeholder(AppRoutes.vendorPaymentNew),
-          _placeholder(AppRoutes.receiveInventory),
-          _placeholder(AppRoutes.receiveInventoryNew),
-          _placeholder(AppRoutes.receiveInventoryDetails),
-          _placeholder(AppRoutes.purchaseBills),
-          _placeholder(AppRoutes.vendorPayments),
+          GoRoute(
+            path: AppRoutes.purchaseBillNew,
+            builder: (context, state) => const PurchaseBillFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorPaymentNew,
+            builder: (context, state) => const VendorPaymentFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.receiveInventory,
+            builder: (context, state) => const ReceiveInventoryListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.receiveInventoryNew,
+            builder: (context, state) {
+              final poId = state.uri.queryParameters['poId'];
+              return ReceiveInventoryFormScreen(purchaseOrderId: poId);
+            },
+          ),
+          GoRoute(
+            path: AppRoutes.receiveInventoryDetails,
+            builder: (context, state) => ReceiveInventoryDetailsScreen(
+                id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseBills,
+            builder: (context, state) => const PurchaseBillListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorPayments,
+            builder: (context, state) => const VendorPaymentFormScreen(), // For now, use form as list
+          ),
           _placeholder(AppRoutes.reports),
           _placeholder(AppRoutes.settings),
           _placeholder(AppRoutes.vendorNew),

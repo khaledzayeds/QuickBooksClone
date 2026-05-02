@@ -8,10 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/widgets/transaction_sidebar.dart';
 import '../../../../core/widgets/transaction_line_table.dart';
 import '../../../../core/widgets/transaction_vendor_picker.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../data/models/purchase_order_model.dart';
+import '../data/models/order_line_entry.dart';
 import '../providers/purchase_orders_provider.dart';
 import '../../../../app/router.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -42,7 +44,9 @@ class _PurchaseOrderFormScreenState
 
   @override
   void dispose() {
-    for (final l in _lines) l.dispose();
+    for (final l in _lines) {
+      l.dispose();
+    }
     super.dispose();
   }
 
@@ -117,7 +121,11 @@ class _PurchaseOrderFormScreenState
     );
     if (d == null) return;
     setState(() {
-      if (isExpected) _expectedDate = d; else _orderDate = d;
+      if (isExpected) {
+        _expectedDate = d;
+      } else {
+        _orderDate = d;
+      }
     });
   }
 
@@ -126,7 +134,9 @@ class _PurchaseOrderFormScreenState
       _vendor = null;
       _orderDate = DateTime.now();
       _expectedDate = DateTime.now().add(const Duration(days: 7));
-      for (final l in _lines) l.dispose();
+      for (final l in _lines) {
+        l.dispose();
+      }
       _lines.clear();
       _lines.add(TransactionLineEntry()); 
     });
@@ -154,10 +164,9 @@ class _PurchaseOrderFormScreenState
       ),
 
       body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: _buildMainForm(theme, l10n, DateFormat('dd/MM/yyyy'))),
-          if (isWide && _vendor != null) _VendorSidebar(vendor: _vendor!),
+          TransactionSidebar(vendorId: _vendor?.id),
         ],
       ),
     );
@@ -257,30 +266,4 @@ class _InfoBadge extends StatelessWidget {
   const _InfoBadge({required this.label, required this.value});
   final String label; final String value;
   @override Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(20)), child: Row(children: [Text('$label: ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.blue.shade900)), Text(value, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.blue.shade800))]));
-}
-
-class _VendorSidebar extends StatelessWidget {
-  const _VendorSidebar({required this.vendor});
-  final VendorModel vendor;
-  @override Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n  = AppLocalizations.of(context)!;
-
-    return Container(width: 280, padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.white, border: Border(left: BorderSide(color: Colors.grey.shade300))), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      CircleAvatar(backgroundColor: Colors.blue.shade900, radius: 32, child: Text(vendor.initials, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900))),
-      const SizedBox(height: 16), Text(vendor.displayName, textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-      const SizedBox(height: 8), Text(vendor.companyName ?? '', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
-      const SizedBox(height: 32), const Divider(), const SizedBox(height: 16),
-      _SidebarItem(label: l10n.currentBalance.toUpperCase(), value: '${vendor.balance.toStringAsFixed(2)} ${l10n.egp}', isBold: true, color: vendor.balance > 0 ? Colors.orange.shade900 : Colors.green.shade900),
-      const SizedBox(height: 16), _SidebarItem(label: l10n.email.toUpperCase(), value: vendor.email ?? 'No email'),
-      const SizedBox(height: 16), _SidebarItem(label: l10n.phone.toUpperCase(), value: vendor.phone ?? 'No phone'),
-      const Spacer(), OutlinedButton(onPressed: () {}, child: Text(l10n.viewVendorProfile.toUpperCase())),
-    ]));
-  }
-}
-
-class _SidebarItem extends StatelessWidget {
-  const _SidebarItem({required this.label, required this.value, this.isBold = false, this.color});
-  final String label; final String value; final bool isBold; final Color? color;
-  @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey, letterSpacing: 1)), const SizedBox(height: 4), Text(value, style: TextStyle(fontSize: 14, fontWeight: isBold ? FontWeight.w800 : FontWeight.w600, color: color))]);
 }

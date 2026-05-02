@@ -26,7 +26,7 @@ class PurchaseOrdersRemoteDatasource {
         '/api/purchase-orders',
         queryParameters: {
           if (search   != null && search.isNotEmpty) 'search': search,
-          if (vendorId != null) 'vendorId': vendorId,
+          'vendorId': ?vendorId,
           'includeClosed':    includeClosed,
           'includeCancelled': includeCancelled,
           'page':     page,

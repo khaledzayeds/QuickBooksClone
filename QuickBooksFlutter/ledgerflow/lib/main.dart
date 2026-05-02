@@ -9,11 +9,6 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   ApiClient.instance.init();
-  
 
-  runApp(
-    const ProviderScope(
-      child: App(),
-    ),
-  );
+  runApp(const ProviderScope(child: App()));
 }

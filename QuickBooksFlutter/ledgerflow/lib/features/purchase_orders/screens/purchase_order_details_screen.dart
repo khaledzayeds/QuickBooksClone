@@ -103,7 +103,7 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
     
     // Receive inventory → navigate
     if (action == _Action.receive) {
-      context.push('${AppRoutes.receiveInventoryNew}?purchaseOrderId=${order.id}');
+      context.push('${AppRoutes.receiveInventoryNew}?poId=${order.id}');
       return;
     }
 
@@ -255,10 +255,10 @@ class _OrderDetails extends StatelessWidget {
             child: Column(
               children: [
                 _SummaryRow(l10n.subtotal,
-                    '${order.subtotal.toStringAsFixed(2)}'),
+                    order.subtotal.toStringAsFixed(2)),
                 if (order.taxAmount > 0)
                   _SummaryRow(l10n.tax,
-                      '${order.taxAmount.toStringAsFixed(2)}'),
+                      order.taxAmount.toStringAsFixed(2)),
                 const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -267,7 +267,7 @@ class _OrderDetails extends StatelessWidget {
                         style: const TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 16)),
                     Text(
-                      '${order.totalAmount.toStringAsFixed(2)}',
+                      order.totalAmount.toStringAsFixed(2),
                       style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 20,
@@ -364,7 +364,7 @@ class _LineRow extends StatelessWidget {
             ),
             Expanded(
               child: Text(
-                '${line.lineTotal.toStringAsFixed(2)}',
+                line.lineTotal.toStringAsFixed(2),
                 textAlign: TextAlign.end,
                 style: TextStyle(
                     fontWeight: FontWeight.w700,

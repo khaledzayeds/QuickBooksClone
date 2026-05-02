@@ -4,7 +4,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 import '../../app/router.dart';
 
 class TopMenuBar extends StatelessWidget {

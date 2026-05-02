@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/purchase_orders_provider.dart';
 import '../data/models/purchase_order_model.dart';
 import '../../../app/router.dart';
@@ -26,15 +27,15 @@ class _PurchaseOrderListScreenState
     (PurchaseOrderStatus.closed, 'مغلق | Closed'),
     (PurchaseOrderStatus.cancelled, 'ملغي | Cancelled'),
   ];
-
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(purchaseOrdersProvider);
+    final l10n        = AppLocalizations.of(context)!;
     final cs          = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('أوامر الشراء | Purchase Orders'),
+        title: Text(l10n.purchaseOrders),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -52,7 +53,13 @@ class _PurchaseOrderListScreenState
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              children: _filters.map((f) {
+              children: [
+                (null, l10n.all),
+                (PurchaseOrderStatus.draft, l10n.statusDraft),
+                (PurchaseOrderStatus.open, l10n.statusOpen),
+                (PurchaseOrderStatus.closed, l10n.statusClosed),
+                (PurchaseOrderStatus.cancelled, l10n.statusCancelled),
+              ].map((f) {
                 final isSelected = _selectedStatus == f.$1;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -88,7 +95,7 @@ class _PurchaseOrderListScreenState
                     const SizedBox(height: 12),
                     TextButton.icon(
                       icon: const Icon(Icons.refresh),
-                      label: const Text('إعادة المحاولة | Retry'),
+                      label: Text(l10n.retry),
                       onPressed: () => ref
                           .read(purchaseOrdersProvider.notifier)
                           .refresh(),
@@ -106,7 +113,7 @@ class _PurchaseOrderListScreenState
                       child: ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: orders.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 8),
                         itemBuilder: (_, i) => _PoCard(
                           order: orders[i],
@@ -123,7 +130,7 @@ class _PurchaseOrderListScreenState
 
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
-        label: const Text('أمر جديد | New Order'),
+        label: Text(l10n.newText),
         onPressed: () => context.push(AppRoutes.purchaseOrderNew),
       ),
     );
@@ -208,7 +215,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        status.labelAr,
+        status.localizedLabel(context),
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );

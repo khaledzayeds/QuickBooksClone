@@ -24,7 +24,7 @@ class OrderStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status.labelAr,
+        status.localizedLabel(context),
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,

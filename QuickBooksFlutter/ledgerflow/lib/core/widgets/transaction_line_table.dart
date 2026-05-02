@@ -37,7 +37,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
     setState(() {
       widget.lines.add(TransactionLineEntry());
     });
-    widget.onChanged();
+    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
   }
 
   void _removeLine(int index) {
@@ -46,7 +46,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
       line.dispose();
     });
     if (widget.lines.isEmpty) _addLine();
-    widget.onChanged();
+    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
   }
 
   void _onItemPicked(int index, ItemModel item) {
@@ -66,7 +66,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
         _addLine();
       }
     });
-    widget.onChanged();
+    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
   }
 
   @override
@@ -159,7 +159,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                       align: TextAlign.center,
                       onChanged: () {
                         line.qty = double.tryParse(line.qtyCtrl.text) ?? 0;
-                        widget.onChanged();
+                        WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
                         setState(() {}); 
                       },
                     ),
@@ -174,7 +174,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                       align: TextAlign.right,
                       onChanged: () {
                         line.rate = double.tryParse(line.rateCtrl.text) ?? 0;
-                        widget.onChanged();
+                        WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
                         setState(() {});
                       },
                     ),

@@ -24,6 +24,8 @@ class ReceiveInventoryModel {
   final String status;
   final String? notes;
   final List<ReceiveInventoryLineModel> lines;
+  
+  double get totalAmount => lines.fold(0.0, (sum, line) => sum + line.lineTotal);
 
   factory ReceiveInventoryModel.fromJson(Map<String, dynamic> json) {
     final rawLines = json['lines'] as List<dynamic>? ?? [];

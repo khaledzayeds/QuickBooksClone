@@ -6,12 +6,14 @@ import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../models/create_receive_inventory_dto.dart';
 import '../models/receive_inventory_model.dart';
+import '../models/receiving_plan_model.dart';
 
 class ReceiveInventoryRemoteDatasource {
   final _client = ApiClient.instance;
 
   Future<ApiResult<List<ReceiveInventoryModel>>> getAll({
     String? purchaseOrderId,
+    String? vendorId,
     int page = 1,
     int limit = 50,
   }) async {
@@ -19,7 +21,8 @@ class ReceiveInventoryRemoteDatasource {
       final response = await _client.get<dynamic>(
         '/api/receive-inventory',
         queryParameters: {
-          if (purchaseOrderId != null) 'purchaseOrderId': purchaseOrderId,
+          'purchaseOrderId': ?purchaseOrderId,
+          'vendorId': ?vendorId,
           'page': page,
           'limit': limit,
         },
@@ -54,6 +57,15 @@ class ReceiveInventoryRemoteDatasource {
         data: dto.toJson(),
       );
       return Success(ReceiveInventoryModel.fromJson(r.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
+  Future<ApiResult<ReceivingPlanModel>> getReceivingPlan(String poId) async {
+    try {
+      final r = await _client.get<Map<String, dynamic>>('/api/purchase-orders/$poId/receiving-plan');
+      return Success(ReceivingPlanModel.fromJson(r.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }

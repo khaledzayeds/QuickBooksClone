@@ -24,13 +24,13 @@ class DashboardFlowchart extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _FlowIcon(icon: Icons.shopping_bag_outlined, label: l10n.purchaseOrders, path: AppRoutes.purchaseOrderNew),
+                    _FlowIcon(icon: Icons.shopping_cart_outlined, label: l10n.purchaseOrders, path: AppRoutes.purchaseOrderNew),
                     const _Arrow(),
-                    _FlowIcon(icon: Icons.inventory_2_outlined, label: l10n.receiveInventory, path: AppRoutes.receiveInventoryNew),
+                    _FlowIcon(icon: Icons.local_shipping_outlined, label: l10n.receiveInventory, path: AppRoutes.receiveInventoryNew),
                     const _Arrow(),
-                    _FlowIcon(icon: Icons.receipt_outlined, label: l10n.enterBills, path: AppRoutes.purchaseBills),
+                    _FlowIcon(icon: Icons.assignment_outlined, label: l10n.enterBills, path: AppRoutes.purchaseBills),
                     const _Arrow(),
-                    _FlowIcon(icon: Icons.payments_outlined, label: l10n.payBills, path: AppRoutes.vendorPayments),
+                    _FlowIcon(icon: Icons.account_balance_wallet_outlined, label: l10n.payBills, path: AppRoutes.vendorPayments),
                   ],
                 ),
               ),
@@ -44,9 +44,9 @@ class DashboardFlowchart extends StatelessWidget {
                       children: [
                         _FlowIcon(icon: Icons.request_quote_outlined, label: l10n.estimates, path: AppRoutes.estimates),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.receipt_long_outlined, label: l10n.salesOrders, path: AppRoutes.salesOrders),
+                        _FlowIcon(icon: Icons.inventory_outlined, label: l10n.salesOrders, path: AppRoutes.salesOrders),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.description_outlined, label: l10n.createInvoices, path: AppRoutes.invoiceNew),
+                        _FlowIcon(icon: Icons.receipt_long_outlined, label: l10n.createInvoices, path: AppRoutes.invoiceNew),
                       ],
                     ),
                     const SizedBox(height: 32),
@@ -55,7 +55,7 @@ class DashboardFlowchart extends StatelessWidget {
                       children: [
                         _FlowIcon(icon: Icons.payments_outlined, label: l10n.payments, path: AppRoutes.payments),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.account_balance_outlined, label: l10n.recordDeposits, path: AppRoutes.dashboard),
+                        _FlowIcon(icon: Icons.savings_outlined, label: l10n.recordDeposits, path: AppRoutes.dashboard),
                       ],
                     ),
                   ],

@@ -110,6 +110,12 @@ abstract class AppLocalizations {
   /// **'الرئيسية'**
   String get dashboard;
 
+  /// No description provided for @all.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get all;
+
   /// No description provided for @sales.
   ///
   /// In ar, this message translates to:
@@ -439,6 +445,576 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تم حفظ وفتح أمر الشراء بنجاح'**
   String get poSavedAsOpen;
+
+  /// No description provided for @orderDetails.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل الأمر'**
+  String get orderDetails;
+
+  /// No description provided for @openOrder.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح الأمر'**
+  String get openOrder;
+
+  /// No description provided for @closeOrder.
+  ///
+  /// In ar, this message translates to:
+  /// **'إغلاق الأمر'**
+  String get closeOrder;
+
+  /// No description provided for @cancelOrder.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء الأمر'**
+  String get cancelOrder;
+
+  /// No description provided for @receiveInventoryAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'استلام مخزون'**
+  String get receiveInventoryAction;
+
+  /// No description provided for @retry.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة المحاولة'**
+  String get retry;
+
+  /// No description provided for @confirmCancelPO.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من إلغاء أمر الشراء؟'**
+  String get confirmCancelPO;
+
+  /// No description provided for @poOpenedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم فتح الأمر بنجاح'**
+  String get poOpenedSuccess;
+
+  /// No description provided for @poClosedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إغلاق الأمر بنجاح'**
+  String get poClosedSuccess;
+
+  /// No description provided for @poCancelledSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إلغاء الأمر بنجاح'**
+  String get poCancelledSuccess;
+
+  /// No description provided for @subtotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ الفرعي'**
+  String get subtotal;
+
+  /// No description provided for @tax.
+  ///
+  /// In ar, this message translates to:
+  /// **'الضريبة'**
+  String get tax;
+
+  /// No description provided for @total.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي'**
+  String get total;
+
+  /// No description provided for @statusDraft.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسودة'**
+  String get statusDraft;
+
+  /// No description provided for @statusOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفتوح'**
+  String get statusOpen;
+
+  /// No description provided for @statusClosed.
+  ///
+  /// In ar, this message translates to:
+  /// **'مغلق'**
+  String get statusClosed;
+
+  /// No description provided for @statusCancelled.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملغي'**
+  String get statusCancelled;
+
+  /// No description provided for @inventoryReceipts.
+  ///
+  /// In ar, this message translates to:
+  /// **'سندات الاستلام'**
+  String get inventoryReceipts;
+
+  /// No description provided for @newReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'استلام جديد'**
+  String get newReceipt;
+
+  /// No description provided for @noInventoryReceipts.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد سندات استلام'**
+  String get noInventoryReceipts;
+
+  /// No description provided for @startReceivingFromPO.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابدأ باستلام مخزون من أمر شراء مفتوح'**
+  String get startReceivingFromPO;
+
+  /// No description provided for @receipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'سند استلام'**
+  String get receipt;
+
+  /// No description provided for @currentBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرصيد الحالي'**
+  String get currentBalance;
+
+  /// No description provided for @email.
+  ///
+  /// In ar, this message translates to:
+  /// **'البريد الإلكتروني'**
+  String get email;
+
+  /// No description provided for @phone.
+  ///
+  /// In ar, this message translates to:
+  /// **'الهاتف'**
+  String get phone;
+
+  /// No description provided for @viewVendorProfile.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض ملف المورد'**
+  String get viewVendorProfile;
+
+  /// No description provided for @egp.
+  ///
+  /// In ar, this message translates to:
+  /// **'ج.م'**
+  String get egp;
+
+  /// No description provided for @openPO.
+  ///
+  /// In ar, this message translates to:
+  /// **'أمر الشراء المفتوح'**
+  String get openPO;
+
+  /// No description provided for @receiptDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الاستلام'**
+  String get receiptDate;
+
+  /// No description provided for @notes.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظات'**
+  String get notes;
+
+  /// No description provided for @saving.
+  ///
+  /// In ar, this message translates to:
+  /// **'جاري الحفظ...'**
+  String get saving;
+
+  /// No description provided for @saveReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ الاستلام'**
+  String get saveReceipt;
+
+  /// No description provided for @ordered.
+  ///
+  /// In ar, this message translates to:
+  /// **'مطلوب'**
+  String get ordered;
+
+  /// No description provided for @qtyToReceive.
+  ///
+  /// In ar, this message translates to:
+  /// **'كمية الاستلام'**
+  String get qtyToReceive;
+
+  /// No description provided for @riSavedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل استلام المخزون بنجاح'**
+  String get riSavedSuccess;
+
+  /// No description provided for @selectOpenPO.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر أمر شراء مفتوح أولاً'**
+  String get selectOpenPO;
+
+  /// No description provided for @minOneQty.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل كمية استلام واحدة على الأقل'**
+  String get minOneQty;
+
+  /// No description provided for @selectOpenPOHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر أمر شراء مفتوح لعرض الكميات'**
+  String get selectOpenPOHint;
+
+  /// No description provided for @from.
+  ///
+  /// In ar, this message translates to:
+  /// **'من'**
+  String get from;
+
+  /// No description provided for @receivedItems.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأصناف المستلمة'**
+  String get receivedItems;
+
+  /// No description provided for @received.
+  ///
+  /// In ar, this message translates to:
+  /// **'مستلم'**
+  String get received;
+
+  /// No description provided for @homePage.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصفحة الرئيسية'**
+  String get homePage;
+
+  /// No description provided for @insights.
+  ///
+  /// In ar, this message translates to:
+  /// **'رؤى البيانات'**
+  String get insights;
+
+  /// No description provided for @enterBills.
+  ///
+  /// In ar, this message translates to:
+  /// **'إدخال فواتير'**
+  String get enterBills;
+
+  /// No description provided for @payBills.
+  ///
+  /// In ar, this message translates to:
+  /// **'سداد فواتير'**
+  String get payBills;
+
+  /// No description provided for @createInvoices.
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء فواتير'**
+  String get createInvoices;
+
+  /// No description provided for @recordDeposits.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل إيداعات'**
+  String get recordDeposits;
+
+  /// No description provided for @enterTime.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل الوقت'**
+  String get enterTime;
+
+  /// No description provided for @payEmployees.
+  ///
+  /// In ar, this message translates to:
+  /// **'صرف الرواتب'**
+  String get payEmployees;
+
+  /// No description provided for @itemsAndServices.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأصناف والخدمات'**
+  String get itemsAndServices;
+
+  /// No description provided for @employees.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموظفون'**
+  String get employees;
+
+  /// No description provided for @company.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشركة'**
+  String get company;
+
+  /// No description provided for @fiscalYearToDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذه السنة المالية حتى تاريخه'**
+  String get fiscalYearToDate;
+
+  /// No description provided for @netIncome.
+  ///
+  /// In ar, this message translates to:
+  /// **'صافي الدخل'**
+  String get netIncome;
+
+  /// No description provided for @unpaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مدفوع'**
+  String get unpaid;
+
+  /// No description provided for @paid.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدفوع'**
+  String get paid;
+
+  /// No description provided for @createInvoice.
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء فاتورة'**
+  String get createInvoice;
+
+  /// No description provided for @createBill.
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء فاتورة شراء'**
+  String get createBill;
+
+  /// No description provided for @searchHelp.
+  ///
+  /// In ar, this message translates to:
+  /// **'البحث في الشركة أو المساعدة'**
+  String get searchHelp;
+
+  /// No description provided for @myShortcuts.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختصاراتي'**
+  String get myShortcuts;
+
+  /// No description provided for @home.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرئيسية'**
+  String get home;
+
+  /// No description provided for @myCompany.
+  ///
+  /// In ar, this message translates to:
+  /// **'شركتي'**
+  String get myCompany;
+
+  /// No description provided for @cashFlowHub.
+  ///
+  /// In ar, this message translates to:
+  /// **'مركز التدفق النقدي'**
+  String get cashFlowHub;
+
+  /// No description provided for @incomeTracker.
+  ///
+  /// In ar, this message translates to:
+  /// **'تتبع الدخل'**
+  String get incomeTracker;
+
+  /// No description provided for @billTracker.
+  ///
+  /// In ar, this message translates to:
+  /// **'تتبع الفواتير'**
+  String get billTracker;
+
+  /// No description provided for @calendar.
+  ///
+  /// In ar, this message translates to:
+  /// **'التقويم'**
+  String get calendar;
+
+  /// No description provided for @snapshots.
+  ///
+  /// In ar, this message translates to:
+  /// **'لقطات سريعة'**
+  String get snapshots;
+
+  /// No description provided for @viewBalances.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض الأرصدة'**
+  String get viewBalances;
+
+  /// No description provided for @runFavoriteReports.
+  ///
+  /// In ar, this message translates to:
+  /// **'تشغيل التقارير المفضلة'**
+  String get runFavoriteReports;
+
+  /// No description provided for @openWindows.
+  ///
+  /// In ar, this message translates to:
+  /// **'النوافذ المفتوحة'**
+  String get openWindows;
+
+  /// No description provided for @stock.
+  ///
+  /// In ar, this message translates to:
+  /// **'المخزون'**
+  String get stock;
+
+  /// No description provided for @vendorBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد المورد'**
+  String get vendorBalance;
+
+  /// No description provided for @creditBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد دائن'**
+  String get creditBalance;
+
+  /// No description provided for @recentTransactions.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر المعاملات'**
+  String get recentTransactions;
+
+  /// No description provided for @openBills.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفواتير المفتوحة'**
+  String get openBills;
+
+  /// No description provided for @noRecentTransactions.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد معاملات حديثة'**
+  String get noRecentTransactions;
+
+  /// No description provided for @billDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الفاتورة'**
+  String get billDate;
+
+  /// No description provided for @dueDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الاستحقاق'**
+  String get dueDate;
+
+  /// No description provided for @amountPaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ المدفوع'**
+  String get amountPaid;
+
+  /// No description provided for @amountDue.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ المستحق'**
+  String get amountDue;
+
+  /// No description provided for @paymentDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الدفع'**
+  String get paymentDate;
+
+  /// No description provided for @paymentMethod.
+  ///
+  /// In ar, this message translates to:
+  /// **'طريقة الدفع'**
+  String get paymentMethod;
+
+  /// No description provided for @selectBillsToPay.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر الفواتير للدفع'**
+  String get selectBillsToPay;
+
+  /// No description provided for @totalPayment.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الدفع'**
+  String get totalPayment;
+
+  /// No description provided for @billCreatedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل فاتورة المشتريات بنجاح'**
+  String get billCreatedSuccess;
+
+  /// No description provided for @paymentCreatedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل دفعة المورد بنجاح'**
+  String get paymentCreatedSuccess;
+
+  /// No description provided for @selectVendorHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر مورداً لعرض التفاصيل'**
+  String get selectVendorHint;
+
+  /// No description provided for @linkToRI.
+  ///
+  /// In ar, this message translates to:
+  /// **'ربط بإيصال استلام'**
+  String get linkToRI;
+
+  /// No description provided for @noPendingRI.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد إيصالات استلام معلقة لهذا المورد'**
+  String get noPendingRI;
+
+  /// No description provided for @selectRI.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر إيصالاً...'**
+  String get selectRI;
+
+  /// No description provided for @billStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة الفاتورة'**
+  String get billStatus;
+
+  /// No description provided for @statusPartiallyPaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدفوع جزئياً'**
+  String get statusPartiallyPaid;
+
+  /// No description provided for @statusPaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدفوع'**
+  String get statusPaid;
+
+  /// No description provided for @paymentAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب الدفع'**
+  String get paymentAccount;
+
+  /// No description provided for @paymentAccountHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر حساباً بنكياً أو نقدياً'**
+  String get paymentAccountHint;
 }
 
 class _AppLocalizationsDelegate

@@ -385,7 +385,7 @@ class _LineRow extends ConsumerWidget {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    error: (_, __) => const Text('Error'),
+                    error: (_, _) => const Text('Error'),
                   ),
                 ),
               ),
