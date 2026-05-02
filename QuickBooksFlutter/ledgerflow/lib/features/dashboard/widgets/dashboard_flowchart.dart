@@ -11,7 +11,7 @@ class DashboardFlowchart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Center(
@@ -42,20 +42,24 @@ class DashboardFlowchart extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _FlowIcon(icon: Icons.request_quote_outlined, label: l10n.estimates, path: AppRoutes.estimates),
-                        const _Arrow(),
-                        _FlowIcon(icon: Icons.inventory_outlined, label: l10n.salesOrders, path: AppRoutes.salesOrders),
+                        _FlowIcon(icon: Icons.point_of_sale_outlined, label: l10n.salesReceipts, path: AppRoutes.salesReceiptNew),
                         const _Arrow(),
                         _FlowIcon(icon: Icons.receipt_long_outlined, label: l10n.createInvoices, path: AppRoutes.invoiceNew),
+                        const _Arrow(),
+                        _FlowIcon(icon: Icons.payments_outlined, label: l10n.receivePayments, path: AppRoutes.payments),
+                        const _Arrow(),
+                        _FlowIcon(icon: Icons.savings_outlined, label: l10n.recordDeposits, path: AppRoutes.dashboard),
                       ],
                     ),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _FlowIcon(icon: Icons.payments_outlined, label: l10n.payments, path: AppRoutes.payments),
+                        _FlowIcon(icon: Icons.request_quote_outlined, label: l10n.estimates, path: AppRoutes.estimates),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.savings_outlined, label: l10n.recordDeposits, path: AppRoutes.dashboard),
+                        _FlowIcon(icon: Icons.inventory_outlined, label: l10n.salesOrders, path: AppRoutes.salesOrders),
+                        const _Arrow(),
+                        _FlowIcon(icon: Icons.receipt_outlined, label: l10n.creditSale, path: AppRoutes.invoiceNew),
                       ],
                     ),
                   ],
