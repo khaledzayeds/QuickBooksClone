@@ -8,10 +8,10 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../core/widgets/transaction_sidebar.dart';
 import '../../../../core/widgets/transaction_vendor_picker.dart';
-import '../../vendors/data/models/vendor_model.dart';
-import '../../purchase_bills/data/models/purchase_bill_model.dart';
 import '../../accounts/data/models/account_model.dart';
+import '../../purchase_bills/data/models/purchase_bill_model.dart';
 import '../../purchase_bills/providers/purchase_bills_provider.dart';
+import '../../vendors/data/models/vendor_model.dart';
 import 'package:ledgerflow/features/accounts/providers/accounts_provider.dart';
 import '../providers/vendor_payments_provider.dart';
 
@@ -31,9 +31,8 @@ class _VendorPaymentFormScreenState
   final Map<String, TextEditingController> _amountControllers = {};
 
   DateTime _paymentDate = DateTime.now();
-  String _paymentMethod = 'Cash'; // Default
-  String?
-  _paymentAccountId; // Should come from a provider of bank/cash accounts
+  String _paymentMethod = 'Cash';
+  String? _paymentAccountId;
 
   bool _loadingBills = false;
   bool _saving = false;
@@ -67,7 +66,6 @@ class _VendorPaymentFormScreenState
       result.when(
         success: (bills) {
           setState(() {
-            // Filter for bills with balance > 0
             _openBills = bills
                 .where((b) => b.balanceDue > 0 && b.status >= 2)
                 .toList();
@@ -91,26 +89,39 @@ class _VendorPaymentFormScreenState
       _showError(l10n.selectVendor);
       return;
     }
+    if (_paymentAccountId == null || _paymentAccountId!.isEmpty) {
+      _showError(l10n.paymentAccount);
+      return;
+    }
     if (_selectedBillIds.isEmpty) {
       _showError(l10n.selectBillsToPay);
       return;
     }
 
+    final amounts = <String, double>{};
+    for (final id in _selectedBillIds) {
+      final amount = double.tryParse(_amountControllers[id]?.text ?? '0') ?? 0;
+      final bill = _openBills.firstWhere((b) => b.id == id);
+
+      if (amount <= 0) {
+        _showError(l10n.amountPaid);
+        return;
+      }
+      if (amount > bill.balanceDue) {
+        _showError('${l10n.amountPaid} > ${bill.balanceDue.toStringAsFixed(2)}');
+        return;
+      }
+      amounts[id] = amount;
+    }
+
     setState(() => _saving = true);
     try {
-      final amounts = <String, double>{};
-      for (final id in _selectedBillIds) {
-        amounts[id] = double.tryParse(_amountControllers[id]?.text ?? '0') ?? 0;
-      }
-
       final result = await ref
           .read(vendorPaymentsProvider.notifier)
           .createBatchPayment(
             billIds: _selectedBillIds.toList(),
             amounts: amounts,
-            paymentAccountId:
-                _paymentAccountId ??
-                '00000000-0000-0000-0000-000000000000', // Placeholder
+            paymentAccountId: _paymentAccountId!,
             paymentDate: _paymentDate,
             paymentMethod: _paymentMethod,
           );
@@ -152,7 +163,6 @@ class _VendorPaymentFormScreenState
           Expanded(
             child: Column(
               children: [
-                // ── Header ──────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -190,14 +200,11 @@ class _VendorPaymentFormScreenState
                                       const LinearProgressIndicator(),
                                   error: (e, _) => Text(e.toString()),
                                   data: (accounts) {
-                                    // Filter for Bank or Credit Card
                                     final paymentAccounts = accounts
                                         .where(
                                           (a) =>
-                                              a.accountType.value ==
-                                                  1 || // Bank
-                                              a.accountType.value ==
-                                                  7, // Credit Card
+                                              a.accountType.value == 1 ||
+                                              a.accountType.value == 7,
                                         )
                                         .toList();
 
@@ -234,20 +241,19 @@ class _VendorPaymentFormScreenState
                                 labelText: l10n.paymentMethod,
                                 border: const OutlineInputBorder(),
                               ),
-                              items:
-                                  [
-                                        'Cash',
-                                        'Check',
-                                        'Credit Card',
-                                        'Bank Transfer',
-                                      ]
-                                      .map(
-                                        (m) => DropdownMenuItem(
-                                          value: m,
-                                          child: Text(m),
-                                        ),
-                                      )
-                                      .toList(),
+                              items: [
+                                'Cash',
+                                'Check',
+                                'Credit Card',
+                                'Bank Transfer',
+                              ]
+                                  .map(
+                                    (m) => DropdownMenuItem(
+                                      value: m,
+                                      child: Text(m),
+                                    ),
+                                  )
+                                  .toList(),
                               onChanged: (v) =>
                                   setState(() => _paymentMethod = v!),
                             ),
@@ -257,86 +263,82 @@ class _VendorPaymentFormScreenState
                     ],
                   ),
                 ),
-
                 const Divider(height: 1),
-
-                // ── Bills List ──────────────────────────────────────
                 Expanded(
                   child: _loadingBills
                       ? const Center(child: CircularProgressIndicator())
                       : _openBills.isEmpty
-                      ? Center(
-                          child: Text(
-                            _selectedVendor == null
-                                ? l10n.selectVendorHint
-                                : l10n.noRecentTransactions,
-                          ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(24),
-                          itemCount: _openBills.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, i) {
-                            final bill = _openBills[i];
-                            final isSelected = _selectedBillIds.contains(
-                              bill.id,
-                            );
-
-                            return Card(
-                              elevation: isSelected ? 4 : 1,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(
-                                  color: isSelected
-                                      ? cs.primary
-                                      : Colors.transparent,
-                                  width: 2,
-                                ),
+                          ? Center(
+                              child: Text(
+                                _selectedVendor == null
+                                    ? l10n.selectVendorHint
+                                    : l10n.noRecentTransactions,
                               ),
-                              child: CheckboxListTile(
-                                value: isSelected,
-                                onChanged: (v) {
-                                  setState(() {
-                                    if (v!) {
-                                      _selectedBillIds.add(bill.id);
-                                    } else {
-                                      _selectedBillIds.remove(bill.id);
-                                    }
-                                  });
-                                },
-                                title: Text(
-                                  '${bill.billNumber} — ${bill.billDate.day}/${bill.billDate.month}/${bill.billDate.year}',
-                                ),
-                                subtitle: Text(
-                                  '${l10n.total}: ${bill.totalAmount.toStringAsFixed(2)}',
-                                ),
-                                secondary: SizedBox(
-                                  width: 150,
-                                  child: TextField(
-                                    controller: _amountControllers[bill.id],
-                                    enabled: isSelected,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    textAlign: TextAlign.right,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.amountPaid,
-                                      isDense: true,
-                                      suffixText: l10n.egp,
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.all(24),
+                              itemCount: _openBills.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, i) {
+                                final bill = _openBills[i];
+                                final isSelected = _selectedBillIds.contains(
+                                  bill.id,
+                                );
+
+                                return Card(
+                                  elevation: isSelected ? 4 : 1,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? cs.primary
+                                          : Colors.transparent,
+                                      width: 2,
                                     ),
                                   ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                                  child: CheckboxListTile(
+                                    value: isSelected,
+                                    onChanged: (v) {
+                                      setState(() {
+                                        if (v!) {
+                                          _selectedBillIds.add(bill.id);
+                                        } else {
+                                          _selectedBillIds.remove(bill.id);
+                                        }
+                                      });
+                                    },
+                                    title: Text(
+                                      '${bill.billNumber} — ${bill.billDate.day}/${bill.billDate.month}/${bill.billDate.year}',
+                                    ),
+                                    subtitle: Text(
+                                      '${l10n.total}: ${bill.totalAmount.toStringAsFixed(2)}',
+                                    ),
+                                    secondary: SizedBox(
+                                      width: 150,
+                                      child: TextField(
+                                        controller: _amountControllers[bill.id],
+                                        enabled: isSelected,
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                        decoration: InputDecoration(
+                                          labelText: l10n.amountPaid,
+                                          isDense: true,
+                                          suffixText: l10n.egp,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                 ),
               ],
             ),
           ),
-
-          // ── Right Sidebar ──────────────────────────────────────────
           TransactionSidebar(vendorId: _selectedVendor?.id),
         ],
       ),
@@ -370,7 +372,7 @@ class _VendorPaymentFormScreenState
                     if (context.canPop()) {
                       context.pop();
                     } else {
-                      context.go('/purchases'); // العودة لقسم المشتريات
+                      context.go('/purchases');
                     }
                   },
                   child: Text(l10n.cancel),
