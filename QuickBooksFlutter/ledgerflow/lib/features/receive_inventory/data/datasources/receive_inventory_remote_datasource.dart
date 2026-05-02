@@ -15,16 +15,17 @@ class ReceiveInventoryRemoteDatasource {
     String? purchaseOrderId,
     String? vendorId,
     int page = 1,
-    int limit = 50,
+    int pageSize = 50,
   }) async {
     try {
       final response = await _client.get<dynamic>(
         '/api/receive-inventory',
         queryParameters: {
-          'purchaseOrderId': ?purchaseOrderId,
-          'vendorId': ?vendorId,
+          if (purchaseOrderId != null && purchaseOrderId.isNotEmpty)
+            'purchaseOrderId': purchaseOrderId,
+          if (vendorId != null && vendorId.isNotEmpty) 'vendorId': vendorId,
           'page': page,
-          'limit': limit,
+          'pageSize': pageSize,
         },
       );
       final data = response.data;
