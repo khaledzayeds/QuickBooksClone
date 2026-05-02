@@ -22,9 +22,10 @@ class VendorPaymentsRemoteDatasource {
       final response = await _client.get<Map<String, dynamic>>(
         '/api/vendor-payments',
         queryParameters: {
-          'search': ?search,
-          'vendorId': ?vendorId,
-          'purchaseBillId': ?purchaseBillId,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (vendorId != null && vendorId.isNotEmpty) 'vendorId': vendorId,
+          if (purchaseBillId != null && purchaseBillId.isNotEmpty)
+            'purchaseBillId': purchaseBillId,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
