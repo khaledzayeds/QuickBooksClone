@@ -9,6 +9,14 @@ class JsonUtils {
     return value.toString();
   }
 
+  /// Safely converts any dynamic value to a nullable String.
+  /// Empty strings are normalized to null to simplify optional API fields.
+  static String? asNullableString(dynamic value) {
+    if (value == null) return null;
+    final text = value.toString();
+    return text.isEmpty ? null : text;
+  }
+
   /// Safely converts any dynamic value to a double.
   /// Handles null, int, double, and String.
   static double asDouble(dynamic value, {double defaultValue = 0.0}) {
