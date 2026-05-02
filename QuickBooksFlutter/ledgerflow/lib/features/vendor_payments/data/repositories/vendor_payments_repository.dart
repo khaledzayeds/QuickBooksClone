@@ -2,6 +2,7 @@
 
 import '../../../../core/api/api_result.dart';
 import '../datasources/vendor_payments_remote_datasource.dart';
+import '../models/create_vendor_payment_dto.dart';
 import '../models/vendor_payment_model.dart';
 
 class VendorPaymentsRepository {
@@ -25,8 +26,10 @@ class VendorPaymentsRepository {
         pageSize: pageSize,
       );
 
-  Future<ApiResult<VendorPaymentModel>> createPayment(Map<String, dynamic> body) =>
-      _datasource.createPayment(body);
+  Future<ApiResult<VendorPaymentModel>> createPayment(
+    CreateVendorPaymentDto dto,
+  ) =>
+      _datasource.createPayment(dto);
 
   Future<ApiResult<VendorPaymentModel>> voidPayment(String id) =>
       _datasource.voidPayment(id);
