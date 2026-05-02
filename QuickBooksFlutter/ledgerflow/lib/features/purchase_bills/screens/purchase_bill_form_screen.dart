@@ -6,13 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../../core/widgets/transaction_line_table.dart';
 import '../../../../core/widgets/transaction_sidebar.dart';
 import '../../../../core/widgets/transaction_vendor_picker.dart';
-import '../../../../core/widgets/transaction_line_table.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
-import '../../vendors/data/models/vendor_model.dart';
 import '../../receive_inventory/data/models/receive_inventory_model.dart';
 import '../../receive_inventory/providers/receive_inventory_provider.dart';
+import '../../vendors/data/models/vendor_model.dart';
 import '../data/models/billing_plan_model.dart';
 import '../data/models/create_purchase_bill_dto.dart';
 import '../providers/purchase_bills_provider.dart';
@@ -29,15 +29,14 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
   VendorModel? _selectedVendor;
   BillingPlanModel? _activePlan;
   ReceiveInventoryModel? _selectedReceipt;
-  
+
   DateTime _billDate = DateTime.now();
   DateTime _dueDate = DateTime.now().add(const Duration(days: 30));
   final _memoCtrl = TextEditingController();
   final List<TransactionLineEntry> _lines = [];
-  
+
   bool _loadingPlan = false;
   bool _saving = false;
-  final bool _initialized = false;
 
   @override
   void dispose() {
@@ -48,13 +47,19 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
     super.dispose();
   }
 
+  void _clearLines() {
+    for (final l in _lines) {
+      l.dispose();
+    }
+    _lines.clear();
+  }
+
   void _onVendorChanged(VendorModel vendor) {
     setState(() {
       _selectedVendor = vendor;
       _selectedReceipt = null;
       _activePlan = null;
-      // Keep lines or clear? Usually clear if switching vendors
-      _lines.clear();
+      _clearLines();
       _lines.add(TransactionLineEntry());
     });
   }
@@ -63,6 +68,8 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
     setState(() {
       _selectedReceipt = receipt;
       _activePlan = null;
+      _clearLines();
+      _lines.add(TransactionLineEntry());
     });
 
     if (receipt == null) return;
@@ -72,11 +79,25 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
       final result = await ref.read(purchaseBillsRepositoryProvider).getBillingPlan(receipt.id);
       result.when(
         success: (plan) {
+          final billableLines = plan.lines
+              .where((line) => line.remainingQuantity > 0)
+              .toList();
+
+          if (plan.totalRemainingQuantity <= 0 || billableLines.isEmpty) {
+            setState(() {
+              _selectedReceipt = null;
+              _activePlan = null;
+              _clearLines();
+              _lines.add(TransactionLineEntry());
+            });
+            _showError('This inventory receipt is already fully billed.');
+            return;
+          }
+
           setState(() {
             _activePlan = plan;
-            _lines.clear();
-            for (final lp in plan.lines) {
-              if (lp.remainingQuantity <= 0) continue;
+            _clearLines();
+            for (final lp in billableLines) {
               final entry = TransactionLineEntry(
                 itemId: lp.itemId,
                 itemName: lp.description,
@@ -86,16 +107,13 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
               );
               entry.descCtrl.text = lp.description;
               _lines.add(entry);
-              // Store receipt line ID for linking
-              // (Need to ensure TransactionLineEntry has this field)
             }
-            if (_lines.isEmpty) _lines.add(TransactionLineEntry());
           });
         },
         failure: (e) => _showError(e.message),
       );
     } finally {
-      setState(() => _loadingPlan = false);
+      if (mounted) setState(() => _loadingPlan = false);
     }
   }
 
@@ -110,6 +128,18 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
     if (validLines.isEmpty) {
       _showError(l10n.minOneQty);
       return;
+    }
+
+    if (_activePlan != null) {
+      for (final line in validLines) {
+        final planLine = _activePlan!.lines
+            .where((p) => p.inventoryReceiptLineId == line.inventoryReceiptLineId)
+            .firstOrNull;
+        if (planLine != null && line.qty > planLine.remainingQuantity) {
+          _showError('${line.descCtrl.text} exceeds remaining quantity.');
+          return;
+        }
+      }
     }
 
     setState(() => _saving = true);
@@ -139,7 +169,7 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
         failure: (e) => _showError(e.message),
       );
     } finally {
-      setState(() => _saving = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -167,14 +197,12 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Main Form ──────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Header Row 1: Vendor & Receipt ──────────────────
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -197,8 +225,6 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // ── Header Row 2: Dates ──────────────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -220,8 +246,6 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
                     ],
                   ),
                   const SizedBox(height: 32),
-
-                  // ── Line Table ───────────────────────────────────────
                   if (_loadingPlan)
                     const Center(child: CircularProgressIndicator())
                   else
@@ -240,10 +264,7 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
                         ),
                       ),
                     ),
-                  
                   const SizedBox(height: 32),
-
-                  // ── Footer: Memo & Totals ────────────────────────────
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -270,8 +291,6 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
               ),
             ),
           ),
-
-          // ── Right Sidebar ──────────────────────────────────────────
           TransactionSidebar(vendorId: _selectedVendor?.id),
         ],
       ),
@@ -357,13 +376,16 @@ class _ReceiptPicker extends ConsumerWidget {
     }
 
     final receiptsAsync = ref.watch(receiveInventoryByVendorProvider(vendorId!));
-    
+
     return receiptsAsync.when(
       loading: () => const LinearProgressIndicator(),
       error: (e, _) => Text(e.toString()),
       data: (receipts) {
-        // Filter out void and fully billed if possible, or just show all for now
-        if (receipts.isEmpty) {
+        final activeReceipts = receipts
+            .where((r) => r.status.toLowerCase() != 'void')
+            .toList();
+
+        if (activeReceipts.isEmpty) {
           return InputDecorator(
             decoration: InputDecoration(labelText: l10n.linkToRI, border: const OutlineInputBorder()),
             child: Text(l10n.noPendingRI, style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -380,7 +402,7 @@ class _ReceiptPicker extends ConsumerWidget {
           hint: Text(l10n.selectRI),
           items: [
             DropdownMenuItem<ReceiveInventoryModel?>(value: null, child: Text(l10n.clear)),
-            ...receipts.map((r) => DropdownMenuItem<ReceiveInventoryModel?>(
+            ...activeReceipts.map((r) => DropdownMenuItem<ReceiveInventoryModel?>(
               value: r,
               child: Text('${r.receiptNumber} (${r.totalAmount.toStringAsFixed(2)})'),
             )),
@@ -432,7 +454,7 @@ class _AmountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = isTotal 
+    final style = isTotal
         ? const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0078D4))
         : const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
