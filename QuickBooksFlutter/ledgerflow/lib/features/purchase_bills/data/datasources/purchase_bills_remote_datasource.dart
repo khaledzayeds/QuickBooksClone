@@ -24,9 +24,10 @@ class PurchaseBillsRemoteDatasource {
       final response = await _client.get<Map<String, dynamic>>(
         '/api/purchase-bills',
         queryParameters: {
-          'search': ?search,
-          'vendorId': ?vendorId,
-          'inventoryReceiptId': ?inventoryReceiptId,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (vendorId != null && vendorId.isNotEmpty) 'vendorId': vendorId,
+          if (inventoryReceiptId != null && inventoryReceiptId.isNotEmpty)
+            'inventoryReceiptId': inventoryReceiptId,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
