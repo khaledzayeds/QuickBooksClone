@@ -40,8 +40,8 @@ class PurchaseBillModel {
         billNumber:  JsonUtils.asString(json['billNumber']),
         vendorId:    JsonUtils.asString(json['vendorId']),
         vendorName:  JsonUtils.asString(json['vendorName']),
-        billDate:    DateTime.parse(json['billDate']),
-        dueDate:     DateTime.parse(json['dueDate']),
+        billDate:    _parseDate(json['billDate']),
+        dueDate:     _parseDate(json['dueDate']),
         status:      JsonUtils.asInt(json['status']),
         subtotal:    JsonUtils.asDouble(json['subtotal']),
         taxAmount:   JsonUtils.asDouble(json['taxAmount']),
@@ -51,6 +51,11 @@ class PurchaseBillModel {
         memo:        JsonUtils.asString(json['memo']),
         lines:       JsonUtils.asList(json['lines'], (l) => PurchaseBillLineModel.fromJson(l)),
       );
+
+  static DateTime _parseDate(dynamic value) {
+    final parsed = DateTime.tryParse(value?.toString() ?? '');
+    return parsed ?? DateTime.now();
+  }
 }
 
 class PurchaseBillLineModel {
