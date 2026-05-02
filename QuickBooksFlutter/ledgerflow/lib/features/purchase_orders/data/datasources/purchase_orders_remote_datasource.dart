@@ -16,20 +16,20 @@ class PurchaseOrdersRemoteDatasource {
   Future<ApiResult<List<PurchaseOrderModel>>> getAll({
     String? search,
     String? vendorId,
-    bool includeClosed    = false,
+    bool includeClosed = false,
     bool includeCancelled = false,
-    int page     = 1,
+    int page = 1,
     int pageSize = 50,
   }) async {
     try {
       final r = await _client.get<dynamic>(
         '/api/purchase-orders',
         queryParameters: {
-          if (search   != null && search.isNotEmpty) 'search': search,
-          'vendorId': ?vendorId,
-          'includeClosed':    includeClosed,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (vendorId != null && vendorId.isNotEmpty) 'vendorId': vendorId,
+          'includeClosed': includeClosed,
           'includeCancelled': includeCancelled,
-          'page':     page,
+          'page': page,
           'pageSize': pageSize,
         },
       );
