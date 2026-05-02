@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../data/datasources/vendor_payments_remote_datasource.dart';
-import '../data/repositories/vendor_payments_repository.dart';
+import '../data/models/create_vendor_payment_dto.dart';
 import '../data/models/vendor_payment_model.dart';
+import '../data/repositories/vendor_payments_repository.dart';
 
 final vendorPaymentsDatasourceProvider = Provider<VendorPaymentsRemoteDatasource>(
   (ref) => VendorPaymentsRemoteDatasource(ApiClient.instance),
@@ -38,6 +39,8 @@ class VendorPaymentsNotifier extends AsyncNotifier<List<VendorPaymentModel>> {
   }
 
   /// Batch payment logic: loops through selected bills and creates payments sequentially.
+  /// Backend currently supports one payment per purchase bill, so this keeps the UI
+  /// convenience while staying aligned with the backend contract.
   Future<ApiResult<void>> createBatchPayment({
     required List<String> billIds,
     required Map<String, double> amounts,
@@ -46,18 +49,20 @@ class VendorPaymentsNotifier extends AsyncNotifier<List<VendorPaymentModel>> {
     required String paymentMethod,
   }) async {
     final repo = ref.read(vendorPaymentsRepositoryProvider);
-    
+
     for (final billId in billIds) {
       final amount = amounts[billId] ?? 0;
       if (amount <= 0) continue;
 
-      final result = await repo.createPayment({
-        'purchaseBillId': billId,
-        'paymentAccountId': paymentAccountId,
-        'paymentDate': paymentDate.toIso8601String().split('T')[0],
-        'amount': amount,
-        'paymentMethod': paymentMethod,
-      });
+      final dto = CreateVendorPaymentDto(
+        purchaseBillId: billId,
+        paymentAccountId: paymentAccountId,
+        paymentDate: paymentDate,
+        amount: amount,
+        paymentMethod: paymentMethod,
+      );
+
+      final result = await repo.createPayment(dto);
 
       if (result.isFailure) {
         return Failure(result.error!);
