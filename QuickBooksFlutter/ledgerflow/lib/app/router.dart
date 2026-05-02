@@ -4,45 +4,51 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/accounts/screens/chart_of_accounts_screen.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/auth/screens/login_screen.dart';
+import '../features/customers/screens/customer_list_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
+import '../features/items/screens/item_list_screen.dart';
+import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
+import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
+import '../features/purchase_orders/screens/purchase_order_details_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_form_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_list_screen.dart';
-import '../features/purchase_orders/screens/purchase_order_details_screen.dart';
-import '../features/items/screens/item_list_screen.dart';
-import '../features/vendors/screens/vendor_list_screen.dart';
-import '../features/customers/screens/customer_list_screen.dart';
-import '../features/accounts/screens/chart_of_accounts_screen.dart';
-import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
-import '../features/receive_inventory/screens/receive_inventory_form_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_details_screen.dart';
-import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
-import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
+import '../features/receive_inventory/screens/receive_inventory_form_screen.dart';
+import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
+import '../features/sales_receipts/screens/sales_receipt_details_screen.dart';
+import '../features/sales_receipts/screens/sales_receipt_form_screen.dart';
+import '../features/sales_receipts/screens/sales_receipt_list_screen.dart';
 import '../features/vendor_payments/screens/vendor_payment_form_screen.dart';
+import '../features/vendors/screens/vendor_list_screen.dart';
 import '../core/widgets/responsive_scaffold.dart';
 
 class AppRoutes {
   static const dashboard = '/';
-  static const login     = '/login';
-  
+  static const login = '/login';
+
   // Purchases
-  static const purchaseOrders    = '/purchases/orders';
-  static const purchaseOrderNew  = '/purchases/orders/new';
+  static const purchaseOrders = '/purchases/orders';
+  static const purchaseOrderNew = '/purchases/orders/new';
   static const purchaseOrderDetails = '/purchases/orders/:id';
-  static const purchaseBillNew   = '/purchases/bills/new';
-  
+  static const purchaseBillNew = '/purchases/bills/new';
+
   // Sales
-  static const estimates   = '/sales/estimates';
+  static const estimates = '/sales/estimates';
   static const salesOrders = '/sales/orders';
-  static const invoices    = '/sales/invoices';
-  static const payments    = '/sales/payments';
-  static const invoiceNew  = '/sales/invoices/new';
-  static const paymentNew  = '/sales/payments/new';
-  
+  static const salesReceipts = '/sales/receipts';
+  static const salesReceiptNew = '/sales/receipts/new';
+  static const salesReceiptDetails = '/sales/receipts/:id';
+  static const invoices = '/sales/invoices';
+  static const payments = '/sales/payments';
+  static const invoiceNew = '/sales/invoices/new';
+  static const paymentNew = '/sales/payments/new';
+
   // Master Data
-  static const items    = '/master/items';
-  static const vendors  = '/master/vendors';
+  static const items = '/master/items';
+  static const vendors = '/master/vendors';
   static const customers = '/master/customers';
   static const chartOfAccounts = '/master/coa';
   static const vendorNew = '/master/vendors/new';
@@ -78,7 +84,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: AppRoutes.login, 
+    initialLocation: AppRoutes.login,
     redirect: (context, state) {
       if (authState is AsyncLoading) return null;
 
@@ -88,7 +94,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (!isLoggedIn && !isLoggingIn) return AppRoutes.login;
       if (isLoggedIn && isLoggingIn) return AppRoutes.dashboard;
-      
+
       return null;
     },
     routes: [
@@ -104,7 +110,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.dashboard,
             builder: (context, state) => const DashboardScreen(),
           ),
-          
           GoRoute(
             path: AppRoutes.purchaseOrders,
             builder: (context, state) => const PurchaseOrderListScreen(),
@@ -115,28 +120,40 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.purchaseOrderDetails,
-            builder: (context, state) => PurchaseOrderDetailsScreen(id: state.pathParameters['id']!),
-          ),
-
-          GoRoute(
-            path: AppRoutes.items, 
-            builder: (context, state) => const ItemListScreen()
+            builder: (context, state) =>
+                PurchaseOrderDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
-            path: AppRoutes.vendors, 
-            builder: (context, state) => const VendorListScreen()
+            path: AppRoutes.items,
+            builder: (context, state) => const ItemListScreen(),
           ),
           GoRoute(
-            path: AppRoutes.customers, 
-            builder: (context, state) => const CustomerListScreen()
+            path: AppRoutes.vendors,
+            builder: (context, state) => const VendorListScreen(),
           ),
           GoRoute(
-            path: AppRoutes.chartOfAccounts, 
-            builder: (context, state) => const ChartOfAccountsScreen()
+            path: AppRoutes.customers,
+            builder: (context, state) => const CustomerListScreen(),
           ),
-
+          GoRoute(
+            path: AppRoutes.chartOfAccounts,
+            builder: (context, state) => const ChartOfAccountsScreen(),
+          ),
           _placeholder(AppRoutes.estimates),
           _placeholder(AppRoutes.salesOrders),
+          GoRoute(
+            path: AppRoutes.salesReceipts,
+            builder: (context, state) => const SalesReceiptListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReceiptNew,
+            builder: (context, state) => const SalesReceiptFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReceiptDetails,
+            builder: (context, state) =>
+                SalesReceiptDetailsScreen(id: state.pathParameters['id']!),
+          ),
           _placeholder(AppRoutes.invoices),
           _placeholder(AppRoutes.payments),
           _placeholder(AppRoutes.invoiceNew),
@@ -162,8 +179,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.receiveInventoryDetails,
-            builder: (context, state) => ReceiveInventoryDetailsScreen(
-                id: state.pathParameters['id']!),
+            builder: (context, state) =>
+                ReceiveInventoryDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.purchaseBills,
@@ -171,7 +188,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.vendorPayments,
-            builder: (context, state) => const VendorPaymentFormScreen(), // For now, use form as list
+            builder: (context, state) => const VendorPaymentFormScreen(),
           ),
           _placeholder(AppRoutes.reports),
           _placeholder(AppRoutes.settings),
@@ -194,8 +211,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 });
 
 GoRoute _placeholder(String path) => GoRoute(
-  path: path,
-  builder: (context, state) => Scaffold(
-    body: Center(child: Text('Screen for $path is under development')),
-  ),
-);
+      path: path,
+      builder: (context, state) => Scaffold(
+        body: Center(child: Text('Screen for $path is under development')),
+      ),
+    );
