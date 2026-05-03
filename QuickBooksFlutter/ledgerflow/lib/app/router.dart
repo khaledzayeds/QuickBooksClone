@@ -14,7 +14,11 @@ import '../features/items/screens/item_list_screen.dart';
 import '../features/items/screens/item_form_screen.dart';
 import '../features/items/screens/item_details_screen.dart';
 import '../features/vendors/screens/vendor_list_screen.dart';
+import '../features/vendors/screens/vendor_form_screen.dart';
+import '../features/vendors/screens/vendor_details_screen.dart';
 import '../features/customers/screens/customer_list_screen.dart';
+import '../features/customers/screens/customer_form_screen.dart';
+import '../features/customers/screens/customer_details_screen.dart';
 import '../features/accounts/screens/chart_of_accounts_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_form_screen.dart';
@@ -138,8 +142,32 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const VendorListScreen(),
           ),
           GoRoute(
+            path: AppRoutes.vendorNew,
+            builder: (context, state) => const VendorFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorEdit,
+            builder: (context, state) => VendorFormScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorDetails,
+            builder: (context, state) => VendorDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
             path: AppRoutes.customers,
             builder: (context, state) => const CustomerListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.customerNew,
+            builder: (context, state) => const CustomerFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.customerEdit,
+            builder: (context, state) => CustomerFormScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.customerDetails,
+            builder: (context, state) => CustomerDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.chartOfAccounts,
@@ -184,12 +212,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           _placeholder(AppRoutes.reports),
           _placeholder(AppRoutes.settings),
-          _placeholder(AppRoutes.vendorNew),
-          _placeholder(AppRoutes.vendorDetails),
-          _placeholder(AppRoutes.vendorEdit),
-          _placeholder(AppRoutes.customerNew),
-          _placeholder(AppRoutes.customerDetails),
-          _placeholder(AppRoutes.customerEdit),
           _placeholder(AppRoutes.accountNew),
           _placeholder(AppRoutes.accountEdit),
           _placeholder(AppRoutes.inventoryAdjustmentNew),
