@@ -20,6 +20,7 @@ import '../features/customers/screens/customer_list_screen.dart';
 import '../features/customers/screens/customer_form_screen.dart';
 import '../features/customers/screens/customer_details_screen.dart';
 import '../features/accounts/screens/chart_of_accounts_screen.dart';
+import '../features/accounts/screens/account_form_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_form_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_details_screen.dart';
@@ -173,6 +174,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.chartOfAccounts,
             builder: (context, state) => const ChartOfAccountsScreen(),
           ),
+          GoRoute(
+            path: AppRoutes.accountNew,
+            builder: (context, state) => const AccountFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.accountEdit,
+            builder: (context, state) => AccountFormScreen(id: state.pathParameters['id']!),
+          ),
           _placeholder(AppRoutes.estimates),
           _placeholder(AppRoutes.salesOrders),
           _placeholder(AppRoutes.invoices),
@@ -212,8 +221,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           _placeholder(AppRoutes.reports),
           _placeholder(AppRoutes.settings),
-          _placeholder(AppRoutes.accountNew),
-          _placeholder(AppRoutes.accountEdit),
           _placeholder(AppRoutes.inventoryAdjustmentNew),
         ],
       ),
