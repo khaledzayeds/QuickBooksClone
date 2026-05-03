@@ -1,9 +1,10 @@
-﻿// vendor_form_screen.dart
 // vendor_form_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../app/router.dart';
 import '../../../core/api/api_result.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -17,19 +18,18 @@ class VendorFormScreen extends ConsumerStatefulWidget {
   bool get isEdit => id != null;
 
   @override
-  ConsumerState<VendorFormScreen> createState() =>
-      _VendorFormScreenState();
+  ConsumerState<VendorFormScreen> createState() => _VendorFormScreenState();
 }
 
 class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
-  final _formKey     = GlobalKey<FormState>();
-  final _nameCtrl    = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
-  final _emailCtrl   = TextEditingController();
-  final _phoneCtrl   = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _openBalCtrl = TextEditingController(text: '0');
-  String _currency   = 'EGP';
-  bool   _loading    = false;
+  String _currency = 'EGP';
+  bool _loading = false;
 
   @override
   void initState() {
@@ -38,16 +38,14 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
   }
 
   Future<void> _loadVendor() async {
-    final result = await ref
-        .read(vendorsRepositoryProvider)
-        .getVendor(widget.id!);
+    final result = await ref.read(vendorsRepositoryProvider).getVendor(widget.id!);
     result.when(
-      success: (v) {
-        _nameCtrl.text    = v.displayName;
-        _companyCtrl.text = v.companyName ?? '';
-        _emailCtrl.text   = v.email ?? '';
-        _phoneCtrl.text   = v.phone ?? '';
-        setState(() => _currency = v.currency);
+      success: (vendor) {
+        _nameCtrl.text = vendor.displayName;
+        _companyCtrl.text = vendor.companyName ?? '';
+        _emailCtrl.text = vendor.email ?? '';
+        _phoneCtrl.text = vendor.phone ?? '';
+        setState(() => _currency = vendor.currency);
       },
       failure: (_) {},
     );
@@ -66,9 +64,7 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isEdit ? 'تعديل مورد' : 'مورد جديد'),
-      ),
+      appBar: AppBar(title: Text(widget.isEdit ? 'تعديل مورد' : 'مورد جديد')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -78,31 +74,23 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
               label: 'الاسم *',
               controller: _nameCtrl,
               hint: 'الاسم الكامل للمورد',
-              validator: (v) =>
-                  v == null || v.isEmpty ? 'الاسم مطلوب' : null,
+              validator: (value) => value == null || value.isEmpty ? 'الاسم مطلوب' : null,
             ),
             const SizedBox(height: 16),
-
-            AppTextField(
-              label: 'اسم الشركة',
-              controller: _companyCtrl,
-              hint: 'اختياري',
-            ),
+            AppTextField(label: 'اسم الشركة', controller: _companyCtrl, hint: 'اختياري'),
             const SizedBox(height: 16),
-
             AppTextField(
               label: 'البريد الإلكتروني',
               controller: _emailCtrl,
               hint: 'example@email.com',
               keyboardType: TextInputType.emailAddress,
-              validator: (v) {
-                if (v == null || v.isEmpty) return null;
-                if (!v.contains('@')) return 'بريد إلكتروني غير صحيح';
+              validator: (value) {
+                if (value == null || value.isEmpty) return null;
+                if (!value.contains('@')) return 'بريد إلكتروني غير صحيح';
                 return null;
               },
             ),
             const SizedBox(height: 16),
-
             AppTextField(
               label: 'رقم الهاتف',
               controller: _phoneCtrl,
@@ -110,33 +98,27 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
               initialValue: _currency,
               decoration: const InputDecoration(labelText: 'العملة'),
               items: const [
-                DropdownMenuItem(
-                    value: 'EGP', child: Text('جنيه مصري (EGP)')),
-                DropdownMenuItem(
-                    value: 'USD', child: Text('دولار أمريكي (USD)')),
-                DropdownMenuItem(
-                    value: 'SAR', child: Text('ريال سعودي (SAR)')),
+                DropdownMenuItem(value: 'EGP', child: Text('جنيه مصري (EGP)')),
+                DropdownMenuItem(value: 'USD', child: Text('دولار أمريكي (USD)')),
+                DropdownMenuItem(value: 'SAR', child: Text('ريال سعودي (SAR)')),
               ],
-              onChanged: (v) => setState(() => _currency = v!),
+              onChanged: (value) => setState(() => _currency = value!),
             ),
             const SizedBox(height: 16),
-
             if (!widget.isEdit) ...[
               AppTextField(
                 label: 'الرصيد الافتتاحي',
                 controller: _openBalCtrl,
                 hint: '0',
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  final n = double.tryParse(v ?? '');
-                  if (n == null) return 'أدخل رقماً صحيحاً';
-                  if (n < 0)    return 'الرصيد لا يمكن أن يكون سالباً';
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  final number = double.tryParse(value ?? '');
+                  if (number == null) return 'أدخل رقماً صحيحاً';
+                  if (number < 0) return 'الرصيد لا يمكن أن يكون سالباً';
                   return null;
                 },
               ),
@@ -144,20 +126,14 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
               Text(
                 '* إذا كان للمورد رصيد سابق، سيتم إنشاء قيد افتتاحي تلقائياً',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withValues(alpha: 0.5),
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                     ),
               ),
             ],
-
             const SizedBox(height: 32),
-
             AppButton(
-              label:    widget.isEdit ? 'حفظ التعديلات' : 'إضافة المورد',
-              loading:  _loading,
+              label: widget.isEdit ? 'حفظ التعديلات' : 'إضافة المورد',
+              loading: _loading,
               expanded: true,
               onPressed: _submit,
             ),
@@ -174,20 +150,15 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
     final body = <String, dynamic>{
       'displayName': _nameCtrl.text.trim(),
       if (_companyCtrl.text.isNotEmpty) 'companyName': _companyCtrl.text.trim(),
-      if (_emailCtrl.text.isNotEmpty)   'email':       _emailCtrl.text.trim(),
-      if (_phoneCtrl.text.isNotEmpty)   'phone':       _phoneCtrl.text.trim(),
+      if (_emailCtrl.text.isNotEmpty) 'email': _emailCtrl.text.trim(),
+      if (_phoneCtrl.text.isNotEmpty) 'phone': _phoneCtrl.text.trim(),
       'currency': _currency,
-      if (!widget.isEdit)
-        'openingBalance': double.tryParse(_openBalCtrl.text) ?? 0,
+      if (!widget.isEdit) 'openingBalance': double.tryParse(_openBalCtrl.text) ?? 0,
     };
 
     final ApiResult<VendorModel> result = widget.isEdit
-        ? await ref
-            .read(vendorsProvider.notifier)
-            .updateVendor(widget.id!, body)
-        : await ref
-            .read(vendorsProvider.notifier)
-            .createVendor(body);
+        ? await ref.read(vendorsProvider.notifier).updateVendor(widget.id!, body)
+        : await ref.read(vendorsProvider.notifier).createVendor(body);
 
     if (!mounted) return;
     setState(() => _loading = false);
@@ -195,16 +166,16 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
     result.when(
       success: (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.isEdit
-                ? 'تم تعديل المورد بنجاح'
-                : 'تم إضافة المورد بنجاح'),
-          ),
+          SnackBar(content: Text(widget.isEdit ? 'تم تعديل المورد بنجاح' : 'تم إضافة المورد بنجاح')),
         );
-        context.pop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(AppRoutes.vendors);
+        }
       },
-      failure: (e) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
       ),
     );
   }
