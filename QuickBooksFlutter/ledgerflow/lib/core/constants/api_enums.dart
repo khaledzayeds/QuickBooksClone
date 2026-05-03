@@ -194,6 +194,9 @@ enum VendorCreditAction {
 
   const VendorCreditAction(this.value);
   final int value;
+
+  static VendorCreditAction fromValue(int value) =>
+      VendorCreditAction.values.firstWhere((e) => e.value == value, orElse: () => VendorCreditAction.applyToBill);
 }
 
 // ─── Customer Credit Action ───────────────────────
@@ -203,4 +206,7 @@ enum CustomerCreditAction {
 
   const CustomerCreditAction(this.value);
   final int value;
+
+  static CustomerCreditAction fromValue(int value) =>
+      CustomerCreditAction.values.firstWhere((e) => e.value == value, orElse: () => CustomerCreditAction.applyToInvoice);
 }
