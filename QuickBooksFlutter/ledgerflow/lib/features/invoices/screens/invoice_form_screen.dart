@@ -5,12 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
+
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../items/providers/items_provider.dart';
+import '../providers/invoices_provider.dart';
 
-// ─── Local State for Form ────────────────────────────────
 class InvoiceLineState {
   String? itemId;
   String description = '';
@@ -33,15 +34,16 @@ final invoiceFormProvider = StateProvider.autoDispose<InvoiceFormState>((ref) {
   return InvoiceFormState();
 });
 
-// ─── Screen ──────────────────────────────────────────────
+final invoiceSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+
 class InvoiceFormScreen extends ConsumerWidget {
   const InvoiceFormScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final formState = ref.watch(invoiceFormProvider);
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final saving = ref.watch(invoiceSavingProvider);
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
@@ -53,19 +55,21 @@ class InvoiceFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: () => context.pop(),
+            onPressed: saving
+                ? null
+                : () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/sales/invoices');
+                    }
+                  },
           ),
           const SizedBox(width: 12),
           AppButton(
             label: l10n.save,
-            onPressed: () {
-              // TODO: Implement saving logic to backend
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Saving invoice... (API integration pending)'),
-                ),
-              );
-            },
+            loading: saving,
+            onPressed: saving ? null : () => _saveInvoice(context, ref),
           ),
           const SizedBox(width: 24),
         ],
@@ -75,15 +79,10 @@ class InvoiceFormScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header Section (Customer & Dates)
             _HeaderSection(),
             const SizedBox(height: 32),
-
-            // ── Lines Section
             _LinesSection(),
             const SizedBox(height: 32),
-
-            // ── Totals Section
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: _TotalsSection(),
@@ -93,9 +92,69 @@ class InvoiceFormScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _saveInvoice(BuildContext context, WidgetRef ref) async {
+    final formState = ref.read(invoiceFormProvider);
+
+    if (formState.customerId == null || formState.customerId!.isEmpty) {
+      _showError(context, 'اختر العميل أولاً');
+      return;
+    }
+
+    final validLines = formState.lines
+        .where((line) => line.itemId != null && line.itemId!.isNotEmpty && line.quantity > 0)
+        .toList();
+
+    if (validLines.isEmpty) {
+      _showError(context, 'أضف صنف واحد على الأقل بكمية صحيحة');
+      return;
+    }
+
+    final body = <String, dynamic>{
+      'customerId': formState.customerId,
+      'invoiceDate': _dateOnly(formState.invoiceDate),
+      'dueDate': _dateOnly(formState.dueDate),
+      'saveMode': 2,
+      'lines': validLines
+          .map(
+            (line) => {
+              'itemId': line.itemId,
+              'description': line.description.isEmpty ? null : line.description,
+              'quantity': line.quantity,
+              'unitPrice': line.unitPrice,
+              'discountPercent': 0,
+              'taxCodeId': null,
+            },
+          )
+          .toList(),
+    };
+
+    ref.read(invoiceSavingProvider.notifier).state = true;
+    final result = await ref.read(invoicesProvider.notifier).createInvoice(body);
+    ref.read(invoiceSavingProvider.notifier).state = false;
+
+    if (!context.mounted) return;
+
+    result.when(
+      success: (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ وترحيل الفاتورة بنجاح')),
+        );
+        context.go('/sales/invoices');
+      },
+      failure: (error) => _showError(context, error.message),
+    );
+  }
+
+  static String _dateOnly(DateTime date) => date.toIso8601String().split('T').first;
+
+  static void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
 }
 
-// ─── Header Section ──────────────────────────────────────
 class _HeaderSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -117,10 +176,7 @@ class _HeaderSection extends ConsumerWidget {
           final customerDropdown = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'العميل',
-                style: Theme.of(context).textTheme.labelMedium,
-              ), // Localized later
+              Text('العميل', style: Theme.of(context).textTheme.labelMedium),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -135,23 +191,19 @@ class _HeaderSection extends ConsumerWidget {
                       value: formState.customerId,
                       hint: const Text('اختر عميل...'),
                       items: customers
-                          .map(
-                            (c) => DropdownMenuItem(
-                              value: c.id,
-                              child: Text(c.displayName),
-                            ),
-                          )
+                          .map((customer) => DropdownMenuItem(value: customer.id, child: Text(customer.displayName)))
                           .toList(),
-                      onChanged: (val) {
+                      onChanged: (value) {
                         final state = ref.read(invoiceFormProvider);
-                        state.customerId = val;
-                        ref.read(invoiceFormProvider.notifier).state =
-                            state; // Trigger rebuild
+                        ref.read(invoiceFormProvider.notifier).state = InvoiceFormState()
+                          ..customerId = value
+                          ..invoiceDate = state.invoiceDate
+                          ..dueDate = state.dueDate
+                          ..lines = List.from(state.lines);
                       },
                     ),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Text('Error loading customers: $e'),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (error, _) => Text('Error loading customers: $error'),
                   ),
                 ),
               ),
@@ -164,17 +216,12 @@ class _HeaderSection extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'تاريخ الفاتورة',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
+                    Text('تاريخ الفاتورة', style: Theme.of(context).textTheme.labelMedium),
                     const SizedBox(height: 8),
                     AppTextField(
                       label: '',
                       readOnly: true,
-                      initialValue: '${formState.invoiceDate.toLocal()}'.split(
-                        ' ',
-                      )[0],
+                      initialValue: InvoiceFormScreen._dateOnly(formState.invoiceDate),
                       suffixIcon: const Icon(Icons.calendar_today_outlined),
                     ),
                   ],
@@ -185,17 +232,12 @@ class _HeaderSection extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'تاريخ الاستحقاق',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
+                    Text('تاريخ الاستحقاق', style: Theme.of(context).textTheme.labelMedium),
                     const SizedBox(height: 8),
                     AppTextField(
                       label: '',
                       readOnly: true,
-                      initialValue: '${formState.dueDate.toLocal()}'.split(
-                        ' ',
-                      )[0],
+                      initialValue: InvoiceFormScreen._dateOnly(formState.dueDate),
                       suffixIcon: const Icon(Icons.calendar_today_outlined),
                     ),
                   ],
@@ -205,9 +247,7 @@ class _HeaderSection extends ConsumerWidget {
           );
 
           if (isMobile) {
-            return Column(
-              children: [customerDropdown, const SizedBox(height: 16), dates],
-            );
+            return Column(children: [customerDropdown, const SizedBox(height: 16), dates]);
           }
 
           return Row(
@@ -224,7 +264,6 @@ class _HeaderSection extends ConsumerWidget {
   }
 }
 
-// ─── Lines Section ───────────────────────────────────────
 class _LinesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -240,64 +279,27 @@ class _LinesSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Table Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              border: Border(
-                bottom: BorderSide(
-                  color: cs.outlineVariant.withValues(alpha: 0.4),
-                ),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4))),
             ),
             child: Row(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'الصنف / الوصف',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
+                Expanded(flex: 3, child: Text('الصنف / الوصف', style: Theme.of(context).textTheme.labelLarge)),
+                Expanded(flex: 1, child: Text('الكمية', style: Theme.of(context).textTheme.labelLarge)),
+                Expanded(flex: 1, child: Text('السعر', style: Theme.of(context).textTheme.labelLarge)),
                 Expanded(
                   flex: 1,
-                  child: Text(
-                    'الكمية',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
+                  child: Text('الإجمالي', textAlign: TextAlign.end, style: Theme.of(context).textTheme.labelLarge),
                 ),
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    'السعر',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    'الإجمالي',
-                    textAlign: TextAlign.end,
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
-                const SizedBox(width: 48), // Action icon space
+                const SizedBox(width: 48),
               ],
             ),
           ),
-
-          // Table Rows
-          ...formState.lines.asMap().entries.map((entry) {
-            final index = entry.key;
-            final line = entry.value;
-            return _LineRow(index: index, line: line);
-          }),
-
-          // Add Line Button
+          ...formState.lines.asMap().entries.map((entry) => _LineRow(index: entry.key, line: entry.value)),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Align(
@@ -306,13 +308,7 @@ class _LinesSection extends ConsumerWidget {
                 onPressed: () {
                   final state = ref.read(invoiceFormProvider);
                   state.lines.add(InvoiceLineState());
-                  ref
-                      .read(invoiceFormProvider.notifier)
-                      .state = InvoiceFormState()
-                    ..lines = state.lines
-                    ..customerId = state.customerId
-                    ..invoiceDate = state.invoiceDate
-                    ..dueDate = state.dueDate; // Force rebuild
+                  _forceInvoiceRebuild(ref, state);
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('إضافة سطر'),
@@ -327,6 +323,7 @@ class _LinesSection extends ConsumerWidget {
 
 class _LineRow extends ConsumerWidget {
   const _LineRow({required this.index, required this.line});
+
   final int index;
   final InvoiceLineState line;
 
@@ -337,62 +334,40 @@ class _LineRow extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
-        ),
-      ),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)))),
       child: Row(
         children: [
-          // Item Select
           Expanded(
             flex: 3,
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: cs.outline),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                decoration: BoxDecoration(border: Border.all(color: cs.outline), borderRadius: BorderRadius.circular(8)),
                 child: DropdownButtonHideUnderline(
                   child: itemsAsync.when(
                     data: (items) => DropdownButton<String>(
                       isExpanded: true,
                       value: line.itemId,
                       hint: const Text('اختر صنف...'),
-                      items: items
-                          .map(
-                            (i) => DropdownMenuItem(
-                              value: i.id,
-                              child: Text(i.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        final selectedItem = items.firstWhere(
-                          (i) => i.id == val,
-                        );
+                      items: items.map((item) => DropdownMenuItem(value: item.id, child: Text(item.name))).toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        final selectedItem = items.firstWhere((item) => item.id == value);
                         final state = ref.read(invoiceFormProvider);
-                        state.lines[index].itemId = val;
+                        state.lines[index].itemId = value;
                         state.lines[index].unitPrice = selectedItem.salesPrice;
                         state.lines[index].description = selectedItem.name;
-                        _forceRebuild(ref, state);
+                        _forceInvoiceRebuild(ref, state);
                       },
                     ),
-                    loading: () => const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+                    loading: () => const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                     error: (_, _) => const Text('Error'),
                   ),
                 ),
               ),
             ),
           ),
-
-          // Quantity
           Expanded(
             flex: 1,
             child: Padding(
@@ -401,16 +376,14 @@ class _LineRow extends ConsumerWidget {
                 label: '',
                 initialValue: line.quantity.toString(),
                 keyboardType: TextInputType.number,
-                onChanged: (v) {
+                onChanged: (value) {
                   final state = ref.read(invoiceFormProvider);
-                  state.lines[index].quantity = double.tryParse(v) ?? 0;
-                  _forceRebuild(ref, state);
+                  state.lines[index].quantity = double.tryParse(value) ?? 0;
+                  _forceInvoiceRebuild(ref, state);
                 },
               ),
             ),
           ),
-
-          // Unit Price
           Expanded(
             flex: 1,
             child: Padding(
@@ -419,16 +392,14 @@ class _LineRow extends ConsumerWidget {
                 label: '',
                 initialValue: line.unitPrice.toString(),
                 keyboardType: TextInputType.number,
-                onChanged: (v) {
+                onChanged: (value) {
                   final state = ref.read(invoiceFormProvider);
-                  state.lines[index].unitPrice = double.tryParse(v) ?? 0;
-                  _forceRebuild(ref, state);
+                  state.lines[index].unitPrice = double.tryParse(value) ?? 0;
+                  _forceInvoiceRebuild(ref, state);
                 },
               ),
             ),
           ),
-
-          // Total
           Expanded(
             flex: 1,
             child: Text(
@@ -437,8 +408,6 @@ class _LineRow extends ConsumerWidget {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-
-          // Action
           SizedBox(
             width: 48,
             child: IconButton(
@@ -447,7 +416,7 @@ class _LineRow extends ConsumerWidget {
                 final state = ref.read(invoiceFormProvider);
                 if (state.lines.length > 1) {
                   state.lines.removeAt(index);
-                  _forceRebuild(ref, state);
+                  _forceInvoiceRebuild(ref, state);
                 }
               },
             ),
@@ -456,17 +425,8 @@ class _LineRow extends ConsumerWidget {
       ),
     );
   }
-
-  void _forceRebuild(WidgetRef ref, InvoiceFormState oldState) {
-    ref.read(invoiceFormProvider.notifier).state = InvoiceFormState()
-      ..customerId = oldState.customerId
-      ..invoiceDate = oldState.invoiceDate
-      ..dueDate = oldState.dueDate
-      ..lines = List.from(oldState.lines);
-  }
 }
 
-// ─── Totals Section ──────────────────────────────────────
 class _TotalsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -486,50 +446,29 @@ class _TotalsSection extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'المجموع الفرعي (Subtotal)',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              Text(
-                formState.subtotal.toStringAsFixed(2),
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+              Text('المجموع الفرعي (Subtotal)', style: Theme.of(context).textTheme.bodyMedium),
+              Text(formState.subtotal.toStringAsFixed(2), style: Theme.of(context).textTheme.bodyLarge),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'الضريبة (Tax)',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              Text(
-                'يتم حسابها بعد الحفظ',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: cs.primary),
-              ),
+              Text('الضريبة (Tax)', style: Theme.of(context).textTheme.bodyMedium),
+              Text('يتم حسابها بعد الحفظ', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.primary)),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(),
-          ),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'الإجمالي (Total)',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
                 formState.subtotal.toStringAsFixed(2),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -537,4 +476,12 @@ class _TotalsSection extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _forceInvoiceRebuild(WidgetRef ref, InvoiceFormState oldState) {
+  ref.read(invoiceFormProvider.notifier).state = InvoiceFormState()
+    ..customerId = oldState.customerId
+    ..invoiceDate = oldState.invoiceDate
+    ..dueDate = oldState.dueDate
+    ..lines = List.from(oldState.lines);
 }
