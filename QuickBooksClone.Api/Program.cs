@@ -85,6 +85,7 @@ builder.Services.AddScoped<IInvoiceRepository, EfInvoiceRepository>();
 builder.Services.AddScoped<ISalesInvoicePostingService, SalesInvoicePostingService>();
 builder.Services.AddScoped<SalesPostingPreviewService>();
 builder.Services.AddScoped<SalesActivityService>();
+builder.Services.AddScoped<SalesPrintService>();
 builder.Services.AddScoped<IInventoryAdjustmentRepository, EfInventoryAdjustmentRepository>();
 builder.Services.AddScoped<IInventoryAdjustmentPostingService, InventoryAdjustmentPostingService>();
 builder.Services.AddScoped<IJournalEntryRepository, EfJournalEntryRepository>();
