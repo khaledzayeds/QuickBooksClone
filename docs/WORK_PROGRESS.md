@@ -37,6 +37,7 @@ F) Banking / Inventory Pro / Payroll
 8. أي ميزة مدفوعة أو مرتبطة بنسخة معينة لازم تعدي من License Gate أو Feature Flag واضح.
 9. أي private signing key لازم يفضل خارج تطبيق العميل تمامًا.
 10. Restore operations must create or offer safety backup before overwriting live company data.
+11. First-run setup must not overwrite an already initialized company.
 
 ---
 
@@ -109,11 +110,11 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add backend/API license enforcement skeleton.
 - [x] Add backend backup/restore action endpoints.
 - [x] Wire Flutter Backup Settings to backup/restore API.
-- [ ] Add backend users/roles/permissions endpoints.
-- [ ] Add backend setup status endpoint if missing.
-- [ ] Add initialize company endpoint if missing.
+- [x] Add setup status endpoint.
+- [x] Add initialize company endpoint.
+- [x] Add first admin user flow.
+- [ ] Wire Flutter Setup Wizard to setup status/init endpoints.
 - [ ] Add default accounts seeding flow.
-- [ ] Add first admin user flow.
 
 ### Already Done
 
@@ -127,31 +128,15 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added license admin tools for Ed25519 keypair/package signing.
 - [x] Added backend licensing contracts, Ed25519 signing service, configuration activation service, and `POST /api/licenses/activate`.
 - [x] Added Flutter online activation repository/provider methods and wired visible Activate Online button.
-- [x] Added backend license enforcement skeleton:
-  - `QuickBooksClone.Api/Security/RequireLicenseFeatureAttribute.cs`
-  - `QuickBooksClone.Core/Licensing/ILicenseFeatureAccessService.cs`
-  - `QuickBooksClone.Infrastructure/Licensing/ConfigurationLicenseFeatureAccessService.cs`
-  - `QuickBooksClone.Api/Middleware/LicenseFeatureMiddleware.cs`
-  - Registered `ILicenseFeatureAccessService` and `LicenseFeatureMiddleware` in `Program.cs`.
-  - Added `GET /api/licenses/status`.
-  - Added sample `Licensing:CurrentLicense` config in `appsettings.json`.
-- [x] Added backup/restore API contracts and controller:
-  - `QuickBooksClone.Api/Contracts/Backups/BackupContracts.cs`
-  - `QuickBooksClone.Api/Controllers/BackupsController.cs`
-- [x] Backup API is protected by `[RequireLicenseFeature(LicenseFeatureNames.BackupRestore)]`.
-- [x] Backup API supports:
-  - `GET /api/backups`
-  - `GET /api/backups/settings`
-  - `PUT /api/backups/settings`
-  - `POST /api/backups`
-  - `POST /api/backups/import`
-  - `POST /api/backups/restore`
-  - `GET /api/backups/restore-audits`
-- [x] Added Flutter backup models/repository/provider:
-  - `backup_models.dart`
-  - `backup_repository.dart`
-  - `backup_provider.dart`
-- [x] Backup Settings screen now lists backups, creates manual backup, restores backup with confirmation/safety backup option, shows policy, and shows restore audit log.
+- [x] Added backend license enforcement skeleton and server status endpoint.
+- [x] Added backup/restore API contracts/controller and wired Flutter Backup Settings.
+- [x] Added setup API contracts and controller:
+  - `QuickBooksClone.Api/Contracts/Setup/SetupContracts.cs`
+  - `QuickBooksClone.Api/Controllers/SetupController.cs`
+- [x] Setup API supports:
+  - `GET /api/setup/status`
+  - `POST /api/setup/initialize-company`
+- [x] Initialize Company flow creates company settings, ensures system `ADMIN` role with all permissions, creates first admin user, hashes initial admin secret, and blocks re-initializing an already initialized company.
 - [x] Applied first route gates:
   - Backup Settings gated by `LicenseFeature.backupRestore`
   - Payroll route gated by `LicenseFeature.payroll`
@@ -162,8 +147,9 @@ F) Banking / Inventory Pro / Payroll
 - Offline flow is end-to-end conceptually complete: request code → signed package → public-key verification → local save.
 - Online backend exposes `POST /api/licenses/activate` and signs packages using the server-side private key.
 - The visible Flutter Activate Online button calls the backend, verifies the returned signed package, and saves it locally.
-- Backend license enforcement exists as a reusable skeleton using `[RequireLicenseFeature("featureName")]` and `Licensing:CurrentLicense`.
 - Backup/Restore is now the first paid feature protected on both Flutter and API layers.
+- Setup Status / Initialize Company backend is now available, but Flutter Setup Wizard still needs wiring to call it.
+- Default accounts seeding is still pending and should happen after or inside initialize-company.
 - The server private key must be supplied through `Licensing:PrivateKey` or `LEDGERFLOW_LICENSE_PRIVATE_KEY`; do not commit a real private key.
 - A real production public key must be generated and pasted into `LicensePublicKeyConfig` before using the flow commercially.
 - Import Backup endpoint exists but Flutter import file picker is not wired yet.
@@ -282,7 +268,8 @@ F) Banking / Inventory Pro / Payroll
 - Added backend/API license enforcement skeleton and server license status endpoint.
 - Added backup/restore API endpoints protected by BackupRestore license feature.
 - Wired Flutter Backup Settings to list/create/restore backups and show restore audit log.
+- Added setup status and initialize company endpoints with first admin creation.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: setup status/init company endpoints, users/permissions backend, installer integration, or Core MVP polish.
+- Next focus: wire Flutter Setup Wizard to setup endpoints, add default accounts seeding, installer integration, or Core MVP polish.
