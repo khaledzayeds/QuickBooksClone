@@ -12,6 +12,7 @@ class LicenseSettingsState {
     this.saving = false,
     this.saved = false,
     this.errorMessage,
+    this.activationMessage,
   });
 
   final LicenseSettingsModel license;
@@ -19,6 +20,7 @@ class LicenseSettingsState {
   final bool saving;
   final bool saved;
   final String? errorMessage;
+  final String? activationMessage;
 
   LicenseSettingsState copyWith({
     LicenseSettingsModel? license,
@@ -26,7 +28,9 @@ class LicenseSettingsState {
     bool? saving,
     bool? saved,
     String? errorMessage,
+    String? activationMessage,
     bool clearError = false,
+    bool clearActivation = false,
   }) {
     return LicenseSettingsState(
       license: license ?? this.license,
@@ -34,6 +38,7 @@ class LicenseSettingsState {
       saving: saving ?? this.saving,
       saved: saved ?? this.saved,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      activationMessage: clearActivation ? null : activationMessage ?? this.activationMessage,
     );
   }
 }
@@ -49,7 +54,7 @@ class LicenseSettingsNotifier extends Notifier<LicenseSettingsState> {
   }
 
   Future<void> load() async {
-    state = state.copyWith(loading: true, saved: false, clearError: true);
+    state = state.copyWith(loading: true, saved: false, clearError: true, clearActivation: true);
     try {
       final license = await _repository.load();
       state = state.copyWith(license: license, loading: false, clearError: true);
@@ -59,11 +64,11 @@ class LicenseSettingsNotifier extends Notifier<LicenseSettingsState> {
   }
 
   void update(LicenseSettingsModel Function(LicenseSettingsModel current) change) {
-    state = state.copyWith(license: change(state.license), saved: false, clearError: true);
+    state = state.copyWith(license: change(state.license), saved: false, clearError: true, clearActivation: true);
   }
 
   Future<void> save() async {
-    state = state.copyWith(saving: true, saved: false, clearError: true);
+    state = state.copyWith(saving: true, saved: false, clearError: true, clearActivation: true);
     try {
       final saved = await _repository.save(state.license.copyWith(lastValidatedAtIso: DateTime.now().toIso8601String()));
       state = state.copyWith(license: saved, saving: false, saved: true, clearError: true);
@@ -73,7 +78,7 @@ class LicenseSettingsNotifier extends Notifier<LicenseSettingsState> {
   }
 
   Future<void> applyEdition(LicenseEdition edition) async {
-    state = state.copyWith(saving: true, saved: false, clearError: true);
+    state = state.copyWith(saving: true, saved: false, clearError: true, clearActivation: true);
     try {
       final saved = await _repository.applyEdition(edition);
       state = state.copyWith(license: saved, saving: false, saved: true, clearError: true);
@@ -82,8 +87,29 @@ class LicenseSettingsNotifier extends Notifier<LicenseSettingsState> {
     }
   }
 
+  Future<void> applyPackage({required String package, required String deviceFingerprint}) async {
+    state = state.copyWith(saving: true, saved: false, clearError: true, clearActivation: true);
+    try {
+      final result = await _repository.applyPackage(package: package, deviceFingerprint: deviceFingerprint);
+      if (!result.success || result.license == null) {
+        state = state.copyWith(saving: false, saved: false, errorMessage: result.message);
+        return;
+      }
+
+      state = state.copyWith(
+        license: result.license,
+        saving: false,
+        saved: true,
+        activationMessage: result.message,
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(saving: false, saved: false, errorMessage: error.toString());
+    }
+  }
+
   Future<void> reset() async {
-    state = state.copyWith(saving: true, saved: false, clearError: true);
+    state = state.copyWith(saving: true, saved: false, clearError: true, clearActivation: true);
     try {
       final reset = await _repository.reset();
       state = state.copyWith(license: reset, saving: false, saved: true, clearError: true);
