@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/widgets/coming_soon_screen.dart';
 import '../core/widgets/responsive_scaffold.dart';
 import '../features/accounts/screens/account_form_screen.dart';
 import '../features/accounts/screens/chart_of_accounts_screen.dart';
@@ -389,29 +390,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.reports,
             builder: (context, state) => const ReportsScreen(),
           ),
-          _placeholder(AppRoutes.settings, 'Settings'),
-          _placeholder(AppRoutes.bankingDeposits, 'Make Deposits'),
-          _placeholder(AppRoutes.bankingChecks, 'Write Checks'),
-          _placeholder(AppRoutes.bankingReconcile, 'Reconcile'),
-          _placeholder(AppRoutes.payroll, 'Payroll'),
-          _placeholder(AppRoutes.timeTracking, 'Enter Time'),
-          _placeholder(AppRoutes.calendar, 'Calendar'),
-          _placeholder(AppRoutes.snapshots, 'Snapshots'),
-          _placeholder(AppRoutes.cashFlowHub, 'Cash Flow Hub'),
-          _placeholder(AppRoutes.myCompany, 'My Company'),
-          _placeholder(AppRoutes.openWindows, 'Open Windows'),
+          _comingSoon(AppRoutes.settings, 'Settings'),
+          _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
+          _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
+          _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
+          _comingSoon(AppRoutes.payroll, 'Payroll'),
+          _comingSoon(AppRoutes.timeTracking, 'Enter Time'),
+          _comingSoon(AppRoutes.calendar, 'Calendar'),
+          _comingSoon(AppRoutes.snapshots, 'Snapshots'),
+          _comingSoon(AppRoutes.cashFlowHub, 'Cash Flow Hub'),
+          _comingSoon(AppRoutes.myCompany, 'My Company'),
+          _comingSoon(AppRoutes.openWindows, 'Open Windows'),
         ],
       ),
     ],
   );
 });
 
-GoRoute _placeholder(String path, String title) => GoRoute(
+GoRoute _comingSoon(String path, String title) => GoRoute(
       path: path,
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: Center(
-          child: Text('$title screen is under development'),
-        ),
-      ),
+      builder: (context, state) => ComingSoonScreen(title: title),
     );
