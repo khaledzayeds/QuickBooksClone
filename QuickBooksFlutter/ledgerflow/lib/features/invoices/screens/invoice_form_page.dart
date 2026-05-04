@@ -255,7 +255,10 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
 
   Future<void> _selectCustomer() async {
     final customersAsync = ref.read(customersProvider);
-    final customers = customersAsync.valueOrNull?.where((customer) => customer.isActive).toList() ?? const <CustomerModel>[];
+    final customers = customersAsync.maybeWhen(
+      data: (items) => items.where((customer) => customer.isActive).toList(),
+      orElse: () => const <CustomerModel>[],
+    );
     final selected = await showDialog<CustomerModel>(
       context: context,
       builder: (context) => AlertDialog(
