@@ -106,7 +106,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   icon: Icons.admin_panel_settings_outlined,
                   title: 'Users & Permissions',
                   subtitle: 'Users, roles, permissions, passwords, and audit access.',
-                  onTap: () => _openComingSoon(context, 'Users & Permissions'),
+                  onTap: () => context.go(AppRoutes.usersPermissions),
                 ),
                 _SettingsTile(
                   icon: Icons.flag_outlined,
