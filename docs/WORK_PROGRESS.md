@@ -67,7 +67,8 @@ F) Banking / Inventory Pro / Payroll
 - [ ] Fix backend compile errors.
 - [ ] Fix Flutter analyzer blocking errors.
 - [ ] Review and remove old temporary files.
-- [ ] Replace remaining hardcoded transaction routes with `AppRoutes`.
+- [x] Replace known hardcoded transaction routes with `AppRoutes` in return/credit screens.
+- [x] Add shared `ComingSoonScreen` instead of inline placeholder builder.
 - [ ] Confirm all main routes open.
 - [ ] Confirm auth redirect/login flow works.
 - [ ] Confirm API starts and migrations apply.
@@ -93,9 +94,20 @@ F) Banking / Inventory Pro / Payroll
   - Cash Flow Hub
   - My Company
   - Open Windows
+- [x] Added shared coming-soon screen: `QuickBooksFlutter/ledgerflow/lib/core/widgets/coming_soon_screen.dart`.
+- [x] Replaced inline router placeholders with shared `ComingSoonScreen`.
 - [x] Wired dashboard flowchart navigation.
 - [x] Wired top menu navigation.
 - [x] Wired sidebar navigation.
+- [x] Replaced hardcoded list/form navigation routes in:
+  - `sales_return_list_screen.dart`
+  - `sales_return_form_screen.dart`
+  - `purchase_return_list_screen.dart`
+  - `purchase_return_form_screen.dart`
+  - `customer_credit_list_screen.dart`
+  - `customer_credit_form_screen.dart`
+  - `vendor_credit_list_screen.dart`
+  - `vendor_credit_form_screen.dart`
 - [x] Created this progress tracker.
 
 ### Current Blockers
@@ -104,11 +116,11 @@ F) Banking / Inventory Pro / Payroll
 
 ### Next Action
 
-Start cleanup pass:
+Continue Phase A cleanup pass:
 
-1. Replace hardcoded paths inside transaction screens.
-2. Add shared `ComingSoonScreen` instead of inline placeholder builder.
-3. Review routing and navigation consistency.
+1. Review repo for duplicate/temp files such as `*_fixed.dart`, `router_fixed.dart`, `router_full_fixed.dart`, and old `Errors.txt`.
+2. Review remaining screens for hardcoded routes beyond returns/credits.
+3. Review import consistency after adding `AppRoutes` imports.
 4. Wait for local `dotnet build` and `flutter analyze` output when available.
 
 ---
@@ -309,4 +321,7 @@ Start cleanup pass:
 - Added progress tracker file.
 - Wired missing transaction routes.
 - Wired dashboard/top-menu/sidebar navigation.
-- Next focus: Phase A cleanup and stability.
+- Added shared `ComingSoonScreen`.
+- Replaced inline router placeholders with `ComingSoonScreen`.
+- Replaced hardcoded routes in sales/purchase returns and customer/vendor credits list/form screens.
+- Next focus: duplicate/temp file cleanup and remaining route consistency review.
