@@ -132,30 +132,11 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added Flutter online activation repository/provider methods and wired visible Activate Online button.
 - [x] Added backend license enforcement skeleton and server status endpoint.
 - [x] Added backup/restore API contracts/controller and wired Flutter Backup Settings.
-- [x] Added setup API contracts and controller:
-  - `QuickBooksClone.Api/Contracts/Setup/SetupContracts.cs`
-  - `QuickBooksClone.Api/Contracts/Setup/DefaultAccountsSeedContracts.cs`
-  - `QuickBooksClone.Api/Controllers/SetupController.cs`
-- [x] Setup API supports:
-  - `GET /api/setup/status`
-  - `POST /api/setup/initialize-company`
-  - `POST /api/setup/seed-default-accounts`
+- [x] Added setup API contracts and controller.
+- [x] Setup API supports setup status, initialize company, and default account seeding.
 - [x] Initialize Company flow creates company settings, ensures system `ADMIN` role with all permissions, creates first admin user, hashes initial admin secret, blocks re-initializing an already initialized company, and seeds default chart of accounts.
-- [x] Added default accounts seed service:
-  - `QuickBooksClone.Core/Accounting/DefaultAccountsSeedModels.cs`
-  - `QuickBooksClone.Infrastructure/Accounting/DefaultAccountsSeeder.cs`
-  - Registered `IDefaultAccountsSeeder` in `Program.cs`.
 - [x] Default accounts seed is idempotent: it creates missing codes and skips existing codes.
-- [x] Added Flutter setup models/repository/provider:
-  - `setup_models.dart`
-  - `setup_repository.dart`
-  - `setup_provider.dart`
-- [x] Setup Wizard now calls setup status endpoint and includes a real Create Company + First Admin form.
-- [x] Setup Wizard Default Accounts step now runs default accounts seeding and displays created/skipped account codes.
-- [x] Added Flutter security models/repository/provider:
-  - `security_models.dart`
-  - `security_repository.dart`
-  - `security_provider.dart`
+- [x] Setup Wizard now calls setup status endpoint, initializes company, and runs default accounts seeding.
 - [x] Users & Permissions screen now loads users, roles, and permissions from `SecurityController` APIs.
 - [x] Users & Permissions screen supports adding users, adding roles, toggling user active status, replacing user roles, and replacing role permissions for non-system roles.
 - [x] Applied first route gates:
@@ -169,11 +150,7 @@ F) Banking / Inventory Pro / Payroll
 - Online backend exposes `POST /api/licenses/activate` and signs packages using the server-side private key.
 - The visible Flutter Activate Online button calls the backend, verifies the returned signed package, and saves it locally.
 - Backup/Restore is now the first paid feature protected on both Flutter and API layers.
-- Setup Status / Initialize Company is now wired from Flutter to backend.
-- Default accounts seeding now happens automatically during initialize-company and can also be re-run manually from the Setup Wizard.
 - Users & Permissions is now wired to backend security APIs, but password reset/change UI, audit log, device activation limits, and license user-limit enforcement are still future polish.
-- The server private key must be supplied through `Licensing:PrivateKey` or `LEDGERFLOW_LICENSE_PRIVATE_KEY`; do not commit a real private key.
-- A real production public key must be generated and pasted into `LicensePublicKeyConfig` before using the flow commercially.
 - Import Backup endpoint exists but Flutter import file picker is not wired yet.
 
 ---
@@ -184,44 +161,13 @@ F) Banking / Inventory Pro / Payroll
 
 `Scheduled / Not Blocking Core MVP Start`
 
-### Why these are not first
-
-Phase B is now strong enough to support first-run setup, licensing, backup, users/roles, and default accounts. The next business-critical value is Core MVP Polish: Chart of Accounts, Items, Customers, Vendors, invoices, purchases, and reports. The polish items below are important for commercial hardening, but most of them depend on or benefit from the core modules being stable first.
-
 ### Planned Order
 
-1. **Import Backup File Picker**
-   - Best time: during Phase D backup polish, after Core MVP basic screens are stable.
-   - Reason: backend import endpoint already exists; this is a small Flutter UX completion task.
-   - Priority: Medium / quick win.
-
-2. **Password Reset / Change UI**
-   - Best time: after Users & Permissions API wiring and after auth/login flow is verified.
-   - Reason: security backend exists, but we need confirm current auth/session behavior before adding password change/reset screens.
-   - Priority: High before commercial release.
-
-3. **Audit Log Display**
-   - Best time: after Core MVP posting screens are stable.
-   - Reason: audit log becomes more useful when invoices, bills, payments, and posting actions are active.
-   - Priority: High for admin/commercial trust.
-
-4. **License User-Limit Enforcement**
-   - Best time: after Users & Permissions + licensing are verified locally.
-   - Reason: should block creating users above `maxUsers`, ideally at both API and Flutter levels.
-   - Priority: High before paid release.
-
-5. **Device Activation Limits**
-   - Best time: after online activation and installer/client identity are stabilized.
-   - Reason: accurate device slots need production activation storage and installer/runtime identity decisions.
-   - Priority: High before paid multi-device/network release.
-
-### Practical Timing
-
-- Do **Import Backup File Picker** as soon as we return to backup polish.
-- Do **Password Reset / Change UI** before release candidate.
-- Do **Audit Log Display** after the transaction/posting modules are polished.
-- Do **License User-Limit Enforcement** before selling licensed builds.
-- Do **Device Activation Limits** before selling Network/Hosted or multi-device editions.
+1. **Import Backup File Picker** — during Phase D backup polish.
+2. **Password Reset / Change UI** — after auth/login flow is verified.
+3. **Audit Log Display** — after transaction/posting screens are stable.
+4. **License User-Limit Enforcement** — before selling licensed builds.
+5. **Device Activation Limits** — before selling Network/Hosted or multi-device editions.
 
 ---
 
@@ -229,7 +175,7 @@ Phase B is now strong enough to support first-run setup, licensing, backup, user
 
 ### Status
 
-`Not Started`
+`Started`
 
 ### Goal
 
@@ -240,7 +186,7 @@ Phase B is now strong enough to support first-run setup, licensing, backup, user
 - [ ] Customers
 - [ ] Vendors
 - [ ] Items
-- [ ] Chart of Accounts
+- [x] Chart of Accounts
 - [ ] Invoices
 - [ ] Sales Receipts
 - [ ] Payments
@@ -255,6 +201,34 @@ Phase B is now strong enough to support first-run setup, licensing, backup, user
 - [ ] Inventory Adjustments
 - [ ] Journal Entries
 - [ ] Reports
+
+### Chart of Accounts Polish Done
+
+- [x] Fixed Flutter account type query filtering bug in `AccountsRemoteDatasource`.
+- [x] Updated backend active toggle endpoint to return the updated `AccountDto` instead of `204 NoContent`, matching Flutter expectations.
+- [x] Polished Chart of Accounts screen:
+  - Summary chips for total, active, inactive, debit-normal total, and credit-normal total.
+  - Grouped accounts by account type.
+  - Responsive search/type/inactive filters.
+  - Seed Defaults action from the chart screen.
+  - Seed result banner.
+  - Better English business wording for commercial UI consistency.
+- [x] Polished Account Form screen:
+  - Loading state for edit mode.
+  - Stronger validation.
+  - Commercial layout card.
+  - Current balance/status banner in edit mode.
+  - Debit-normal / credit-normal account type help.
+
+### Next Recommended Phase C Order
+
+1. Items
+2. Customers
+3. Vendors
+4. Invoices / Sales Receipts
+5. Purchase Orders / Bills / Receive Inventory
+6. Payments / Vendor Payments
+7. Reports polish
 
 ---
 
@@ -323,26 +297,8 @@ Phase B is now strong enough to support first-run setup, licensing, backup, user
 ### 2026-05-04
 
 - Added roadmap, progress tracker, and local verification checklist.
-- Wired missing transaction routes and key navigation areas.
-- Added shared `ComingSoonScreen`.
-- Started Phase B.
-- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, Users & Permissions skeleton, License Settings skeleton, and Setup Wizard skeleton.
-- Added Setup Wizard Start Mode with Create New Company / Restore Backup / Connect Existing / Demo Company options.
-- Added LicenseFeature, license helper methods, reusable LicenseGate, and initial route gates for Backup/Restore and Payroll.
-- Added gates for Setup Wizard Start Mode options and Connection Settings profiles based on the current license edition.
-- Added DeviceFingerprintService and surfaced Installation ID / Device Fingerprint in License Settings.
-- Added Offline Activation Request service and UI so the customer can generate a request code from the target device.
-- Added Ed25519 public-key verification in Flutter and Ed25519 signing tools for offline license packages.
-- Added online activation backend endpoint, Flutter repository/provider method, and visible Activate Online action.
-- Added backend/API license enforcement skeleton and server license status endpoint.
-- Added backup/restore API endpoints protected by BackupRestore license feature.
-- Wired Flutter Backup Settings to list/create/restore backups and show restore audit log.
-- Added setup status and initialize company endpoints with first admin creation.
-- Wired Flutter Setup Wizard to setup status/init endpoints with a real first-run form.
-- Added idempotent default accounts seeding and wired it into initialize-company and Setup Wizard.
-- Wired Users & Permissions screen to backend security APIs.
+- Completed Phase B core setup/licensing/backup/users/settings work.
 - Added Post Phase B Polish Backlog with password UI, audit log, device limits, user-limit enforcement, and backup import timing.
-- Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
-- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
-- Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: Core MVP polish, importer/exporter backup polish, installer integration, or security polish.
+- Started Phase C Core MVP Polish.
+- Polished Chart of Accounts backend/frontend flow and fixed account datasource/toggle mismatches.
+- Confirmed next Phase C focus: Items, then Customers/Vendors, then sales/purchase transactions.
