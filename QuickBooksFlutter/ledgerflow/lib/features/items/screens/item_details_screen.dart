@@ -1,4 +1,3 @@
-﻿// item_details_screen.dart
 // item_details_screen.dart
 
 import 'package:flutter/material.dart';
@@ -17,18 +16,17 @@ class ItemDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemAsync = ref.watch(itemDetailProvider(id));
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفاصيل الصنف'),
+        title: const Text('Item Details'),
         actions: [
           itemAsync.whenData((item) => AppButton(
-                label:   'تعديل',
-                icon:    Icons.edit_outlined,
+                label: 'Edit',
+                icon: Icons.edit_outlined,
                 variant: AppButtonVariant.secondary,
-                onPressed: () => context.go(
-                  AppRoutes.itemEdit.replaceFirst(':id', id),
-                ),
+                onPressed: () => context.go(AppRoutes.itemEdit.replaceFirst(':id', id)),
               )).value ??
               const SizedBox.shrink(),
           const SizedBox(width: 12),
@@ -36,207 +34,97 @@ class ItemDetailsScreen extends ConsumerWidget {
       ),
       body: itemAsync.when(
         loading: () => const LoadingWidget(),
-        error:   (e, _) => Center(child: Text(e.toString())),
+        error: (e, _) => Center(child: Text(e.toString())),
         data: (item) => ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            // ── Type Badge + Name ──────────────────
-            Center(
+            _HeaderCard(item: item),
+            const SizedBox(height: 16),
+            if (!item.hasRequiredPostingAccounts) ...[
+              _WarningCard(item: item),
+              const SizedBox(height: 16),
+            ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 980;
+                final left = Column(
+                  children: [
+                    _PriceAndStockCard(item: item),
+                    const SizedBox(height: 16),
+                    _IdentifiersCard(item: item),
+                  ],
+                );
+                final right = Column(
+                  children: [
+                    _PostingAccountsCard(item: item),
+                    const SizedBox(height: 16),
+                    _QuickActionsCard(item: item),
+                  ],
+                );
+
+                if (!wide) return Column(children: [left, const SizedBox(height: 16), right]);
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [Expanded(child: left), const SizedBox(width: 16), Expanded(child: right)],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            _FutureActivityCard(item: item),
+            const SizedBox(height: 16),
+            Text(
+              'QuickBooks-style note: item activity will later show related invoices, sales receipts, purchase orders, bills, receive inventory documents, and inventory adjustments.',
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderCard extends StatelessWidget {
+  const _HeaderCard({required this.item});
+  final ItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(18)),
+              child: Icon(_itemIcon(item.itemType), color: cs.onPrimaryContainer, size: 34),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width:  80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      _itemIcon(item.itemType),
-                      size:  36,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                  Text(item.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(label: Text(item.itemType.label), avatar: Icon(_itemIcon(item.itemType), size: 18)),
+                      Chip(label: Text(item.isActive ? 'Active' : 'Inactive'), avatar: Icon(item.isActive ? Icons.check_circle_outline : Icons.block_outlined, size: 18)),
+                      if (item.sku?.isNotEmpty == true) Chip(label: Text('SKU: ${item.sku}')),
+                      if (!item.hasRequiredPostingAccounts) const Chip(label: Text('Needs account setup'), avatar: Icon(Icons.warning_amber_outlined, size: 18)),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(item.name,
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 4),
-                  Chip(
-                    label:   Text(item.itemType.label),
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  const SizedBox(height: 10),
+                  Text(_typeDescription(item.itemType), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-
-            // ── Price Cards ────────────────────────
-            Row(
-              children: [
-                Expanded(
-                  child: _PriceCard(
-                    label:  'سعر البيع',
-                    amount: item.salesPrice,
-                    color:  Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _PriceCard(
-                    label:  'سعر الشراء',
-                    amount: item.purchasePrice,
-                  ),
-                ),
-                if (item.isInventory) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _PriceCard(
-                      label:  'الكمية',
-                      amount: item.quantityOnHand,
-                      unit:   item.unit ?? 'قطعة',
-                      color:  item.quantityOnHand > 0
-                          ? Colors.green
-                          : Colors.red,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // ── Info ──────────────────────────────
-            if (item.sku != null)
-              _InfoTile(
-                  icon:  Icons.qr_code_outlined,
-                  label: 'كود الصنف (SKU)',
-                  value: item.sku!),
-            if (item.barcode != null)
-              _InfoTile(
-                  icon:  Icons.barcode_reader,
-                  label: 'الباركود',
-                  value: item.barcode!),
-            if (item.unit != null)
-              _InfoTile(
-                  icon:  Icons.scale_outlined,
-                  label: 'وحدة القياس',
-                  value: item.unit!),
-            _InfoTile(
-                icon:  Icons.circle,
-                label: 'الحالة',
-                value: item.isActive ? 'نشط' : 'غير نشط'),
-
-            // ── Accounts ──────────────────────────
-            if (item.incomeAccountName != null ||
-                item.inventoryAssetAccountName != null ||
-                item.cogsAccountName != null ||
-                item.expenseAccountName != null) ...[
-              const SizedBox(height: 16),
-              Text('الحسابات المرتبطة',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (item.incomeAccountName != null)
-                _InfoTile(
-                    icon:  Icons.trending_up_outlined,
-                    label: 'حساب الإيرادات',
-                    value: item.incomeAccountName!),
-              if (item.inventoryAssetAccountName != null)
-                _InfoTile(
-                    icon:  Icons.inventory_2_outlined,
-                    label: 'حساب أصول المخزون',
-                    value: item.inventoryAssetAccountName!),
-              if (item.cogsAccountName != null)
-                _InfoTile(
-                    icon:  Icons.price_change_outlined,
-                    label: 'حساب تكلفة المبيعات',
-                    value: item.cogsAccountName!),
-              if (item.expenseAccountName != null)
-                _InfoTile(
-                    icon:  Icons.receipt_long_outlined,
-                    label: 'حساب المصروفات',
-                    value: item.expenseAccountName!),
-            ],
-
-            const SizedBox(height: 32),
-
-            // ── Quick Actions ─────────────────────
-            Text('إجراءات سريعة',
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing:    8,
-              runSpacing: 8,
-              children: [
-                AppButton(
-                  label:   'فاتورة مبيعات',
-                  icon:    Icons.description_outlined,
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () => context.go(
-                    '${AppRoutes.invoiceNew}?itemId=$id',
-                  ),
-                ),
-                if (item.isInventory)
-                  AppButton(
-                    label:   'تسوية مخزون',
-                    icon:    Icons.tune_outlined,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: () => context.go(
-                      '${AppRoutes.inventoryAdjustmentNew}?itemId=$id',
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _itemIcon(ItemType type) => switch (type) {
-        ItemType.inventory    => Icons.inventory_2_outlined,
-        ItemType.nonInventory => Icons.category_outlined,
-        ItemType.service      => Icons.design_services_outlined,
-        ItemType.bundle       => Icons.widgets_outlined,
-      };
-}
-
-// ─── Sub-widgets ──────────────────────────────────
-
-class _PriceCard extends StatelessWidget {
-  const _PriceCard({
-    required this.label,
-    required this.amount,
-    this.color,
-    this.unit,
-  });
-  final String  label;
-  final double  amount;
-  final Color?  color;
-  final String? unit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label,
-                style: Theme.of(context).textTheme.labelSmall),
-            const SizedBox(height: 4),
-            Text(
-              unit != null
-                  ? '${amount.toStringAsFixed(2)} $unit'
-                  : '${amount.toStringAsFixed(2)} ج.م',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
-            ),
           ],
         ),
       ),
@@ -244,46 +132,302 @@ class _PriceCard extends StatelessWidget {
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final String   label;
-  final String   value;
+class _WarningCard extends StatelessWidget {
+  const _WarningCard({required this.item});
+  final ItemModel item;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(14)),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon,
-              size:  18,
-              color: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.color
-                  ?.withValues(alpha: 0.4)),
+          Icon(Icons.warning_amber_outlined, color: cs.onErrorContainer),
           const SizedBox(width: 12),
-          Text(label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withValues(alpha: 0.6),
-                  )),
-          const Spacer(),
-          Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Expanded(
+            child: Text(
+              _missingAccountText(item),
+              style: TextStyle(color: cs.onErrorContainer, fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+class _PriceAndStockCard extends StatelessWidget {
+  const _PriceAndStockCard({required this.item});
+  final ItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.price_change_outlined,
+      title: 'Sales, purchase, and stock',
+      children: [
+        _MetricGrid(metrics: [
+          _MetricData('Sales price', '${item.salesPrice.toStringAsFixed(2)} EGP', Icons.sell_outlined),
+          _MetricData('Purchase cost', '${item.purchasePrice.toStringAsFixed(2)} EGP', Icons.shopping_cart_outlined),
+          _MetricData('Gross margin', '${item.grossMargin.toStringAsFixed(2)} EGP', Icons.trending_up_outlined),
+          if (item.isInventory) _MetricData('Quantity on hand', '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}', Icons.inventory_outlined),
+          if (item.isInventory) _MetricData('Inventory value', '${item.inventoryValue.toStringAsFixed(2)} EGP', Icons.warehouse_outlined),
+        ]),
+        if (item.isInventory && item.quantityOnHand <= 0) ...[
+          const SizedBox(height: 12),
+          const _InfoBox(icon: Icons.inventory_outlined, text: 'This inventory item has zero or negative quantity on hand. Use Inventory Adjustment, Receive Inventory, or Bills to update stock correctly.'),
+        ],
+      ],
+    );
+  }
+}
+
+class _IdentifiersCard extends StatelessWidget {
+  const _IdentifiersCard({required this.item});
+  final ItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.qr_code_2_outlined,
+      title: 'Identifiers',
+      children: [
+        _InfoRow(label: 'Item ID', value: item.id),
+        _InfoRow(label: 'SKU / Part No.', value: item.sku ?? '-'),
+        _InfoRow(label: 'Barcode', value: item.barcode ?? '-'),
+        _InfoRow(label: 'Unit', value: item.unit ?? '-'),
+      ],
+    );
+  }
+}
+
+class _PostingAccountsCard extends StatelessWidget {
+  const _PostingAccountsCard({required this.item});
+  final ItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.account_tree_outlined,
+      title: 'Posting accounts',
+      children: [
+        _InfoRow(label: 'Income account', value: _accountValue(item.incomeAccountName, item.incomeAccountId)),
+        if (item.isInventory) _InfoRow(label: 'Inventory asset account', value: _accountValue(item.inventoryAssetAccountName, item.inventoryAssetAccountId)),
+        if (item.isInventory) _InfoRow(label: 'COGS account', value: _accountValue(item.cogsAccountName, item.cogsAccountId)),
+        if (item.isService || item.isNonInventory) _InfoRow(label: 'Expense / purchase account', value: _accountValue(item.expenseAccountName, item.expenseAccountId)),
+        if (item.isBundle) const _InfoBox(icon: Icons.widgets_outlined, text: 'Bundle/group items should not post directly. Component items will control income, COGS, and inventory behavior later.'),
+      ],
+    );
+  }
+
+  static String _accountValue(String? name, String? id) {
+    if (name?.isNotEmpty == true) return name!;
+    if (id?.isNotEmpty == true) return id!;
+    return '-';
+  }
+}
+
+class _QuickActionsCard extends StatelessWidget {
+  const _QuickActionsCard({required this.item});
+  final ItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.flash_on_outlined,
+      title: 'Quick actions',
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            AppButton(
+              label: 'Create invoice',
+              icon: Icons.description_outlined,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => context.go('${AppRoutes.invoiceNew}?itemId=${item.id}'),
+            ),
+            if (item.isInventory)
+              AppButton(
+                label: 'Inventory adjustment',
+                icon: Icons.tune_outlined,
+                variant: AppButtonVariant.secondary,
+                onPressed: () => context.go('${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}'),
+              ),
+            AppButton(
+              label: 'Edit item',
+              icon: Icons.edit_outlined,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => context.go(AppRoutes.itemEdit.replaceFirst(':id', item.id)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FutureActivityCard extends StatelessWidget {
+  const _FutureActivityCard({required this.item});
+  final ItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.history_outlined,
+      title: 'Related activity',
+      children: const [
+        _InfoBox(
+          icon: Icons.pending_actions_outlined,
+          text: 'Activity history is scheduled after invoice, purchase, receive inventory, and adjustment screens are polished. This area will become the item activity center.',
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.icon, required this.title, required this.children});
+  final IconData icon;
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(icon, color: cs.onPrimaryContainer)),
+                const SizedBox(width: 12),
+                Expanded(child: Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricGrid extends StatelessWidget {
+  const _MetricGrid({required this.metrics});
+  final List<_MetricData> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: metrics.map((metric) => _MetricCard(metric: metric)).toList(),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.metric});
+  final _MetricData metric;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 190,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        children: [
+          Icon(metric.icon, color: cs.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(metric.label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+                const SizedBox(height: 4),
+                Text(metric.value, style: const TextStyle(fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricData {
+  const _MetricData(this.label, this.value, this.icon);
+  final String label;
+  final String value;
+  final IconData icon;
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 190, child: Text(label, style: TextStyle(color: cs.onSurfaceVariant))),
+          Expanded(child: SelectableText(value.isEmpty ? '-' : value, style: const TextStyle(fontWeight: FontWeight.w700))),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoBox extends StatelessWidget {
+  const _InfoBox({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: cs.onSecondaryContainer), const SizedBox(width: 10), Expanded(child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)))]),
+    );
+  }
+}
+
+IconData _itemIcon(ItemType type) => switch (type) {
+      ItemType.inventory => Icons.inventory_2_outlined,
+      ItemType.nonInventory => Icons.category_outlined,
+      ItemType.service => Icons.design_services_outlined,
+      ItemType.bundle => Icons.widgets_outlined,
+    };
+
+String _typeDescription(ItemType type) => switch (type) {
+      ItemType.inventory => 'Tracks quantity on hand and posts to Inventory Asset and COGS.',
+      ItemType.nonInventory => 'Used for goods you buy or sell but do not track as stock.',
+      ItemType.service => 'Used for services you sell, purchase, or charge back to customers.',
+      ItemType.bundle => 'Groups multiple items; component-driven posting will be added later.',
+    };
+
+String _missingAccountText(ItemModel item) {
+  if (item.isInventory) return 'Inventory Part requires Income, Inventory Asset, and COGS accounts before it is safe for posting.';
+  if (item.isService || item.isNonInventory) return 'This item needs at least an Income account or Expense/Purchase account before it is safe for posting.';
+  if (item.isBundle) return 'Bundle/group items should not have direct income posting. Posting should come from component items later.';
+  return 'This item has incomplete posting setup.';
 }
