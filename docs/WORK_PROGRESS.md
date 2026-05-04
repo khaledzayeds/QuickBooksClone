@@ -64,31 +64,10 @@ F) Banking / Inventory Pro / Payroll
 - [ ] Confirm auth redirect/login flow works.
 - [ ] Confirm API starts and migrations apply.
 
-### Already Done
-
-- [x] Created commercial readiness roadmap: `docs/COMMERCIAL_READINESS_ROADMAP.md`.
-- [x] Created local verification checklist: `docs/LOCAL_VERIFICATION_CHECKLIST.md`.
-- [x] Added missing transaction routes to `QuickBooksFlutter/ledgerflow/lib/app/router.dart`.
-- [x] Wired routes for Sales Returns, Customer Credits, Purchase Returns, Vendor Credits.
-- [x] Added named placeholders for unfinished modules.
-- [x] Added shared coming-soon screen: `QuickBooksFlutter/ledgerflow/lib/core/widgets/coming_soon_screen.dart`.
-- [x] Replaced inline router placeholders with shared `ComingSoonScreen`.
-- [x] Wired dashboard flowchart navigation.
-- [x] Wired top menu navigation.
-- [x] Wired sidebar navigation.
-- [x] Replaced hardcoded list/form navigation routes in returns/credits screens.
-- [x] Replaced hardcoded details routes in invoices and sales receipts list screens.
-- [x] Reviewed route consistency in core list screens.
-- [x] Created this progress tracker.
-
 ### Known Findings / Gaps
 
 - `purchase_bill_list_screen.dart` has a TODO inside `onTap` and no purchase bill details route yet. This belongs to Phase C Core MVP Polish.
 - GitHub code search did not return obvious hits for `*_fixed.dart`, `router_fixed.dart`, `router_full_fixed.dart`, or old `Errors.txt`, but local repository scan is still recommended after pulling.
-
-### Current Blockers
-
-- Local build/analyze output is still needed from the developer machine because GitHub file edits alone cannot confirm runtime/build status.
 
 ---
 
@@ -107,11 +86,11 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Settings home screen.
 - [x] Build Database/Connection Settings screen.
 - [x] Build Company Settings screen.
+- [x] Build Setup Wizard skeleton.
 - [ ] Build Tax Settings screen.
 - [ ] Build Backup Settings screen.
 - [ ] Build Printer Settings screen.
 - [ ] Build Users/Permissions screen.
-- [ ] Build Setup Wizard.
 - [ ] Add backend setup status endpoint if missing.
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
@@ -148,6 +127,10 @@ F) Banking / Inventory Pro / Payroll
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/company_settings_screen.dart`
 - [x] Added `/settings/company` route.
 - [x] Linked Settings Home Company Profile tile to `/settings/company`.
+- [x] Added Setup Wizard skeleton screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/setup_wizard_screen.dart`
+- [x] Added `/settings/setup-wizard` route.
+- [x] Linked Settings Home Setup Wizard tile to `/settings/setup-wizard`.
 
 ### Current Phase B Notes
 
@@ -157,7 +140,8 @@ F) Banking / Inventory Pro / Payroll
 - Hosted: Online API + hosted database.
 - Connection Settings now supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
 - Company Settings now supports loading and saving company profile, contact, address, fiscal year, and basic tax defaults through the existing backend.
-- Next priority: Setup Wizard skeleton, then Tax Settings / Backup / Printer settings.
+- Setup Wizard skeleton now links to existing ready steps: Connection, Company, Chart of Accounts, Finish.
+- Coming next: Tax Settings / Backup / Printer settings, then backend setup status/initialize endpoints if missing.
 
 ---
 
@@ -218,54 +202,15 @@ F) Banking / Inventory Pro / Payroll
 
 ---
 
-## Parallel Work Policy
-
-لو حد دخل يشتغل معانا لاحقًا، الأفضل يتوزع على شغل لا يكسر المعمارية:
-
-### Good Parallel Tasks
-
-- UI mockups.
-- PDF templates.
-- Report styling.
-- Documentation.
-- Manual testing scenarios.
-- Icons/assets/branding.
-- Installer research.
-- Demo data preparation.
-
-### Needs Review Before Merge
-
-- Backend entities.
-- Posting logic.
-- Database migrations.
-- Router changes.
-- Auth/security.
-- Financial reports.
-
----
-
 ## Latest Progress Log
 
 ### 2026-05-04
 
-- Added roadmap file.
-- Added progress tracker file.
-- Added local verification checklist.
-- Wired missing transaction routes.
-- Wired dashboard/top-menu/sidebar navigation.
+- Added roadmap, progress tracker, and local verification checklist.
+- Wired missing transaction routes and key navigation areas.
 - Added shared `ComingSoonScreen`.
-- Replaced hardcoded transaction routes in key screens.
 - Started Phase B.
-- Added settings models/repository/providers.
-- Added real Settings Home screen.
-- Wired `/settings` to the new Settings Home screen.
-- Added Connection Settings model/repository/provider/screen.
-- Added `shared_preferences` for persisted client connection settings.
-- Wired `/settings/connection` route.
-- Linked Settings Home to Connection Settings.
+- Added Settings Home, Connection Settings, Company Settings, and Setup Wizard skeleton.
+- Wired `/settings`, `/settings/connection`, `/settings/company`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Expanded company settings model and repository for updates.
-- Added Company Settings form provider and screen.
-- Wired `/settings/company` route.
-- Linked Settings Home to Company Settings.
-- Next focus: Setup Wizard skeleton, then Tax Settings / Backup / Printer settings.
+- Next focus: Tax Settings / Backup / Printer settings, then setup backend status/initialize endpoints.
