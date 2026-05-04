@@ -69,6 +69,7 @@ F) Banking / Inventory Pro / Payroll
 - [ ] Review and remove old temporary files.
 - [x] Replace known hardcoded transaction routes with `AppRoutes` in return/credit screens.
 - [x] Add shared `ComingSoonScreen` instead of inline placeholder builder.
+- [x] Review main route consistency for core list screens.
 - [ ] Confirm all main routes open.
 - [ ] Confirm auth redirect/login flow works.
 - [ ] Confirm API starts and migrations apply.
@@ -108,7 +109,24 @@ F) Banking / Inventory Pro / Payroll
   - `customer_credit_form_screen.dart`
   - `vendor_credit_list_screen.dart`
   - `vendor_credit_form_screen.dart`
+- [x] Replaced hardcoded details routes in:
+  - `invoices_list_page.dart`
+  - `sales_receipts_list_page.dart`
+- [x] Reviewed route consistency in:
+  - `purchase_order_list_screen.dart`
+  - `receive_inventory_list_screen.dart`
+  - `item_list_screen.dart`
+  - `vendor_list_screen.dart`
+  - `customer_list_screen.dart`
+  - `chart_of_accounts_screen.dart`
+  - `payment_list_screen.dart`
+  - `purchase_bill_list_screen.dart`
 - [x] Created this progress tracker.
+
+### Known Findings / Gaps
+
+- `purchase_bill_list_screen.dart` has a TODO inside `onTap` and no purchase bill details route yet. This belongs to Phase C Core MVP Polish, not Phase A.
+- GitHub code search did not return obvious hits for `*_fixed.dart`, `router_fixed.dart`, `router_full_fixed.dart`, or old `Errors.txt`, but local repository scan is still recommended after pulling.
 
 ### Current Blockers
 
@@ -118,10 +136,10 @@ F) Banking / Inventory Pro / Payroll
 
 Continue Phase A cleanup pass:
 
-1. Review repo for duplicate/temp files such as `*_fixed.dart`, `router_fixed.dart`, `router_full_fixed.dart`, and old `Errors.txt`.
-2. Review remaining screens for hardcoded routes beyond returns/credits.
-3. Review import consistency after adding `AppRoutes` imports.
-4. Wait for local `dotnet build` and `flutter analyze` output when available.
+1. Review import consistency after adding `AppRoutes` imports.
+2. Create a small developer checklist for local verification commands.
+3. Wait for local `dotnet build` and `flutter analyze` output when available.
+4. After build/analyze is stable, start Phase B: Settings + Setup Wizard + Connection.
 
 ---
 
@@ -324,4 +342,7 @@ Continue Phase A cleanup pass:
 - Added shared `ComingSoonScreen`.
 - Replaced inline router placeholders with `ComingSoonScreen`.
 - Replaced hardcoded routes in sales/purchase returns and customer/vendor credits list/form screens.
-- Next focus: duplicate/temp file cleanup and remaining route consistency review.
+- Replaced hardcoded details routes in invoices and sales receipts list screens.
+- Reviewed route consistency in purchase orders, receive inventory, items, vendors, customers, chart of accounts, payments, and purchase bills.
+- Logged Purchase Bill Details as a Phase C gap.
+- Next focus: import consistency and local verification checklist.
