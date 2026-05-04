@@ -52,7 +52,8 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
       subtitle: 'Seed or review chart of accounts required for posting transactions.',
       icon: Icons.account_tree_outlined,
       route: AppRoutes.chartOfAccounts,
-      status: 'Partial',
+      status: 'Ready',
+      kind: _WizardStepKind.defaultAccounts,
     ),
     _WizardStepData(
       title: 'Users & Permissions',
@@ -269,6 +270,8 @@ class _StepDetails extends StatelessWidget {
           _StartModePanel(onNext: onNext)
         else if (step.kind == _WizardStepKind.initializeCompany)
           _InitializeCompanyPanel(state: setupState, notifier: setupNotifier, onInitialized: onNext)
+        else if (step.kind == _WizardStepKind.defaultAccounts)
+          _DefaultAccountsPanel(state: setupState, notifier: setupNotifier)
         else
           Card(
             child: Padding(
@@ -401,7 +404,7 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
                 children: [
                   Text('Company is already initialized', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 8),
-                  Text('You can continue to tax defaults, default accounts, users, backup, and printing.'),
+                  const Text('You can continue to tax defaults, default accounts, users, backup, and printing.'),
                   const SizedBox(height: 16),
                   FilledButton.icon(onPressed: widget.onInitialized, icon: const Icon(Icons.arrow_forward), label: const Text('Continue')),
                 ],
@@ -413,7 +416,7 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
                   children: [
                     Text('Create New Company', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
-                    Text('This creates company settings, ADMIN role, and the first administrator account.'),
+                    const Text('This creates company settings, ADMIN role, the first administrator account, and default chart of accounts.'),
                     const SizedBox(height: 20),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -468,6 +471,84 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
     if (mounted && widget.notifier.state.status?.isInitialized == true) {
       widget.onInitialized();
     }
+  }
+}
+
+class _DefaultAccountsPanel extends StatelessWidget {
+  const _DefaultAccountsPanel({required this.state, required this.notifier});
+
+  final SetupState state;
+  final SetupNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final result = state.defaultAccountsSeed;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Default Chart of Accounts', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            const Text('Seed the standard QuickBooks-style accounts needed for posting sales, purchases, inventory, payments, taxes, and equity.'),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton.icon(
+                  onPressed: state.submitting ? null : notifier.seedDefaultAccounts,
+                  icon: state.submitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.account_tree_outlined),
+                  label: const Text('Seed Default Accounts'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => context.go(AppRoutes.chartOfAccounts),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Open Chart of Accounts'),
+                ),
+              ],
+            ),
+            if (result != null) ...[
+              const SizedBox(height: 20),
+              _StatusBanner(status: 'Created: ${result.createdCount} • Skipped: ${result.skippedCount}'),
+              const SizedBox(height: 12),
+              if (result.createdCodes.isNotEmpty) _CodesBox(title: 'Created Codes', codes: result.createdCodes),
+              if (result.skippedCodes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _CodesBox(title: 'Already Existing Codes', codes: result.skippedCodes),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CodesBox extends StatelessWidget {
+  const _CodesBox({required this.title, required this.codes});
+  final String title;
+  final List<String> codes;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          SelectableText(codes.join(', ')),
+        ],
+      ),
+    );
   }
 }
 
@@ -642,7 +723,7 @@ class _StatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final ready = status == 'Ready';
+    final ready = status == 'Ready' || status.startsWith('Created:');
     final partial = status == 'Partial';
 
     return Container(
@@ -686,7 +767,7 @@ class _ErrorBanner extends StatelessWidget {
   }
 }
 
-enum _WizardStepKind { normal, startMode, initializeCompany }
+enum _WizardStepKind { normal, startMode, initializeCompany, defaultAccounts }
 
 class _WizardStepData {
   const _WizardStepData({
