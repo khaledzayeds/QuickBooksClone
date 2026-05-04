@@ -45,6 +45,7 @@ F) Banking / Inventory Pro / Payroll
 16. Transaction screens must have preview, print, save, post, and clear status behavior planned from the first UI pass.
 17. Transaction screens should support a collapsible context side panel for customer/vendor/item/account history and balances.
 18. Build full QuickBooks-style transaction screens first. POS/cart/mobile fast screens come later as separate UIs over the same backend and reusable transaction components.
+19. Every transaction must allocate its number using its exact `DocumentTypes.*` value. Do not reuse invoice numbers for sales receipts, payments, purchase bills, or returns.
 
 ---
 
@@ -71,6 +72,69 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 - [x] `transaction_action_bar.dart`
 - [x] `transaction_context_side_panel.dart`
 - [x] `transaction_keyboard_shortcuts.dart`
+
+### Sales Backend Review
+
+#### What already exists and is good
+
+- [x] `DocumentTypes` has separate document types for `INVOICE`, `SALES_RECEIPT`, `PAYMENT`, `PURCHASE_ORDER`, `PURCHASE_BILL`, `INVENTORY_RECEIPT`, `SALES_RETURN`, `PURCHASE_RETURN`, `CUSTOMER_CREDIT`, `VENDOR_CREDIT`, `VENDOR_PAYMENT`, `JOURNAL_ENTRY`, and more.
+- [x] `DocumentNumberAllocation` stores `DeviceId`, `DocumentNo`, `DocumentType`, `Year`, and `Sequence`, which supports per-type/year/device numbering design.
+- [x] `InvoicesController` allocates credit invoices using `DocumentTypes.Invoice`.
+- [x] `SalesReceiptsController` allocates cash sales receipts using `DocumentTypes.SalesReceipt`.
+- [x] Linked payments created by sales receipts allocate payment numbers using `DocumentTypes.Payment`.
+- [x] This means invoice numbers, sales receipt numbers, and payment numbers are intentionally separated.
+- [x] `InvoicesController` supports list/get/create/post/void for credit invoices.
+- [x] `SalesReceiptsController` supports list/get/create/void for cash sales receipts.
+- [x] Sales receipts are modeled as `InvoicePaymentMode.Cash` over the same invoice aggregate, which is good for shared sales logic.
+- [x] `Invoice` aggregate supports Draft, Sent, Posted, Paid, PartiallyPaid, Returned, and Void states.
+- [x] `SalesInvoicePostingService` posts AR, income, tax payable, COGS, inventory relief, inventory quantity decrease, and customer balance updates.
+- [x] `SalesInvoicePostingService.VoidAsync` creates reversal accounting transaction, restores inventory quantity, reverses customer balance, and marks invoice void.
+- [x] Sales receipt workflow posts invoice, creates linked payment, posts payment, and links the receipt payment.
+- [x] Sales receipt void flow voids linked payment first, then voids receipt/invoice posting.
+
+#### Backend hardening done before continuing UI
+
+- [x] `InvoicesController` now rejects inactive customers.
+- [x] `InvoicesController` now rejects due date before invoice date.
+- [x] `InvoicesController` now validates line item id, quantity, unit price, and discount percent before creating domain lines.
+- [x] `InvoicesController` now rejects inactive items.
+- [x] `InvoicesController` now blocks Bundle items until component posting is implemented.
+- [x] `SalesReceiptsController` now rejects inactive customers.
+- [x] `SalesReceiptsController` now validates line item id, quantity, unit price, and discount percent.
+- [x] `SalesReceiptsController` now rejects inactive items.
+- [x] `SalesReceiptsController` now blocks Bundle items until component posting is implemented.
+- [x] `SalesReceiptsController` now rejects inactive deposit accounts.
+
+#### Numbering rules to preserve
+
+- [ ] Confirm actual `IDocumentNumberService` implementation uses separate sequences by `DocumentType` and preferably by `Year` and `DeviceId` where intended.
+- [ ] Ensure every future controller uses the exact matching `DocumentTypes.*` constant:
+  - Invoice → `DocumentTypes.Invoice`
+  - Sales Receipt → `DocumentTypes.SalesReceipt`
+  - Payment → `DocumentTypes.Payment`
+  - Purchase Order → `DocumentTypes.PurchaseOrder`
+  - Receive Inventory → `DocumentTypes.InventoryReceipt`
+  - Purchase Bill → `DocumentTypes.PurchaseBill`
+  - Vendor Payment → `DocumentTypes.VendorPayment`
+  - Sales Return → `DocumentTypes.SalesReturn`
+  - Purchase Return → `DocumentTypes.PurchaseReturn`
+  - Customer Credit → `DocumentTypes.CustomerCredit`
+  - Vendor Credit → `DocumentTypes.VendorCredit`
+  - Journal Entry → `DocumentTypes.JournalEntry`
+- [ ] Expose document number preview/manual override rules later from settings if needed.
+- [ ] Make printed document show both human document number and system id/audit id only when configured.
+
+#### Remaining backend gaps before final commercial sales release
+
+- [ ] Confirm repository implementation is atomic enough: invoice add + post + inventory decrease + customer balance should be transaction-safe.
+- [ ] Add/confirm endpoint for GL impact preview before posting.
+- [ ] Add/confirm endpoint for inventory impact preview before posting.
+- [ ] Add edit/update flow for draft invoices before posting.
+- [ ] Add explicit print/preview endpoint or shared print data DTO for invoice/sales receipt templates.
+- [ ] Add activity endpoints for customer side panel: recent invoices, receipts, payments, credits, returns.
+- [ ] Add better line DTO fields for unit, item display name, stock snapshot, cost/margin warnings if needed by UI.
+- [ ] Decide how Bundle/Group posting will work later.
+- [ ] Add invoice custom fields/notes/messages later if needed for print templates.
 
 ### Invoice Shell Wiring Started
 
@@ -173,4 +237,6 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 - Confirmed product decision: build full QuickBooks-style transaction screens first, then POS/cart/mobile fast screens later over the same backend and reusable transaction components.
 - Added first reusable transaction widget foundation for header, party selector, line grid, totals footer, action bar, print menu, context side panel, and keyboard shortcuts.
 - Wired InvoiceFormPage to the new transaction shell while preserving the existing legacy line table temporarily to avoid breaking the current save flow.
+- Reviewed sales backend before continuing UI and hardened invoice/sales receipt validation for inactive customers/items, line validation, bundle blocking, due date checks, and inactive deposit accounts.
+- Reviewed sales document numbering usage: invoices use `DocumentTypes.Invoice`, sales receipts use `DocumentTypes.SalesReceipt`, and linked receipt payments use `DocumentTypes.Payment`. Implementation-level sequence isolation still needs final confirmation when the document number service implementation is located locally.
 - Next focus: continue invoice shell polish, wire SalesReceiptFormPage, then replace/bridge the line grid with scanner-first behavior.
