@@ -44,10 +44,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     ),
     _WizardStepData(
       title: 'Users & Permissions',
-      subtitle: 'Create admin user, users, roles, permissions, and access rules.',
+      subtitle: 'Prepare first admin, default roles, permission groups, users, and device limits.',
       icon: Icons.admin_panel_settings_outlined,
-      route: null,
-      status: 'Coming Soon',
+      route: AppRoutes.usersPermissions,
+      status: 'Partial',
     ),
     _WizardStepData(
       title: 'Backup',
