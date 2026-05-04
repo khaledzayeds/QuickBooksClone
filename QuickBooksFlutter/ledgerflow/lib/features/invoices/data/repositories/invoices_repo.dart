@@ -3,6 +3,7 @@
 import '../../../../core/api/api_result.dart';
 import '../datasources/invoices_api.dart';
 import '../models/invoice_contracts.dart';
+import '../models/sales_preview_contracts.dart';
 
 class InvoicesRepo {
   InvoicesRepo(this._api);
@@ -24,6 +25,10 @@ class InvoicesRepo {
       );
 
   Future<ApiResult<InvoiceModel>> getById(String id) => _api.getById(id);
+
+  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewInvoiceDto dto) => _api.preview(dto);
+
+  Future<ApiResult<CustomerSalesActivityModel>> getCustomerActivity(String customerId, {int limit = 5}) => _api.getCustomerActivity(customerId, limit: limit);
 
   Future<ApiResult<InvoiceModel>> create(CreateInvoiceDto dto) => _api.create(dto);
 
