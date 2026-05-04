@@ -35,6 +35,7 @@ F) Banking / Inventory Pro / Payroll
 6. أي transaction مالية لازم يكون لها status واضح: Draft / Saved / Posted / Voided.
 7. أي posted transaction لازم يكون لها void/reversal strategy.
 8. أي ميزة مدفوعة أو مرتبطة بنسخة معينة لازم تعدي من License Gate أو Feature Flag واضح.
+9. أي private signing key لازم يفضل خارج تطبيق العميل تمامًا.
 
 ---
 
@@ -99,6 +100,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add device fingerprint skeleton.
 - [x] Add signed/offline license package skeleton.
 - [x] Add offline activation request code flow.
+- [x] Add development license admin package generator.
 - [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
@@ -142,6 +144,12 @@ F) Banking / Inventory Pro / Payroll
   - `LicenseSettingsRepository.applyPackage(...)`
   - `LicenseSettingsNotifier.applyPackage(...)`
 - [x] License Settings now includes a Signed / Offline License Package input card with Apply Package button.
+- [x] Added development admin tool:
+  - `tools/license_admin/generate_license_package.py`
+  - `tools/license_admin/README.md`
+  - Generates dev license packages from offline request codes for testing.
+  - Supports editions, serial, customer name, user/device limits, expiry, and feature overrides.
+  - Uses development signature placeholder only.
 - [x] Added Setup Wizard Start Mode step:
   - Create New Company
   - Restore Existing Backup
@@ -184,7 +192,7 @@ F) Banking / Inventory Pro / Payroll
 - Device fingerprint skeleton is local-installation based for now. Production can later add OS/device attributes carefully without storing raw sensitive values.
 - License package flow is wired end-to-end as a development skeleton. It does not yet perform real cryptographic public-key verification.
 - Offline request code flow is now wired in the UI so a customer can generate a request code from the target device.
-- License Gate is now available for screens/features and shows a clear License Required screen when blocked.
+- Development license admin script can generate packages for testing the full offline flow now.
 - Production activation still needs real signed payload verification, online/offline activation admin tooling, renewal/expiry rules, and backend verification.
 - Solo: Local API + SQLite.
 - Network: LAN API + SQL Server.
@@ -194,7 +202,7 @@ F) Banking / Inventory Pro / Payroll
 - Connect Existing path should connect to LAN/Hosted API and login with server-side users. No local first admin creation.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
 - Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
-- Coming next: real public-key signature verification, admin tool for generating packages, online activation endpoint, or backend backup/users/setup endpoints.
+- Coming next: real public-key signature verification, online activation endpoint, or backend backup/users/setup endpoints.
 
 ---
 
@@ -256,13 +264,14 @@ F) Banking / Inventory Pro / Payroll
 - [x] Device fingerprint skeleton.
 - [x] Signed/offline license package skeleton.
 - [x] Offline activation request code flow.
+- [x] Development license admin package generator.
 - [x] License activation design document.
 
 ### Pending
 
 - [ ] Real public-key signed license payload verification.
 - [ ] Online activation endpoint.
-- [ ] Admin tool for generating serials and signed licenses.
+- [ ] Production admin tool for generating serials and signed licenses.
 - [ ] Installer integration.
 
 ---
@@ -290,7 +299,8 @@ F) Banking / Inventory Pro / Payroll
 - Added DeviceFingerprintService and surfaced Installation ID / Device Fingerprint in License Settings.
 - Added LicensePackageVerifier skeleton and Signed / Offline License Package UI in License Settings.
 - Added Offline Activation Request service and UI so the customer can generate a request code from the target device.
+- Added development License Admin Tool script for generating test packages from offline request codes.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: real public-key signature verification, admin tool for generating packages, online activation endpoint, or backend backup/users/setup endpoints.
+- Next focus: real public-key signature verification, online activation endpoint, or backend backup/users/setup endpoints.
