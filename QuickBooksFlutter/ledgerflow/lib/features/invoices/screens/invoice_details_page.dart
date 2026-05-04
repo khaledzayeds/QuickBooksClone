@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../data/models/invoice_contracts.dart';
 import '../providers/invoices_state.dart';
 
@@ -23,6 +24,16 @@ class InvoiceDetailsPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.invoices),
         actions: [
+          IconButton(
+            tooltip: 'Print preview',
+            onPressed: () => showDocumentPrintPreviewDialog(
+              context: context,
+              ref: ref,
+              documentType: 'invoice',
+              documentId: id,
+            ),
+            icon: const Icon(Icons.print_outlined),
+          ),
           IconButton(
             tooltip: l10n.invoices,
             onPressed: () => context.go(AppRoutes.invoices),
