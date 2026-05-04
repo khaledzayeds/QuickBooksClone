@@ -52,7 +52,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Status
 
-`Reusable foundation started`
+`Invoice shell wiring started`
 
 ### Product Decision
 
@@ -63,40 +63,52 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 ### Reusable Transaction Widgets Started
 
 - [x] `transaction_models.dart`
-  - Shared transaction kind/status/party/print enums.
-  - Shared line, totals, context metric, and activity UI models.
 - [x] `transaction_header_panel.dart`
-  - Full transaction header with document kind, status, number, date, due date, terms, and reference fields.
 - [x] `transaction_party_selector.dart`
-  - Reusable customer/vendor/account selector with balance/credit chips.
 - [x] `transaction_line_grid.dart`
-  - Scanner-friendly item/barcode/SKU entry.
-  - Wide transaction line grid with item, description, qty, unit, rate, discount, tax, amount, warnings, and row actions.
-  - Shows shortcut hint text.
 - [x] `transaction_totals_footer.dart`
-  - Reusable subtotal/discount/tax/shipping/total/paid/balance due footer.
 - [x] `transaction_print_menu.dart`
-  - Preview A4, Print A4, Print Thermal, Email/Share menu skeleton.
 - [x] `transaction_action_bar.dart`
-  - Save Draft, Save, Post, Print, Clear, and Void actions with status-aware disabling.
 - [x] `transaction_context_side_panel.dart`
-  - Collapsible right panel with party snapshot metrics, recent activity, warnings, and notes.
 - [x] `transaction_keyboard_shortcuts.dart`
-  - Shortcut wrapper for Ctrl+Enter, F4, F5, F7, F8, F9, F10, Ctrl+S, Ctrl+P, Ctrl+D, Ctrl+L, and Esc.
+
+### Invoice Shell Wiring Started
+
+- [x] `InvoiceFormPage` now uses reusable transaction shell widgets:
+  - `TransactionKeyboardShortcuts`
+  - `TransactionHeaderPanel`
+  - `TransactionPartySelector`
+  - `TransactionTotalsFooter`
+  - `TransactionContextSidePanel`
+  - `TransactionActionBar`
+- [x] Preserved the existing legacy `TransactionLineTable` temporarily so item selection and save flow remain functional while the new scanner-first grid is developed.
+- [x] Added full accounting mode layout with:
+  - Document number/date/due date/terms/reference header.
+  - Customer selector shell with balance and credit chips.
+  - Collapsible customer context side panel.
+  - Save Draft / Save / Post / Print / Clear action bar.
+  - Keyboard shortcut shell callbacks.
+- [x] Added placeholders for:
+  - F4 barcode focus.
+  - F5 previous quantity correction.
+  - F7 item lookup.
+  - Print service wiring.
 
 ### Still Needed Before Invoice Screen Is Final
 
+- [ ] Replace legacy line table with the new editable/scanner-first `TransactionLineGrid` or bridge it safely to existing `TransactionLineEntry` logic.
 - [ ] Wire shortcut callbacks into real focus nodes/cell navigation.
 - [ ] Build lightweight item lookup popup under active grid cell.
-- [ ] Connect real customer/item repositories to invoice screen.
+- [ ] Connect real customer/item repositories to invoice screen with fast search.
 - [ ] Add invoice/sales receipt form state provider.
 - [ ] Add print preview service integration.
+- [ ] Wire `SalesReceiptFormPage` to the same transaction shell pattern.
 
 ### Implementation Direction
 
 - Build reusable transaction widgets before polishing every screen separately.
 - Do not duplicate keyboard/grid logic separately for invoices, bills, purchase orders, and receipts.
-- First real consumer should be full accounting Invoice / Sales Receipt screen.
+- First real consumers are full accounting Invoice / Sales Receipt screens.
 
 ---
 
@@ -133,12 +145,14 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 
 ### Next Recommended Phase C Order
 
-1. Wire reusable transaction widgets into Invoices / Sales Receipts full accounting screens.
-2. Purchase Orders / Bills / Receive Inventory full accounting screens.
-3. Payments / Vendor Payments.
-4. Sales/Purchase returns and credits polish.
-5. Reports polish.
-6. POS/cart/mobile fast screens after full screens stabilize.
+1. Continue Invoice full accounting screen wiring.
+2. Wire Sales Receipt full accounting screen to the same shell.
+3. Replace/bridge the line grid with scanner-first behavior.
+4. Purchase Orders / Bills / Receive Inventory full accounting screens.
+5. Payments / Vendor Payments.
+6. Sales/Purchase returns and credits polish.
+7. Reports polish.
+8. POS/cart/mobile fast screens after full screens stabilize.
 
 ---
 
@@ -158,4 +172,5 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 - Added Transaction Screen UX Standards covering scanner support, keyboard shortcuts, fast grids, collapsible context side panels, preview/print actions, and save/post behavior before starting invoice/purchase screen polish.
 - Confirmed product decision: build full QuickBooks-style transaction screens first, then POS/cart/mobile fast screens later over the same backend and reusable transaction components.
 - Added first reusable transaction widget foundation for header, party selector, line grid, totals footer, action bar, print menu, context side panel, and keyboard shortcuts.
-- Next focus: wire reusable transaction widgets into Invoices / Sales Receipts full accounting screens.
+- Wired InvoiceFormPage to the new transaction shell while preserving the existing legacy line table temporarily to avoid breaking the current save flow.
+- Next focus: continue invoice shell polish, wire SalesReceiptFormPage, then replace/bridge the line grid with scanner-first behavior.
