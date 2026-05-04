@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../invoices/data/models/sales_preview_contracts.dart';
 import '../models/sales_receipt_contracts.dart';
 
 class SalesReceiptsApi {
@@ -41,6 +42,18 @@ class SalesReceiptsApi {
     try {
       final response = await _client.get<Map<String, dynamic>>('/api/sales-receipts/$id');
       return Success(SalesReceiptModel.fromJson(response.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
+  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewSalesReceiptDto dto) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/sales-receipts/preview',
+        data: dto.toJson(),
+      );
+      return Success(SalesPostingPreviewModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
