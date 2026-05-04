@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/router.dart';
 import '../data/models/purchase_return_model.dart';
 import '../providers/purchase_returns_provider.dart';
 
@@ -26,7 +27,7 @@ class PurchaseReturnListScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 12),
             child: FilledButton.icon(
-              onPressed: () => context.go('/purchases/returns/new'),
+              onPressed: () => context.go(AppRoutes.purchaseReturnNew),
               icon: const Icon(Icons.add),
               label: const Text('مرتجع شراء جديد'),
             ),
@@ -145,7 +146,7 @@ class _EmptyState extends StatelessWidget {
             const Text('ابدأ بإنشاء مرتجع من فاتورة شراء مرحلة.', textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () => context.go('/purchases/returns/new'),
+              onPressed: () => context.go(AppRoutes.purchaseReturnNew),
               icon: const Icon(Icons.add),
               label: const Text('مرتجع شراء جديد'),
             ),
