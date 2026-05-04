@@ -38,7 +38,7 @@ class SettingsHomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Manage company, database, backup, printing, users, and setup configuration.',
+            'Manage company, database, backup, printing, users, license, and setup configuration.',
             style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
@@ -111,14 +111,14 @@ class SettingsHomeScreen extends ConsumerWidget {
                 _SettingsTile(
                   icon: Icons.flag_outlined,
                   title: 'Setup Wizard',
-                  subtitle: 'First-run company setup, admin user, taxes, and accounts.',
+                  subtitle: 'First-run company setup, restore, connection, and demo options.',
                   onTap: () => context.go(AppRoutes.setupWizard),
                 ),
                 _SettingsTile(
                   icon: Icons.verified_user_outlined,
                   title: 'License',
-                  subtitle: 'Trial, activation key, plan, and device activation.',
-                  onTap: () => _openComingSoon(context, 'License Settings'),
+                  subtitle: 'Trial, activation key, edition, limits, and device activation.',
+                  onTap: () => context.go(AppRoutes.licenseSettings),
                 ),
               ];
 
