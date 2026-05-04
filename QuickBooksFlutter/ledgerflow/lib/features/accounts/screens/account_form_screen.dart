@@ -30,6 +30,8 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   AccountType _selectedType = AccountType.expense;
   String? _parentId;
   bool _loading = false;
+  bool _loadingAccount = false;
+  AccountModel? _loadedAccount;
 
   @override
   void initState() {
@@ -38,18 +40,25 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
   }
 
   Future<void> _loadAccount() async {
+    setState(() => _loadingAccount = true);
     final result = await ref.read(accountsRepositoryProvider).getAccount(widget.id!);
+    if (!mounted) return;
     result.when(
       success: (account) {
         _codeCtrl.text = account.code;
         _nameCtrl.text = account.name;
         _descCtrl.text = account.description ?? '';
         setState(() {
+          _loadedAccount = account;
           _selectedType = account.accountType;
           _parentId = account.parentId;
+          _loadingAccount = false;
         });
       },
-      failure: (_) {},
+      failure: (error) {
+        setState(() => _loadingAccount = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message), backgroundColor: Colors.red));
+      },
     );
   }
 
@@ -63,61 +72,145 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isEdit ? 'تعديل حساب' : 'حساب جديد')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            AppTextField(
-              label: 'كود الحساب *',
-              controller: _codeCtrl,
-              hint: 'مثال: 1100',
-              keyboardType: TextInputType.number,
-              validator: (value) => value == null || value.isEmpty ? 'كود الحساب مطلوب' : null,
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              label: 'اسم الحساب *',
-              controller: _nameCtrl,
-              hint: 'مثال: النقدية',
-              validator: (value) => value == null || value.isEmpty ? 'اسم الحساب مطلوب' : null,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<AccountType>(
-              initialValue: _selectedType,
-              decoration: const InputDecoration(labelText: 'نوع الحساب *'),
-              items: AccountType.values.map((type) {
-                final dummy = AccountModel(
-                  id: '',
-                  code: '',
-                  name: '',
-                  accountType: type,
-                  balance: 0,
-                  isActive: true,
-                );
-                return DropdownMenuItem(value: type, child: Text(dummy.accountTypeName));
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedType = value!),
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              label: 'الوصف',
-              controller: _descCtrl,
-              hint: 'وصف اختياري',
-              maxLines: 3,
-            ),
-            const SizedBox(height: 32),
-            AppButton(
-              label: widget.isEdit ? 'حفظ التعديلات' : 'إضافة الحساب',
-              loading: _loading,
-              expanded: true,
-              onPressed: _submit,
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        title: Text(widget.isEdit ? 'Edit Account' : 'New Account'),
+        actions: [
+          TextButton.icon(
+            onPressed: _loading ? null : () => context.popOrGo(AppRoutes.chartOfAccounts),
+            icon: const Icon(Icons.close),
+            label: const Text('Cancel'),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
+      body: _loadingAccount
+          ? const Center(child: CircularProgressIndicator())
+          : Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: cs.primaryContainer,
+                                child: Icon(Icons.account_tree_outlined, color: cs.onPrimaryContainer),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(widget.isEdit ? 'Edit chart account' : 'Create chart account', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Use stable account codes because transactions, posting, and reports depend on them.',
+                                      style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_loadedAccount != null) ...[
+                            const SizedBox(height: 16),
+                            _LoadedAccountBanner(account: _loadedAccount!),
+                          ],
+                          const SizedBox(height: 24),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final twoColumns = constraints.maxWidth >= 760;
+                              final codeField = AppTextField(
+                                label: 'Account Code *',
+                                controller: _codeCtrl,
+                                hint: 'Example: 1100',
+                                keyboardType: TextInputType.number,
+                                validator: (value) {
+                                  final trimmed = value?.trim() ?? '';
+                                  if (trimmed.isEmpty) return 'Account code is required';
+                                  if (trimmed.length < 3) return 'Use a clear account code, e.g. 1000';
+                                  return null;
+                                },
+                              );
+                              final nameField = AppTextField(
+                                label: 'Account Name *',
+                                controller: _nameCtrl,
+                                hint: 'Example: Accounts Receivable',
+                                validator: (value) => value == null || value.trim().isEmpty ? 'Account name is required' : null,
+                              );
+                              final typeField = DropdownButtonFormField<AccountType>(
+                                initialValue: _selectedType,
+                                decoration: const InputDecoration(labelText: 'Account Type *', border: OutlineInputBorder()),
+                                items: AccountType.values.map((type) {
+                                  final dummy = AccountModel(id: '', code: '', name: '', accountType: type, balance: 0, isActive: true);
+                                  return DropdownMenuItem(value: type, child: Text(dummy.accountTypeName));
+                                }).toList(),
+                                onChanged: (value) => setState(() => _selectedType = value!),
+                              );
+                              final descField = AppTextField(
+                                label: 'Description',
+                                controller: _descCtrl,
+                                hint: 'Optional internal description',
+                                maxLines: 3,
+                              );
+
+                              if (!twoColumns) {
+                                return Column(
+                                  children: [
+                                    codeField,
+                                    const SizedBox(height: 16),
+                                    nameField,
+                                    const SizedBox(height: 16),
+                                    typeField,
+                                    const SizedBox(height: 16),
+                                    descField,
+                                  ],
+                                );
+                              }
+
+                              return Column(
+                                children: [
+                                  Row(children: [Expanded(child: codeField), const SizedBox(width: 16), Expanded(child: nameField)]),
+                                  const SizedBox(height: 16),
+                                  typeField,
+                                  const SizedBox(height: 16),
+                                  descField,
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          _TypeHelp(accountType: _selectedType),
+                          const SizedBox(height: 32),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AppButton(
+                                  label: widget.isEdit ? 'Save Changes' : 'Create Account',
+                                  loading: _loading,
+                                  expanded: true,
+                                  onPressed: _submit,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -129,7 +222,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
       'code': _codeCtrl.text.trim(),
       'name': _nameCtrl.text.trim(),
       'accountType': _selectedType.value,
-      if (_descCtrl.text.isNotEmpty) 'description': _descCtrl.text.trim(),
+      if (_descCtrl.text.trim().isNotEmpty) 'description': _descCtrl.text.trim(),
       if (_parentId != null) 'parentId': _parentId,
     };
 
@@ -143,12 +236,63 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
     result.when(
       success: (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.isEdit ? 'تم تعديل الحساب بنجاح' : 'تم إضافة الحساب بنجاح')),
+          SnackBar(content: Text(widget.isEdit ? 'Account updated successfully' : 'Account created successfully')),
         );
         context.popOrGo(AppRoutes.chartOfAccounts);
       },
       failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      ),
+    );
+  }
+}
+
+class _LoadedAccountBanner extends StatelessWidget {
+  const _LoadedAccountBanner({required this.account});
+  final AccountModel account;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(account.isActive ? Icons.check_circle_outline : Icons.block_outlined, color: account.isActive ? cs.primary : cs.error),
+          const SizedBox(width: 10),
+          Expanded(child: Text('Current balance: ${account.balance.toStringAsFixed(2)} EGP • Status: ${account.isActive ? 'Active' : 'Inactive'}')),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeHelp extends StatelessWidget {
+  const _TypeHelp({required this.accountType});
+  final AccountType accountType;
+
+  @override
+  Widget build(BuildContext context) {
+    final dummy = AccountModel(id: '', code: '', name: '', accountType: accountType, balance: 0, isActive: true);
+    final cs = Theme.of(context).colorScheme;
+    final normalSide = dummy.isDebitNormal ? 'Debit-normal' : 'Credit-normal';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: cs.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${dummy.accountTypeName} is $normalSide. This controls how balances appear in reports and posting summaries.',
+              style: TextStyle(color: cs.onSecondaryContainer),
+            ),
+          ),
+        ],
       ),
     );
   }
