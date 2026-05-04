@@ -253,7 +253,10 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
 
   Future<void> _selectCustomer() async {
     final customersAsync = ref.read(customersProvider);
-    final customers = customersAsync.valueOrNull?.where((customer) => customer.isActive).toList() ?? const <CustomerModel>[];
+    final customers = customersAsync.maybeWhen(
+      data: (items) => items.where((customer) => customer.isActive).toList(),
+      orElse: () => const <CustomerModel>[],
+    );
     final selected = await showDialog<CustomerModel>(
       context: context,
       builder: (context) => AlertDialog(
@@ -292,7 +295,10 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
 
   Future<void> _selectDepositAccount() async {
     final accountsAsync = ref.read(accountsProvider);
-    final accounts = accountsAsync.valueOrNull?.where((account) => account.isActive && (account.accountType == AccountType.bank || account.accountType == AccountType.otherCurrentAsset)).toList() ?? const <AccountModel>[];
+    final accounts = accountsAsync.maybeWhen(
+      data: (items) => items.where((account) => account.isActive && (account.accountType == AccountType.bank || account.accountType == AccountType.otherCurrentAsset)).toList(),
+      orElse: () => const <AccountModel>[],
+    );
 
     final selected = await showDialog<AccountModel>(
       context: context,
