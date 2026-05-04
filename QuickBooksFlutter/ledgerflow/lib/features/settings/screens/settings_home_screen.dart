@@ -88,7 +88,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   icon: Icons.calculate_outlined,
                   title: 'Tax Settings',
                   subtitle: 'Sales tax, purchase tax, rounding, and default tax accounts.',
-                  onTap: () => _openComingSoon(context, 'Tax Settings'),
+                  onTap: () => context.go(AppRoutes.taxSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.storage_outlined,
