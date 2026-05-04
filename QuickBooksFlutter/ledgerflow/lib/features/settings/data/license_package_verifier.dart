@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:cryptography/cryptography.dart';
+
+import 'license_public_key.dart';
 import 'models/license_settings_model.dart';
 
 class LicensePackageVerificationResult {
@@ -17,17 +20,15 @@ class LicensePackageVerificationResult {
 }
 
 class LicensePackageVerifier {
-  /// Expected development format:
+  /// Expected production format:
   ///
-  /// base64Url(payloadJson).base64Url(signature)
+  /// base64Url(payloadJson).base64Url(ed25519Signature)
   ///
-  /// Current stage validates structure, decodes payload, checks optional device id,
-  /// and maps the payload to LicenseSettingsModel. Real production signature
-  /// verification should use a public key and must replace [_verifySignature].
-  LicensePackageVerificationResult verifyPackage({
+  /// The app verifies the signature using the embedded Ed25519 public key.
+  Future<LicensePackageVerificationResult> verifyPackage({
     required String package,
     required String deviceFingerprint,
-  }) {
+  }) async {
     final trimmed = package.trim();
     if (trimmed.isEmpty) {
       return const LicensePackageVerificationResult(success: false, message: 'License package is empty.');
@@ -42,14 +43,16 @@ class LicensePackageVerifier {
     }
 
     try {
-      final payloadText = utf8.decode(base64Url.decode(base64Url.normalize(parts[0])));
+      final payloadBytes = base64Url.decode(base64Url.normalize(parts[0]));
+      final payloadText = utf8.decode(payloadBytes);
       final payload = jsonDecode(payloadText) as Map<String, dynamic>;
-      final signature = parts[1];
+      final signatureBytes = base64Url.decode(base64Url.normalize(parts[1]));
 
-      if (!_verifySignature(payloadText: payloadText, signature: signature)) {
+      final signatureOk = await _verifySignature(payloadBytes: payloadBytes, signatureBytes: signatureBytes);
+      if (!signatureOk) {
         return const LicensePackageVerificationResult(
           success: false,
-          message: 'License signature is invalid or unsupported in this build.',
+          message: 'License signature is invalid. Check the public key or package contents.',
         );
       }
 
@@ -64,22 +67,28 @@ class LicensePackageVerifier {
       final license = _licenseFromPayload(payload, deviceFingerprint);
       return LicensePackageVerificationResult(
         success: true,
-        message: 'License package decoded successfully. Production signature verification is still pending.',
+        message: 'License package verified and applied successfully.',
         license: license,
         payload: payload,
       );
     } catch (error) {
       return LicensePackageVerificationResult(
         success: false,
-        message: 'Could not decode license package: $error',
+        message: 'Could not verify license package: $error',
       );
     }
   }
 
-  bool _verifySignature({required String payloadText, required String signature}) {
-    // TODO: Replace this development placeholder with Ed25519/RSA/ECDSA public-key verification.
-    // For now we only require a non-empty signature so the app can be wired end-to-end.
-    return payloadText.isNotEmpty && signature.trim().isNotEmpty;
+  Future<bool> _verifySignature({required List<int> payloadBytes, required List<int> signatureBytes}) async {
+    if (!LicensePublicKeyConfig.hasConfiguredPublicKey) {
+      throw StateError('License public key is not configured. Generate a keypair and paste the public key in LicensePublicKeyConfig.');
+    }
+
+    final publicKeyBytes = base64.decode(LicensePublicKeyConfig.ed25519PublicKeyBase64);
+    final algorithm = Ed25519();
+    final publicKey = SimplePublicKey(publicKeyBytes, type: KeyPairType.ed25519);
+    final signature = Signature(signatureBytes, publicKey: publicKey);
+    return algorithm.verify(payloadBytes, signature: signature);
   }
 
   LicenseSettingsModel _licenseFromPayload(Map<String, dynamic> payload, String fallbackDeviceFingerprint) {
