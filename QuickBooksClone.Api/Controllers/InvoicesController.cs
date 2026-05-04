@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Invoices;
+using QuickBooksClone.Api.Services;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
@@ -21,6 +22,7 @@ public sealed class InvoicesController : ControllerBase
     private readonly IItemRepository _items;
     private readonly IAccountRepository _accounts;
     private readonly ISalesInvoicePostingService _postingService;
+    private readonly SalesPostingPreviewService _previewService;
     private readonly IDocumentNumberService _documentNumbers;
     private readonly ICompanySettingsRepository _companySettings;
     private readonly ITaxCodeRepository _taxCodes;
@@ -31,6 +33,7 @@ public sealed class InvoicesController : ControllerBase
         IItemRepository items,
         IAccountRepository accounts,
         ISalesInvoicePostingService postingService,
+        SalesPostingPreviewService previewService,
         IDocumentNumberService documentNumbers,
         ICompanySettingsRepository companySettings,
         ITaxCodeRepository taxCodes)
@@ -40,6 +43,7 @@ public sealed class InvoicesController : ControllerBase
         _items = items;
         _accounts = accounts;
         _postingService = postingService;
+        _previewService = previewService;
         _documentNumbers = documentNumbers;
         _companySettings = companySettings;
         _taxCodes = taxCodes;
@@ -78,6 +82,15 @@ public sealed class InvoicesController : ControllerBase
         }
 
         return Ok(await ToDtoAsync(invoice, cancellationToken));
+    }
+
+    [HttpPost("preview")]
+    [ProducesResponseType(typeof(SalesPostingPreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<SalesPostingPreviewDto>> Preview(PreviewInvoiceRequest request, CancellationToken cancellationToken = default)
+    {
+        var (preview, error) = await _previewService.PreviewInvoiceAsync(request, cancellationToken);
+        return error is not null ? BadRequest(error) : Ok(preview);
     }
 
     [HttpPost]
