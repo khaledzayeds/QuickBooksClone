@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show AccountType, CustomerCreditAction, PaymentMethod;
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -49,7 +50,7 @@ class CustomerCreditFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go('/sales/customer-credits'),
+            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go(AppRoutes.customerCredits),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -114,7 +115,7 @@ class CustomerCreditFormScreen extends ConsumerWidget {
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
-        context.go('/sales/customer-credits');
+        context.go(AppRoutes.customerCredits);
       },
       failure: (error) => _error(context, error.message),
     );
