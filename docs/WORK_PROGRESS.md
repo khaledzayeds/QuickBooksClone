@@ -75,7 +75,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Status
 
-`In Progress`
+`UI Skeleton Mostly Complete / Backend Wiring Needed`
 
 ### Goal
 
@@ -90,12 +90,14 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Tax Settings screen.
 - [x] Build Backup Settings screen.
 - [x] Build Printer Settings screen.
-- [ ] Build Users/Permissions screen.
+- [x] Build Users/Permissions screen.
+- [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
 - [ ] Add first admin user flow.
+- [ ] Add license skeleton screen/model/provider.
 
 ### Already Done
 
@@ -124,8 +126,6 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added Tax Settings screen.
 - [x] Added `/settings/tax` route.
 - [x] Linked Settings Home and Setup Wizard to Tax Settings.
-- [x] Added Setup Wizard skeleton screen.
-- [x] Added `/settings/setup-wizard` route and linked Settings Home.
 - [x] Added Backup Settings screen:
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/backup_settings_screen.dart`
 - [x] Added `/settings/backup` route.
@@ -140,6 +140,14 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added `/settings/printing` route.
 - [x] Linked Settings Home Printing tile to `/settings/printing`.
 - [x] Linked Setup Wizard Printing step to `/settings/printing` as Ready.
+- [x] Added Users & Permissions skeleton screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/users_permissions_screen.dart`
+- [x] Added `/settings/users-permissions` route.
+- [x] Linked Settings Home Users & Permissions tile to `/settings/users-permissions`.
+- [x] Linked Setup Wizard Users & Permissions step to `/settings/users-permissions` as Partial.
+- [x] Added Setup Wizard skeleton screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/setup_wizard_screen.dart`
+- [x] Added `/settings/setup-wizard` route and linked Settings Home.
 
 ### Current Phase B Notes
 
@@ -152,8 +160,9 @@ F) Banking / Inventory Pro / Payroll
 - Tax Settings has a dedicated screen using the same company settings endpoint for tax behavior and rates.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
 - Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
-- Setup Wizard skeleton links to ready/partial steps: Connection, Company, Tax, Chart of Accounts, Backup, Printing, Finish.
-- Coming next: Users/Permissions screen or backend backup/restore endpoints, then setup status/initialize endpoints.
+- Users & Permissions is a commercial skeleton screen for first admin, default roles, permission groups, users/devices, and required backend endpoints.
+- Setup Wizard skeleton links to ready/partial steps: Connection, Company, Tax, Chart of Accounts, Users & Permissions, Backup, Printing, Finish.
+- Coming next: License skeleton or backend backup/users/setup endpoints.
 
 ---
 
@@ -222,7 +231,7 @@ F) Banking / Inventory Pro / Payroll
 - Wired missing transaction routes and key navigation areas.
 - Added shared `ComingSoonScreen`.
 - Started Phase B.
-- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, and Setup Wizard skeleton.
-- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, and `/settings/setup-wizard`.
+- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, Users & Permissions skeleton, and Setup Wizard skeleton.
+- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: Users/Permissions screen or backend backup/restore endpoints, then setup status/initialize endpoints.
+- Next focus: License skeleton or backend backup/users/setup endpoints.
