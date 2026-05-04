@@ -87,6 +87,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Database/Connection Settings screen.
 - [x] Build Company Settings screen.
 - [x] Build Setup Wizard skeleton.
+- [x] Build Setup Wizard Start Mode step.
 - [x] Build Tax Settings screen.
 - [x] Build Backup Settings screen.
 - [x] Build Printer Settings screen.
@@ -147,6 +148,11 @@ F) Banking / Inventory Pro / Payroll
 - [x] Linked Setup Wizard Users & Permissions step to `/settings/users-permissions` as Partial.
 - [x] Added Setup Wizard skeleton screen:
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/setup_wizard_screen.dart`
+- [x] Added Setup Wizard Start Mode step:
+  - Create New Company
+  - Restore Existing Backup
+  - Connect To Existing Company
+  - Open Demo Company
 - [x] Added `/settings/setup-wizard` route and linked Settings Home.
 
 ### Current Phase B Notes
@@ -155,13 +161,18 @@ F) Banking / Inventory Pro / Payroll
 - Solo: Local API + SQLite.
 - Network: LAN API + SQL Server.
 - Hosted: Online API + hosted database.
+- Setup Wizard now starts with Start Mode instead of forcing First Admin immediately.
+- New Company path should create company profile, first admin, default accounts, tax, printing, and backup policy.
+- Restore path should restore a company backup first, then login with restored users. Recovery Admin should be an exceptional flow only.
+- Connect Existing path should connect to LAN/Hosted API and login with server-side users. No local first admin creation.
+- Demo path is planned for sample data and training/sales presentation.
 - Connection Settings supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
 - Company Settings supports loading/saving company profile, contact, address, fiscal year, and basic tax defaults through existing backend.
 - Tax Settings has a dedicated screen using the same company settings endpoint for tax behavior and rates.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
 - Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
 - Users & Permissions is a commercial skeleton screen for first admin, default roles, permission groups, users/devices, and required backend endpoints.
-- Setup Wizard skeleton links to ready/partial steps: Connection, Company, Tax, Chart of Accounts, Users & Permissions, Backup, Printing, Finish.
+- Setup Wizard links to ready/partial steps: Start Mode, Connection, Company, Tax, Chart of Accounts, Users & Permissions, Backup, Printing, Finish.
 - Coming next: License skeleton or backend backup/users/setup endpoints.
 
 ---
@@ -232,6 +243,7 @@ F) Banking / Inventory Pro / Payroll
 - Added shared `ComingSoonScreen`.
 - Started Phase B.
 - Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, Users & Permissions skeleton, and Setup Wizard skeleton.
+- Added Setup Wizard Start Mode with Create New Company / Restore Backup / Connect Existing / Demo Company options.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
 - Next focus: License skeleton or backend backup/users/setup endpoints.
