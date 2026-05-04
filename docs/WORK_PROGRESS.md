@@ -97,12 +97,14 @@ F) Banking / Inventory Pro / Payroll
 - [x] Gate Setup Wizard Start Mode options by license.
 - [x] Gate Connection Settings profiles by license.
 - [x] Add device fingerprint skeleton.
+- [x] Add signed/offline license package skeleton.
 - [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
 - [ ] Add first admin user flow.
+- [ ] Add real public-key license signature verification.
 - [ ] Add license activation server/manual offline validation.
 
 ### Already Done
@@ -120,6 +122,16 @@ F) Banking / Inventory Pro / Payroll
   - Device Fingerprint
   - Generated At
   - Use This Device button to copy fingerprint into Activated Device ID field.
+- [x] Added `LicensePackageVerifier` skeleton:
+  - Accepts `base64url(payloadJson).base64url(signature)`.
+  - Decodes payload.
+  - Checks optional `deviceId` against current fingerprint.
+  - Maps payload to `LicenseSettingsModel`.
+  - Uses placeholder non-empty signature check until production public-key verification is added.
+- [x] Added repository/provider apply package flow:
+  - `LicenseSettingsRepository.applyPackage(...)`
+  - `LicenseSettingsNotifier.applyPackage(...)`
+- [x] License Settings now includes a Signed / Offline License Package input card with Apply Package button.
 - [x] Added Setup Wizard Start Mode step:
   - Create New Company
   - Restore Existing Backup
@@ -160,8 +172,9 @@ F) Banking / Inventory Pro / Payroll
 - The product direction is one codebase with multiple editions controlled by settings and license.
 - License skeleton supports Trial / Solo / Network / Hosted, limits, feature flags, license key, device id, expiry, and local save.
 - Device fingerprint skeleton is local-installation based for now. Production can later add OS/device attributes carefully without storing raw sensitive values.
+- License package flow is wired end-to-end as a development skeleton. It does not yet perform real cryptographic public-key verification.
 - License Gate is now available for screens/features and shows a clear License Required screen when blocked.
-- Production activation still needs signed license payloads, online/offline activation, renewal/expiry rules, and backend verification.
+- Production activation still needs real signed payload verification, online/offline activation, renewal/expiry rules, and backend verification.
 - Solo: Local API + SQLite.
 - Network: LAN API + SQL Server.
 - Hosted: Online API + hosted database.
@@ -170,7 +183,7 @@ F) Banking / Inventory Pro / Payroll
 - Connect Existing path should connect to LAN/Hosted API and login with server-side users. No local first admin creation.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
 - Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
-- Coming next: signed license payload verification, offline activation request/code flow, or backend backup/users/setup endpoints.
+- Coming next: real public-key signature verification, offline activation request/code flow, or backend backup/users/setup endpoints.
 
 ---
 
@@ -230,11 +243,12 @@ F) Banking / Inventory Pro / Payroll
 - [x] Start Mode gates.
 - [x] Connection profile gates.
 - [x] Device fingerprint skeleton.
+- [x] Signed/offline license package skeleton.
 - [x] License activation design document.
 
 ### Pending
 
-- [ ] Signed license payload verification.
+- [ ] Real public-key signed license payload verification.
 - [ ] Online activation endpoint.
 - [ ] Offline activation request/code flow.
 - [ ] Admin tool for generating serials and signed licenses.
@@ -263,7 +277,8 @@ F) Banking / Inventory Pro / Payroll
 - Added LicenseFeature, license helper methods, reusable LicenseGate, and initial route gates for Backup/Restore and Payroll.
 - Added gates for Setup Wizard Start Mode options and Connection Settings profiles based on the current license edition.
 - Added DeviceFingerprintService and surfaced Installation ID / Device Fingerprint in License Settings.
+- Added LicensePackageVerifier skeleton and Signed / Offline License Package UI in License Settings.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: signed license payload verification, offline activation request/code flow, or backend backup/users/setup endpoints.
+- Next focus: real public-key signature verification, offline activation request/code flow, or backend backup/users/setup endpoints.
