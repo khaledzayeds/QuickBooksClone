@@ -66,7 +66,7 @@ class LicenseSettingsRepository {
     required String package,
     required String deviceFingerprint,
   }) async {
-    final result = LicensePackageVerifier().verifyPackage(
+    final result = await LicensePackageVerifier().verifyPackage(
       package: package,
       deviceFingerprint: deviceFingerprint,
     );
