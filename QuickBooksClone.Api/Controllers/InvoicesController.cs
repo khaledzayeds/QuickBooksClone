@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Security;
 using QuickBooksClone.Api.Contracts.Invoices;
+using QuickBooksClone.Api.Contracts.Sales;
 using QuickBooksClone.Api.Services;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
@@ -23,6 +24,7 @@ public sealed class InvoicesController : ControllerBase
     private readonly IAccountRepository _accounts;
     private readonly ISalesInvoicePostingService _postingService;
     private readonly SalesPostingPreviewService _previewService;
+    private readonly SalesActivityService _activityService;
     private readonly IDocumentNumberService _documentNumbers;
     private readonly ICompanySettingsRepository _companySettings;
     private readonly ITaxCodeRepository _taxCodes;
@@ -34,6 +36,7 @@ public sealed class InvoicesController : ControllerBase
         IAccountRepository accounts,
         ISalesInvoicePostingService postingService,
         SalesPostingPreviewService previewService,
+        SalesActivityService activityService,
         IDocumentNumberService documentNumbers,
         ICompanySettingsRepository companySettings,
         ITaxCodeRepository taxCodes)
@@ -44,6 +47,7 @@ public sealed class InvoicesController : ControllerBase
         _accounts = accounts;
         _postingService = postingService;
         _previewService = previewService;
+        _activityService = activityService;
         _documentNumbers = documentNumbers;
         _companySettings = companySettings;
         _taxCodes = taxCodes;
@@ -68,6 +72,18 @@ public sealed class InvoicesController : ControllerBase
         }
 
         return Ok(new InvoiceListResponse(items, result.TotalCount, result.Page, result.PageSize));
+    }
+
+    [HttpGet("customers/{customerId:guid}/activity")]
+    [ProducesResponseType(typeof(CustomerSalesActivityDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CustomerSalesActivityDto>> GetCustomerActivity(
+        Guid customerId,
+        [FromQuery] int limit = 5,
+        CancellationToken cancellationToken = default)
+    {
+        var (activity, error) = await _activityService.GetCustomerActivityAsync(customerId, limit, cancellationToken);
+        return error is not null ? BadRequest(error) : Ok(activity);
     }
 
     [HttpGet("{id:guid}")]
