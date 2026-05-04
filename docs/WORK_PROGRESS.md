@@ -89,7 +89,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Setup Wizard skeleton.
 - [x] Build Tax Settings screen.
 - [x] Build Backup Settings screen.
-- [ ] Build Printer Settings screen.
+- [x] Build Printer Settings screen.
 - [ ] Build Users/Permissions screen.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
@@ -130,7 +130,16 @@ F) Banking / Inventory Pro / Payroll
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/backup_settings_screen.dart`
 - [x] Added `/settings/backup` route.
 - [x] Linked Settings Home Database & Backup tile to `/settings/backup`.
-- [x] Linked Setup Wizard Backup & Printing step to `/settings/backup` as Partial.
+- [x] Linked Setup Wizard Backup step to `/settings/backup` as Partial.
+- [x] Added printing settings model/repository/provider:
+  - `PrintingSettingsModel`
+  - `PrintingSettingsRepository`
+  - `printingSettingsProvider`
+- [x] Added Printing Settings screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/printing_settings_screen.dart`
+- [x] Added `/settings/printing` route.
+- [x] Linked Settings Home Printing tile to `/settings/printing`.
+- [x] Linked Setup Wizard Printing step to `/settings/printing` as Ready.
 
 ### Current Phase B Notes
 
@@ -142,8 +151,9 @@ F) Banking / Inventory Pro / Payroll
 - Company Settings supports loading/saving company profile, contact, address, fiscal year, and basic tax defaults through existing backend.
 - Tax Settings has a dedicated screen using the same company settings endpoint for tax behavior and rates.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
-- Setup Wizard skeleton links to ready/partial steps: Connection, Company, Tax, Chart of Accounts, Backup, Finish.
-- Coming next: Printer settings, backend backup/restore endpoints, then setup status/initialize endpoints.
+- Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
+- Setup Wizard skeleton links to ready/partial steps: Connection, Company, Tax, Chart of Accounts, Backup, Printing, Finish.
+- Coming next: Users/Permissions screen or backend backup/restore endpoints, then setup status/initialize endpoints.
 
 ---
 
@@ -212,7 +222,7 @@ F) Banking / Inventory Pro / Payroll
 - Wired missing transaction routes and key navigation areas.
 - Added shared `ComingSoonScreen`.
 - Started Phase B.
-- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, and Setup Wizard skeleton.
-- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, and `/settings/setup-wizard`.
+- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, and Setup Wizard skeleton.
+- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: Printer Settings, then backend backup/restore endpoints and setup status/initialize endpoints.
+- Next focus: Users/Permissions screen or backend backup/restore endpoints, then setup status/initialize endpoints.
