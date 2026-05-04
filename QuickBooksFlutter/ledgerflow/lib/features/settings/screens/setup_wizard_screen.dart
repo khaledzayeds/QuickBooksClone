@@ -30,10 +30,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     ),
     _WizardStepData(
       title: 'Tax Defaults',
-      subtitle: 'Configure tax behavior, default tax rates, and tax accounts.',
+      subtitle: 'Configure tax behavior, default tax rates, rounding, and future tax account links.',
       icon: Icons.calculate_outlined,
-      route: null,
-      status: 'Coming Soon',
+      route: AppRoutes.taxSettings,
+      status: 'Ready',
     ),
     _WizardStepData(
       title: 'Default Accounts',
