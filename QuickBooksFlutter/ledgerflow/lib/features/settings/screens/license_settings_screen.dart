@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/device_fingerprint_service.dart';
 import '../data/models/license_settings_model.dart';
 import '../providers/license_settings_provider.dart';
 
@@ -16,9 +17,7 @@ class LicenseSettingsScreen extends ConsumerWidget {
 
     ref.listen(licenseSettingsProvider, (previous, next) {
       if (next.saved && previous?.saved != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('License settings saved.')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('License settings saved.')));
       }
     });
 
@@ -65,6 +64,8 @@ class LicenseSettingsScreen extends ConsumerWidget {
                         _EditionCard(state: state, notifier: notifier),
                         const SizedBox(height: 16),
                         _ActivationCard(state: state, notifier: notifier),
+                        const SizedBox(height: 16),
+                        _DeviceFingerprintCard(notifier: notifier),
                       ],
                     );
                     final right = Column(
@@ -83,7 +84,7 @@ class LicenseSettingsScreen extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                _ImplementationNoteCard(),
+                const _ImplementationNoteCard(),
               ],
             ),
     );
@@ -151,7 +152,7 @@ class _ActivationCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _TextField(
-          label: 'Activated Device ID',
+          label: 'Activated Device ID / Fingerprint',
           value: state.license.activatedDeviceId ?? '',
           icon: Icons.devices_outlined,
           onChanged: (value) => notifier.update((current) => current.copyWith(activatedDeviceId: value)),
@@ -186,6 +187,67 @@ class _ActivationCard extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _DeviceFingerprintCard extends StatelessWidget {
+  const _DeviceFingerprintCard({required this.notifier});
+  final LicenseSettingsNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DeviceFingerprintInfo>(
+      future: DeviceFingerprintService().getOrCreate(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                  SizedBox(width: 12),
+                  Text('Preparing device fingerprint...'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final info = snapshot.data!;
+        return _SectionCard(
+          icon: Icons.fingerprint_outlined,
+          title: 'This Device',
+          children: [
+            _ReadOnlyValue(label: 'Installation ID', value: info.installationId),
+            const SizedBox(height: 12),
+            _ReadOnlyValue(label: 'Device Fingerprint', value: info.deviceFingerprint),
+            const SizedBox(height: 12),
+            _ReadOnlyValue(label: 'Generated At', value: info.generatedAtIso),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton.icon(
+                  onPressed: () {
+                    notifier.update((current) => current.copyWith(activatedDeviceId: info.deviceFingerprint));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Device fingerprint copied into license device field.')));
+                  },
+                  icon: const Icon(Icons.copy_outlined),
+                  label: const Text('Use This Device'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: null,
+                  icon: const Icon(Icons.refresh_outlined),
+                  label: const Text('Rotate For Testing'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -247,6 +309,8 @@ class _FeaturesCard extends StatelessWidget {
 }
 
 class _ImplementationNoteCard extends StatelessWidget {
+  const _ImplementationNoteCard();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -266,7 +330,7 @@ class _ImplementationNoteCard extends StatelessWidget {
                   Text('Implementation note', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Text(
-                    'This is a local skeleton to let development test editions and feature flags. Production activation still needs signed license payloads, device fingerprinting, activation server/manual offline activation, renewal/expiry rules, and integration with router/settings gates.',
+                    'This is a local skeleton to test editions and feature flags. Production activation still needs signed license payloads, online/offline activation, renewal rules, and backend verification.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -339,7 +403,7 @@ class _NumberField extends StatelessWidget {
     return TextFormField(
       initialValue: value.toString(),
       keyboardType: TextInputType.number,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.numbers_outlined)),
+      decoration: const InputDecoration(labelText: '', border: OutlineInputBorder(), prefixIcon: Icon(Icons.numbers_outlined)).copyWith(labelText: label),
       onChanged: onChanged,
     );
   }
@@ -358,6 +422,23 @@ class _SwitchRow extends StatelessWidget {
       title: Text(title),
       value: value,
       onChanged: onChanged,
+    );
+  }
+}
+
+class _ReadOnlyValue extends StatelessWidget {
+  const _ReadOnlyValue({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      readOnly: true,
+      initialValue: value,
+      minLines: 1,
+      maxLines: 3,
+      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.lock_outline)),
     );
   }
 }
