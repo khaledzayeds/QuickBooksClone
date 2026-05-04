@@ -67,6 +67,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddQuickBooksPersistence(builder.Configuration);
 builder.Services.AddScoped<IDatabaseMaintenanceService, SqliteDatabaseMaintenanceService>();
 builder.Services.AddScoped<IAccountRepository, EfAccountRepository>();
+builder.Services.AddScoped<IDefaultAccountsSeeder, DefaultAccountsSeeder>();
 builder.Services.AddScoped<IAccountingTransactionRepository, EfAccountingTransactionRepository>();
 builder.Services.AddScoped<ICompanySettingsRepository, EfCompanySettingsRepository>();
 builder.Services.AddScoped<IDeviceSettingsRepository, EfDeviceSettingsRepository>();
