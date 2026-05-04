@@ -49,7 +49,7 @@ class LicenseSettingsScreen extends ConsumerWidget {
                 Text('Edition & Activation', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 8),
                 Text(
-                  'Local license skeleton for Solo / Network / Hosted editions. Real serial validation and device activation will be wired to a license service later.',
+                  'Configure the installed license, activate online through the API, or generate/apply offline activation packages.',
                   style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
                 if (state.errorMessage != null) ...[
@@ -183,13 +183,29 @@ class _ActivationCard extends StatelessWidget {
               icon: const Icon(Icons.save_outlined),
               label: const Text('Save Local License'),
             ),
-            const OutlinedButton.icon(
-              onPressed: null,
-              icon: Icon(Icons.cloud_sync_outlined),
-              label: Text('Activate Online'),
+            FutureBuilder<DeviceFingerprintInfo>(
+              future: DeviceFingerprintService().getOrCreate(),
+              builder: (context, snapshot) {
+                final canActivate = snapshot.hasData && !state.saving && (state.license.licenseKey?.trim().isNotEmpty ?? false);
+                return OutlinedButton.icon(
+                  onPressed: canActivate
+                      ? () => notifier.activateOnline(
+                            serial: state.license.licenseKey!,
+                            deviceFingerprint: snapshot.data!.deviceFingerprint,
+                            companyName: state.license.companyName,
+                          )
+                      : null,
+                  icon: state.saving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.cloud_sync_outlined),
+                  label: const Text('Activate Online'),
+                );
+              },
             ),
           ],
         ),
+        const SizedBox(height: 10),
+        const _InfoText(text: 'Online activation calls POST /api/licenses/activate, receives a signed license package, verifies it locally, then saves it.'),
       ],
     );
   }
@@ -292,7 +308,7 @@ class _PackageActivationCardState extends State<_PackageActivationCard> {
           maxLines: 6,
           decoration: const InputDecoration(
             labelText: 'License Package',
-            helperText: 'Expected development format: base64url(payloadJson).base64url(signature)',
+            helperText: 'Expected format: base64url(payloadJson).base64url(ed25519Signature)',
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.code_outlined),
           ),
@@ -318,7 +334,7 @@ class _PackageActivationCardState extends State<_PackageActivationCard> {
         ),
         const SizedBox(height: 10),
         const _InfoText(
-          text: 'This currently decodes and maps the package, but production cryptographic signature verification is still pending.',
+          text: 'The package is verified with the embedded Ed25519 public key before it is saved locally.',
         ),
       ],
     );
@@ -464,7 +480,7 @@ class _ImplementationNoteCard extends StatelessWidget {
                   Text('Implementation note', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Text(
-                    'This is a local skeleton to test editions and feature flags. Production activation still needs real public-key signature verification, online/offline activation endpoints, renewal rules, and backend verification.',
+                    'Online activation now calls the backend endpoint. Offline activation uses request codes and signed packages. Production still needs backend license enforcement and a full admin panel.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
