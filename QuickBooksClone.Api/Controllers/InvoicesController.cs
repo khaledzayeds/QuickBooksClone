@@ -97,6 +97,16 @@ public sealed class InvoicesController : ControllerBase
             return BadRequest("Customer does not exist.");
         }
 
+        if (!customer.IsActive)
+        {
+            return BadRequest("Cannot create an invoice for an inactive customer.");
+        }
+
+        if (request.DueDate < request.InvoiceDate)
+        {
+            return BadRequest("Invoice due date cannot be before invoice date.");
+        }
+
         if (request.Lines.Count == 0)
         {
             return BadRequest("Invoice must have at least one line.");
@@ -114,10 +124,26 @@ public sealed class InvoicesController : ControllerBase
 
         foreach (var line in request.Lines)
         {
+            var lineValidation = ValidateSalesLine(line.ItemId, line.Quantity, line.UnitPrice, line.DiscountPercent);
+            if (lineValidation is not null)
+            {
+                return BadRequest(lineValidation);
+            }
+
             var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
             if (item is null)
             {
                 return BadRequest($"Item does not exist: {line.ItemId}");
+            }
+
+            if (!item.IsActive)
+            {
+                return BadRequest($"Cannot use inactive item on an invoice: {item.Name}");
+            }
+
+            if (item.ItemType == ItemType.Bundle)
+            {
+                return BadRequest($"Bundle item '{item.Name}' cannot be used until component posting is implemented.");
             }
 
             var unitPrice = line.UnitPrice > 0 ? line.UnitPrice : item.SalesPrice;
@@ -262,6 +288,31 @@ public sealed class InvoicesController : ControllerBase
                 line.LineTotal)).ToList());
     }
 
+    private static string? ValidateSalesLine(Guid itemId, decimal quantity, decimal unitPrice, decimal discountPercent)
+    {
+        if (itemId == Guid.Empty)
+        {
+            return "Line item is required.";
+        }
+
+        if (quantity <= 0)
+        {
+            return "Line quantity must be greater than zero.";
+        }
+
+        if (unitPrice < 0)
+        {
+            return "Line unit price cannot be negative.";
+        }
+
+        if (discountPercent is < 0 or > 100)
+        {
+            return "Line discount percent must be between 0 and 100.";
+        }
+
+        return null;
+    }
+
     private async Task<TaxLineCalculation> ResolveTaxAsync(
         Guid? requestedTaxCodeId,
         QuickBooksClone.Core.Settings.CompanySettings? settings,
@@ -308,5 +359,4 @@ public sealed class InvoicesController : ControllerBase
     }
 
     private sealed record TaxLineCalculation(Guid? TaxCodeId, decimal RatePercent, decimal TaxAmount, decimal NetUnitPrice);
-
 }
