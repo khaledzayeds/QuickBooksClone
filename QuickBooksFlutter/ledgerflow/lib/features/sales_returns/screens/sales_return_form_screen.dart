@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/router.dart';
 import '../../invoices/data/models/invoice_model.dart';
 import '../../invoices/providers/invoices_provider.dart';
 import '../data/models/sales_return_model.dart';
@@ -55,7 +56,7 @@ class SalesReturnFormScreen extends ConsumerWidget {
         title: const Text('مرتجع بيع جديد'),
         actions: [
           TextButton(
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go('/sales/returns'),
+            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go(AppRoutes.salesReturns),
             child: const Text('إلغاء'),
           ),
           const SizedBox(width: 8),
@@ -126,7 +127,7 @@ class SalesReturnFormScreen extends ConsumerWidget {
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ مرتجع البيع وترحيله بنجاح')));
-        context.go('/sales/returns');
+        context.go(AppRoutes.salesReturns);
       },
       failure: (error) => _error(context, error.message),
     );
