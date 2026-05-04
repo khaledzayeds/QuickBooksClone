@@ -104,7 +104,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add Ed25519 license admin signing tools.
 - [x] Add online activation backend endpoint.
 - [x] Add Flutter online activation repository/provider method.
-- [ ] Wire License Settings Activate Online button to provider.
+- [x] Wire License Settings Activate Online button to provider.
 - [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
@@ -143,6 +143,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added sample licensing config in `QuickBooksClone.Api/appsettings.json` without a real private key.
 - [x] Added `BouncyCastle.Cryptography` for backend Ed25519 signing.
 - [x] Added Flutter online activation repository/provider methods.
+- [x] Wired visible Activate Online button in `LicenseSettingsScreen`.
 
 ### Current Phase B Notes
 
@@ -150,8 +151,8 @@ F) Banking / Inventory Pro / Payroll
 - License skeleton supports Trial / Solo / Network / Hosted, limits, feature flags, license key, device id, expiry, and local save.
 - Offline flow is end-to-end conceptually complete: request code → signed package → public-key verification → local save.
 - Online backend now exposes `POST /api/licenses/activate` and signs packages using the server-side private key.
+- The visible Flutter Activate Online button now calls the backend, verifies the returned signed package, and saves it locally.
 - The server private key must be supplied through `Licensing:PrivateKey` or `LEDGERFLOW_LICENSE_PRIVATE_KEY`; do not commit a real private key.
-- Flutter has repository/provider methods for online activation, but the visible Activate Online button still needs wiring in `license_settings_screen.dart`.
 - Backend/API license enforcement is still pending; current gates are mainly Flutter-side.
 - A real production public key must be generated and pasted into `LicensePublicKeyConfig` before using the flow commercially.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
@@ -219,11 +220,11 @@ F) Banking / Inventory Pro / Payroll
 - [x] Ed25519 public-key package verification in Flutter.
 - [x] Ed25519 admin keypair/package signing tools.
 - [x] Online activation backend endpoint.
+- [x] Visible Flutter online activation action.
 - [x] License activation design document.
 
 ### Pending
 
-- [ ] Wire visible Flutter Activate Online button.
 - [ ] Backend/API license enforcement.
 - [ ] Production admin panel for generating serials and signed licenses.
 - [ ] Installer integration.
@@ -253,8 +254,8 @@ F) Banking / Inventory Pro / Payroll
 - Added DeviceFingerprintService and surfaced Installation ID / Device Fingerprint in License Settings.
 - Added Offline Activation Request service and UI so the customer can generate a request code from the target device.
 - Added Ed25519 public-key verification in Flutter and Ed25519 signing tools for offline license packages.
-- Added online activation backend endpoint and Flutter repository/provider method for activation.
+- Added online activation backend endpoint, Flutter repository/provider method, and visible Activate Online action.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: wire visible Flutter Activate Online button, backend/API license enforcement, or backup/setup endpoints.
+- Next focus: backend/API license enforcement, backup/setup endpoints, or installer integration.
