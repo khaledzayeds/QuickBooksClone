@@ -112,7 +112,7 @@ public sealed class SetupController : ControllerBase
 
         if (adminRole is not null)
         {
-            var users = await _security.SearchUsersAsync(new SecurityUserSearch(null, includeInactive: true, page: 1, pageSize: 100), cancellationToken);
+            var users = await _security.SearchUsersAsync(new SecurityUserSearch(null, true, 1, 100), cancellationToken);
             var adminUser = users.Items.FirstOrDefault(user => user.RoleAssignments.Any(role => role.RoleId == adminRole.Id));
             hasAdminUser = adminUser is not null;
             adminUserName = adminUser?.UserName;
