@@ -51,10 +51,10 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     ),
     _WizardStepData(
       title: 'Backup & Printing',
-      subtitle: 'Choose backup folder, document templates, thermal printer, and logo.',
+      subtitle: 'Review database backup status now. Printing setup will be completed in the next settings step.',
       icon: Icons.print_outlined,
-      route: null,
-      status: 'Coming Soon',
+      route: AppRoutes.backupSettings,
+      status: 'Partial',
     ),
     _WizardStepData(
       title: 'Finish',
