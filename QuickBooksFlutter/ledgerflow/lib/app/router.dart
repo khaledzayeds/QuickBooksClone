@@ -1,6 +1,6 @@
-// app/router_full_fixed.dart
-// Full replacement router preserving master-data routes and wiring Sales Receipts + Invoices.
-// After verification, replace router.dart with this file content.
+// app/router.dart
+// Main application router wiring dashboard, master data, sales, purchases, reports,
+// and transaction screens.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +11,8 @@ import '../features/accounts/screens/account_form_screen.dart';
 import '../features/accounts/screens/chart_of_accounts_screen.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/auth/screens/login_screen.dart';
+import '../features/customer_credits/screens/customer_credit_form_screen.dart';
+import '../features/customer_credits/screens/customer_credit_list_screen.dart';
 import '../features/customers/screens/customer_details_screen.dart';
 import '../features/customers/screens/customer_form_screen.dart';
 import '../features/customers/screens/customer_list_screen.dart';
@@ -34,6 +36,8 @@ import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_details_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_form_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_list_screen.dart';
+import '../features/purchase_returns/screens/purchase_return_form_screen.dart';
+import '../features/purchase_returns/screens/purchase_return_list_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_details_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_form_screen.dart';
 import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
@@ -43,6 +47,10 @@ import '../features/sales_orders/screens/sales_order_list_screen.dart';
 import '../features/sales_receipts/screens/sales_receipt_details_page.dart';
 import '../features/sales_receipts/screens/sales_receipt_form_page.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
+import '../features/sales_returns/screens/sales_return_form_screen.dart';
+import '../features/sales_returns/screens/sales_return_list_screen.dart';
+import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
+import '../features/vendor_credits/screens/vendor_credit_list_screen.dart';
 import '../features/vendor_payments/screens/vendor_payment_form_screen.dart';
 import '../features/vendors/screens/vendor_details_screen.dart';
 import '../features/vendors/screens/vendor_form_screen.dart';
@@ -63,6 +71,10 @@ class AppRoutes {
   static const receiveInventoryDetails = '/purchases/receive/:id';
   static const vendorPayments = '/purchases/vendor-payments';
   static const vendorPaymentNew = '/purchases/vendor-payments/new';
+  static const vendorCredits = '/purchases/vendor-credits';
+  static const vendorCreditNew = '/purchases/vendor-credits/new';
+  static const purchaseReturns = '/purchases/returns';
+  static const purchaseReturnNew = '/purchases/returns/new';
 
   // Sales
   static const estimates = '/sales/estimates';
@@ -77,6 +89,10 @@ class AppRoutes {
   static const invoiceDetails = '/sales/invoices/:id';
   static const payments = '/sales/payments';
   static const paymentNew = '/sales/payments/new';
+  static const customerCredits = '/sales/customer-credits';
+  static const customerCreditNew = '/sales/customer-credits/new';
+  static const salesReturns = '/sales/returns';
+  static const salesReturnNew = '/sales/returns/new';
 
   // Master Data
   static const items = '/master/items';
@@ -105,6 +121,16 @@ class AppRoutes {
   static const journalEntryNew = '/company/journal-entries/new';
   static const reports = '/reports';
   static const settings = '/settings';
+  static const bankingDeposits = '/banking/deposits';
+  static const bankingChecks = '/banking/checks';
+  static const bankingReconcile = '/banking/reconcile';
+  static const payroll = '/company/payroll';
+  static const timeTracking = '/company/time-tracking';
+  static const calendar = '/company/calendar';
+  static const snapshots = '/company/snapshots';
+  static const cashFlowHub = '/company/cash-flow-hub';
+  static const myCompany = '/company/profile';
+  static const openWindows = '/company/open-windows';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -257,6 +283,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.vendorPaymentNew,
             builder: (context, state) => const VendorPaymentFormScreen(),
           ),
+          GoRoute(
+            path: AppRoutes.vendorCredits,
+            builder: (context, state) => const VendorCreditListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorCreditNew,
+            builder: (context, state) => const VendorCreditFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseReturns,
+            builder: (context, state) => const PurchaseReturnListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseReturnNew,
+            builder: (context, state) => const PurchaseReturnFormScreen(),
+          ),
 
           // Sales
           GoRoute(
@@ -310,6 +352,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const PaymentFormScreen(),
           ),
           GoRoute(
+            path: AppRoutes.customerCredits,
+            builder: (context, state) => const CustomerCreditListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.customerCreditNew,
+            builder: (context, state) => const CustomerCreditFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReturns,
+            builder: (context, state) => const SalesReturnListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReturnNew,
+            builder: (context, state) => const SalesReturnFormScreen(),
+          ),
+
+          // Company / reports / inventory
+          GoRoute(
             path: AppRoutes.inventoryAdjustments,
             builder: (context, state) => const InventoryAdjustmentListScreen(),
           ),
@@ -329,16 +389,29 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.reports,
             builder: (context, state) => const ReportsScreen(),
           ),
-          _placeholder(AppRoutes.settings),
+          _placeholder(AppRoutes.settings, 'Settings'),
+          _placeholder(AppRoutes.bankingDeposits, 'Make Deposits'),
+          _placeholder(AppRoutes.bankingChecks, 'Write Checks'),
+          _placeholder(AppRoutes.bankingReconcile, 'Reconcile'),
+          _placeholder(AppRoutes.payroll, 'Payroll'),
+          _placeholder(AppRoutes.timeTracking, 'Enter Time'),
+          _placeholder(AppRoutes.calendar, 'Calendar'),
+          _placeholder(AppRoutes.snapshots, 'Snapshots'),
+          _placeholder(AppRoutes.cashFlowHub, 'Cash Flow Hub'),
+          _placeholder(AppRoutes.myCompany, 'My Company'),
+          _placeholder(AppRoutes.openWindows, 'Open Windows'),
         ],
       ),
     ],
   );
 });
 
-GoRoute _placeholder(String path) => GoRoute(
-  path: path,
-  builder: (context, state) => Scaffold(
-    body: Center(child: Text('Screen for $path is under development')),
-  ),
-);
+GoRoute _placeholder(String path, String title) => GoRoute(
+      path: path,
+      builder: (context, state) => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: Center(
+          child: Text('$title screen is under development'),
+        ),
+      ),
+    );
