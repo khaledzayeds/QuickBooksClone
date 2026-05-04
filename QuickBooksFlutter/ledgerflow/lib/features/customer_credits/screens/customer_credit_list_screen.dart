@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show CustomerCreditAction;
 import '../data/models/customer_credit_model.dart';
 import '../providers/customer_credits_provider.dart';
@@ -29,7 +30,7 @@ class CustomerCreditListScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 12),
             child: FilledButton.icon(
-              onPressed: () => context.go('/sales/customer-credits/new'),
+              onPressed: () => context.go(AppRoutes.customerCreditNew),
               icon: const Icon(Icons.add),
               label: Text('${l10n.newText} ${l10n.creditBalance}'),
             ),
@@ -168,7 +169,7 @@ class _EmptyState extends StatelessWidget {
             Text(l10n.underDevelopment, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () => context.go('/sales/customer-credits/new'),
+              onPressed: () => context.go(AppRoutes.customerCreditNew),
               icon: const Icon(Icons.add),
               label: Text('${l10n.newText} ${l10n.creditBalance}'),
             ),
