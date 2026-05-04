@@ -102,12 +102,18 @@ public sealed class VendorsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(VendorDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SetActive(Guid id, SetVendorActiveRequest request, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<VendorDto>> SetActive(Guid id, SetVendorActiveRequest request, CancellationToken cancellationToken = default)
     {
         var updated = await _vendors.SetActiveAsync(id, request.IsActive, cancellationToken);
-        return updated ? NoContent() : NotFound();
+        if (!updated)
+        {
+            return NotFound();
+        }
+
+        var vendor = await _vendors.GetByIdAsync(id, cancellationToken);
+        return vendor is null ? NotFound() : Ok(ToDto(vendor));
     }
 
     private async Task<string?> ValidateUniqueVendorAsync(
