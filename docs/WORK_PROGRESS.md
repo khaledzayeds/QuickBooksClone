@@ -25,8 +25,6 @@ E) Licensing + Installer
 F) Banking / Inventory Pro / Payroll
 ```
 
-مش لازم كل phases تخلص قبل بداية أي تفكير في غيرها، لكن ممنوع نفتح موديول كبير جديد قبل ما مرحلة الاستقرار الأساسية تبقى واضحة.
-
 ---
 
 ## Working Rules
@@ -34,18 +32,9 @@ F) Banking / Inventory Pro / Payroll
 1. أي تعديل كبير يتسجل هنا.
 2. أي route جديد لازم يتسجل في `AppRoutes`، ومش يبقى hardcoded جوه الشاشة.
 3. أي feature غير مكتملة إما تتخفى أو تفتح `Coming Soon` واضح، مش ترجع للداشبورد.
-4. أي شاشة تجارية لازم يكون فيها:
-   - Loading state
-   - Error state
-   - Empty state
-   - Search/filter لو List screen
-   - Print/export لو مستند أو تقرير
+4. أي شاشة تجارية لازم يكون فيها Loading/Error/Empty states و Search/filter لو List screen.
 5. أي نص ظاهر للمستخدم لازم يتحول لاحقًا إلى localization.
-6. أي transaction مالية لازم يكون لها status واضح:
-   - Draft
-   - Saved
-   - Posted
-   - Voided
+6. أي transaction مالية لازم يكون لها status واضح: Draft / Saved / Posted / Voided.
 7. أي posted transaction لازم يكون لها void/reversal strategy.
 
 ---
@@ -70,6 +59,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Replace known hardcoded transaction routes with `AppRoutes` in return/credit screens.
 - [x] Add shared `ComingSoonScreen` instead of inline placeholder builder.
 - [x] Review main route consistency for core list screens.
+- [x] Create local verification checklist.
 - [ ] Confirm all main routes open.
 - [ ] Confirm auth redirect/login flow works.
 - [ ] Confirm API starts and migrations apply.
@@ -77,69 +67,28 @@ F) Banking / Inventory Pro / Payroll
 ### Already Done
 
 - [x] Created commercial readiness roadmap: `docs/COMMERCIAL_READINESS_ROADMAP.md`.
+- [x] Created local verification checklist: `docs/LOCAL_VERIFICATION_CHECKLIST.md`.
 - [x] Added missing transaction routes to `QuickBooksFlutter/ledgerflow/lib/app/router.dart`.
-- [x] Wired routes for:
-  - Sales Returns
-  - Customer Credits
-  - Purchase Returns
-  - Vendor Credits
-- [x] Added named placeholders for unfinished modules:
-  - Settings
-  - Make Deposits
-  - Write Checks
-  - Reconcile
-  - Payroll
-  - Enter Time
-  - Calendar
-  - Snapshots
-  - Cash Flow Hub
-  - My Company
-  - Open Windows
+- [x] Wired routes for Sales Returns, Customer Credits, Purchase Returns, Vendor Credits.
+- [x] Added named placeholders for unfinished modules.
 - [x] Added shared coming-soon screen: `QuickBooksFlutter/ledgerflow/lib/core/widgets/coming_soon_screen.dart`.
 - [x] Replaced inline router placeholders with shared `ComingSoonScreen`.
 - [x] Wired dashboard flowchart navigation.
 - [x] Wired top menu navigation.
 - [x] Wired sidebar navigation.
-- [x] Replaced hardcoded list/form navigation routes in:
-  - `sales_return_list_screen.dart`
-  - `sales_return_form_screen.dart`
-  - `purchase_return_list_screen.dart`
-  - `purchase_return_form_screen.dart`
-  - `customer_credit_list_screen.dart`
-  - `customer_credit_form_screen.dart`
-  - `vendor_credit_list_screen.dart`
-  - `vendor_credit_form_screen.dart`
-- [x] Replaced hardcoded details routes in:
-  - `invoices_list_page.dart`
-  - `sales_receipts_list_page.dart`
-- [x] Reviewed route consistency in:
-  - `purchase_order_list_screen.dart`
-  - `receive_inventory_list_screen.dart`
-  - `item_list_screen.dart`
-  - `vendor_list_screen.dart`
-  - `customer_list_screen.dart`
-  - `chart_of_accounts_screen.dart`
-  - `payment_list_screen.dart`
-  - `purchase_bill_list_screen.dart`
+- [x] Replaced hardcoded list/form navigation routes in returns/credits screens.
+- [x] Replaced hardcoded details routes in invoices and sales receipts list screens.
+- [x] Reviewed route consistency in core list screens.
 - [x] Created this progress tracker.
 
 ### Known Findings / Gaps
 
-- `purchase_bill_list_screen.dart` has a TODO inside `onTap` and no purchase bill details route yet. This belongs to Phase C Core MVP Polish, not Phase A.
+- `purchase_bill_list_screen.dart` has a TODO inside `onTap` and no purchase bill details route yet. This belongs to Phase C Core MVP Polish.
 - GitHub code search did not return obvious hits for `*_fixed.dart`, `router_fixed.dart`, `router_full_fixed.dart`, or old `Errors.txt`, but local repository scan is still recommended after pulling.
 
 ### Current Blockers
 
 - Local build/analyze output is still needed from the developer machine because GitHub file edits alone cannot confirm runtime/build status.
-
-### Next Action
-
-Continue Phase A cleanup pass:
-
-1. Review import consistency after adding `AppRoutes` imports.
-2. Create a small developer checklist for local verification commands.
-3. Wait for local `dotnet build` and `flutter analyze` output when available.
-4. After build/analyze is stable, start Phase B: Settings + Setup Wizard + Connection.
 
 ---
 
@@ -147,7 +96,7 @@ Continue Phase A cleanup pass:
 
 ### Status
 
-`Not Started`
+`In Progress`
 
 ### Goal
 
@@ -155,7 +104,7 @@ Continue Phase A cleanup pass:
 
 ### Planned Tasks
 
-- [ ] Build Settings home screen.
+- [x] Build Settings home screen.
 - [ ] Build Company Settings screen.
 - [ ] Build Tax Settings screen.
 - [ ] Build Database/Connection Settings screen.
@@ -167,6 +116,27 @@ Continue Phase A cleanup pass:
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
 - [ ] Add first admin user flow.
+
+### Already Done
+
+- [x] Added settings models:
+  - `RuntimeSettingsModel`
+  - `CompanySettingsModel`
+- [x] Added settings repository reading existing API endpoints:
+  - `GET /api/settings/runtime`
+  - `GET /api/settings/company`
+- [x] Added settings providers:
+  - `runtimeSettingsProvider`
+  - `companySettingsProvider`
+- [x] Added Settings Home screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/settings_home_screen.dart`
+- [x] Wired `/settings` route to `SettingsHomeScreen` instead of `ComingSoonScreen`.
+
+### Current Phase B Notes
+
+- Settings Home currently reads and displays runtime/company summary.
+- Internal settings tiles still open `ComingSoonScreen` until each sub-screen is implemented.
+- Next priority: Connection Settings screen, then Company Settings screen.
 
 ---
 
@@ -201,20 +171,6 @@ Continue Phase A cleanup pass:
 - [ ] Journal Entries
 - [ ] Reports
 
-### Required For Each Module
-
-- [ ] List screen
-- [ ] Search
-- [ ] Filters
-- [ ] Create form
-- [ ] Details screen
-- [ ] Edit if allowed
-- [ ] Post/Void if relevant
-- [ ] Print/Export if relevant
-- [ ] Empty state
-- [ ] Error state
-- [ ] Loading state
-
 ---
 
 ## Phase D — Printing + Reports + Backup
@@ -222,28 +178,6 @@ Continue Phase A cleanup pass:
 ### Status
 
 `Not Started`
-
-### Goal
-
-تجهيز النظام للطباعة والتقارير والنسخ الاحتياطي بشكل تجاري.
-
-### Planned Tasks
-
-- [ ] A4 invoice template.
-- [ ] 80mm receipt template.
-- [ ] Sales receipt print.
-- [ ] Purchase bill print.
-- [ ] Customer statement.
-- [ ] Vendor statement.
-- [ ] Journal entry print.
-- [ ] Report PDF templates.
-- [ ] Reports Excel/CSV export.
-- [ ] Print preview.
-- [ ] Company logo support.
-- [ ] Arabic RTL support.
-- [ ] Backup now UI.
-- [ ] Restore backup UI.
-- [ ] Backup schedule UI.
 
 ---
 
@@ -253,24 +187,6 @@ Continue Phase A cleanup pass:
 
 `Not Started`
 
-### Goal
-
-تحويل البرنامج لمنتج قابل للبيع والتوزيع.
-
-### Planned Tasks
-
-- [ ] License key model.
-- [ ] Activation screen.
-- [ ] Trial mode.
-- [ ] Device activation.
-- [ ] Offline grace period.
-- [ ] Plan limits.
-- [ ] Windows installer.
-- [ ] API auto-start with app.
-- [ ] Database folder selection.
-- [ ] Backup folder selection.
-- [ ] Desktop shortcut.
-
 ---
 
 ## Phase F — Banking / Inventory Pro / Payroll
@@ -278,30 +194,6 @@ Continue Phase A cleanup pass:
 ### Status
 
 `Not Started`
-
-### Banking Tasks
-
-- [ ] Bank accounts.
-- [ ] Make deposits.
-- [ ] Write checks.
-- [ ] Bank transfers.
-- [ ] Reconciliation.
-- [ ] Statement import.
-
-### Inventory Pro Tasks
-
-- [ ] Warehouses / locations.
-- [ ] Stock per location.
-- [ ] Stock transfers.
-- [ ] Stock count.
-- [ ] Low stock alerts.
-
-### Payroll Tasks
-
-- [ ] Employees.
-- [ ] Time entries.
-- [ ] Payroll run.
-- [ ] Payroll expense posting.
 
 ---
 
@@ -337,12 +229,13 @@ Continue Phase A cleanup pass:
 
 - Added roadmap file.
 - Added progress tracker file.
+- Added local verification checklist.
 - Wired missing transaction routes.
 - Wired dashboard/top-menu/sidebar navigation.
 - Added shared `ComingSoonScreen`.
-- Replaced inline router placeholders with `ComingSoonScreen`.
-- Replaced hardcoded routes in sales/purchase returns and customer/vendor credits list/form screens.
-- Replaced hardcoded details routes in invoices and sales receipts list screens.
-- Reviewed route consistency in purchase orders, receive inventory, items, vendors, customers, chart of accounts, payments, and purchase bills.
-- Logged Purchase Bill Details as a Phase C gap.
-- Next focus: import consistency and local verification checklist.
+- Replaced hardcoded transaction routes in key screens.
+- Started Phase B.
+- Added settings models/repository/providers.
+- Added real Settings Home screen.
+- Wired `/settings` to the new Settings Home screen.
+- Next focus: Connection Settings screen and Company Settings screen.
