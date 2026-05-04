@@ -178,6 +178,53 @@ F) Banking / Inventory Pro / Payroll
 
 ---
 
+## Post Phase B Polish Backlog
+
+### Status
+
+`Scheduled / Not Blocking Core MVP Start`
+
+### Why these are not first
+
+Phase B is now strong enough to support first-run setup, licensing, backup, users/roles, and default accounts. The next business-critical value is Core MVP Polish: Chart of Accounts, Items, Customers, Vendors, invoices, purchases, and reports. The polish items below are important for commercial hardening, but most of them depend on or benefit from the core modules being stable first.
+
+### Planned Order
+
+1. **Import Backup File Picker**
+   - Best time: during Phase D backup polish, after Core MVP basic screens are stable.
+   - Reason: backend import endpoint already exists; this is a small Flutter UX completion task.
+   - Priority: Medium / quick win.
+
+2. **Password Reset / Change UI**
+   - Best time: after Users & Permissions API wiring and after auth/login flow is verified.
+   - Reason: security backend exists, but we need confirm current auth/session behavior before adding password change/reset screens.
+   - Priority: High before commercial release.
+
+3. **Audit Log Display**
+   - Best time: after Core MVP posting screens are stable.
+   - Reason: audit log becomes more useful when invoices, bills, payments, and posting actions are active.
+   - Priority: High for admin/commercial trust.
+
+4. **License User-Limit Enforcement**
+   - Best time: after Users & Permissions + licensing are verified locally.
+   - Reason: should block creating users above `maxUsers`, ideally at both API and Flutter levels.
+   - Priority: High before paid release.
+
+5. **Device Activation Limits**
+   - Best time: after online activation and installer/client identity are stabilized.
+   - Reason: accurate device slots need production activation storage and installer/runtime identity decisions.
+   - Priority: High before paid multi-device/network release.
+
+### Practical Timing
+
+- Do **Import Backup File Picker** as soon as we return to backup polish.
+- Do **Password Reset / Change UI** before release candidate.
+- Do **Audit Log Display** after the transaction/posting modules are polished.
+- Do **License User-Limit Enforcement** before selling licensed builds.
+- Do **Device Activation Limits** before selling Network/Hosted or multi-device editions.
+
+---
+
 ## Phase C — Core MVP Polish
 
 ### Status
@@ -294,6 +341,7 @@ F) Banking / Inventory Pro / Payroll
 - Wired Flutter Setup Wizard to setup status/init endpoints with a real first-run form.
 - Added idempotent default accounts seeding and wired it into initialize-company and Setup Wizard.
 - Wired Users & Permissions screen to backend security APIs.
+- Added Post Phase B Polish Backlog with password UI, audit log, device limits, user-limit enforcement, and backup import timing.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
