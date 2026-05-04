@@ -32,25 +32,7 @@ public sealed class SetupController : ControllerBase
     [ProducesResponseType(typeof(SetupStatusResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<SetupStatusResponse>> GetStatus(CancellationToken cancellationToken = default)
     {
-        var company = await _companySettings.GetAsync(cancellationToken);
-        var adminRole = await _security.GetRoleByKeyAsync(AdminRoleKey, cancellationToken);
-        var hasAdminUser = false;
-        string? adminUserName = null;
-
-        if (adminRole is not null)
-        {
-            var users = await _security.SearchUsersAsync(new SecurityUserSearch(null, includeInactive: true, page: 1, pageSize: 100), cancellationToken);
-            var adminUser = users.Items.FirstOrDefault(user => user.RoleAssignments.Any(role => role.RoleId == adminRole.Id));
-            hasAdminUser = adminUser is not null;
-            adminUserName = adminUser?.UserName;
-        }
-
-        return Ok(new SetupStatusResponse(
-            company is not null,
-            hasAdminUser,
-            company is not null && hasAdminUser,
-            company?.CompanyName,
-            adminUserName));
+        return Ok(await BuildStatusAsync(cancellationToken));
     }
 
     [HttpPost("initialize-company")]
@@ -59,8 +41,8 @@ public sealed class SetupController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<InitializeCompanyResponse>> InitializeCompany(InitializeCompanyRequest request, CancellationToken cancellationToken = default)
     {
-        var status = await GetStatus(cancellationToken);
-        if (status.Value?.IsInitialized == true)
+        var status = await BuildStatusAsync(cancellationToken);
+        if (status.IsInitialized)
         {
             return Conflict("Company is already initialized.");
         }
@@ -102,6 +84,29 @@ public sealed class SetupController : ControllerBase
         {
             return BadRequest(exception.Message);
         }
+    }
+
+    private async Task<SetupStatusResponse> BuildStatusAsync(CancellationToken cancellationToken)
+    {
+        var company = await _companySettings.GetAsync(cancellationToken);
+        var adminRole = await _security.GetRoleByKeyAsync(AdminRoleKey, cancellationToken);
+        var hasAdminUser = false;
+        string? adminUserName = null;
+
+        if (adminRole is not null)
+        {
+            var users = await _security.SearchUsersAsync(new SecurityUserSearch(null, includeInactive: true, page: 1, pageSize: 100), cancellationToken);
+            var adminUser = users.Items.FirstOrDefault(user => user.RoleAssignments.Any(role => role.RoleId == adminRole.Id));
+            hasAdminUser = adminUser is not null;
+            adminUserName = adminUser?.UserName;
+        }
+
+        return new SetupStatusResponse(
+            company is not null,
+            hasAdminUser,
+            company is not null && hasAdminUser,
+            company?.CompanyName,
+            adminUserName);
     }
 
     private async Task<CompanySettings> EnsureCompanySettingsAsync(InitializeCompanyRequest request, CancellationToken cancellationToken)
