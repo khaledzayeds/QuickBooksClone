@@ -92,13 +92,14 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Backup Settings screen.
 - [x] Build Printer Settings screen.
 - [x] Build Users/Permissions screen.
+- [x] Add license skeleton screen/model/provider.
 - [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
 - [ ] Add first admin user flow.
-- [ ] Add license skeleton screen/model/provider.
+- [ ] Add license activation server/manual offline validation.
 
 ### Already Done
 
@@ -117,51 +118,36 @@ F) Banking / Inventory Pro / Payroll
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/settings_home_screen.dart`
 - [x] Wired `/settings` route to `SettingsHomeScreen` instead of `ComingSoonScreen`.
 - [x] Added `shared_preferences` dependency for local client settings storage.
-- [x] Added connection settings model:
-  - `ConnectionSettingsModel`
-  - `ConnectionProfileType`: Local / LAN / Hosted / Custom
-- [x] Added connection settings repository/provider/screen.
-- [x] Added `/settings/connection` route and linked Settings Home.
-- [x] Added company settings form provider and Company Settings screen.
-- [x] Added `/settings/company` route and linked Settings Home.
-- [x] Added Tax Settings screen.
-- [x] Added `/settings/tax` route.
-- [x] Linked Settings Home and Setup Wizard to Tax Settings.
-- [x] Added Backup Settings screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/backup_settings_screen.dart`
-- [x] Added `/settings/backup` route.
-- [x] Linked Settings Home Database & Backup tile to `/settings/backup`.
-- [x] Linked Setup Wizard Backup step to `/settings/backup` as Partial.
-- [x] Added printing settings model/repository/provider:
-  - `PrintingSettingsModel`
-  - `PrintingSettingsRepository`
-  - `printingSettingsProvider`
-- [x] Added Printing Settings screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/printing_settings_screen.dart`
-- [x] Added `/settings/printing` route.
-- [x] Linked Settings Home Printing tile to `/settings/printing`.
-- [x] Linked Setup Wizard Printing step to `/settings/printing` as Ready.
-- [x] Added Users & Permissions skeleton screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/users_permissions_screen.dart`
-- [x] Added `/settings/users-permissions` route.
-- [x] Linked Settings Home Users & Permissions tile to `/settings/users-permissions`.
-- [x] Linked Setup Wizard Users & Permissions step to `/settings/users-permissions` as Partial.
-- [x] Added Setup Wizard skeleton screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/setup_wizard_screen.dart`
-- [x] Added Setup Wizard Start Mode step:
+- [x] Added connection settings model/repository/provider/screen and `/settings/connection` route.
+- [x] Added company settings form provider/screen and `/settings/company` route.
+- [x] Added Tax Settings screen and `/settings/tax` route.
+- [x] Added Backup Settings screen and `/settings/backup` route.
+- [x] Added Printing Settings screen/model/repository/provider and `/settings/printing` route.
+- [x] Added Users & Permissions skeleton screen and `/settings/users-permissions` route.
+- [x] Added Setup Wizard skeleton and Start Mode step:
   - Create New Company
   - Restore Existing Backup
   - Connect To Existing Company
   - Open Demo Company
 - [x] Added `/settings/setup-wizard` route and linked Settings Home.
+- [x] Added license settings model/repository/provider:
+  - `LicenseSettingsModel`
+  - `LicenseSettingsRepository`
+  - `licenseSettingsProvider`
+- [x] Added License Settings screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/license_settings_screen.dart`
+- [x] Added `/settings/license` route.
+- [x] Linked Settings Home License tile to `/settings/license`.
 
 ### Current Phase B Notes
 
 - The product direction is one codebase with multiple editions controlled by settings and license.
+- License skeleton supports Trial / Solo / Network / Hosted, limits, feature flags, license key, device id, expiry, and local save.
+- Production activation still needs signed license payloads, device fingerprinting, activation server/manual offline activation, renewal/expiry rules, and integration with router/settings gates.
 - Solo: Local API + SQLite.
 - Network: LAN API + SQL Server.
 - Hosted: Online API + hosted database.
-- Setup Wizard now starts with Start Mode instead of forcing First Admin immediately.
+- Setup Wizard starts with Start Mode instead of forcing First Admin immediately.
 - New Company path should create company profile, first admin, default accounts, tax, printing, and backup policy.
 - Restore path should restore a company backup first, then login with restored users. Recovery Admin should be an exceptional flow only.
 - Connect Existing path should connect to LAN/Hosted API and login with server-side users. No local first admin creation.
@@ -173,7 +159,7 @@ F) Banking / Inventory Pro / Payroll
 - Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
 - Users & Permissions is a commercial skeleton screen for first admin, default roles, permission groups, users/devices, and required backend endpoints.
 - Setup Wizard links to ready/partial steps: Start Mode, Connection, Company, Tax, Chart of Accounts, Users & Permissions, Backup, Printing, Finish.
-- Coming next: License skeleton or backend backup/users/setup endpoints.
+- Coming next: backend backup/users/setup endpoints or license gates.
 
 ---
 
@@ -222,7 +208,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Status
 
-`Not Started`
+`Started as Skeleton`
 
 ---
 
@@ -242,8 +228,8 @@ F) Banking / Inventory Pro / Payroll
 - Wired missing transaction routes and key navigation areas.
 - Added shared `ComingSoonScreen`.
 - Started Phase B.
-- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, Users & Permissions skeleton, and Setup Wizard skeleton.
+- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, Users & Permissions skeleton, License Settings skeleton, and Setup Wizard skeleton.
 - Added Setup Wizard Start Mode with Create New Company / Restore Backup / Connect Existing / Demo Company options.
-- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, and `/settings/setup-wizard`.
+- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: License skeleton or backend backup/users/setup endpoints.
+- Next focus: backend backup/users/setup endpoints or license gates.
