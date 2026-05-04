@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Setup;
+using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Infrastructure.Security;
@@ -17,15 +18,18 @@ public sealed class SetupController : ControllerBase
     private readonly ICompanySettingsRepository _companySettings;
     private readonly ISecurityRepository _security;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IDefaultAccountsSeeder _defaultAccountsSeeder;
 
     public SetupController(
         ICompanySettingsRepository companySettings,
         ISecurityRepository security,
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher,
+        IDefaultAccountsSeeder defaultAccountsSeeder)
     {
         _companySettings = companySettings;
         _security = security;
         _passwordHasher = passwordHasher;
+        _defaultAccountsSeeder = defaultAccountsSeeder;
     }
 
     [HttpGet("status")]
@@ -73,6 +77,7 @@ public sealed class SetupController : ControllerBase
                 _passwordHasher.HashPassword(request.InitialAdminSecret));
 
             await _security.AddUserAsync(adminUser, [adminRole.Id], cancellationToken);
+            await _defaultAccountsSeeder.SeedAsync(cancellationToken);
 
             return Ok(new InitializeCompanyResponse(true, company.CompanyName, adminUser.UserName, adminRole.RoleKey));
         }
@@ -84,6 +89,18 @@ public sealed class SetupController : ControllerBase
         {
             return BadRequest(exception.Message);
         }
+    }
+
+    [HttpPost("seed-default-accounts")]
+    [ProducesResponseType(typeof(DefaultAccountsSeedResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DefaultAccountsSeedResponse>> SeedDefaultAccounts(CancellationToken cancellationToken = default)
+    {
+        var result = await _defaultAccountsSeeder.SeedAsync(cancellationToken);
+        return Ok(new DefaultAccountsSeedResponse(
+            result.CreatedCount,
+            result.SkippedCount,
+            result.CreatedCodes,
+            result.SkippedCodes));
     }
 
     private async Task<SetupStatusResponse> BuildStatusAsync(CancellationToken cancellationToken)
