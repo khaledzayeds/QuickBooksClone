@@ -128,7 +128,7 @@ F) Banking / Inventory Pro / Payroll
 - [ ] Chart of Accounts and Account Form screens.
 - [ ] Items screens: List, Form, Details, Card widgets.
 - [ ] Customers screens: List, Form, Details, Card widgets.
-- [ ] Future Vendors polish screens.
+- [ ] Vendors screens: List, Form, Details, Card widgets.
 - [ ] Future transaction screens.
 
 ---
@@ -146,7 +146,7 @@ F) Banking / Inventory Pro / Payroll
 ### Modules
 
 - [x] Customers
-- [ ] Vendors
+- [x] Vendors
 - [ ] Items
 - [x] Chart of Accounts
 - [ ] Invoices
@@ -188,23 +188,9 @@ F) Banking / Inventory Pro / Payroll
 - [x] Updated backend customer active toggle endpoint to return the updated `CustomerDto` instead of `204 NoContent`, matching Flutter expectations.
 - [x] Hardened `CustomerModel` parsing and added helpers for contact info, net receivable, and balance flags.
 - [x] Polished `CustomerCard` with status/contact chips, open balance, credit balance, net receivable, and warning indicator.
-- [x] Polished `CustomerListScreen` into a Customer Center style screen:
-  - Summary chips for customers, active, inactive, open balance, credits, missing contact info, and owing customers.
-  - Search and inactive filter.
-  - Grouped sections for open balances, credits available, and no open balance.
-  - Actions menu for import/export/template/statements as scheduled productivity backlog actions.
-- [x] Polished `CustomerFormScreen`:
-  - Loading state for edit mode.
-  - Commercial layout card.
-  - Contact validation.
-  - Opening balance warning and explanation.
-  - Balance/status banner in edit mode.
-- [x] Polished `CustomerDetailsScreen`:
-  - Header with status/currency/balance badges.
-  - Balance metrics.
-  - Contact information section.
-  - Quick actions for invoice, receive payment, and edit.
-  - Related activity placeholder for future transaction history.
+- [x] Polished `CustomerListScreen` into a Customer Center style screen.
+- [x] Polished `CustomerFormScreen` with edit loading, commercial layout, contact validation, opening balance warning, and balance/status banner.
+- [x] Polished `CustomerDetailsScreen` with header, balance metrics, contact section, quick actions, and future activity placeholder.
 
 ### Customers Productivity Backlog
 
@@ -214,12 +200,43 @@ F) Banking / Inventory Pro / Payroll
 - [ ] Customer Statement Batch.
 - [ ] Customer activity center after transaction screens are stable.
 
+### Vendors Polish Done
+
+- [x] Updated backend vendor active toggle endpoint to return the updated `VendorDto` instead of `204 NoContent`, matching Flutter expectations.
+- [x] Hardened `VendorModel` parsing and added helpers for contact info, net payable, and payable flags.
+- [x] Polished `VendorCard` with status/contact chips, open payable, vendor credits, net payable, and warning indicator.
+- [x] Polished `VendorListScreen` into a Vendor Center style screen:
+  - Summary chips for vendors, active, inactive, open payable, vendor credits, missing contact info, and payable vendors.
+  - Search and inactive filter.
+  - Grouped sections for open payables, vendor credits available, and no open payable.
+  - Actions menu for import/export/template/statements as scheduled productivity backlog actions.
+- [x] Polished `VendorFormScreen`:
+  - Loading state for edit mode.
+  - Commercial layout card.
+  - Contact validation.
+  - Opening payable balance warning and explanation.
+  - Payable/status banner in edit mode.
+- [x] Polished `VendorDetailsScreen`:
+  - Header with status/currency/payable badges.
+  - Payable metrics.
+  - Contact information section.
+  - Quick actions for purchase order, purchase bill, vendor payment, and edit.
+  - Related activity placeholder for future purchase transaction history.
+
+### Vendors Productivity Backlog
+
+- [ ] Import Vendors from Excel/CSV.
+- [ ] Export Vendors to Excel/CSV.
+- [ ] Download vendor import template.
+- [ ] Vendor Statement Batch.
+- [ ] Vendor activity center after transaction screens are stable.
+
 ### Next Recommended Phase C Order
 
-1. Vendors
-2. Invoices / Sales Receipts
-3. Purchase Orders / Bills / Receive Inventory
-4. Payments / Vendor Payments
+1. Invoices / Sales Receipts
+2. Purchase Orders / Bills / Receive Inventory
+3. Payments / Vendor Payments
+4. Sales/Purchase returns and credits polish
 5. Reports polish
 
 ---
@@ -296,4 +313,5 @@ F) Banking / Inventory Pro / Payroll
 - Polished Chart of Accounts backend/frontend flow and fixed account datasource/toggle mismatches.
 - Completed first Items polish pass: backend item rules, item account selectors, Inventory Center style list, item card metrics, and item details view.
 - Completed first Customers polish pass: backend active toggle fix, Customer Center list, card metrics, form polish, and details view.
-- Next focus: Vendors polish, then sales/purchase transaction screens.
+- Completed first Vendors polish pass: backend active toggle fix, Vendor Center list, card metrics, form polish, and details view.
+- Next focus: sales transaction screens, starting with Invoices / Sales Receipts.
