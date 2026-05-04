@@ -27,16 +27,20 @@ public sealed class ItemsController : ControllerBase
     [ProducesResponseType(typeof(ItemListResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<ItemListResponse>> Search(
         [FromQuery] string? search,
+        [FromQuery] ItemType? itemType,
         [FromQuery] bool includeInactive = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         CancellationToken cancellationToken = default)
     {
         var result = await _items.SearchAsync(new ItemSearch(search, includeInactive, page, pageSize), cancellationToken);
+        var filteredItems = itemType is null
+            ? result.Items
+            : result.Items.Where(item => item.ItemType == itemType.Value).ToList();
 
         return Ok(new ItemListResponse(
-            result.Items.Select(ToDto).ToList(),
-            result.TotalCount,
+            filteredItems.Select(ToDto).ToList(),
+            itemType is null ? result.TotalCount : filteredItems.Count,
             result.Page,
             result.PageSize));
     }
@@ -56,6 +60,12 @@ public sealed class ItemsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ItemDto>> Create(CreateItemRequest request, CancellationToken cancellationToken = default)
     {
+        var itemTypeValidation = ValidateItemTypeRules(request.ItemType, request.IncomeAccountId, request.InventoryAssetAccountId, request.CogsAccountId, request.ExpenseAccountId);
+        if (itemTypeValidation is not null)
+        {
+            return BadRequest(itemTypeValidation);
+        }
+
         var duplicateValidation = await ValidateUniqueItemAsync(request.Name, request.Sku, request.Barcode, null, cancellationToken);
         if (duplicateValidation is not null)
         {
@@ -122,6 +132,12 @@ public sealed class ItemsController : ControllerBase
             return BadRequest("Cannot change item type while quantity on hand is not zero.");
         }
 
+        var itemTypeValidation = ValidateItemTypeRules(request.ItemType, request.IncomeAccountId, request.InventoryAssetAccountId, request.CogsAccountId, request.ExpenseAccountId);
+        if (itemTypeValidation is not null)
+        {
+            return BadRequest(itemTypeValidation);
+        }
+
         if (request.ItemType == ItemType.Inventory && existingItem.QuantityOnHand > 0 && request.InventoryAssetAccountId is null)
         {
             return BadRequest("Inventory items with quantity on hand require an inventory asset account.");
@@ -164,12 +180,18 @@ public sealed class ItemsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ItemDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SetActive(Guid id, SetItemActiveRequest request, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ItemDto>> SetActive(Guid id, SetItemActiveRequest request, CancellationToken cancellationToken = default)
     {
         var updated = await _items.SetActiveAsync(id, request.IsActive, cancellationToken);
-        return updated ? NoContent() : NotFound();
+        if (!updated)
+        {
+            return NotFound();
+        }
+
+        var item = await _items.GetByIdAsync(id, cancellationToken);
+        return item is null ? NotFound() : Ok(ToDto(item));
     }
 
     [HttpPatch("{id:guid}/quantity")]
@@ -235,6 +257,47 @@ public sealed class ItemsController : ControllerBase
             item.CogsAccountId,
             item.ExpenseAccountId,
             item.IsActive);
+    }
+
+    private static string? ValidateItemTypeRules(
+        ItemType itemType,
+        Guid? incomeAccountId,
+        Guid? inventoryAssetAccountId,
+        Guid? cogsAccountId,
+        Guid? expenseAccountId)
+    {
+        if (itemType is ItemType.Inventory)
+        {
+            if (inventoryAssetAccountId is null)
+            {
+                return "Inventory items require an inventory asset account.";
+            }
+
+            if (cogsAccountId is null)
+            {
+                return "Inventory items require a COGS account.";
+            }
+
+            if (incomeAccountId is null)
+            {
+                return "Inventory items require an income account.";
+            }
+        }
+
+        if (itemType is ItemType.Service or ItemType.NonInventory)
+        {
+            if (incomeAccountId is null && expenseAccountId is null)
+            {
+                return "Service and non-inventory items require at least an income account or an expense account.";
+            }
+        }
+
+        if (itemType is ItemType.Bundle && incomeAccountId is not null)
+        {
+            return "Bundle items should not post directly to an income account. Their component items should control posting.";
+        }
+
+        return null;
     }
 
     private async Task<string?> ValidateAccountLinksAsync(
