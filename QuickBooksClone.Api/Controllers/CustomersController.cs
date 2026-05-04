@@ -102,12 +102,18 @@ public sealed class CustomersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SetActive(Guid id, SetCustomerActiveRequest request, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<CustomerDto>> SetActive(Guid id, SetCustomerActiveRequest request, CancellationToken cancellationToken = default)
     {
         var updated = await _customers.SetActiveAsync(id, request.IsActive, cancellationToken);
-        return updated ? NoContent() : NotFound();
+        if (!updated)
+        {
+            return NotFound();
+        }
+
+        var customer = await _customers.GetByIdAsync(id, cancellationToken);
+        return customer is null ? NotFound() : Ok(ToDto(customer));
     }
 
     private async Task<string?> ValidateUniqueCustomerAsync(
