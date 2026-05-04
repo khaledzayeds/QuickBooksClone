@@ -127,7 +127,8 @@ F) Banking / Inventory Pro / Payroll
 - [ ] Users & Permissions screen.
 - [ ] Chart of Accounts and Account Form screens.
 - [ ] Items screens: List, Form, Details, Card widgets.
-- [ ] Future Customers/Vendors polish screens.
+- [ ] Customers screens: List, Form, Details, Card widgets.
+- [ ] Future Vendors polish screens.
 - [ ] Future transaction screens.
 
 ---
@@ -144,7 +145,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Modules
 
-- [ ] Customers
+- [x] Customers
 - [ ] Vendors
 - [ ] Items
 - [x] Chart of Accounts
@@ -169,48 +170,6 @@ F) Banking / Inventory Pro / Payroll
 - [x] Updated backend active toggle endpoint to return the updated `AccountDto` instead of `204 NoContent`, matching Flutter expectations.
 - [x] Polished Chart of Accounts screen and Account Form screen.
 
-### Items Polish Plan
-
-#### Core Item Types — current implementation target
-
-- [x] Inventory Part
-  - Tracks quantity on hand.
-  - Requires Income, Inventory Asset, and COGS accounts.
-  - Opening quantity posts opening inventory value when configured.
-- [x] Non-inventory Part
-  - Does not track stock.
-  - Can be sold, purchased, or both.
-  - Requires Income and/or Expense account.
-- [x] Service
-  - Does not track stock.
-  - Can be sold, purchased, or both.
-  - Requires Income and/or Expense account.
-- [x] Bundle / Group skeleton
-  - Should not post directly to income.
-  - Component-driven posting is future work.
-
-#### QuickBooks-style advanced item types — planned after core transaction stability
-
-- [ ] Other Charge
-- [ ] Subtotal
-- [ ] Discount
-- [ ] Payment item
-- [ ] Sales Tax Item
-- [ ] Sales Tax Group
-- [ ] Inventory Assembly / Build Assemblies
-- [ ] Fixed Asset Item
-
-#### Items UX / Productivity backlog
-
-- [x] Item List polish with grouped view, type tabs/cards, stock alerts, and account badges.
-- [x] Item Details polish with posting accounts, stock status, sales/purchase summary, and related transactions placeholders.
-- [ ] Add/Edit Multiple Items grid.
-- [ ] Import Items from Excel/CSV.
-- [ ] Export Items to Excel/CSV.
-- [ ] Download sample import template.
-- [ ] Change Item Prices screen/action.
-- [ ] Inventory Center activity screen after transaction modules are stable.
-
 ### Items Work Done So Far
 
 - [x] Fixed Flutter items datasource item type query bug.
@@ -224,14 +183,44 @@ F) Banking / Inventory Pro / Payroll
 - [x] Polished `ItemListScreen` into an Inventory Center style screen.
 - [x] Polished `ItemDetailsScreen` with metrics, posting accounts, quick actions, and future activity placeholder.
 
+### Customers Polish Done
+
+- [x] Updated backend customer active toggle endpoint to return the updated `CustomerDto` instead of `204 NoContent`, matching Flutter expectations.
+- [x] Hardened `CustomerModel` parsing and added helpers for contact info, net receivable, and balance flags.
+- [x] Polished `CustomerCard` with status/contact chips, open balance, credit balance, net receivable, and warning indicator.
+- [x] Polished `CustomerListScreen` into a Customer Center style screen:
+  - Summary chips for customers, active, inactive, open balance, credits, missing contact info, and owing customers.
+  - Search and inactive filter.
+  - Grouped sections for open balances, credits available, and no open balance.
+  - Actions menu for import/export/template/statements as scheduled productivity backlog actions.
+- [x] Polished `CustomerFormScreen`:
+  - Loading state for edit mode.
+  - Commercial layout card.
+  - Contact validation.
+  - Opening balance warning and explanation.
+  - Balance/status banner in edit mode.
+- [x] Polished `CustomerDetailsScreen`:
+  - Header with status/currency/balance badges.
+  - Balance metrics.
+  - Contact information section.
+  - Quick actions for invoice, receive payment, and edit.
+  - Related activity placeholder for future transaction history.
+
+### Customers Productivity Backlog
+
+- [ ] Import Customers from Excel/CSV.
+- [ ] Export Customers to Excel/CSV.
+- [ ] Download customer import template.
+- [ ] Customer Statement Batch.
+- [ ] Customer activity center after transaction screens are stable.
+
 ### Next Recommended Phase C Order
 
-1. Customers
-2. Vendors
-3. Invoices / Sales Receipts
-4. Purchase Orders / Bills / Receive Inventory
-5. Payments / Vendor Payments
-6. Reports polish
+1. Vendors
+2. Invoices / Sales Receipts
+3. Purchase Orders / Bills / Receive Inventory
+4. Payments / Vendor Payments
+5. Reports polish
 
 ---
 
@@ -306,4 +295,5 @@ F) Banking / Inventory Pro / Payroll
 - Started Phase C Core MVP Polish.
 - Polished Chart of Accounts backend/frontend flow and fixed account datasource/toggle mismatches.
 - Completed first Items polish pass: backend item rules, item account selectors, Inventory Center style list, item card metrics, and item details view.
-- Items productivity backlog remains scheduled: Add/Edit Multiple, Excel import/export, template download, and change item prices.
+- Completed first Customers polish pass: backend active toggle fix, Customer Center list, card metrics, form polish, and details view.
+- Next focus: Vendors polish, then sales/purchase transaction screens.
