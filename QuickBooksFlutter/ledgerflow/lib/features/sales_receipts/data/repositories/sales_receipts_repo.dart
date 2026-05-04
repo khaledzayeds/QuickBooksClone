@@ -1,6 +1,7 @@
 // sales_receipts_repo.dart
 
 import '../../../../core/api/api_result.dart';
+import '../../../invoices/data/models/sales_preview_contracts.dart';
 import '../datasources/sales_receipts_api.dart';
 import '../models/sales_receipt_contracts.dart';
 
@@ -25,9 +26,9 @@ class SalesReceiptsRepo {
 
   Future<ApiResult<SalesReceiptModel>> getById(String id) => _api.getById(id);
 
-  Future<ApiResult<SalesReceiptModel>> create(CreateSalesReceiptDto dto) =>
-      _api.create(dto);
+  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewSalesReceiptDto dto) => _api.preview(dto);
 
-  Future<ApiResult<SalesReceiptModel>> voidReceipt(String id) =>
-      _api.voidReceipt(id);
+  Future<ApiResult<SalesReceiptModel>> create(CreateSalesReceiptDto dto) => _api.create(dto);
+
+  Future<ApiResult<SalesReceiptModel>> voidReceipt(String id) => _api.voidReceipt(id);
 }
