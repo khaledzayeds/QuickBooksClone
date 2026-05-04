@@ -1,4 +1,3 @@
-﻿// accounts_remote_datasource.dart
 // accounts_remote_datasource.dart
 
 import 'package:dio/dio.dart';
@@ -23,15 +22,16 @@ class AccountsRemoteDatasource {
       final response = await _client.get<Map<String, dynamic>>(
         '/api/accounts',
         queryParameters: {
-          if (search != null && search.isNotEmpty) 'search': search,
-          'accountType': ?accountType,
+          if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+          if (accountType != null) 'accountType': accountType,
           'includeInactive': includeInactive,
           'page': page,
           'pageSize': pageSize,
         },
       );
-      final items = (response.data!['items'] as List)
-          .map((e) => AccountModel.fromJson(e as Map<String, dynamic>))
+      final items = (response.data?['items'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AccountModel.fromJson)
           .toList();
       return Success(items);
     } on DioException catch (e) {
@@ -42,8 +42,7 @@ class AccountsRemoteDatasource {
   // ─── Get by ID ────────────────────────────────
   Future<ApiResult<AccountModel>> getAccount(String id) async {
     try {
-      final response =
-          await _client.get<Map<String, dynamic>>('/api/accounts/$id');
+      final response = await _client.get<Map<String, dynamic>>('/api/accounts/$id');
       return Success(AccountModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
@@ -51,8 +50,7 @@ class AccountsRemoteDatasource {
   }
 
   // ─── Create ───────────────────────────────────
-  Future<ApiResult<AccountModel>> createAccount(
-      Map<String, dynamic> body) async {
+  Future<ApiResult<AccountModel>> createAccount(Map<String, dynamic> body) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/accounts',
@@ -65,8 +63,7 @@ class AccountsRemoteDatasource {
   }
 
   // ─── Update ───────────────────────────────────
-  Future<ApiResult<AccountModel>> updateAccount(
-      String id, Map<String, dynamic> body) async {
+  Future<ApiResult<AccountModel>> updateAccount(String id, Map<String, dynamic> body) async {
     try {
       final response = await _client.put<Map<String, dynamic>>(
         '/api/accounts/$id',
@@ -79,8 +76,7 @@ class AccountsRemoteDatasource {
   }
 
   // ─── Toggle Active ────────────────────────────
-  Future<ApiResult<AccountModel>> toggleActive(
-      String id, bool isActive) async {
+  Future<ApiResult<AccountModel>> toggleActive(String id, bool isActive) async {
     try {
       final response = await _client.patch<Map<String, dynamic>>(
         '/api/accounts/$id/active',
