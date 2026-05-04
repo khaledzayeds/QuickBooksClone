@@ -225,7 +225,7 @@ public sealed class SalesPostingPreviewService
 
         if (taxTotal > 0)
         {
-            ledgerImpacts.Add(new SalesLedgerImpactDto("Sales Tax Payable", settings?.SalesTaxPayableAccountId, "Sales Tax Payable", 0, taxTotal, "Sales tax collected."));
+            ledgerImpacts.Add(new SalesLedgerImpactDto("Sales Tax Payable", settings?.DefaultSalesTaxPayableAccountId, "Sales Tax Payable", 0, taxTotal, "Sales tax collected."));
         }
 
         if (inventoryCostTotal > 0)
