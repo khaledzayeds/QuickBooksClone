@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/device_fingerprint_service.dart';
 import '../data/models/license_settings_model.dart';
+import '../data/offline_activation_service.dart';
 import '../providers/license_settings_provider.dart';
 
 class LicenseSettingsScreen extends ConsumerWidget {
@@ -68,6 +69,8 @@ class LicenseSettingsScreen extends ConsumerWidget {
                         _EditionCard(state: state, notifier: notifier),
                         const SizedBox(height: 16),
                         _ActivationCard(state: state, notifier: notifier),
+                        const SizedBox(height: 16),
+                        _OfflineRequestCard(license: state.license),
                         const SizedBox(height: 16),
                         _PackageActivationCard(state: state, notifier: notifier),
                         const SizedBox(height: 16),
@@ -187,6 +190,67 @@ class _ActivationCard extends StatelessWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+class _OfflineRequestCard extends StatefulWidget {
+  const _OfflineRequestCard({required this.license});
+  final LicenseSettingsModel license;
+
+  @override
+  State<_OfflineRequestCard> createState() => _OfflineRequestCardState();
+}
+
+class _OfflineRequestCardState extends State<_OfflineRequestCard> {
+  OfflineActivationRequest? _request;
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _generate() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final request = await OfflineActivationService().createRequest(currentLicense: widget.license);
+      setState(() => _request = request);
+    } catch (error) {
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.qr_code_2_outlined,
+      title: 'Offline Activation Request',
+      children: [
+        const _InfoText(
+          text: 'Generate this request code on the customer device, send it to the software owner, then paste the returned signed license package below.',
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _loading ? null : _generate,
+          icon: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.generating_tokens_outlined),
+          label: const Text('Generate Request Code'),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          _ErrorBanner(message: _error!),
+        ],
+        if (_request != null) ...[
+          const SizedBox(height: 12),
+          _ReadOnlyValue(label: 'Request Code', value: _request!.requestCode),
+          const SizedBox(height: 12),
+          _ReadOnlyValue(label: 'Created At', value: _request!.createdAtIso),
+          const SizedBox(height: 12),
+          _ReadOnlyValue(label: 'Payload Preview', value: _request!.payload.entries.map((entry) => '${entry.key}: ${entry.value}').join('\n')),
+        ],
       ],
     );
   }
@@ -507,7 +571,7 @@ class _ReadOnlyValue extends StatelessWidget {
       readOnly: true,
       initialValue: value,
       minLines: 1,
-      maxLines: 3,
+      maxLines: 5,
       decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.lock_outline)),
     );
   }
