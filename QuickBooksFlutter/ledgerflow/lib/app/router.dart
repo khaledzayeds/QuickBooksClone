@@ -50,6 +50,7 @@ import '../features/sales_receipts/screens/sales_receipt_form_page.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
 import '../features/sales_returns/screens/sales_return_list_screen.dart';
+import '../features/settings/screens/company_settings_screen.dart';
 import '../features/settings/screens/connection_settings_screen.dart';
 import '../features/settings/screens/settings_home_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
@@ -124,6 +125,7 @@ class AppRoutes {
   static const journalEntryNew = '/company/journal-entries/new';
   static const reports = '/reports';
   static const settings = '/settings';
+  static const companySettings = '/settings/company';
   static const connectionSettings = '/settings/connection';
   static const bankingDeposits = '/banking/deposits';
   static const bankingChecks = '/banking/checks';
@@ -269,6 +271,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.journalEntryNew, builder: (context, state) => const JournalEntryFormScreen()),
           GoRoute(path: AppRoutes.reports, builder: (context, state) => const ReportsScreen()),
           GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsHomeScreen()),
+          GoRoute(path: AppRoutes.companySettings, builder: (context, state) => const CompanySettingsScreen()),
           GoRoute(path: AppRoutes.connectionSettings, builder: (context, state) => const ConnectionSettingsScreen()),
           _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
           _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
