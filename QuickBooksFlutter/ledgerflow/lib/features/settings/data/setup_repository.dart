@@ -14,4 +14,9 @@ class SetupRepository {
     );
     return InitializeCompanyResultModel.fromJson(response.data ?? const {});
   }
+
+  Future<DefaultAccountsSeedResultModel> seedDefaultAccounts() async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>('/api/setup/seed-default-accounts');
+    return DefaultAccountsSeedResultModel.fromJson(response.data ?? const {});
+  }
 }
