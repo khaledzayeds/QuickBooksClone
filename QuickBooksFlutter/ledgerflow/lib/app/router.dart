@@ -57,6 +57,7 @@ import '../features/settings/screens/printing_settings_screen.dart';
 import '../features/settings/screens/settings_home_screen.dart';
 import '../features/settings/screens/setup_wizard_screen.dart';
 import '../features/settings/screens/tax_settings_screen.dart';
+import '../features/settings/screens/users_permissions_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_list_screen.dart';
 import '../features/vendor_payments/screens/vendor_payment_form_screen.dart';
@@ -124,6 +125,7 @@ class AppRoutes {
   static const taxSettings = '/settings/tax';
   static const backupSettings = '/settings/backup';
   static const printingSettings = '/settings/printing';
+  static const usersPermissions = '/settings/users-permissions';
   static const bankingDeposits = '/banking/deposits';
   static const bankingChecks = '/banking/checks';
   static const bankingReconcile = '/banking/reconcile';
@@ -217,6 +219,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.taxSettings, builder: (context, state) => const TaxSettingsScreen()),
           GoRoute(path: AppRoutes.backupSettings, builder: (context, state) => const BackupSettingsScreen()),
           GoRoute(path: AppRoutes.printingSettings, builder: (context, state) => const PrintingSettingsScreen()),
+          GoRoute(path: AppRoutes.usersPermissions, builder: (context, state) => const UsersPermissionsScreen()),
           _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
           _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
           _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
