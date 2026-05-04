@@ -50,11 +50,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       status: 'Coming Soon',
     ),
     _WizardStepData(
-      title: 'Backup & Printing',
-      subtitle: 'Review database backup status now. Printing setup will be completed in the next settings step.',
-      icon: Icons.print_outlined,
+      title: 'Backup',
+      subtitle: 'Review database backup status and prepare backup/restore operations.',
+      icon: Icons.backup_outlined,
       route: AppRoutes.backupSettings,
       status: 'Partial',
+    ),
+    _WizardStepData(
+      title: 'Printing',
+      subtitle: 'Configure A4 invoices, thermal receipts, branding, QR, tax summary, and print behavior.',
+      icon: Icons.print_outlined,
+      route: AppRoutes.printingSettings,
+      status: 'Ready',
     ),
     _WizardStepData(
       title: 'Finish',
