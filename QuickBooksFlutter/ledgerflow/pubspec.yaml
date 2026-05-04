@@ -25,6 +25,10 @@ dependencies:
   # Local Settings Storage
   shared_preferences: ^2.5.3
 
+  # Hashing / License helpers
+  crypto: ^3.0.6
+  cryptography: ^2.7.0
+
   # Formatting — يتوافق مع flutter_localizations في Dart 3.9
   intl: ^0.20.2
 
