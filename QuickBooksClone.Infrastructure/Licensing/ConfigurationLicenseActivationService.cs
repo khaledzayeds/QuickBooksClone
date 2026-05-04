@@ -34,12 +34,12 @@ public sealed class ConfigurationLicenseActivationService : ILicenseActivationSe
             throw new InvalidOperationException("Serial was not found or is not active.");
         }
 
-        var edition = licenseSection.GetValue("Edition", "solo")!.ToLowerInvariant();
-        var status = licenseSection.GetValue("Status", "active")!.ToLowerInvariant();
+        var edition = ReadString(licenseSection, "Edition", "solo").ToLowerInvariant();
+        var status = ReadString(licenseSection, "Status", "active").ToLowerInvariant();
         var customerName = request.CompanyName
-            ?? licenseSection.GetValue<string>("CustomerName")
+            ?? ReadNullableString(licenseSection, "CustomerName")
             ?? "Customer";
-        var expiresAtRaw = licenseSection.GetValue<string>("ExpiresAt");
+        var expiresAtRaw = ReadNullableString(licenseSection, "ExpiresAt");
         var expiresAt = DateTimeOffset.TryParse(expiresAtRaw, out var parsedExpiry) ? parsedExpiry : (DateTimeOffset?)null;
         var now = DateTimeOffset.UtcNow;
 
@@ -54,9 +54,9 @@ public sealed class ConfigurationLicenseActivationService : ILicenseActivationSe
             customerName,
             edition,
             status,
-            licenseSection.GetValue("MaxUsers", defaults.MaxUsers),
-            licenseSection.GetValue("MaxDevices", defaults.MaxDevices),
-            licenseSection.GetValue("OfflineGraceDays", defaults.OfflineGraceDays),
+            ReadInt(licenseSection, "MaxUsers", defaults.MaxUsers),
+            ReadInt(licenseSection, "MaxDevices", defaults.MaxDevices),
+            ReadInt(licenseSection, "OfflineGraceDays", defaults.OfflineGraceDays),
             FeatureSetFromConfiguration(licenseSection.GetSection("Features"), defaults.Features),
             expiresAt,
             request.DeviceFingerprint.Trim(),
@@ -78,8 +78,8 @@ public sealed class ConfigurationLicenseActivationService : ILicenseActivationSe
         var licenses = _configuration.GetSection("Licensing:Licenses").GetChildren();
         foreach (var section in licenses)
         {
-            var configuredSerial = section.GetValue<string>("Serial");
-            var status = section.GetValue("Status", "active");
+            var configuredSerial = ReadNullableString(section, "Serial");
+            var status = ReadString(section, "Status", "active");
             if (string.Equals(configuredSerial, normalized, StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(status, "blocked", StringComparison.OrdinalIgnoreCase))
             {
@@ -148,12 +148,34 @@ public sealed class ConfigurationLicenseActivationService : ILicenseActivationSe
     private static LicenseFeatureSet FeatureSetFromConfiguration(IConfigurationSection section, LicenseFeatureSet defaults)
     {
         return new LicenseFeatureSet(
-            section.GetValue("LocalMode", defaults.LocalMode),
-            section.GetValue("LanMode", defaults.LanMode),
-            section.GetValue("HostedMode", defaults.HostedMode),
-            section.GetValue("BackupRestore", defaults.BackupRestore),
-            section.GetValue("DemoCompany", defaults.DemoCompany),
-            section.GetValue("AdvancedInventory", defaults.AdvancedInventory),
-            section.GetValue("Payroll", defaults.Payroll));
+            ReadBool(section, "LocalMode", defaults.LocalMode),
+            ReadBool(section, "LanMode", defaults.LanMode),
+            ReadBool(section, "HostedMode", defaults.HostedMode),
+            ReadBool(section, "BackupRestore", defaults.BackupRestore),
+            ReadBool(section, "DemoCompany", defaults.DemoCompany),
+            ReadBool(section, "AdvancedInventory", defaults.AdvancedInventory),
+            ReadBool(section, "Payroll", defaults.Payroll));
+    }
+
+    private static string ReadString(IConfiguration section, string key, string fallback)
+    {
+        var value = section[key];
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    private static string? ReadNullableString(IConfiguration section, string key)
+    {
+        var value = section[key];
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static int ReadInt(IConfiguration section, string key, int fallback)
+    {
+        return int.TryParse(section[key], out var value) ? value : fallback;
+    }
+
+    private static bool ReadBool(IConfiguration section, string key, bool fallback)
+    {
+        return bool.TryParse(section[key], out var value) ? value : fallback;
     }
 }
