@@ -50,6 +50,7 @@ import '../features/sales_receipts/screens/sales_receipt_form_page.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
 import '../features/sales_returns/screens/sales_return_list_screen.dart';
+import '../features/settings/screens/backup_settings_screen.dart';
 import '../features/settings/screens/company_settings_screen.dart';
 import '../features/settings/screens/connection_settings_screen.dart';
 import '../features/settings/screens/settings_home_screen.dart';
@@ -120,6 +121,7 @@ class AppRoutes {
   static const connectionSettings = '/settings/connection';
   static const setupWizard = '/settings/setup-wizard';
   static const taxSettings = '/settings/tax';
+  static const backupSettings = '/settings/backup';
   static const bankingDeposits = '/banking/deposits';
   static const bankingChecks = '/banking/checks';
   static const bankingReconcile = '/banking/reconcile';
@@ -211,6 +213,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.connectionSettings, builder: (context, state) => const ConnectionSettingsScreen()),
           GoRoute(path: AppRoutes.setupWizard, builder: (context, state) => const SetupWizardScreen()),
           GoRoute(path: AppRoutes.taxSettings, builder: (context, state) => const TaxSettingsScreen()),
+          GoRoute(path: AppRoutes.backupSettings, builder: (context, state) => const BackupSettingsScreen()),
           _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
           _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
           _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
