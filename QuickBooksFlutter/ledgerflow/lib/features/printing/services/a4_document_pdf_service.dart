@@ -5,29 +5,35 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../settings/data/models/printing_settings_model.dart';
 import '../data/models/print_data_contracts.dart';
 
 class A4DocumentPdfService {
   const A4DocumentPdfService();
 
-  Future<Uint8List> build(DocumentPrintDataModel data) async {
+  Future<Uint8List> build(DocumentPrintDataModel data, PrintingSettingsModel settings) async {
     final doc = pw.Document();
+    final margin = switch (settings.a4TemplateStyle) {
+      A4TemplateStyle.compact => 20.0,
+      A4TemplateStyle.classic => 32.0,
+      A4TemplateStyle.modern => 28.0,
+    };
 
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(28),
+        margin: pw.EdgeInsets.all(margin),
         build: (context) => [
-          _header(data),
-          pw.SizedBox(height: 18),
-          _partyAndMeta(data),
-          pw.SizedBox(height: 18),
-          _linesTable(data),
+          _header(data, settings),
+          pw.SizedBox(height: settings.a4TemplateStyle == A4TemplateStyle.compact ? 12 : 18),
+          _partyAndMeta(data, settings),
+          pw.SizedBox(height: settings.a4TemplateStyle == A4TemplateStyle.compact ? 12 : 18),
+          _linesTable(data, settings),
           pw.SizedBox(height: 14),
-          _summary(data),
-          if ((data.terms ?? '').isNotEmpty || (data.notes ?? '').isNotEmpty) ...[
+          _summary(data, settings),
+          if ((data.terms ?? '').isNotEmpty || (data.notes ?? '').isNotEmpty || (settings.invoiceFooterMessage ?? '').isNotEmpty) ...[
             pw.SizedBox(height: 18),
-            _notes(data),
+            _notes(data, settings),
           ],
         ],
         footer: (context) => pw.Row(
@@ -43,19 +49,35 @@ class A4DocumentPdfService {
     return doc.save();
   }
 
-  pw.Widget _header(DocumentPrintDataModel data) {
+  pw.Widget _header(DocumentPrintDataModel data, PrintingSettingsModel settings) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Expanded(
-          child: pw.Column(
+          child: pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(data.company.companyName, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-              if ((data.company.legalName ?? '').isNotEmpty) pw.Text(data.company.legalName!),
-              if ((data.company.phone ?? '').isNotEmpty) pw.Text('Phone: ${data.company.phone}'),
-              if ((data.company.email ?? '').isNotEmpty) pw.Text('Email: ${data.company.email}'),
-              pw.Text('${data.company.country} • ${data.company.currency}'),
+              if (settings.showLogo)
+                pw.Container(
+                  width: 46,
+                  height: 46,
+                  alignment: pw.Alignment.center,
+                  margin: const pw.EdgeInsets.only(right: 10),
+                  decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500, width: .5), borderRadius: pw.BorderRadius.circular(4)),
+                  child: pw.Text('LOGO', style: const pw.TextStyle(fontSize: 8)),
+                ),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(data.company.companyName, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                    if ((data.company.legalName ?? '').isNotEmpty) pw.Text(data.company.legalName!),
+                    if (settings.showCompanyAddress) pw.Text('${data.company.country} • ${data.company.currency}'),
+                    if ((data.company.phone ?? '').isNotEmpty) pw.Text('Phone: ${data.company.phone}'),
+                    if ((data.company.email ?? '').isNotEmpty) pw.Text('Email: ${data.company.email}'),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -76,7 +98,7 @@ class A4DocumentPdfService {
     );
   }
 
-  pw.Widget _partyAndMeta(DocumentPrintDataModel data) {
+  pw.Widget _partyAndMeta(DocumentPrintDataModel data, PrintingSettingsModel settings) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -87,8 +109,10 @@ class A4DocumentPdfService {
               pw.Text(data.customer.displayName, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
               if ((data.customer.phone ?? '').isNotEmpty) pw.Text('Phone: ${data.customer.phone}'),
               if ((data.customer.email ?? '').isNotEmpty) pw.Text('Email: ${data.customer.email}'),
-              pw.Text('Balance: ${_money(data.customer.openBalance, data.customer.currency)}'),
-              pw.Text('Credits: ${_money(data.customer.creditBalance, data.customer.currency)}'),
+              if (settings.showCustomerBalance) ...[
+                pw.Text('Balance: ${_money(data.customer.openBalance, data.customer.currency)}'),
+                pw.Text('Credits: ${_money(data.customer.creditBalance, data.customer.currency)}'),
+              ],
             ],
           ),
         ),
@@ -108,45 +132,38 @@ class A4DocumentPdfService {
     );
   }
 
-  pw.Widget _linesTable(DocumentPrintDataModel data) {
-    final rows = <List<String>>[
-      ['#', 'Item', 'Qty', 'Price', 'Tax', 'Total'],
-      ...data.lines.map((line) => [
-            line.lineNumber.toString(),
-            line.description.isNotEmpty ? line.description : line.itemName,
-            line.quantity.toStringAsFixed(2),
-            _money(line.unitPrice, data.company.currency),
-            _money(line.taxAmount, data.company.currency),
-            _money(line.lineTotal, data.company.currency),
-          ]),
-    ];
+  pw.Widget _linesTable(DocumentPrintDataModel data, PrintingSettingsModel settings) {
+    final headers = ['#', settings.showItemSku ? 'Item / SKU' : 'Item', 'Qty', 'Price', if (settings.showTaxSummary) 'Tax', 'Total'];
+    final rows = data.lines
+        .map((line) => [
+              line.lineNumber.toString(),
+              line.description.isNotEmpty ? line.description : line.itemName,
+              line.quantity.toStringAsFixed(2),
+              _money(line.unitPrice, data.company.currency),
+              if (settings.showTaxSummary) _money(line.taxAmount, data.company.currency),
+              _money(line.lineTotal, data.company.currency),
+            ])
+        .toList();
 
     return pw.TableHelper.fromTextArray(
-      headers: rows.first,
-      data: rows.skip(1).toList(),
+      headers: headers,
+      data: rows,
       border: pw.TableBorder.all(color: PdfColors.grey400, width: .5),
       headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
       cellStyle: const pw.TextStyle(fontSize: 8),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-      cellPadding: const pw.EdgeInsets.all(5),
-      columnWidths: {
-        0: const pw.FixedColumnWidth(24),
-        1: const pw.FlexColumnWidth(3),
-        2: const pw.FixedColumnWidth(44),
-        3: const pw.FixedColumnWidth(70),
-        4: const pw.FixedColumnWidth(64),
-        5: const pw.FixedColumnWidth(78),
-      },
+      cellPadding: pw.EdgeInsets.all(settings.a4TemplateStyle == A4TemplateStyle.compact ? 3 : 5),
     );
   }
 
-  pw.Widget _summary(DocumentPrintDataModel data) {
+  pw.Widget _summary(DocumentPrintDataModel data, PrintingSettingsModel settings) {
+    final rows = settings.showTaxSummary ? data.summaryRows : data.summaryRows.where((row) => row.label.toLowerCase() != 'tax').toList();
     return pw.Align(
       alignment: pw.Alignment.centerRight,
       child: pw.SizedBox(
         width: 210,
         child: pw.Column(
-          children: data.summaryRows
+          children: rows
               .map(
                 (row) => pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(vertical: 3),
@@ -164,12 +181,13 @@ class A4DocumentPdfService {
     );
   }
 
-  pw.Widget _notes(DocumentPrintDataModel data) {
+  pw.Widget _notes(DocumentPrintDataModel data, PrintingSettingsModel settings) {
     return _box(
       'Notes / Terms',
       [
         if ((data.terms ?? '').isNotEmpty) pw.Text('Terms: ${data.terms}'),
         if ((data.notes ?? '').isNotEmpty) pw.Text(data.notes!),
+        if ((settings.invoiceFooterMessage ?? '').isNotEmpty) pw.Text(settings.invoiceFooterMessage!),
       ],
     );
   }
