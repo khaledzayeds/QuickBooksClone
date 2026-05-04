@@ -5,10 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../app/router.dart';
 import '../../../core/widgets/transaction_line_table.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
+import '../../transactions/widgets/transaction_action_bar.dart';
+import '../../transactions/widgets/transaction_context_side_panel.dart';
+import '../../transactions/widgets/transaction_header_panel.dart';
+import '../../transactions/widgets/transaction_keyboard_shortcuts.dart';
+import '../../transactions/widgets/transaction_models.dart';
+import '../../transactions/widgets/transaction_party_selector.dart';
+import '../../transactions/widgets/transaction_totals_footer.dart';
 import '../data/models/invoice_contracts.dart';
 import '../providers/invoices_state.dart';
 
@@ -24,11 +32,31 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
   DateTime _invoiceDate = DateTime.now();
   DateTime _dueDate = DateTime.now().add(const Duration(days: 14));
   bool _saving = false;
+  bool _sidePanelExpanded = true;
+
+  final _numberCtrl = TextEditingController(text: 'AUTO');
+  final _dateCtrl = TextEditingController();
+  final _dueDateCtrl = TextEditingController();
+  final _termsCtrl = TextEditingController(text: 'Net 14');
+  final _referenceCtrl = TextEditingController();
+  final _customerCtrl = TextEditingController();
 
   final List<TransactionLineEntry> _lines = [TransactionLineEntry()];
 
   @override
+  void initState() {
+    super.initState();
+    _syncDateControllers();
+  }
+
+  @override
   void dispose() {
+    _numberCtrl.dispose();
+    _dateCtrl.dispose();
+    _dueDateCtrl.dispose();
+    _termsCtrl.dispose();
+    _referenceCtrl.dispose();
+    _customerCtrl.dispose();
     for (final line in _lines) {
       line.dispose();
     }
@@ -36,6 +64,19 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
   }
 
   double get _subtotal => _lines.fold(0, (sum, line) => sum + line.amount);
+
+  TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
+        subtotal: _subtotal,
+        taxTotal: 0,
+        total: _subtotal,
+        balanceDue: _subtotal,
+        currency: _selectedCustomer?.currency ?? 'EGP',
+      );
+
+  void _syncDateControllers() {
+    _dateCtrl.text = _formatDate(_invoiceDate);
+    _dueDateCtrl.text = _formatDate(_dueDate);
+  }
 
   Future<void> _save({required bool post}) async {
     final l10n = AppLocalizations.of(context)!;
@@ -49,9 +90,7 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       return;
     }
 
-    final validLines = _lines
-        .where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0)
-        .toList();
+    final validLines = _lines.where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0).toList();
     if (validLines.isEmpty) {
       _showError(l10n.minOneQty);
       return;
@@ -66,9 +105,7 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
           .map(
             (line) => CreateInvoiceLineDto(
               itemId: line.itemId!,
-              description: line.descCtrl.text.trim().isEmpty
-                  ? line.itemName
-                  : line.descCtrl.text.trim(),
+              description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
               quantity: line.qty,
               unitPrice: line.rate,
             ),
@@ -82,13 +119,11 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       result.when(
         success: (_) {
           ref.read(invoicesStateProvider.notifier).refresh();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
           if (context.canPop()) {
             context.pop();
           } else {
-            context.go('/sales/invoices');
+            context.go(AppRoutes.invoices);
           }
         },
         failure: (error) => _showError(error.message),
@@ -107,307 +142,229 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
     );
   }
 
+  void _showInfo(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _pickInvoiceDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _invoiceDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked == null) return;
+    setState(() {
+      _invoiceDate = picked;
+      if (_dueDate.isBefore(_invoiceDate)) {
+        _dueDate = _invoiceDate.add(const Duration(days: 14));
+      }
+      _syncDateControllers();
+    });
+  }
+
+  Future<void> _pickDueDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dueDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked == null) return;
+    setState(() {
+      _dueDate = picked;
+      _syncDateControllers();
+    });
+  }
+
+  Future<void> _selectCustomer() async {
+    final customersAsync = ref.read(customersProvider);
+    final customers = customersAsync.valueOrNull?.where((customer) => customer.isActive).toList() ?? const <CustomerModel>[];
+    final selected = await showDialog<CustomerModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Customer'),
+        content: SizedBox(
+          width: 520,
+          child: customers.isEmpty
+              ? const Text('No active customers loaded yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: customers.length,
+                  itemBuilder: (context, index) {
+                    final customer = customers[index];
+                    return ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(customer.displayName),
+                      subtitle: Text('Balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)}'),
+                      onTap: () => Navigator.of(context).pop(customer),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => context.go(AppRoutes.customerNew), child: const Text('New Customer')),
+        ],
+      ),
+    );
+
+    if (selected == null) return;
+    setState(() {
+      _selectedCustomer = selected;
+      _customerCtrl.text = selected.displayName;
+    });
+  }
+
+  void _clearCustomer() {
+    setState(() {
+      _selectedCustomer = null;
+      _customerCtrl.clear();
+    });
+  }
+
+  void _addLine() {
+    setState(() => _lines.add(TransactionLineEntry()));
+  }
+
+  void _clearLines() {
+    if (_lines.length == 1 && _lines.first.itemId == null) return;
+    setState(() {
+      for (final line in _lines) {
+        line.dispose();
+      }
+      _lines
+        ..clear()
+        ..add(TransactionLineEntry());
+    });
+  }
+
+  void _cancel() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.invoices);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${l10n.createInvoice} | ${l10n.creditSale}'),
-        actions: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 12),
-            child: FilledButton.icon(
-              onPressed: _saving ? null : () => _save(post: true),
-              icon: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save),
-              label: Text(_saving ? l10n.saving : l10n.save),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return TransactionKeyboardShortcuts(
+      onAddLine: _addLine,
+      onFocusBarcode: () => _showInfo('F4 barcode focus will be connected to the new grid focus node.'),
+      onPreviousQuantity: () => _showInfo('F5 previous quantity jump will be wired when editable transaction grid replaces the legacy table.'),
+      onLookup: () => _showInfo('F7 item lookup is scheduled for the transaction grid.'),
+      onToggleSidePanel: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
+      onSave: _saving ? null : () => _save(post: false),
+      onPrint: () => _showInfo('Print preview will be connected to the print service.'),
+      onEscape: _cancel,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Invoice — Full Accounting Mode'),
+          actions: [
+            IconButton(onPressed: _pickInvoiceDate, icon: const Icon(Icons.calendar_today_outlined), tooltip: 'Invoice date'),
+            IconButton(onPressed: _pickDueDate, icon: const Icon(Icons.event_available_outlined), tooltip: 'Due date'),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _HeaderCard(
-              selectedCustomer: _selectedCustomer,
-              onCustomerChanged: (customer) =>
-                  setState(() => _selectedCustomer = customer),
-              invoiceDate: _invoiceDate,
-              onInvoiceDateChanged: (date) =>
-                  setState(() => _invoiceDate = date),
-              dueDate: _dueDate,
-              onDueDateChanged: (date) => setState(() => _dueDate = date),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              l10n.items,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cs.outlineVariant),
-              ),
-              clipBehavior: Clip.antiAlias,
+            Expanded(
               child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: TransactionLineTable(
-                  lines: _lines,
-                  priceMode: TransactionLinePriceMode.sales,
-                  onChanged: () => setState(() {}),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TransactionHeaderPanel(
+                      kind: TransactionScreenKind.invoice,
+                      status: TransactionDocumentStatus.draft,
+                      numberController: _numberCtrl,
+                      dateController: _dateCtrl,
+                      dueDateController: _dueDateCtrl,
+                      termsController: _termsCtrl,
+                      referenceController: _referenceCtrl,
+                    ),
+                    const SizedBox(height: 12),
+                    TransactionPartySelector(
+                      partyType: TransactionPartyType.customer,
+                      label: l10n.customer,
+                      controller: _customerCtrl,
+                      selectedDisplayName: _selectedCustomer?.displayName,
+                      balanceText: _selectedCustomer == null ? null : 'Balance: ${_selectedCustomer!.balance.toStringAsFixed(2)} ${_selectedCustomer!.currency}',
+                      creditText: _selectedCustomer == null ? null : 'Credits: ${_selectedCustomer!.creditBalance.toStringAsFixed(2)} ${_selectedCustomer!.currency}',
+                      onSearch: _selectCustomer,
+                      onClear: _clearCustomer,
+                      onCreateNew: () => context.go(AppRoutes.customerNew),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Text('Items', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                        const SizedBox(width: 8),
+                        Chip(label: Text('${_lines.length} lines')),
+                        const Spacer(),
+                        TextButton.icon(onPressed: _addLine, icon: const Icon(Icons.add), label: const Text('Add line')),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: TransactionLineTable(
+                          lines: _lines,
+                          priceMode: TransactionLinePriceMode.sales,
+                          onChanged: () => setState(() {}),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TransactionTotalsFooter(totals: _totals),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: _TotalsCard(subtotal: _subtotal),
+            TransactionContextSidePanel(
+              expanded: _sidePanelExpanded,
+              onToggle: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
+              title: _selectedCustomer?.displayName ?? 'Customer context',
+              subtitle: _selectedCustomer == null ? 'Select a customer to show balances and recent activity.' : 'Invoice customer snapshot',
+              warning: _selectedCustomer == null ? 'No customer selected yet.' : null,
+              notes: 'F8 toggles this panel. Recent invoices, payments, credits, and notes will appear here after activity endpoints are wired.',
+              metrics: _selectedCustomer == null
+                  ? const []
+                  : [
+                      TransactionContextMetric(label: 'Open balance', value: '${_selectedCustomer!.balance.toStringAsFixed(2)} ${_selectedCustomer!.currency}', icon: Icons.receipt_long_outlined),
+                      TransactionContextMetric(label: 'Credits', value: '${_selectedCustomer!.creditBalance.toStringAsFixed(2)} ${_selectedCustomer!.currency}', icon: Icons.credit_score_outlined),
+                      TransactionContextMetric(label: 'Current invoice', value: '${_totals.total.toStringAsFixed(2)} ${_totals.currency}', icon: Icons.description_outlined),
+                    ],
+              activities: const [],
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          border: Border(top: BorderSide(color: cs.outlineVariant)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            OutlinedButton(
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/sales/invoices');
-                }
-              },
-              child: Text(l10n.cancel),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton.icon(
-              onPressed: _saving ? null : () => _save(post: false),
-              icon: const Icon(Icons.drafts_outlined),
-              label: Text(l10n.saveDraft),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: _saving ? null : () => _save(post: true),
-              icon: const Icon(Icons.receipt_long_outlined),
-              label: Text(l10n.createInvoice),
-            ),
-          ],
+        bottomNavigationBar: TransactionActionBar(
+          status: TransactionDocumentStatus.draft,
+          loading: _saving,
+          onSaveDraft: () => _save(post: false),
+          onSave: () => _save(post: false),
+          onPost: () => _save(post: true),
+          onClear: _clearLines,
+          onVoid: null,
+          onPrintAction: (action) => _showInfo('${action.name} is scheduled for print service wiring.'),
         ),
       ),
     );
   }
 }
 
-class _HeaderCard extends ConsumerWidget {
-  const _HeaderCard({
-    required this.selectedCustomer,
-    required this.onCustomerChanged,
-    required this.invoiceDate,
-    required this.onInvoiceDateChanged,
-    required this.dueDate,
-    required this.onDueDateChanged,
-  });
-
-  final CustomerModel? selectedCustomer;
-  final ValueChanged<CustomerModel?> onCustomerChanged;
-  final DateTime invoiceDate;
-  final ValueChanged<DateTime> onInvoiceDateChanged;
-  final DateTime dueDate;
-  final ValueChanged<DateTime> onDueDateChanged;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final cs = Theme.of(context).colorScheme;
-    final customersAsync = ref.watch(customersProvider);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: customersAsync.when(
-                    loading: () => const LinearProgressIndicator(),
-                    error: (e, _) => Text(e.toString()),
-                    data: (customers) {
-                      final activeCustomers = customers
-                          .where((c) => c.isActive)
-                          .toList();
-                      return DropdownButtonFormField<CustomerModel>(
-                        initialValue: selectedCustomer,
-                        decoration: InputDecoration(
-                          labelText: l10n.customer,
-                          hintText: l10n.selectCustomer,
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                        items: activeCustomers
-                            .map(
-                              (customer) => DropdownMenuItem(
-                                value: customer,
-                                child: Text(customer.displayName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: onCustomerChanged,
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _DatePickerField(
-                    label: l10n.billDate,
-                    value: invoiceDate,
-                    onChanged: onInvoiceDateChanged,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _DatePickerField(
-                    label: l10n.dueDate,
-                    value: dueDate,
-                    onChanged: onDueDateChanged,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.info_outline, size: 18, color: cs.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.creditSale,
-                    style: TextStyle(color: cs.onSurfaceVariant),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          prefixIcon: const Icon(Icons.calendar_today_outlined),
-        ),
-        child: Text('${value.day}/${value.month}/${value.year}'),
-      ),
-    );
-  }
-}
-
-class _TotalsCard extends StatelessWidget {
-  const _TotalsCard({required this.subtotal});
-  final double subtotal;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 320,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _AmountRow(label: l10n.subtotal, amount: subtotal),
-              const SizedBox(height: 8),
-              _AmountRow(label: l10n.tax, amount: 0),
-              const Divider(height: 24),
-              _AmountRow(label: l10n.total, amount: subtotal, isTotal: true),
-              const SizedBox(height: 8),
-              Text(l10n.creditSale, style: theme.textTheme.bodySmall),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AmountRow extends StatelessWidget {
-  const _AmountRow({
-    required this.label,
-    required this.amount,
-    this.isTotal = false,
-  });
-
-  final String label;
-  final double amount;
-  final bool isTotal;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = isTotal
-        ? Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: style),
-        Text(amount.toStringAsFixed(2), style: style),
-      ],
-    );
-  }
-}
+String _formatDate(DateTime date) => '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
