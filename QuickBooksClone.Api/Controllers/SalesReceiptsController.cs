@@ -27,7 +27,6 @@ public sealed class SalesReceiptsController : ControllerBase
     private readonly ISalesInvoicePostingService _postingService;
     private readonly IPaymentPostingService _paymentPostingService;
     private readonly SalesPostingPreviewService _previewService;
-    private readonly SalesPrintService _printService;
     private readonly IDocumentNumberService _documentNumbers;
     private readonly ICompanySettingsRepository _companySettings;
     private readonly ITaxCodeRepository _taxCodes;
@@ -41,7 +40,6 @@ public sealed class SalesReceiptsController : ControllerBase
         ISalesInvoicePostingService postingService,
         IPaymentPostingService paymentPostingService,
         SalesPostingPreviewService previewService,
-        SalesPrintService printService,
         IDocumentNumberService documentNumbers,
         ICompanySettingsRepository companySettings,
         ITaxCodeRepository taxCodes)
@@ -54,7 +52,6 @@ public sealed class SalesReceiptsController : ControllerBase
         _postingService = postingService;
         _paymentPostingService = paymentPostingService;
         _previewService = previewService;
-        _printService = printService;
         _documentNumbers = documentNumbers;
         _companySettings = companySettings;
         _taxCodes = taxCodes;
@@ -93,16 +90,6 @@ public sealed class SalesReceiptsController : ControllerBase
         }
 
         return Ok(await ToDtoAsync(receipt, cancellationToken));
-    }
-
-    [HttpGet("{id:guid}/print-data")]
-    [ProducesResponseType(typeof(SalesPrintDataDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<SalesPrintDataDto>> GetPrintData(Guid id, CancellationToken cancellationToken = default)
-    {
-        var (data, error) = await _printService.GetPrintDataAsync(id, InvoicePaymentMode.Cash, cancellationToken);
-        return error is not null ? NotFound(error) : Ok(data);
     }
 
     [HttpPost("preview")]
