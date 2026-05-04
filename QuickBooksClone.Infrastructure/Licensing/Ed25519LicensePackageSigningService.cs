@@ -1,6 +1,7 @@
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Signers;
 using QuickBooksClone.Core.Licensing;
 
 namespace QuickBooksClone.Infrastructure.Licensing;
@@ -17,7 +18,7 @@ public sealed class Ed25519LicensePackageSigningService : ILicensePackageSigning
         }
 
         _privateKey = Convert.FromBase64String(privateKeyBase64);
-        if (_privateKey.Length != 32)
+        if (_privateKey.Length != Ed25519PrivateKeyParameters.KeySize)
         {
             throw new ArgumentException("Ed25519 private key must be 32 raw bytes encoded as base64.", nameof(privateKeyBase64));
         }
@@ -68,11 +69,11 @@ public sealed class Ed25519LicensePackageSigningService : ILicensePackageSigning
 
     private byte[] SignEd25519(byte[] payloadBytes)
     {
-#if NET10_0_OR_GREATER
-        return Ed25519.Sign(payloadBytes, _privateKey);
-#else
-        throw new PlatformNotSupportedException("Ed25519 signing requires .NET 10 or a compatible crypto provider.");
-#endif
+        var key = new Ed25519PrivateKeyParameters(_privateKey, 0);
+        var signer = new Ed25519Signer();
+        signer.Init(forSigning: true, parameters: key);
+        signer.BlockUpdate(payloadBytes, 0, payloadBytes.Length);
+        return signer.GenerateSignature();
     }
 
     private static string Base64UrlEncode(byte[] bytes) => Convert.ToBase64String(bytes)
