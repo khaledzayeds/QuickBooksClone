@@ -110,6 +110,7 @@ builder.Services.AddScoped<ISecurityRepository, EfSecurityRepository>();
 builder.Services.AddScoped<IAuditLogRepository, EfAuditLogRepository>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ILicenseFeatureAccessService, ConfigurationLicenseFeatureAccessService>();
 builder.Services.AddScoped<ILicenseActivationService, ConfigurationLicenseActivationService>();
 builder.Services.AddSingleton<ILicensePackageSigningService>(_ =>
 {
@@ -140,6 +141,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("DesktopClient");
 
 app.UseRouting();
+app.UseMiddleware<LicenseFeatureMiddleware>();
 app.UseMiddleware<PermissionAuthorizationMiddleware>();
 app.UseMiddleware<TransactionalWriteMiddleware>();
 
