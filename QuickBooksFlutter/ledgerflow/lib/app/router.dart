@@ -53,6 +53,7 @@ import '../features/sales_returns/screens/sales_return_list_screen.dart';
 import '../features/settings/screens/backup_settings_screen.dart';
 import '../features/settings/screens/company_settings_screen.dart';
 import '../features/settings/screens/connection_settings_screen.dart';
+import '../features/settings/screens/printing_settings_screen.dart';
 import '../features/settings/screens/settings_home_screen.dart';
 import '../features/settings/screens/setup_wizard_screen.dart';
 import '../features/settings/screens/tax_settings_screen.dart';
@@ -122,6 +123,7 @@ class AppRoutes {
   static const setupWizard = '/settings/setup-wizard';
   static const taxSettings = '/settings/tax';
   static const backupSettings = '/settings/backup';
+  static const printingSettings = '/settings/printing';
   static const bankingDeposits = '/banking/deposits';
   static const bankingChecks = '/banking/checks';
   static const bankingReconcile = '/banking/reconcile';
@@ -214,6 +216,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.setupWizard, builder: (context, state) => const SetupWizardScreen()),
           GoRoute(path: AppRoutes.taxSettings, builder: (context, state) => const TaxSettingsScreen()),
           GoRoute(path: AppRoutes.backupSettings, builder: (context, state) => const BackupSettingsScreen()),
+          GoRoute(path: AppRoutes.printingSettings, builder: (context, state) => const PrintingSettingsScreen()),
           _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
           _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
           _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
