@@ -9,6 +9,7 @@ using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.InventoryAdjustments;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.JournalEntries;
+using QuickBooksClone.Core.Licensing;
 using QuickBooksClone.Core.OpeningBalances;
 using QuickBooksClone.Core.Payments;
 using QuickBooksClone.Core.PurchaseBills;
@@ -35,6 +36,7 @@ using QuickBooksClone.Infrastructure.Invoices;
 using QuickBooksClone.Infrastructure.InventoryAdjustments;
 using QuickBooksClone.Infrastructure.Items;
 using QuickBooksClone.Infrastructure.JournalEntries;
+using QuickBooksClone.Infrastructure.Licensing;
 using QuickBooksClone.Infrastructure.OpeningBalances;
 using QuickBooksClone.Infrastructure.Persistence;
 using QuickBooksClone.Infrastructure.Payments;
@@ -108,6 +110,14 @@ builder.Services.AddScoped<ISecurityRepository, EfSecurityRepository>();
 builder.Services.AddScoped<IAuditLogRepository, EfAuditLogRepository>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ILicenseActivationService, ConfigurationLicenseActivationService>();
+builder.Services.AddSingleton<ILicensePackageSigningService>(_ =>
+{
+    var privateKey = builder.Configuration["Licensing:PrivateKey"]
+        ?? Environment.GetEnvironmentVariable("LEDGERFLOW_LICENSE_PRIVATE_KEY")
+        ?? string.Empty;
+    return new Ed25519LicensePackageSigningService(privateKey);
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DesktopClient", policy =>
