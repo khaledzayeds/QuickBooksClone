@@ -39,6 +39,7 @@ F) Banking / Inventory Pro / Payroll
 10. Restore operations must create or offer safety backup before overwriting live company data.
 11. First-run setup must not overwrite an already initialized company.
 12. Default account seeding must be idempotent and skip existing account codes.
+13. Items are not all inventory. Item types must be separated by posting behavior: stock, service, non-stock, bundle/group, document-calculation items, tax items, and advanced assembly/fixed asset items.
 
 ---
 
@@ -118,37 +119,9 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add default accounts seeding flow.
 - [x] Wire Users & Permissions screen to security API.
 
-### Already Done
-
-- [x] Added settings models/providers/screens for runtime, company, connection, tax, backup, printing, users/permissions, setup wizard, and license.
-- [x] Added `shared_preferences` dependency for local client settings storage.
-- [x] Added `crypto` dependency for license fingerprint hashing.
-- [x] Added `cryptography` dependency for Ed25519 public-key verification in Flutter.
-- [x] Added `DeviceFingerprintService` and License Settings device fingerprint display.
-- [x] Added `OfflineActivationService` and Offline Activation Request UI.
-- [x] Added Ed25519 public-key verification flow in Flutter.
-- [x] Added license admin tools for Ed25519 keypair/package signing.
-- [x] Added backend licensing contracts, Ed25519 signing service, configuration activation service, and `POST /api/licenses/activate`.
-- [x] Added Flutter online activation repository/provider methods and wired visible Activate Online button.
-- [x] Added backend license enforcement skeleton and server status endpoint.
-- [x] Added backup/restore API contracts/controller and wired Flutter Backup Settings.
-- [x] Added setup API contracts and controller.
-- [x] Setup API supports setup status, initialize company, and default account seeding.
-- [x] Initialize Company flow creates company settings, ensures system `ADMIN` role with all permissions, creates first admin user, hashes initial admin secret, blocks re-initializing an already initialized company, and seeds default chart of accounts.
-- [x] Default accounts seed is idempotent: it creates missing codes and skips existing codes.
-- [x] Setup Wizard now calls setup status endpoint, initializes company, and runs default accounts seeding.
-- [x] Users & Permissions screen now loads users, roles, and permissions from `SecurityController` APIs.
-- [x] Users & Permissions screen supports adding users, adding roles, toggling user active status, replacing user roles, and replacing role permissions for non-system roles.
-- [x] Applied first route gates:
-  - Backup Settings gated by `LicenseFeature.backupRestore`
-  - Payroll route gated by `LicenseFeature.payroll`
-
 ### Current Phase B Notes
 
 - The product direction is one codebase with multiple editions controlled by settings and license.
-- Offline flow is end-to-end conceptually complete: request code → signed package → public-key verification → local save.
-- Online backend exposes `POST /api/licenses/activate` and signs packages using the server-side private key.
-- The visible Flutter Activate Online button calls the backend, verifies the returned signed package, and saves it locally.
 - Backup/Restore is now the first paid feature protected on both Flutter and API layers.
 - Users & Permissions is now wired to backend security APIs, but password reset/change UI, audit log, device activation limits, and license user-limit enforcement are still future polish.
 - Import Backup endpoint exists but Flutter import file picker is not wired yet.
@@ -206,23 +179,62 @@ F) Banking / Inventory Pro / Payroll
 
 - [x] Fixed Flutter account type query filtering bug in `AccountsRemoteDatasource`.
 - [x] Updated backend active toggle endpoint to return the updated `AccountDto` instead of `204 NoContent`, matching Flutter expectations.
-- [x] Polished Chart of Accounts screen:
-  - Summary chips for total, active, inactive, debit-normal total, and credit-normal total.
-  - Grouped accounts by account type.
-  - Responsive search/type/inactive filters.
-  - Seed Defaults action from the chart screen.
-  - Seed result banner.
-  - Better English business wording for commercial UI consistency.
-- [x] Polished Account Form screen:
-  - Loading state for edit mode.
-  - Stronger validation.
-  - Commercial layout card.
-  - Current balance/status banner in edit mode.
-  - Debit-normal / credit-normal account type help.
+- [x] Polished Chart of Accounts screen and Account Form screen.
+
+### Items Polish Plan
+
+#### Core Item Types — current implementation target
+
+- [x] Inventory Part
+  - Tracks quantity on hand.
+  - Requires Income, Inventory Asset, and COGS accounts.
+  - Opening quantity posts opening inventory value when configured.
+- [x] Non-inventory Part
+  - Does not track stock.
+  - Can be sold, purchased, or both.
+  - Requires Income and/or Expense account.
+- [x] Service
+  - Does not track stock.
+  - Can be sold, purchased, or both.
+  - Requires Income and/or Expense account.
+- [x] Bundle / Group skeleton
+  - Should not post directly to income.
+  - Component-driven posting is future work.
+
+#### QuickBooks-style advanced item types — planned after core transaction stability
+
+- [ ] Other Charge
+- [ ] Subtotal
+- [ ] Discount
+- [ ] Payment item
+- [ ] Sales Tax Item
+- [ ] Sales Tax Group
+- [ ] Inventory Assembly / Build Assemblies
+- [ ] Fixed Asset Item
+
+#### Items UX / Productivity backlog
+
+- [ ] Item List polish with grouped view, type tabs/cards, stock alerts, and account badges.
+- [ ] Item Details polish with posting accounts, stock status, sales/purchase summary, and related transactions placeholders.
+- [ ] Add/Edit Multiple Items grid.
+- [ ] Import Items from Excel/CSV.
+- [ ] Export Items to Excel/CSV.
+- [ ] Download sample import template.
+- [ ] Change Item Prices screen/action.
+- [ ] Inventory Center style screen after list/details are stable.
+
+### Items Work Done So Far
+
+- [x] Fixed Flutter items datasource item type query bug.
+- [x] Updated item active toggle API to return `ItemDto` instead of `204 NoContent`.
+- [x] Added backend QuickBooks-style validation for Inventory / Non-inventory / Service / Bundle account links.
+- [x] Added item type account selectors in Flutter Item Form.
+- [x] Added default account selection helpers in Item Form.
+- [x] Added opening quantity warning and validation.
 
 ### Next Recommended Phase C Order
 
-1. Items
+1. Finish Items list/details polish.
 2. Customers
 3. Vendors
 4. Invoices / Sales Receipts
@@ -301,4 +313,5 @@ F) Banking / Inventory Pro / Payroll
 - Added Post Phase B Polish Backlog with password UI, audit log, device limits, user-limit enforcement, and backup import timing.
 - Started Phase C Core MVP Polish.
 - Polished Chart of Accounts backend/frontend flow and fixed account datasource/toggle mismatches.
-- Confirmed next Phase C focus: Items, then Customers/Vendors, then sales/purchase transactions.
+- Started Items polish with QuickBooks-style type/account behavior.
+- Added Items plan for core types, advanced QuickBooks-style types, Add/Edit Multiple, Excel import/export, and Inventory Center future screen.
