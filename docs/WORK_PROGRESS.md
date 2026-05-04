@@ -40,6 +40,7 @@ F) Banking / Inventory Pro / Payroll
 11. First-run setup must not overwrite an already initialized company.
 12. Default account seeding must be idempotent and skip existing account codes.
 13. Items are not all inventory. Item types must be separated by posting behavior: stock, service, non-stock, bundle/group, document-calculation items, tax items, and advanced assembly/fixed asset items.
+14. During fast UI polish, temporary hardcoded English text is allowed, but every polished screen must later pass through localization cleanup using the existing localization files.
 
 ---
 
@@ -103,6 +104,31 @@ F) Banking / Inventory Pro / Payroll
 3. **Audit Log Display** — after transaction/posting screens are stable.
 4. **License User-Limit Enforcement** — before selling licensed builds.
 5. **Device Activation Limits** — before selling Network/Hosted or multi-device editions.
+
+---
+
+## Localization Cleanup Backlog
+
+### Status
+
+`Scheduled / After UI Stabilization`
+
+### Policy
+
+- Continue fast commercial UI polish now, even if some visible strings are temporarily hardcoded.
+- After each module becomes functionally stable, move visible user-facing strings into the existing localization files.
+- Arabic/English switching from settings remains a product requirement.
+- Avoid mixing Arabic and English inside the same polished screen unless intentionally localized.
+
+### Screens needing later localization pass
+
+- [ ] Settings / Setup Wizard screens.
+- [ ] Backup Settings screen.
+- [ ] Users & Permissions screen.
+- [ ] Chart of Accounts and Account Form screens.
+- [ ] Items screens: List, Form, Details, Card widgets.
+- [ ] Future Customers/Vendors polish screens.
+- [ ] Future transaction screens.
 
 ---
 
@@ -195,20 +221,8 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added opening quantity warning and validation.
 - [x] Added commercial item type labels and helpers for required posting accounts, gross margin, and inventory value.
 - [x] Polished `ItemCard` with type/SKU/status badges, sales/cost/margin/stock/value metrics, and missing-account warnings.
-- [x] Polished `ItemListScreen` into an Inventory Center style screen:
-  - Summary chips for items, active, inactive, stock value, missing accounts, and zero/low stock.
-  - Type tabs and dropdown filters.
-  - Grouped list by item type.
-  - New Item menu by item type.
-  - Actions menu for Add/Edit Multiple, Excel import/export, template download, and change prices as scheduled backlog actions.
-- [x] Polished `ItemDetailsScreen`:
-  - Header with type/status badges.
-  - Warning banner for missing posting accounts.
-  - Sales, purchase, margin, stock, and value metrics.
-  - Identifier section.
-  - Posting accounts section.
-  - Quick actions for invoice, inventory adjustment, and edit.
-  - Related activity placeholder for later transaction history.
+- [x] Polished `ItemListScreen` into an Inventory Center style screen.
+- [x] Polished `ItemDetailsScreen` with metrics, posting accounts, quick actions, and future activity placeholder.
 
 ### Next Recommended Phase C Order
 
@@ -288,6 +302,7 @@ F) Banking / Inventory Pro / Payroll
 - Added roadmap, progress tracker, and local verification checklist.
 - Completed Phase B core setup/licensing/backup/users/settings work.
 - Added Post Phase B Polish Backlog with password UI, audit log, device limits, user-limit enforcement, and backup import timing.
+- Added Localization Cleanup Backlog to migrate temporary hardcoded UI strings into existing localization files after screens stabilize.
 - Started Phase C Core MVP Polish.
 - Polished Chart of Accounts backend/frontend flow and fixed account datasource/toggle mismatches.
 - Completed first Items polish pass: backend item rules, item account selectors, Inventory Center style list, item card metrics, and item details view.
