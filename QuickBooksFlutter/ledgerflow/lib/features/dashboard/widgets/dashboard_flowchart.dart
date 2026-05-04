@@ -16,36 +16,63 @@ class DashboardFlowchart extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 1200),
+          constraints: const BoxConstraints(maxWidth: 1280),
           child: Column(
             children: [
               _FlowSection(
                 title: l10n.vendors.toUpperCase(),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Column(
                   children: [
-                    _FlowIcon(
-                      icon: Icons.shopping_cart_outlined,
-                      label: l10n.purchaseOrders,
-                      path: AppRoutes.purchaseOrderNew,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _FlowIcon(
+                          icon: Icons.shopping_cart_outlined,
+                          label: l10n.purchaseOrders,
+                          path: AppRoutes.purchaseOrderNew,
+                        ),
+                        const _Arrow(),
+                        _FlowIcon(
+                          icon: Icons.local_shipping_outlined,
+                          label: l10n.receiveInventory,
+                          path: AppRoutes.receiveInventoryNew,
+                        ),
+                        const _Arrow(),
+                        _FlowIcon(
+                          icon: Icons.assignment_outlined,
+                          label: l10n.enterBills,
+                          path: AppRoutes.purchaseBillNew,
+                        ),
+                        const _Arrow(),
+                        _FlowIcon(
+                          icon: Icons.account_balance_wallet_outlined,
+                          label: l10n.payBills,
+                          path: AppRoutes.vendorPaymentNew,
+                        ),
+                      ],
                     ),
-                    const _Arrow(),
-                    _FlowIcon(
-                      icon: Icons.local_shipping_outlined,
-                      label: l10n.receiveInventory,
-                      path: AppRoutes.receiveInventoryNew,
-                    ),
-                    const _Arrow(),
-                    _FlowIcon(
-                      icon: Icons.assignment_outlined,
-                      label: l10n.enterBills,
-                      path: AppRoutes.purchaseBillNew,
-                    ),
-                    const _Arrow(),
-                    _FlowIcon(
-                      icon: Icons.account_balance_wallet_outlined,
-                      label: l10n.payBills,
-                      path: AppRoutes.vendorPaymentNew,
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _FlowIcon(
+                          icon: Icons.keyboard_return_outlined,
+                          label: 'Purchase Returns',
+                          path: AppRoutes.purchaseReturnNew,
+                        ),
+                        const SizedBox(width: 32),
+                        _FlowIcon(
+                          icon: Icons.account_balance_wallet_outlined,
+                          label: 'Vendor Credits',
+                          path: AppRoutes.vendorCreditNew,
+                        ),
+                        const SizedBox(width: 32),
+                        _FlowIcon(
+                          icon: Icons.storefront_outlined,
+                          label: l10n.vendors,
+                          path: AppRoutes.vendors,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -79,7 +106,7 @@ class DashboardFlowchart extends StatelessWidget {
                         _FlowIcon(
                           icon: Icons.savings_outlined,
                           label: l10n.recordDeposits,
-                          path: AppRoutes.dashboard,
+                          path: AppRoutes.bankingDeposits,
                         ),
                       ],
                     ),
@@ -104,6 +131,18 @@ class DashboardFlowchart extends StatelessWidget {
                           label: l10n.creditSale,
                           path: AppRoutes.invoiceNew,
                         ),
+                        const SizedBox(width: 24),
+                        _FlowIcon(
+                          icon: Icons.assignment_return_outlined,
+                          label: 'Sales Returns',
+                          path: AppRoutes.salesReturnNew,
+                        ),
+                        const SizedBox(width: 24),
+                        _FlowIcon(
+                          icon: Icons.account_balance_wallet_outlined,
+                          label: 'Customer Credits',
+                          path: AppRoutes.customerCreditNew,
+                        ),
                       ],
                     ),
                   ],
@@ -122,12 +161,12 @@ class DashboardFlowchart extends StatelessWidget {
                           _FlowIcon(
                             icon: Icons.timer_outlined,
                             label: l10n.enterTime,
-                            path: AppRoutes.dashboard,
+                            path: AppRoutes.timeTracking,
                           ),
                           _FlowIcon(
                             icon: Icons.monetization_on_outlined,
                             label: l10n.payEmployees,
-                            path: AppRoutes.dashboard,
+                            path: AppRoutes.payroll,
                           ),
                         ],
                       ),
