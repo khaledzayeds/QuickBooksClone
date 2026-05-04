@@ -50,6 +50,7 @@ import '../features/sales_receipts/screens/sales_receipt_form_page.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
 import '../features/sales_returns/screens/sales_return_list_screen.dart';
+import '../features/settings/screens/settings_home_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_list_screen.dart';
 import '../features/vendor_payments/screens/vendor_payment_form_screen.dart';
@@ -390,7 +391,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.reports,
             builder: (context, state) => const ReportsScreen(),
           ),
-          _comingSoon(AppRoutes.settings, 'Settings'),
+          GoRoute(
+            path: AppRoutes.settings,
+            builder: (context, state) => const SettingsHomeScreen(),
+          ),
           _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
           _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
           _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
