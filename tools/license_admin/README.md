@@ -1,43 +1,80 @@
-# LedgerFlow License Admin Tool — Development
+# LedgerFlow License Admin Tool
 
-> This folder contains development-only tools for generating license packages from offline request codes.
+> Tools for generating real signed license packages from offline request codes.
 
-## Current Tool
+## Install Python dependency
 
-```text
-generate_license_package.py
+```bash
+pip install cryptography
 ```
 
-It accepts the request code generated from the customer device in:
+---
+
+## 1. Generate Ed25519 keypair
+
+```bash
+python tools/license_admin/generate_keypair.py
+```
+
+The output contains:
+
+```text
+PRIVATE KEY BASE64 — KEEP SECRET
+PUBLIC KEY BASE64 — paste into Flutter LicensePublicKeyConfig
+```
+
+Rules:
+
+```text
+Private key stays with the software owner only.
+Public key can be shipped in the customer app.
+Never commit the real private key to GitHub.
+```
+
+Paste the public key into:
+
+```text
+QuickBooksFlutter/ledgerflow/lib/features/settings/data/license_public_key.dart
+```
+
+---
+
+## 2. Customer generates request code
+
+Inside the customer app:
 
 ```text
 Settings → License → Offline Activation Request → Generate Request Code
 ```
 
-Then it returns a license package that can be pasted back into:
+Customer sends you:
 
 ```text
-Settings → License → Signed / Offline License Package → Apply Package
+LFREQ.<base64url payload>
 ```
 
 ---
 
-## Example
+## 3. Generate signed license package
+
+Solo example:
 
 ```bash
 python tools/license_admin/generate_license_package.py \
   --request-code "LFREQ.PASTE_CUSTOMER_REQUEST_CODE_HERE" \
+  --private-key "PASTE_PRIVATE_KEY_BASE64_HERE" \
   --serial "LF-SOLO-2026-0001" \
   --customer-name "ABC Store" \
   --edition solo \
   --status active
 ```
 
-For a network license:
+Network example:
 
 ```bash
 python tools/license_admin/generate_license_package.py \
   --request-code "LFREQ.PASTE_CUSTOMER_REQUEST_CODE_HERE" \
+  --private-key "PASTE_PRIVATE_KEY_BASE64_HERE" \
   --serial "LF-NET-2026-0001" \
   --customer-name "ABC Store" \
   --edition network \
@@ -46,11 +83,12 @@ python tools/license_admin/generate_license_package.py \
   --enable-feature advancedInventory
 ```
 
-For a subscription/hosted license with expiry:
+Hosted/subscription example with expiry:
 
 ```bash
 python tools/license_admin/generate_license_package.py \
   --request-code "LFREQ.PASTE_CUSTOMER_REQUEST_CODE_HERE" \
+  --private-key "PASTE_PRIVATE_KEY_BASE64_HERE" \
   --serial "LF-HOSTED-2026-0001" \
   --customer-name "ABC Store" \
   --edition hosted \
@@ -61,41 +99,28 @@ python tools/license_admin/generate_license_package.py \
 
 ---
 
-## Output
+## 4. Customer applies package
 
 The tool prints:
 
 ```text
-base64url(payloadJson).base64url(signature)
+base64url(payloadJson).base64url(ed25519Signature)
 ```
 
-Copy the package and send it to the customer.
+Customer pastes it into:
+
+```text
+Settings → License → Signed / Offline License Package → Apply Package
+```
+
+The app verifies the package using the embedded public key.
 
 ---
 
-## Important Production Warning
+## Security Notes
 
-This tool currently uses a development signature placeholder:
-
-```text
-SHA256(payload + dev-secret)
-```
-
-This is not production-grade licensing security.
-
-Before selling commercially, replace it with:
-
-```text
-Private-key signing in the admin tool/server
-Public-key verification inside the customer app/API
-```
-
-Recommended production algorithms:
-
-```text
-Ed25519
-RSA-PSS
-ECDSA P-256
-```
-
-Never ship the private key with the customer app.
+- Do not ship the private key with the app.
+- Do not save the private key in the repository.
+- Use different keys for development and production.
+- For hosted/online activation, keep signing on the server only.
+- The Flutter app should only verify packages with the public key.
