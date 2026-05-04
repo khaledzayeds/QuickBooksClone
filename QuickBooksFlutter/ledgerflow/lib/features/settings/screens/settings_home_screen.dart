@@ -94,7 +94,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   icon: Icons.storage_outlined,
                   title: 'Database & Backup',
                   subtitle: 'Database provider, backup folder, restore, and maintenance.',
-                  onTap: () => _openComingSoon(context, 'Database & Backup'),
+                  onTap: () => context.go(AppRoutes.backupSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.print_outlined,
