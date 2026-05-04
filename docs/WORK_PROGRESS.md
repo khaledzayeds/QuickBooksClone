@@ -87,7 +87,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Database/Connection Settings screen.
 - [x] Build Company Settings screen.
 - [x] Build Setup Wizard skeleton.
-- [ ] Build Tax Settings screen.
+- [x] Build Tax Settings screen.
 - [ ] Build Backup Settings screen.
 - [ ] Build Printer Settings screen.
 - [ ] Build Users/Permissions screen.
@@ -127,6 +127,11 @@ F) Banking / Inventory Pro / Payroll
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/company_settings_screen.dart`
 - [x] Added `/settings/company` route.
 - [x] Linked Settings Home Company Profile tile to `/settings/company`.
+- [x] Added Tax Settings screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/tax_settings_screen.dart`
+- [x] Added `/settings/tax` route.
+- [x] Linked Settings Home Tax Settings tile to `/settings/tax`.
+- [x] Linked Setup Wizard Tax Defaults step to `/settings/tax`.
 - [x] Added Setup Wizard skeleton screen:
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/setup_wizard_screen.dart`
 - [x] Added `/settings/setup-wizard` route.
@@ -140,8 +145,9 @@ F) Banking / Inventory Pro / Payroll
 - Hosted: Online API + hosted database.
 - Connection Settings now supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
 - Company Settings now supports loading and saving company profile, contact, address, fiscal year, and basic tax defaults through the existing backend.
-- Setup Wizard skeleton now links to existing ready steps: Connection, Company, Chart of Accounts, Finish.
-- Coming next: Tax Settings / Backup / Printer settings, then backend setup status/initialize endpoints if missing.
+- Tax Settings now has a dedicated screen using the same company settings endpoint for tax behavior and rates.
+- Setup Wizard skeleton now links to ready steps: Connection, Company, Tax, Chart of Accounts, Finish.
+- Coming next: Backup / Printer settings, then backend setup status/initialize endpoints if missing.
 
 ---
 
@@ -210,7 +216,7 @@ F) Banking / Inventory Pro / Payroll
 - Wired missing transaction routes and key navigation areas.
 - Added shared `ComingSoonScreen`.
 - Started Phase B.
-- Added Settings Home, Connection Settings, Company Settings, and Setup Wizard skeleton.
-- Wired `/settings`, `/settings/connection`, `/settings/company`, and `/settings/setup-wizard`.
+- Added Settings Home, Connection Settings, Company Settings, Tax Settings, and Setup Wizard skeleton.
+- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: Tax Settings / Backup / Printer settings, then setup backend status/initialize endpoints.
+- Next focus: Backup / Printer settings, then setup backend status/initialize endpoints.
