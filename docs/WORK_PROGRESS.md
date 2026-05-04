@@ -88,9 +88,10 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Company Settings screen.
 - [x] Build Setup Wizard skeleton.
 - [x] Build Tax Settings screen.
-- [ ] Build Backup Settings screen.
+- [x] Build Backup Settings screen.
 - [ ] Build Printer Settings screen.
 - [ ] Build Users/Permissions screen.
+- [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
@@ -116,26 +117,20 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added connection settings model:
   - `ConnectionSettingsModel`
   - `ConnectionProfileType`: Local / LAN / Hosted / Custom
-- [x] Added connection settings repository.
-- [x] Added connection settings provider.
-- [x] Added Connection Settings screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/connection_settings_screen.dart`
-- [x] Added `/settings/connection` route.
-- [x] Linked Settings Home Connection tile to `/settings/connection`.
-- [x] Added company settings form provider.
-- [x] Added Company Settings screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/company_settings_screen.dart`
-- [x] Added `/settings/company` route.
-- [x] Linked Settings Home Company Profile tile to `/settings/company`.
-- [x] Added Tax Settings screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/tax_settings_screen.dart`
+- [x] Added connection settings repository/provider/screen.
+- [x] Added `/settings/connection` route and linked Settings Home.
+- [x] Added company settings form provider and Company Settings screen.
+- [x] Added `/settings/company` route and linked Settings Home.
+- [x] Added Tax Settings screen.
 - [x] Added `/settings/tax` route.
-- [x] Linked Settings Home Tax Settings tile to `/settings/tax`.
-- [x] Linked Setup Wizard Tax Defaults step to `/settings/tax`.
-- [x] Added Setup Wizard skeleton screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/setup_wizard_screen.dart`
-- [x] Added `/settings/setup-wizard` route.
-- [x] Linked Settings Home Setup Wizard tile to `/settings/setup-wizard`.
+- [x] Linked Settings Home and Setup Wizard to Tax Settings.
+- [x] Added Setup Wizard skeleton screen.
+- [x] Added `/settings/setup-wizard` route and linked Settings Home.
+- [x] Added Backup Settings screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/backup_settings_screen.dart`
+- [x] Added `/settings/backup` route.
+- [x] Linked Settings Home Database & Backup tile to `/settings/backup`.
+- [x] Linked Setup Wizard Backup & Printing step to `/settings/backup` as Partial.
 
 ### Current Phase B Notes
 
@@ -143,11 +138,12 @@ F) Banking / Inventory Pro / Payroll
 - Solo: Local API + SQLite.
 - Network: LAN API + SQL Server.
 - Hosted: Online API + hosted database.
-- Connection Settings now supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
-- Company Settings now supports loading and saving company profile, contact, address, fiscal year, and basic tax defaults through the existing backend.
-- Tax Settings now has a dedicated screen using the same company settings endpoint for tax behavior and rates.
-- Setup Wizard skeleton now links to ready steps: Connection, Company, Tax, Chart of Accounts, Finish.
-- Coming next: Backup / Printer settings, then backend setup status/initialize endpoints if missing.
+- Connection Settings supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
+- Company Settings supports loading/saving company profile, contact, address, fiscal year, and basic tax defaults through existing backend.
+- Tax Settings has a dedicated screen using the same company settings endpoint for tax behavior and rates.
+- Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
+- Setup Wizard skeleton links to ready/partial steps: Connection, Company, Tax, Chart of Accounts, Backup, Finish.
+- Coming next: Printer settings, backend backup/restore endpoints, then setup status/initialize endpoints.
 
 ---
 
@@ -216,7 +212,7 @@ F) Banking / Inventory Pro / Payroll
 - Wired missing transaction routes and key navigation areas.
 - Added shared `ComingSoonScreen`.
 - Started Phase B.
-- Added Settings Home, Connection Settings, Company Settings, Tax Settings, and Setup Wizard skeleton.
-- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, and `/settings/setup-wizard`.
+- Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, and Setup Wizard skeleton.
+- Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: Backup / Printer settings, then setup backend status/initialize endpoints.
+- Next focus: Printer Settings, then backend backup/restore endpoints and setup status/initialize endpoints.
