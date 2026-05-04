@@ -2,9 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../data/models/print_data_contracts.dart';
 import '../providers/printing_provider.dart';
+import '../services/a4_document_pdf_service.dart';
+import '../services/thermal_document_pdf_service.dart';
 
 Future<void> showDocumentPrintPreviewDialog({
   required BuildContext context,
@@ -114,6 +117,34 @@ class _PrintPreviewContent extends StatelessWidget {
 
   final DocumentPrintDataModel data;
 
+  Future<void> _printA4(BuildContext context) async {
+    try {
+      final service = const A4DocumentPdfService();
+      await Printing.layoutPdf(
+        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        onLayout: (_) => service.build(data),
+      );
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('A4 PDF failed: $error')));
+      }
+    }
+  }
+
+  Future<void> _printThermal(BuildContext context) async {
+    try {
+      final service = const ThermalDocumentPdfService();
+      await Printing.layoutPdf(
+        name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        onLayout: (_) => service.build(data),
+      );
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Thermal print failed: $error')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -140,13 +171,13 @@ class _PrintPreviewContent extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('A4 PDF renderer will be connected next.'))),
+                onPressed: () => _printA4(context),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: const Text('A4 PDF'),
               ),
               const SizedBox(width: 8),
               OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thermal renderer will be connected next.'))),
+                onPressed: () => _printThermal(context),
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: const Text('Thermal'),
               ),
