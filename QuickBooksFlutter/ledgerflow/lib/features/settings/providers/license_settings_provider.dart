@@ -87,6 +87,37 @@ class LicenseSettingsNotifier extends Notifier<LicenseSettingsState> {
     }
   }
 
+  Future<void> activateOnline({
+    required String serial,
+    required String deviceFingerprint,
+    required String? companyName,
+    String appVersion = '1.0.0',
+  }) async {
+    state = state.copyWith(saving: true, saved: false, clearError: true, clearActivation: true);
+    try {
+      final result = await _repository.activateOnline(
+        serial: serial,
+        deviceFingerprint: deviceFingerprint,
+        companyName: companyName,
+        appVersion: appVersion,
+      );
+      if (!result.success || result.license == null) {
+        state = state.copyWith(saving: false, saved: false, errorMessage: result.message);
+        return;
+      }
+
+      state = state.copyWith(
+        license: result.license,
+        saving: false,
+        saved: true,
+        activationMessage: 'Online activation completed. ${result.message}',
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(saving: false, saved: false, errorMessage: error.toString());
+    }
+  }
+
   Future<void> applyPackage({required String package, required String deviceFingerprint}) async {
     state = state.copyWith(saving: true, saved: false, clearError: true, clearActivation: true);
     try {
