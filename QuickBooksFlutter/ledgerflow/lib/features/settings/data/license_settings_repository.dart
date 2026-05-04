@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/api/api_client.dart';
 import 'license_package_verifier.dart';
 import 'models/license_settings_model.dart';
 
@@ -60,6 +61,35 @@ class LicenseSettingsRepository {
       lastValidatedAtIso: DateTime.now().toIso8601String(),
     );
     return save(next);
+  }
+
+  Future<ApplyLicensePackageResult> activateOnline({
+    required String serial,
+    required String deviceFingerprint,
+    required String? companyName,
+    required String appVersion,
+  }) async {
+    if (serial.trim().isEmpty) {
+      return const ApplyLicensePackageResult(success: false, message: 'Serial is required for online activation.');
+    }
+
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/licenses/activate',
+      data: {
+        'serial': serial.trim(),
+        'deviceFingerprint': deviceFingerprint,
+        'appVersion': appVersion,
+        'companyName': companyName,
+      },
+    );
+
+    final data = response.data;
+    final package = data?['licensePackage']?.toString();
+    if (package == null || package.isEmpty) {
+      return const ApplyLicensePackageResult(success: false, message: 'Activation server did not return a license package.');
+    }
+
+    return applyPackage(package: package, deviceFingerprint: deviceFingerprint);
   }
 
   Future<ApplyLicensePackageResult> applyPackage({
