@@ -1,15 +1,13 @@
 # LedgerFlow / QuickBooksClone — Work Progress Tracker
 
 > الملف ده هو سجل التقدم العملي للمشروع.  
-> أي شغل يتم، أو قرار يتاخد، أو حاجة تخلص، أو حاجة تتأجل، تتسجل هنا عشان نعرف إحنا واقفين فين.
+> أي شغل يتم، أو قرار يتاخد، أو حاجة تتأجل، تتسجل هنا عشان نعرف إحنا واقفين فين.
 
 Branch: `local-update`
 
 ---
 
 ## Current Working Strategy
-
-هنمشي بالترتيب المنطقي التالي:
 
 ```text
 A) Stability / Build Lock
@@ -36,6 +34,7 @@ F) Banking / Inventory Pro / Payroll
 5. أي نص ظاهر للمستخدم لازم يتحول لاحقًا إلى localization.
 6. أي transaction مالية لازم يكون لها status واضح: Draft / Saved / Posted / Voided.
 7. أي posted transaction لازم يكون لها void/reversal strategy.
+8. أي ميزة مدفوعة أو مرتبطة بنسخة معينة لازم تعدي من License Gate أو Feature Flag واضح.
 
 ---
 
@@ -93,6 +92,10 @@ F) Banking / Inventory Pro / Payroll
 - [x] Build Printer Settings screen.
 - [x] Build Users/Permissions screen.
 - [x] Add license skeleton screen/model/provider.
+- [x] Add license gate helpers.
+- [x] Add license activation design document.
+- [x] Gate Setup Wizard Start Mode options by license.
+- [x] Gate Connection Settings profiles by license.
 - [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
@@ -103,63 +106,58 @@ F) Banking / Inventory Pro / Payroll
 
 ### Already Done
 
-- [x] Added settings models:
-  - `RuntimeSettingsModel`
-  - `CompanySettingsModel`
-- [x] Expanded `CompanySettingsModel` for update payloads matching backend `PUT /api/settings/company`.
-- [x] Added settings repository reading existing API endpoints:
-  - `GET /api/settings/runtime`
-  - `GET /api/settings/company`
-  - `PUT /api/settings/company`
-- [x] Added settings providers:
-  - `runtimeSettingsProvider`
-  - `companySettingsProvider`
-- [x] Added Settings Home screen:
-  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/settings_home_screen.dart`
-- [x] Wired `/settings` route to `SettingsHomeScreen` instead of `ComingSoonScreen`.
+- [x] Added settings models/providers/screens for runtime, company, connection, tax, backup, printing, users/permissions, setup wizard, and license.
 - [x] Added `shared_preferences` dependency for local client settings storage.
-- [x] Added connection settings model/repository/provider/screen and `/settings/connection` route.
-- [x] Added company settings form provider/screen and `/settings/company` route.
-- [x] Added Tax Settings screen and `/settings/tax` route.
-- [x] Added Backup Settings screen and `/settings/backup` route.
-- [x] Added Printing Settings screen/model/repository/provider and `/settings/printing` route.
-- [x] Added Users & Permissions skeleton screen and `/settings/users-permissions` route.
-- [x] Added Setup Wizard skeleton and Start Mode step:
+- [x] Added Setup Wizard Start Mode step:
   - Create New Company
   - Restore Existing Backup
   - Connect To Existing Company
   - Open Demo Company
-- [x] Added `/settings/setup-wizard` route and linked Settings Home.
+- [x] Setup Wizard Start Mode now checks the current license:
+  - Create New Company requires at least one allowed connection mode.
+  - Restore Existing Backup requires `LicenseFeature.backupRestore`.
+  - Connect To Existing Company requires LAN or Hosted feature.
+  - Demo Company checks `LicenseFeature.demoCompany` and remains planned until demo seed is added.
+- [x] Connection Settings profiles now check the current license:
+  - Local requires `LicenseFeature.localMode`.
+  - LAN requires `LicenseFeature.lanMode`.
+  - Hosted requires `LicenseFeature.hostedMode`.
+  - Custom requires at least one connection mode.
 - [x] Added license settings model/repository/provider:
   - `LicenseSettingsModel`
   - `LicenseSettingsRepository`
   - `licenseSettingsProvider`
 - [x] Added License Settings screen:
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/license_settings_screen.dart`
-- [x] Added `/settings/license` route.
-- [x] Linked Settings Home License tile to `/settings/license`.
+- [x] Added `/settings/license` route and linked Settings Home License tile.
+- [x] Added license helper logic:
+  - `LicenseFeature`
+  - `LicenseSettingsModel.canUseApp`
+  - `LicenseSettingsModel.allows(feature)`
+  - `LicenseSettingsModel.denialReason(feature)`
+- [x] Added reusable license gate widget:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/widgets/license_gate.dart`
+- [x] Applied first route gates:
+  - Backup Settings gated by `LicenseFeature.backupRestore`
+  - Payroll route gated by `LicenseFeature.payroll`
+- [x] Added license activation design document:
+  - `docs/LICENSE_ACTIVATION_DESIGN.md`
 
 ### Current Phase B Notes
 
 - The product direction is one codebase with multiple editions controlled by settings and license.
 - License skeleton supports Trial / Solo / Network / Hosted, limits, feature flags, license key, device id, expiry, and local save.
-- Production activation still needs signed license payloads, device fingerprinting, activation server/manual offline activation, renewal/expiry rules, and integration with router/settings gates.
+- License Gate is now available for screens/features and shows a clear License Required screen when blocked.
+- Production activation still needs signed license payloads, device fingerprinting, activation server/manual offline activation, renewal/expiry rules, and backend verification.
 - Solo: Local API + SQLite.
 - Network: LAN API + SQL Server.
 - Hosted: Online API + hosted database.
 - Setup Wizard starts with Start Mode instead of forcing First Admin immediately.
-- New Company path should create company profile, first admin, default accounts, tax, printing, and backup policy.
 - Restore path should restore a company backup first, then login with restored users. Recovery Admin should be an exceptional flow only.
 - Connect Existing path should connect to LAN/Hosted API and login with server-side users. No local first admin creation.
-- Demo path is planned for sample data and training/sales presentation.
-- Connection Settings supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
-- Company Settings supports loading/saving company profile, contact, address, fiscal year, and basic tax defaults through existing backend.
-- Tax Settings has a dedicated screen using the same company settings endpoint for tax behavior and rates.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
 - Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
-- Users & Permissions is a commercial skeleton screen for first admin, default roles, permission groups, users/devices, and required backend endpoints.
-- Setup Wizard links to ready/partial steps: Start Mode, Connection, Company, Tax, Chart of Accounts, Users & Permissions, Backup, Printing, Finish.
-- Coming next: backend backup/users/setup endpoints or license gates.
+- Coming next: backend backup/users/setup endpoints, device fingerprint service, or signed license validation.
 
 ---
 
@@ -210,6 +208,25 @@ F) Banking / Inventory Pro / Payroll
 
 `Started as Skeleton`
 
+### Done
+
+- [x] License Settings skeleton.
+- [x] License model/repository/provider.
+- [x] License gate helpers.
+- [x] Initial gated routes.
+- [x] Start Mode gates.
+- [x] Connection profile gates.
+- [x] License activation design document.
+
+### Pending
+
+- [ ] Device fingerprint service.
+- [ ] Signed license payload verification.
+- [ ] Online activation endpoint.
+- [ ] Offline activation request/code flow.
+- [ ] Admin tool for generating serials and signed licenses.
+- [ ] Installer integration.
+
 ---
 
 ## Phase F — Banking / Inventory Pro / Payroll
@@ -230,6 +247,9 @@ F) Banking / Inventory Pro / Payroll
 - Started Phase B.
 - Added Settings Home, Connection Settings, Company Settings, Tax Settings, Backup Settings, Printing Settings, Users & Permissions skeleton, License Settings skeleton, and Setup Wizard skeleton.
 - Added Setup Wizard Start Mode with Create New Company / Restore Backup / Connect Existing / Demo Company options.
+- Added LicenseFeature, license helper methods, reusable LicenseGate, and initial route gates for Backup/Restore and Payroll.
+- Added gates for Setup Wizard Start Mode options and Connection Settings profiles based on the current license edition.
+- Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: backend backup/users/setup endpoints or license gates.
+- Next focus: backend backup/users/setup endpoints, device fingerprint service, or signed license validation.
