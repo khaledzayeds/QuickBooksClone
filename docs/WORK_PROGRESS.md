@@ -100,14 +100,14 @@ F) Banking / Inventory Pro / Payroll
 
 ### Goal
 
-البرنامج يشتغل عند عميل جديد بدون تدخل يدوي.
+البرنامج يشتغل عند عميل جديد بدون تدخل يدوي، ويدعم نفس الكود لنسخ Solo / Network / Hosted حسب الإعدادات والترخيص.
 
 ### Planned Tasks
 
 - [x] Build Settings home screen.
+- [x] Build Database/Connection Settings screen.
 - [ ] Build Company Settings screen.
 - [ ] Build Tax Settings screen.
-- [ ] Build Database/Connection Settings screen.
 - [ ] Build Backup Settings screen.
 - [ ] Build Printer Settings screen.
 - [ ] Build Users/Permissions screen.
@@ -131,12 +131,25 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added Settings Home screen:
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/settings_home_screen.dart`
 - [x] Wired `/settings` route to `SettingsHomeScreen` instead of `ComingSoonScreen`.
+- [x] Added `shared_preferences` dependency for local client settings storage.
+- [x] Added connection settings model:
+  - `ConnectionSettingsModel`
+  - `ConnectionProfileType`: Local / LAN / Hosted / Custom
+- [x] Added connection settings repository.
+- [x] Added connection settings provider.
+- [x] Added Connection Settings screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/connection_settings_screen.dart`
+- [x] Added `/settings/connection` route.
+- [x] Linked Settings Home Connection tile to `/settings/connection`.
 
 ### Current Phase B Notes
 
-- Settings Home currently reads and displays runtime/company summary.
-- Internal settings tiles still open `ComingSoonScreen` until each sub-screen is implemented.
-- Next priority: Connection Settings screen, then Company Settings screen.
+- The product direction is one codebase with multiple editions controlled by settings and license.
+- Solo: Local API + SQLite.
+- Network: LAN API + SQL Server.
+- Hosted: Online API + hosted database.
+- Connection Settings now supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
+- Next priority: Company Settings screen, then Setup Wizard skeleton.
 
 ---
 
@@ -238,4 +251,9 @@ F) Banking / Inventory Pro / Payroll
 - Added settings models/repository/providers.
 - Added real Settings Home screen.
 - Wired `/settings` to the new Settings Home screen.
-- Next focus: Connection Settings screen and Company Settings screen.
+- Added Connection Settings model/repository/provider/screen.
+- Added `shared_preferences` for persisted client connection settings.
+- Wired `/settings/connection` route.
+- Linked Settings Home to Connection Settings.
+- Confirmed product direction: one app, editions controlled by Settings + License.
+- Next focus: Company Settings screen and Setup Wizard skeleton.
