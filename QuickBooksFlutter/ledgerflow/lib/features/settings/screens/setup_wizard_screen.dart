@@ -15,6 +15,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
   static const _steps = [
     _WizardStepData(
+      title: 'Start Mode',
+      subtitle: 'Choose how this customer will start: create a new company, restore a backup, connect to an existing server, or open a demo company.',
+      icon: Icons.rocket_launch_outlined,
+      route: null,
+      status: 'Ready',
+      kind: _WizardStepKind.startMode,
+    ),
+    _WizardStepData(
       title: 'Connection',
       subtitle: 'Choose Local, LAN, Hosted, or Custom API endpoint.',
       icon: Icons.language_outlined,
@@ -23,7 +31,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     ),
     _WizardStepData(
       title: 'Company Profile',
-      subtitle: 'Set company name, contacts, address, currency, language, and fiscal year.',
+      subtitle: 'Used for New Company flow. Restored or connected companies should load this from existing company data.',
       icon: Icons.business_outlined,
       route: AppRoutes.companySettings,
       status: 'Ready',
@@ -44,7 +52,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     ),
     _WizardStepData(
       title: 'Users & Permissions',
-      subtitle: 'Prepare first admin, default roles, permission groups, users, and device limits.',
+      subtitle: 'New Company creates first admin here. Restore/Connect should use existing users unless Recovery Admin is needed.',
       icon: Icons.admin_panel_settings_outlined,
       route: AppRoutes.usersPermissions,
       status: 'Partial',
@@ -106,7 +114,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     Text('First-run setup', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
                     Text(
-                      'Prepare LedgerFlow for Solo, Network, or Hosted use. Each step can be opened now or completed later from Settings.',
+                      'Prepare LedgerFlow for Solo, Network, or Hosted use. Start by choosing whether the customer needs a new company, restore, existing server, or demo company.',
                       style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 24),
@@ -231,32 +239,35 @@ class _StepDetails extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(step.subtitle, style: theme.textTheme.titleMedium),
-                const SizedBox(height: 16),
-                _StatusBanner(status: step.status),
-                const SizedBox(height: 20),
-                if (step.route != null)
-                  FilledButton.icon(
-                    onPressed: () => context.go(step.route!),
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text('Open ${step.title}'),
-                  )
-                else
-                  OutlinedButton.icon(
-                    onPressed: null,
-                    icon: const Icon(Icons.lock_clock_outlined),
-                    label: const Text('This step will be implemented next'),
-                  ),
-              ],
+        if (step.kind == _WizardStepKind.startMode)
+          _StartModePanel(onNext: onNext)
+        else
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(step.subtitle, style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 16),
+                  _StatusBanner(status: step.status),
+                  const SizedBox(height: 20),
+                  if (step.route != null)
+                    FilledButton.icon(
+                      onPressed: () => context.go(step.route!),
+                      icon: const Icon(Icons.open_in_new),
+                      label: Text('Open ${step.title}'),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.lock_clock_outlined),
+                      label: const Text('This step will be implemented next'),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
         const SizedBox(height: 24),
         Row(
           children: [
@@ -274,6 +285,146 @@ class _StepDetails extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _StartModePanel extends StatelessWidget {
+  const _StartModePanel({required this.onNext});
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('How should this customer start?', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text(
+              'This decision controls the setup path. New Company needs a first admin. Restore and Connect should use existing company users after data is loaded.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 760;
+                final cards = [
+                  _StartModeCard(
+                    icon: Icons.add_business_outlined,
+                    title: 'Create New Company',
+                    subtitle: 'Fresh company file, first admin, default accounts, taxes, printing, and backup policy.',
+                    badge: 'Ready path',
+                    onPressed: onNext,
+                  ),
+                  _StartModeCard(
+                    icon: Icons.restore_outlined,
+                    title: 'Restore Existing Backup',
+                    subtitle: 'Restore a previous company backup, then login using restored users. Recovery Admin only if required.',
+                    badge: 'Needs backend restore',
+                    onPressed: () => context.go(AppRoutes.backupSettings),
+                  ),
+                  _StartModeCard(
+                    icon: Icons.dns_outlined,
+                    title: 'Connect To Existing Company',
+                    subtitle: 'Connect this client to LAN/Hosted API and login with server-side users. No local company creation.',
+                    badge: 'Connection ready',
+                    onPressed: () => context.go(AppRoutes.connectionSettings),
+                  ),
+                  _StartModeCard(
+                    icon: Icons.school_outlined,
+                    title: 'Open Demo Company',
+                    subtitle: 'Use sample data for training, demos, and sales presentation without affecting real accounts.',
+                    badge: 'Planned demo seed',
+                    onPressed: null,
+                  ),
+                ];
+
+                if (!wide) return Column(children: cards.map((card) => Padding(padding: const EdgeInsets.only(bottom: 12), child: card)).toList());
+                return GridView.count(
+                  crossAxisCount: 2,
+                  childAspectRatio: 2.9,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  children: cards,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StartModeCard extends StatelessWidget {
+  const _StartModeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String badge;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final enabled = onPressed != null;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      color: enabled ? null : cs.surfaceContainerHighest,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(backgroundColor: cs.secondaryContainer, child: Icon(icon, color: cs.onSecondaryContainer)),
+                  const Spacer(),
+                  Chip(label: Text(badge), visualDensity: VisualDensity.compact),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              Expanded(
+                child: Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(enabled ? Icons.arrow_forward : Icons.lock_clock_outlined, size: 18),
+                  const SizedBox(width: 6),
+                  Text(enabled ? 'Select' : 'Coming soon'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -308,12 +459,22 @@ class _StatusBanner extends StatelessWidget {
   }
 }
 
+enum _WizardStepKind { normal, startMode }
+
 class _WizardStepData {
-  const _WizardStepData({required this.title, required this.subtitle, required this.icon, required this.route, required this.status});
+  const _WizardStepData({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.route,
+    required this.status,
+    this.kind = _WizardStepKind.normal,
+  });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final String? route;
   final String status;
+  final _WizardStepKind kind;
 }
