@@ -76,7 +76,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   icon: Icons.business_outlined,
                   title: 'Company Profile',
                   subtitle: 'Legal name, contacts, address, fiscal year, and language.',
-                  onTap: () => _openComingSoon(context, 'Company Profile'),
+                  onTap: () => context.go(AppRoutes.companySettings),
                 ),
                 _SettingsTile(
                   icon: Icons.language_outlined,
