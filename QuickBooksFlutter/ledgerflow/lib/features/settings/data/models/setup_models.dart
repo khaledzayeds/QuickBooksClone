@@ -87,3 +87,24 @@ class InitializeCompanyResultModel {
         adminRoleKey: json['adminRoleKey']?.toString() ?? '',
       );
 }
+
+class DefaultAccountsSeedResultModel {
+  const DefaultAccountsSeedResultModel({
+    required this.createdCount,
+    required this.skippedCount,
+    required this.createdCodes,
+    required this.skippedCodes,
+  });
+
+  final int createdCount;
+  final int skippedCount;
+  final List<String> createdCodes;
+  final List<String> skippedCodes;
+
+  factory DefaultAccountsSeedResultModel.fromJson(Map<String, dynamic> json) => DefaultAccountsSeedResultModel(
+        createdCount: json['createdCount'] is num ? (json['createdCount'] as num).toInt() : int.tryParse(json['createdCount']?.toString() ?? '') ?? 0,
+        skippedCount: json['skippedCount'] is num ? (json['skippedCount'] as num).toInt() : int.tryParse(json['skippedCount']?.toString() ?? '') ?? 0,
+        createdCodes: (json['createdCodes'] as List? ?? const []).map((item) => item.toString()).toList(),
+        skippedCodes: (json['skippedCodes'] as List? ?? const []).map((item) => item.toString()).toList(),
+      );
+}
