@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/connection_settings_model.dart';
+import '../data/models/license_settings_model.dart';
 import '../providers/connection_settings_provider.dart';
+import '../providers/license_settings_provider.dart';
 
 class ConnectionSettingsScreen extends ConsumerStatefulWidget {
   const ConnectionSettingsScreen({super.key});
@@ -36,6 +38,8 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(connectionSettingsProvider);
+    final licenseState = ref.watch(licenseSettingsProvider);
+    final license = licenseState.license;
     final notifier = ref.read(connectionSettingsProvider.notifier);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -77,11 +81,11 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
           ),
           const SizedBox(height: 8),
           Text(
-            'Choose where LedgerFlow should connect: local API, LAN server, hosted server, or a custom endpoint.',
+            'Choose where LedgerFlow should connect. Available profiles are controlled by the current license edition: ${license.edition.label}.',
             style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
-          if (state.loading)
+          if (state.loading || licenseState.loading)
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(24),
@@ -95,6 +99,8 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
               ),
             )
           else ...[
+            _LicenseConnectionBanner(license: license),
+            const SizedBox(height: 16),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -108,14 +114,19 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
                       runSpacing: 12,
                       children: ConnectionProfileType.values
                           .map(
-                            (type) => ChoiceChip(
-                              label: Text(type.label),
-                              selected: state.settings.profileType == type,
-                              onSelected: (_) => notifier.setProfileType(type),
-                            ),
+                            (type) {
+                              final enabled = _isProfileAllowed(type, license);
+                              return ChoiceChip(
+                                label: Text(enabled ? type.label : '${type.label} 🔒'),
+                                selected: state.settings.profileType == type,
+                                onSelected: enabled ? (_) => notifier.setProfileType(type) : null,
+                              );
+                            },
                           )
                           .toList(),
                     ),
+                    const SizedBox(height: 12),
+                    _ProfileLockNotice(profileType: state.settings.profileType, license: license),
                     const SizedBox(height: 20),
                     _ProfileFields(
                       profileType: state.settings.profileType,
@@ -176,6 +187,79 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  static bool _isProfileAllowed(ConnectionProfileType type, LicenseSettingsModel license) {
+    return switch (type) {
+      ConnectionProfileType.local => license.allows(LicenseFeature.localMode),
+      ConnectionProfileType.lan => license.allows(LicenseFeature.lanMode),
+      ConnectionProfileType.hosted => license.allows(LicenseFeature.hostedMode),
+      ConnectionProfileType.custom => license.allows(LicenseFeature.localMode) || license.allows(LicenseFeature.lanMode) || license.allows(LicenseFeature.hostedMode),
+    };
+  }
+}
+
+class _LicenseConnectionBanner extends StatelessWidget {
+  const _LicenseConnectionBanner({required this.license});
+  final LicenseSettingsModel license;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final allowed = [
+      if (license.allows(LicenseFeature.localMode)) 'Local',
+      if (license.allows(LicenseFeature.lanMode)) 'LAN',
+      if (license.allows(LicenseFeature.hostedMode)) 'Hosted',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(Icons.verified_user_outlined, color: cs.onSecondaryContainer),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'License: ${license.edition.label} • Allowed connection modes: ${allowed.isEmpty ? 'None' : allowed.join(', ')}',
+              style: TextStyle(color: cs.onSecondaryContainer),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileLockNotice extends StatelessWidget {
+  const _ProfileLockNotice({required this.profileType, required this.license});
+
+  final ConnectionProfileType profileType;
+  final LicenseSettingsModel license;
+
+  @override
+  Widget build(BuildContext context) {
+    final reason = switch (profileType) {
+      ConnectionProfileType.local => license.allows(LicenseFeature.localMode) ? null : license.denialReason(LicenseFeature.localMode),
+      ConnectionProfileType.lan => license.allows(LicenseFeature.lanMode) ? null : license.denialReason(LicenseFeature.lanMode),
+      ConnectionProfileType.hosted => license.allows(LicenseFeature.hostedMode) ? null : license.denialReason(LicenseFeature.hostedMode),
+      ConnectionProfileType.custom => null,
+    };
+
+    if (reason == null) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(Icons.lock_outline, color: cs.onErrorContainer),
+          const SizedBox(width: 12),
+          Expanded(child: Text(reason, style: TextStyle(color: cs.onErrorContainer))),
         ],
       ),
     );
