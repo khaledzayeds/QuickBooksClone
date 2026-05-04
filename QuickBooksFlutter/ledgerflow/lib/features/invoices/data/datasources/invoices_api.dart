@@ -5,6 +5,7 @@ import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../models/invoice_contracts.dart';
+import '../models/sales_preview_contracts.dart';
 
 class InvoicesApi {
   InvoicesApi(this._client);
@@ -41,6 +42,30 @@ class InvoicesApi {
     try {
       final response = await _client.get<Map<String, dynamic>>('/api/invoices/$id');
       return Success(InvoiceModel.fromJson(response.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
+  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewInvoiceDto dto) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/invoices/preview',
+        data: dto.toJson(),
+      );
+      return Success(SalesPostingPreviewModel.fromJson(response.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
+  Future<ApiResult<CustomerSalesActivityModel>> getCustomerActivity(String customerId, {int limit = 5}) async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/invoices/customers/$customerId/activity',
+        queryParameters: {'limit': limit},
+      );
+      return Success(CustomerSalesActivityModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
