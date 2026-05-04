@@ -28,4 +28,16 @@ class SettingsRepository {
       throw parsed;
     }
   }
+
+  Future<CompanySettingsModel> updateCompany(CompanySettingsModel settings) async {
+    try {
+      final response = await _apiClient.put<Map<String, dynamic>>(
+        '/api/settings/company',
+        data: settings.toUpdateJson(),
+      );
+      return CompanySettingsModel.fromJson(response.data ?? const <String, dynamic>{});
+    } on DioException catch (error) {
+      throw parseError(error);
+    }
+  }
 }
