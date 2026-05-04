@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 
+import '../../settings/data/models/printing_settings_model.dart';
+import '../../settings/providers/printing_settings_provider.dart';
 import '../data/models/print_data_contracts.dart';
 import '../providers/printing_provider.dart';
 import '../services/a4_document_pdf_service.dart';
@@ -41,6 +43,7 @@ class DocumentPrintPreviewDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final request = DocumentPrintDataRequest(documentType: documentType, documentId: documentId);
     final dataAsync = ref.watch(documentPrintDataProvider(request));
+    final settingsState = ref.watch(printingSettingsProvider);
 
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
@@ -49,7 +52,7 @@ class DocumentPrintPreviewDialog extends ConsumerWidget {
         child: dataAsync.when(
           loading: () => const _LoadingPrintPreview(),
           error: (error, stackTrace) => _PrintPreviewError(message: error.toString()),
-          data: (data) => _PrintPreviewContent(data: data),
+          data: (data) => _PrintPreviewContent(data: data, settings: settingsState.settings),
         ),
       ),
     );
@@ -113,16 +116,20 @@ class _PrintPreviewError extends StatelessWidget {
 }
 
 class _PrintPreviewContent extends StatelessWidget {
-  const _PrintPreviewContent({required this.data});
+  const _PrintPreviewContent({required this.data, required this.settings});
 
   final DocumentPrintDataModel data;
+  final PrintingSettingsModel settings;
+
+  bool get _a4Enabled => settings.printMode == PrintMode.a4 || settings.printMode == PrintMode.both;
+  bool get _thermalEnabled => settings.printMode == PrintMode.thermal || settings.printMode == PrintMode.both;
 
   Future<void> _printA4(BuildContext context) async {
     try {
       final service = const A4DocumentPdfService();
       await Printing.layoutPdf(
         name: '${data.documentType}-${data.documentNumber}-A4.pdf',
-        onLayout: (_) => service.build(data),
+        onLayout: (_) => service.build(data, settings),
       );
     } catch (error) {
       if (context.mounted) {
@@ -136,7 +143,7 @@ class _PrintPreviewContent extends StatelessWidget {
       final service = const ThermalDocumentPdfService();
       await Printing.layoutPdf(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
-        onLayout: (_) => service.build(data),
+        onLayout: (_) => service.build(data, settings),
       );
     } catch (error) {
       if (context.mounted) {
@@ -166,21 +173,23 @@ class _PrintPreviewContent extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('${data.documentType} ${data.documentNumber}', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-                    Text('${data.customer.displayName} • ${_formatDate(data.documentDate)}', style: theme.textTheme.bodySmall),
+                    Text('${data.customer.displayName} • ${_formatDate(data.documentDate)} • ${settings.printMode.label}', style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
-              OutlinedButton.icon(
-                onPressed: () => _printA4(context),
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-                label: const Text('A4 PDF'),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () => _printThermal(context),
-                icon: const Icon(Icons.receipt_long_outlined),
-                label: const Text('Thermal'),
-              ),
+              if (_a4Enabled)
+                OutlinedButton.icon(
+                  onPressed: () => _printA4(context),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('A4 PDF'),
+                ),
+              if (_a4Enabled && _thermalEnabled) const SizedBox(width: 8),
+              if (_thermalEnabled)
+                OutlinedButton.icon(
+                  onPressed: () => _printThermal(context),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: Text('Thermal ${settings.thermalWidth.label}'),
+                ),
               const SizedBox(width: 8),
               IconButton(
                 tooltip: 'Close',
@@ -206,16 +215,16 @@ class _PrintPreviewContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _Header(data: data),
+                    _Header(data: data, settings: settings),
                     const SizedBox(height: 24),
-                    _PartyAndMeta(data: data),
+                    _PartyAndMeta(data: data, settings: settings),
                     const SizedBox(height: 24),
-                    _LinesTable(data: data),
+                    _LinesTable(data: data, settings: settings),
                     const SizedBox(height: 18),
-                    _Summary(data: data),
-                    if ((data.terms ?? '').isNotEmpty || (data.notes ?? '').isNotEmpty) ...[
+                    _Summary(data: data, settings: settings),
+                    if ((data.terms ?? '').isNotEmpty || (data.notes ?? '').isNotEmpty || (settings.invoiceFooterMessage ?? '').isNotEmpty) ...[
                       const SizedBox(height: 18),
-                      _Notes(data: data),
+                      _Notes(data: data, settings: settings),
                     ],
                     const SizedBox(height: 18),
                     Text('Generated: ${_formatDateTime(data.generatedAt)}', textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
@@ -231,9 +240,10 @@ class _PrintPreviewContent extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.data});
+  const _Header({required this.data, required this.settings});
 
   final DocumentPrintDataModel data;
+  final PrintingSettingsModel settings;
 
   @override
   Widget build(BuildContext context) {
@@ -241,15 +251,25 @@ class _Header extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (settings.showLogo) ...[
+          Container(
+            width: 54,
+            height: 54,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.outlineVariant), borderRadius: BorderRadius.circular(8)),
+            child: const Text('LOGO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+          ),
+          const SizedBox(width: 12),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(data.company.companyName, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
               if ((data.company.legalName ?? '').isNotEmpty) Text(data.company.legalName!),
+              if (settings.showCompanyAddress) Text('${data.company.country} • ${data.company.currency}'),
               if ((data.company.phone ?? '').isNotEmpty) Text('Phone: ${data.company.phone}'),
               if ((data.company.email ?? '').isNotEmpty) Text('Email: ${data.company.email}'),
-              Text('${data.company.country} • ${data.company.currency}'),
             ],
           ),
         ),
@@ -268,9 +288,10 @@ class _Header extends StatelessWidget {
 }
 
 class _PartyAndMeta extends StatelessWidget {
-  const _PartyAndMeta({required this.data});
+  const _PartyAndMeta({required this.data, required this.settings});
 
   final DocumentPrintDataModel data;
+  final PrintingSettingsModel settings;
 
   @override
   Widget build(BuildContext context) {
@@ -284,8 +305,10 @@ class _PartyAndMeta extends StatelessWidget {
               Text(data.customer.displayName, style: const TextStyle(fontWeight: FontWeight.w800)),
               if ((data.customer.phone ?? '').isNotEmpty) Text('Phone: ${data.customer.phone}'),
               if ((data.customer.email ?? '').isNotEmpty) Text('Email: ${data.customer.email}'),
-              Text('Balance: ${_money(data.customer.openBalance, data.customer.currency)}'),
-              Text('Credits: ${_money(data.customer.creditBalance, data.customer.currency)}'),
+              if (settings.showCustomerBalance) ...[
+                Text('Balance: ${_money(data.customer.openBalance, data.customer.currency)}'),
+                Text('Credits: ${_money(data.customer.creditBalance, data.customer.currency)}'),
+              ],
             ],
           ),
         ),
@@ -307,9 +330,10 @@ class _PartyAndMeta extends StatelessWidget {
 }
 
 class _LinesTable extends StatelessWidget {
-  const _LinesTable({required this.data});
+  const _LinesTable({required this.data, required this.settings});
 
   final DocumentPrintDataModel data;
+  final PrintingSettingsModel settings;
 
   @override
   Widget build(BuildContext context) {
@@ -324,12 +348,13 @@ class _LinesTable extends StatelessWidget {
       },
       border: TableBorder.all(color: cs.outlineVariant),
       children: [
-        _tableRow(['#', 'Item', 'Qty', 'Price', 'Total'], header: true),
+        _tableRow(['#', settings.showItemSku ? 'Item / SKU' : 'Item', 'Qty', 'Price', if (settings.showTaxSummary) 'Tax', 'Total'], header: true),
         ...data.lines.map((line) => _tableRow([
               line.lineNumber.toString(),
               line.description.isNotEmpty ? line.description : line.itemName,
               line.quantity.toStringAsFixed(2),
               _money(line.unitPrice, data.company.currency),
+              if (settings.showTaxSummary) _money(line.taxAmount, data.company.currency),
               _money(line.lineTotal, data.company.currency),
             ])),
       ],
@@ -351,18 +376,20 @@ class _LinesTable extends StatelessWidget {
 }
 
 class _Summary extends StatelessWidget {
-  const _Summary({required this.data});
+  const _Summary({required this.data, required this.settings});
 
   final DocumentPrintDataModel data;
+  final PrintingSettingsModel settings;
 
   @override
   Widget build(BuildContext context) {
+    final rows = settings.showTaxSummary ? data.summaryRows : data.summaryRows.where((row) => row.label.toLowerCase() != 'tax').toList();
     return Align(
       alignment: AlignmentDirectional.centerEnd,
       child: SizedBox(
         width: 320,
         child: Column(
-          children: data.summaryRows
+          children: rows
               .map(
                 (row) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
@@ -382,9 +409,10 @@ class _Summary extends StatelessWidget {
 }
 
 class _Notes extends StatelessWidget {
-  const _Notes({required this.data});
+  const _Notes({required this.data, required this.settings});
 
   final DocumentPrintDataModel data;
+  final PrintingSettingsModel settings;
 
   @override
   Widget build(BuildContext context) {
@@ -393,6 +421,7 @@ class _Notes extends StatelessWidget {
       children: [
         if ((data.terms ?? '').isNotEmpty) Text('Terms: ${data.terms}'),
         if ((data.notes ?? '').isNotEmpty) Text(data.notes!),
+        if ((settings.invoiceFooterMessage ?? '').isNotEmpty) Text(settings.invoiceFooterMessage!),
       ],
     );
   }
