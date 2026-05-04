@@ -106,7 +106,7 @@ F) Banking / Inventory Pro / Payroll
 
 - [x] Build Settings home screen.
 - [x] Build Database/Connection Settings screen.
-- [ ] Build Company Settings screen.
+- [x] Build Company Settings screen.
 - [ ] Build Tax Settings screen.
 - [ ] Build Backup Settings screen.
 - [ ] Build Printer Settings screen.
@@ -122,9 +122,11 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added settings models:
   - `RuntimeSettingsModel`
   - `CompanySettingsModel`
+- [x] Expanded `CompanySettingsModel` for update payloads matching backend `PUT /api/settings/company`.
 - [x] Added settings repository reading existing API endpoints:
   - `GET /api/settings/runtime`
   - `GET /api/settings/company`
+  - `PUT /api/settings/company`
 - [x] Added settings providers:
   - `runtimeSettingsProvider`
   - `companySettingsProvider`
@@ -141,6 +143,11 @@ F) Banking / Inventory Pro / Payroll
   - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/connection_settings_screen.dart`
 - [x] Added `/settings/connection` route.
 - [x] Linked Settings Home Connection tile to `/settings/connection`.
+- [x] Added company settings form provider.
+- [x] Added Company Settings screen:
+  - `QuickBooksFlutter/ledgerflow/lib/features/settings/screens/company_settings_screen.dart`
+- [x] Added `/settings/company` route.
+- [x] Linked Settings Home Company Profile tile to `/settings/company`.
 
 ### Current Phase B Notes
 
@@ -149,7 +156,8 @@ F) Banking / Inventory Pro / Payroll
 - Network: LAN API + SQL Server.
 - Hosted: Online API + hosted database.
 - Connection Settings now supports choosing Local / LAN / Hosted / Custom and testing `/api/settings/runtime`.
-- Next priority: Company Settings screen, then Setup Wizard skeleton.
+- Company Settings now supports loading and saving company profile, contact, address, fiscal year, and basic tax defaults through the existing backend.
+- Next priority: Setup Wizard skeleton, then Tax Settings / Backup / Printer settings.
 
 ---
 
@@ -256,4 +264,8 @@ F) Banking / Inventory Pro / Payroll
 - Wired `/settings/connection` route.
 - Linked Settings Home to Connection Settings.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: Company Settings screen and Setup Wizard skeleton.
+- Expanded company settings model and repository for updates.
+- Added Company Settings form provider and screen.
+- Wired `/settings/company` route.
+- Linked Settings Home to Company Settings.
+- Next focus: Setup Wizard skeleton, then Tax Settings / Backup / Printer settings.
