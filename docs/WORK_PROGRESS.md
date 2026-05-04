@@ -78,7 +78,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Status
 
-`UI Skeleton Mostly Complete / Backend Wiring Needed`
+`Mostly Complete / Polish Remaining`
 
 ### Goal
 
@@ -116,6 +116,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add first admin user flow.
 - [x] Wire Flutter Setup Wizard to setup status/init endpoints.
 - [x] Add default accounts seeding flow.
+- [x] Wire Users & Permissions screen to security API.
 
 ### Already Done
 
@@ -151,6 +152,12 @@ F) Banking / Inventory Pro / Payroll
   - `setup_provider.dart`
 - [x] Setup Wizard now calls setup status endpoint and includes a real Create Company + First Admin form.
 - [x] Setup Wizard Default Accounts step now runs default accounts seeding and displays created/skipped account codes.
+- [x] Added Flutter security models/repository/provider:
+  - `security_models.dart`
+  - `security_repository.dart`
+  - `security_provider.dart`
+- [x] Users & Permissions screen now loads users, roles, and permissions from `SecurityController` APIs.
+- [x] Users & Permissions screen supports adding users, adding roles, toggling user active status, replacing user roles, and replacing role permissions for non-system roles.
 - [x] Applied first route gates:
   - Backup Settings gated by `LicenseFeature.backupRestore`
   - Payroll route gated by `LicenseFeature.payroll`
@@ -164,6 +171,7 @@ F) Banking / Inventory Pro / Payroll
 - Backup/Restore is now the first paid feature protected on both Flutter and API layers.
 - Setup Status / Initialize Company is now wired from Flutter to backend.
 - Default accounts seeding now happens automatically during initialize-company and can also be re-run manually from the Setup Wizard.
+- Users & Permissions is now wired to backend security APIs, but password reset/change UI, audit log, device activation limits, and license user-limit enforcement are still future polish.
 - The server private key must be supplied through `Licensing:PrivateKey` or `LEDGERFLOW_LICENSE_PRIVATE_KEY`; do not commit a real private key.
 - A real production public key must be generated and pasted into `LicensePublicKeyConfig` before using the flow commercially.
 - Import Backup endpoint exists but Flutter import file picker is not wired yet.
@@ -285,7 +293,8 @@ F) Banking / Inventory Pro / Payroll
 - Added setup status and initialize company endpoints with first admin creation.
 - Wired Flutter Setup Wizard to setup status/init endpoints with a real first-run form.
 - Added idempotent default accounts seeding and wired it into initialize-company and Setup Wizard.
+- Wired Users & Permissions screen to backend security APIs.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: users/permissions Flutter API wiring, importer/exporter backup polish, installer integration, or Core MVP polish.
+- Next focus: Core MVP polish, importer/exporter backup polish, installer integration, or security polish.
