@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
 
@@ -23,6 +24,16 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.salesReceiptDetails),
         actions: [
+          IconButton(
+            tooltip: 'Print preview',
+            onPressed: () => showDocumentPrintPreviewDialog(
+              context: context,
+              ref: ref,
+              documentType: 'sales-receipt',
+              documentId: id,
+            ),
+            icon: const Icon(Icons.print_outlined),
+          ),
           IconButton(
             tooltip: l10n.salesReceipts,
             onPressed: () => context.go(AppRoutes.salesReceipts),
