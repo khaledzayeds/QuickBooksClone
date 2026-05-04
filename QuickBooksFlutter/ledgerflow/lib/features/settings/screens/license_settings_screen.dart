@@ -55,6 +55,10 @@ class LicenseSettingsScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _ErrorBanner(message: state.errorMessage!),
                 ],
+                if (state.activationMessage != null) ...[
+                  const SizedBox(height: 16),
+                  _SuccessBanner(message: state.activationMessage!),
+                ],
                 const SizedBox(height: 24),
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -64,6 +68,8 @@ class LicenseSettingsScreen extends ConsumerWidget {
                         _EditionCard(state: state, notifier: notifier),
                         const SizedBox(height: 16),
                         _ActivationCard(state: state, notifier: notifier),
+                        const SizedBox(height: 16),
+                        _PackageActivationCard(state: state, notifier: notifier),
                         const SizedBox(height: 16),
                         _DeviceFingerprintCard(notifier: notifier),
                       ],
@@ -179,12 +185,76 @@ class _ActivationCard extends StatelessWidget {
               icon: Icon(Icons.cloud_sync_outlined),
               label: Text('Activate Online'),
             ),
-            const OutlinedButton.icon(
-              onPressed: null,
-              icon: Icon(Icons.offline_bolt_outlined),
-              label: Text('Offline Activation'),
-            ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PackageActivationCard extends StatefulWidget {
+  const _PackageActivationCard({required this.state, required this.notifier});
+  final LicenseSettingsState state;
+  final LicenseSettingsNotifier notifier;
+
+  @override
+  State<_PackageActivationCard> createState() => _PackageActivationCardState();
+}
+
+class _PackageActivationCardState extends State<_PackageActivationCard> {
+  late final TextEditingController _packageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _packageController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _packageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.offline_bolt_outlined,
+      title: 'Signed / Offline License Package',
+      children: [
+        TextFormField(
+          controller: _packageController,
+          minLines: 3,
+          maxLines: 6,
+          decoration: const InputDecoration(
+            labelText: 'License Package',
+            helperText: 'Expected development format: base64url(payloadJson).base64url(signature)',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.code_outlined),
+          ),
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<DeviceFingerprintInfo>(
+          future: DeviceFingerprintService().getOrCreate(),
+          builder: (context, snapshot) {
+            final canApply = snapshot.hasData && !widget.state.saving;
+            return FilledButton.icon(
+              onPressed: canApply
+                  ? () => widget.notifier.applyPackage(
+                        package: _packageController.text,
+                        deviceFingerprint: snapshot.data!.deviceFingerprint,
+                      )
+                  : null,
+              icon: widget.state.saving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.verified_outlined),
+              label: const Text('Apply Package'),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        const _InfoText(
+          text: 'This currently decodes and maps the package, but production cryptographic signature verification is still pending.',
         ),
       ],
     );
@@ -330,7 +400,7 @@ class _ImplementationNoteCard extends StatelessWidget {
                   Text('Implementation note', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Text(
-                    'This is a local skeleton to test editions and feature flags. Production activation still needs signed license payloads, online/offline activation, renewal rules, and backend verification.',
+                    'This is a local skeleton to test editions and feature flags. Production activation still needs real public-key signature verification, online/offline activation endpoints, renewal rules, and backend verification.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -474,6 +544,27 @@ class _ErrorBanner extends StatelessWidget {
           Icon(Icons.error_outline, color: cs.onErrorContainer),
           const SizedBox(width: 12),
           Expanded(child: Text(message, style: TextStyle(color: cs.onErrorContainer))),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuccessBanner extends StatelessWidget {
+  const _SuccessBanner({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_outline, color: cs.onPrimaryContainer),
+          const SizedBox(width: 12),
+          Expanded(child: Text(message, style: TextStyle(color: cs.onPrimaryContainer))),
         ],
       ),
     );
