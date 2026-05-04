@@ -69,7 +69,7 @@ class _ReceiptCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.go('/sales/receipts/${receipt.id}'),
+        onTap: () => context.go(AppRoutes.salesReceiptDetails.replaceFirst(':id', receipt.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
