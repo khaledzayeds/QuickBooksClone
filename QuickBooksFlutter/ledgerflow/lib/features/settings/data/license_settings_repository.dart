@@ -1,6 +1,19 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'license_package_verifier.dart';
 import 'models/license_settings_model.dart';
+
+class ApplyLicensePackageResult {
+  const ApplyLicensePackageResult({
+    required this.success,
+    required this.message,
+    this.license,
+  });
+
+  final bool success;
+  final String message;
+  final LicenseSettingsModel? license;
+}
 
 class LicenseSettingsRepository {
   static const _prefix = 'license.';
@@ -47,6 +60,23 @@ class LicenseSettingsRepository {
       lastValidatedAtIso: DateTime.now().toIso8601String(),
     );
     return save(next);
+  }
+
+  Future<ApplyLicensePackageResult> applyPackage({
+    required String package,
+    required String deviceFingerprint,
+  }) async {
+    final result = LicensePackageVerifier().verifyPackage(
+      package: package,
+      deviceFingerprint: deviceFingerprint,
+    );
+
+    if (!result.success || result.license == null) {
+      return ApplyLicensePackageResult(success: false, message: result.message);
+    }
+
+    final saved = await save(result.license!);
+    return ApplyLicensePackageResult(success: true, message: result.message, license: saved);
   }
 
   Future<LicenseSettingsModel> reset() async {
