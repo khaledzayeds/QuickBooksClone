@@ -105,13 +105,13 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add online activation backend endpoint.
 - [x] Add Flutter online activation repository/provider method.
 - [x] Wire License Settings Activate Online button to provider.
+- [x] Add backend/API license enforcement skeleton.
 - [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
 - [ ] Add first admin user flow.
-- [ ] Add backend/API license enforcement.
 
 ### Already Done
 
@@ -119,41 +119,33 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added `shared_preferences` dependency for local client settings storage.
 - [x] Added `crypto` dependency for license fingerprint hashing.
 - [x] Added `cryptography` dependency for Ed25519 public-key verification in Flutter.
-- [x] Added `DeviceFingerprintService`:
-  - Creates a stable installation id on first run.
-  - Stores it locally.
-  - Generates SHA-256 device fingerprint from installation id + app salt.
-  - Supports rotate-for-testing method for later QA tooling.
-- [x] License Settings now displays Installation ID, Device Fingerprint, Generated At, and Use This Device.
+- [x] Added `DeviceFingerprintService` and License Settings device fingerprint display.
 - [x] Added `OfflineActivationService` and Offline Activation Request UI.
 - [x] Added Ed25519 public-key verification flow in Flutter.
 - [x] Added license admin tools for Ed25519 keypair/package signing.
-- [x] Added backend licensing contracts:
-  - `QuickBooksClone.Core/Licensing/LicenseActivationModels.cs`
-- [x] Added backend Ed25519 signing service:
-  - `QuickBooksClone.Infrastructure/Licensing/Ed25519LicensePackageSigningService.cs`
-- [x] Added backend configuration activation service:
-  - `QuickBooksClone.Infrastructure/Licensing/ConfigurationLicenseActivationService.cs`
-- [x] Added backend API endpoint:
-  - `POST /api/licenses/activate`
-  - `QuickBooksClone.Api/Controllers/LicensesController.cs`
-- [x] Added API contracts:
-  - `QuickBooksClone.Api/Contracts/Licensing/LicenseActivationContracts.cs`
-- [x] Registered licensing services in `QuickBooksClone.Api/Program.cs`.
-- [x] Added sample licensing config in `QuickBooksClone.Api/appsettings.json` without a real private key.
-- [x] Added `BouncyCastle.Cryptography` for backend Ed25519 signing.
-- [x] Added Flutter online activation repository/provider methods.
-- [x] Wired visible Activate Online button in `LicenseSettingsScreen`.
+- [x] Added backend licensing contracts, Ed25519 signing service, configuration activation service, and `POST /api/licenses/activate`.
+- [x] Added Flutter online activation repository/provider methods and wired visible Activate Online button.
+- [x] Added backend license enforcement skeleton:
+  - `QuickBooksClone.Api/Security/RequireLicenseFeatureAttribute.cs`
+  - `QuickBooksClone.Core/Licensing/ILicenseFeatureAccessService.cs`
+  - `QuickBooksClone.Infrastructure/Licensing/ConfigurationLicenseFeatureAccessService.cs`
+  - `QuickBooksClone.Api/Middleware/LicenseFeatureMiddleware.cs`
+  - Registered `ILicenseFeatureAccessService` and `LicenseFeatureMiddleware` in `Program.cs`.
+  - Added `GET /api/licenses/status`.
+  - Added sample `Licensing:CurrentLicense` config in `appsettings.json`.
+- [x] Applied first route gates:
+  - Backup Settings gated by `LicenseFeature.backupRestore`
+  - Payroll route gated by `LicenseFeature.payroll`
 
 ### Current Phase B Notes
 
 - The product direction is one codebase with multiple editions controlled by settings and license.
-- License skeleton supports Trial / Solo / Network / Hosted, limits, feature flags, license key, device id, expiry, and local save.
 - Offline flow is end-to-end conceptually complete: request code → signed package → public-key verification → local save.
-- Online backend now exposes `POST /api/licenses/activate` and signs packages using the server-side private key.
-- The visible Flutter Activate Online button now calls the backend, verifies the returned signed package, and saves it locally.
+- Online backend exposes `POST /api/licenses/activate` and signs packages using the server-side private key.
+- The visible Flutter Activate Online button calls the backend, verifies the returned signed package, and saves it locally.
+- Backend license enforcement now exists as a reusable skeleton using `[RequireLicenseFeature("featureName")]` and `Licensing:CurrentLicense`.
+- Existing backup action endpoints are not implemented yet, so license attributes must be added to paid endpoints as those endpoints are created.
 - The server private key must be supplied through `Licensing:PrivateKey` or `LEDGERFLOW_LICENSE_PRIVATE_KEY`; do not commit a real private key.
-- Backend/API license enforcement is still pending; current gates are mainly Flutter-side.
 - A real production public key must be generated and pasted into `LicensePublicKeyConfig` before using the flow commercially.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
 
@@ -221,11 +213,12 @@ F) Banking / Inventory Pro / Payroll
 - [x] Ed25519 admin keypair/package signing tools.
 - [x] Online activation backend endpoint.
 - [x] Visible Flutter online activation action.
+- [x] Backend/API license enforcement skeleton.
 - [x] License activation design document.
 
 ### Pending
 
-- [ ] Backend/API license enforcement.
+- [ ] Apply backend license attributes to paid endpoints when backup/payroll/advanced inventory APIs exist.
 - [ ] Production admin panel for generating serials and signed licenses.
 - [ ] Installer integration.
 
@@ -255,7 +248,8 @@ F) Banking / Inventory Pro / Payroll
 - Added Offline Activation Request service and UI so the customer can generate a request code from the target device.
 - Added Ed25519 public-key verification in Flutter and Ed25519 signing tools for offline license packages.
 - Added online activation backend endpoint, Flutter repository/provider method, and visible Activate Online action.
+- Added backend/API license enforcement skeleton and server license status endpoint.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: backend/API license enforcement, backup/setup endpoints, or installer integration.
+- Next focus: backup/setup endpoints, users/permissions backend, installer integration, or Core MVP polish.
