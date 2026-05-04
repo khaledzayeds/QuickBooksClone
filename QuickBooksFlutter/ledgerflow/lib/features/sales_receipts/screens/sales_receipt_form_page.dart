@@ -12,6 +12,13 @@ import '../../accounts/providers/accounts_provider.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
+import '../../transactions/widgets/transaction_action_bar.dart';
+import '../../transactions/widgets/transaction_context_side_panel.dart';
+import '../../transactions/widgets/transaction_header_panel.dart';
+import '../../transactions/widgets/transaction_keyboard_shortcuts.dart';
+import '../../transactions/widgets/transaction_models.dart';
+import '../../transactions/widgets/transaction_party_selector.dart';
+import '../../transactions/widgets/transaction_totals_footer.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
 
@@ -19,21 +26,41 @@ class SalesReceiptFormPage extends ConsumerStatefulWidget {
   const SalesReceiptFormPage({super.key});
 
   @override
-  ConsumerState<SalesReceiptFormPage> createState() =>
-      _SalesReceiptFormPageState();
+  ConsumerState<SalesReceiptFormPage> createState() => _SalesReceiptFormPageState();
 }
 
 class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   CustomerModel? _selectedCustomer;
+  AccountModel? _selectedDepositAccount;
   String? _depositAccountId;
   DateTime _receiptDate = DateTime.now();
   String _paymentMethod = 'Cash';
   bool _saving = false;
+  bool _sidePanelExpanded = true;
+
+  final _numberCtrl = TextEditingController(text: 'AUTO');
+  final _dateCtrl = TextEditingController();
+  final _referenceCtrl = TextEditingController();
+  final _customerCtrl = TextEditingController();
+  final _depositAccountCtrl = TextEditingController();
+  final _paymentMethodCtrl = TextEditingController(text: 'Cash');
 
   final List<TransactionLineEntry> _lines = [TransactionLineEntry()];
 
   @override
+  void initState() {
+    super.initState();
+    _syncDateController();
+  }
+
+  @override
   void dispose() {
+    _numberCtrl.dispose();
+    _dateCtrl.dispose();
+    _referenceCtrl.dispose();
+    _customerCtrl.dispose();
+    _depositAccountCtrl.dispose();
+    _paymentMethodCtrl.dispose();
     for (final line in _lines) {
       line.dispose();
     }
@@ -41,6 +68,18 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   }
 
   double get _subtotal => _lines.fold(0, (sum, line) => sum + line.amount);
+
+  TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
+        subtotal: _subtotal,
+        total: _subtotal,
+        paid: _subtotal,
+        balanceDue: 0,
+        currency: _selectedCustomer?.currency ?? 'EGP',
+      );
+
+  void _syncDateController() {
+    _dateCtrl.text = _formatDate(_receiptDate);
+  }
 
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
@@ -54,9 +93,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       return;
     }
 
-    final validLines = _lines
-        .where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0)
-        .toList();
+    final validLines = _lines.where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0).toList();
     if (validLines.isEmpty) {
       _showError(l10n.minOneQty);
       return;
@@ -71,9 +108,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
           .map(
             (line) => CreateSalesReceiptLineDto(
               itemId: line.itemId!,
-              description: line.descCtrl.text.trim().isEmpty
-                  ? line.itemName
-                  : line.descCtrl.text.trim(),
+              description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
               quantity: line.qty,
               unitPrice: line.rate,
             ),
@@ -87,9 +122,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       result.when(
         success: (_) {
           ref.read(salesReceiptsStateProvider.notifier).refresh();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.salesReceiptCreatedSuccess)),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.salesReceiptCreatedSuccess)));
           if (context.canPop()) {
             context.pop();
           } else {
@@ -112,274 +145,337 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     );
   }
 
+  void _showInfo(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _pickReceiptDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _receiptDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked == null) return;
+    setState(() {
+      _receiptDate = picked;
+      _syncDateController();
+    });
+  }
+
+  Future<void> _selectCustomer() async {
+    final customersAsync = ref.read(customersProvider);
+    final customers = customersAsync.valueOrNull?.where((customer) => customer.isActive).toList() ?? const <CustomerModel>[];
+    final selected = await showDialog<CustomerModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Customer'),
+        content: SizedBox(
+          width: 520,
+          child: customers.isEmpty
+              ? const Text('No active customers loaded yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: customers.length,
+                  itemBuilder: (context, index) {
+                    final customer = customers[index];
+                    return ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(customer.displayName),
+                      subtitle: Text('Balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)}'),
+                      onTap: () => Navigator.of(context).pop(customer),
+                    );
+                  },
+                ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel'))],
+      ),
+    );
+
+    if (selected == null) return;
+    setState(() {
+      _selectedCustomer = selected;
+      _customerCtrl.text = selected.displayName;
+    });
+  }
+
+  Future<void> _selectDepositAccount() async {
+    final accountsAsync = ref.read(accountsProvider);
+    final accounts = accountsAsync.valueOrNull
+            ?.where((account) => account.isActive && (account.accountType == AccountType.bank || account.accountType == AccountType.otherCurrentAsset))
+            .toList() ??
+        const <AccountModel>[];
+
+    final selected = await showDialog<AccountModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Deposit Account'),
+        content: SizedBox(
+          width: 520,
+          child: accounts.isEmpty
+              ? const Text('No active bank/current asset accounts loaded yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: accounts.length,
+                  itemBuilder: (context, index) {
+                    final account = accounts[index];
+                    return ListTile(
+                      leading: const Icon(Icons.account_balance_outlined),
+                      title: Text('${account.code} - ${account.name}'),
+                      subtitle: Text(account.accountType.name),
+                      onTap: () => Navigator.of(context).pop(account),
+                    );
+                  },
+                ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel'))],
+      ),
+    );
+
+    if (selected == null) return;
+    setState(() {
+      _selectedDepositAccount = selected;
+      _depositAccountId = selected.id;
+      _depositAccountCtrl.text = '${selected.code} - ${selected.name}';
+    });
+  }
+
+  void _clearCustomer() {
+    setState(() {
+      _selectedCustomer = null;
+      _customerCtrl.clear();
+    });
+  }
+
+  void _clearDepositAccount() {
+    setState(() {
+      _selectedDepositAccount = null;
+      _depositAccountId = null;
+      _depositAccountCtrl.clear();
+    });
+  }
+
+  void _addLine() {
+    setState(() => _lines.add(TransactionLineEntry()));
+  }
+
+  void _clearLines() {
+    if (_lines.length == 1 && _lines.first.itemId == null) return;
+    setState(() {
+      for (final line in _lines) {
+        line.dispose();
+      }
+      _lines
+        ..clear()
+        ..add(TransactionLineEntry());
+    });
+  }
+
+  void _cancel() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/sales/receipts');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${l10n.newSalesReceipt} | ${l10n.paidNowSale}'),
-        actions: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 12),
-            child: FilledButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save),
-              label: Text(_saving ? l10n.saving : l10n.save),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return TransactionKeyboardShortcuts(
+      onAddLine: _addLine,
+      onFocusBarcode: () => _showInfo('F4 barcode focus will be connected to the new grid focus node.'),
+      onPreviousQuantity: () => _showInfo('F5 previous quantity jump will be wired when editable transaction grid replaces the legacy table.'),
+      onLookup: () => _showInfo('F7 item lookup is scheduled for the transaction grid.'),
+      onToggleSidePanel: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
+      onSave: _saving ? null : _save,
+      onPrint: () => _showInfo('Print preview will be connected to the print service.'),
+      onEscape: _cancel,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Sales Receipt — Full Accounting Mode'),
+          actions: [
+            IconButton(onPressed: _pickReceiptDate, icon: const Icon(Icons.calendar_today_outlined), tooltip: 'Receipt date'),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _HeaderCard(
-              selectedCustomer: _selectedCustomer,
-              onCustomerChanged: (customer) =>
-                  setState(() => _selectedCustomer = customer),
-              receiptDate: _receiptDate,
-              onDateChanged: (date) => setState(() => _receiptDate = date),
-              depositAccountId: _depositAccountId,
-              onDepositAccountChanged: (id) =>
-                  setState(() => _depositAccountId = id),
-              paymentMethod: _paymentMethod,
-              onPaymentMethodChanged: (method) =>
-                  setState(() => _paymentMethod = method),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              l10n.items,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cs.outlineVariant),
-              ),
-              clipBehavior: Clip.antiAlias,
+            Expanded(
               child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: TransactionLineTable(
-                  lines: _lines,
-                  priceMode: TransactionLinePriceMode.sales,
-                  onChanged: () => setState(() {}),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TransactionHeaderPanel(
+                      kind: TransactionScreenKind.salesReceipt,
+                      status: TransactionDocumentStatus.draft,
+                      numberController: _numberCtrl,
+                      dateController: _dateCtrl,
+                      referenceController: _referenceCtrl,
+                    ),
+                    const SizedBox(height: 12),
+                    TransactionPartySelector(
+                      partyType: TransactionPartyType.customer,
+                      label: l10n.customer,
+                      controller: _customerCtrl,
+                      selectedDisplayName: _selectedCustomer?.displayName,
+                      balanceText: _selectedCustomer == null ? null : 'Balance: ${_selectedCustomer!.balance.toStringAsFixed(2)} ${_selectedCustomer!.currency}',
+                      creditText: _selectedCustomer == null ? null : 'Credits: ${_selectedCustomer!.creditBalance.toStringAsFixed(2)} ${_selectedCustomer!.currency}',
+                      onSearch: _selectCustomer,
+                      onClear: _clearCustomer,
+                    ),
+                    const SizedBox(height: 12),
+                    _PaymentPanel(
+                      depositAccountController: _depositAccountCtrl,
+                      selectedDepositAccount: _selectedDepositAccount,
+                      paymentMethod: _paymentMethod,
+                      onSelectDepositAccount: _selectDepositAccount,
+                      onClearDepositAccount: _clearDepositAccount,
+                      onPaymentMethodChanged: (value) {
+                        setState(() {
+                          _paymentMethod = value;
+                          _paymentMethodCtrl.text = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Text(l10n.items, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                        const SizedBox(width: 8),
+                        Chip(label: Text('${_lines.length} lines')),
+                        const Spacer(),
+                        TextButton.icon(onPressed: _addLine, icon: const Icon(Icons.add), label: const Text('Add line')),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: TransactionLineTable(
+                          lines: _lines,
+                          priceMode: TransactionLinePriceMode.sales,
+                          onChanged: () => setState(() {}),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TransactionTotalsFooter(totals: _totals),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: _TotalsCard(subtotal: _subtotal),
+            TransactionContextSidePanel(
+              expanded: _sidePanelExpanded,
+              onToggle: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
+              title: _selectedCustomer?.displayName ?? 'Customer context',
+              subtitle: _selectedCustomer == null ? 'Select a customer to show balances and recent activity.' : 'Sales receipt customer snapshot',
+              warning: _selectedCustomer == null ? 'No customer selected yet.' : null,
+              notes: 'F8 toggles this panel. Sales receipt creates a paid-now sale and linked payment after posting.',
+              metrics: _selectedCustomer == null
+                  ? const []
+                  : [
+                      TransactionContextMetric(label: 'Open balance', value: '${_selectedCustomer!.balance.toStringAsFixed(2)} ${_selectedCustomer!.currency}', icon: Icons.receipt_long_outlined),
+                      TransactionContextMetric(label: 'Credits', value: '${_selectedCustomer!.creditBalance.toStringAsFixed(2)} ${_selectedCustomer!.currency}', icon: Icons.credit_score_outlined),
+                      TransactionContextMetric(label: 'Receipt total', value: '${_totals.total.toStringAsFixed(2)} ${_totals.currency}', icon: Icons.point_of_sale_outlined),
+                    ],
+              activities: const [],
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          border: Border(top: BorderSide(color: cs.outlineVariant)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            OutlinedButton(
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/sales/receipts');
-                }
-              },
-              child: Text(l10n.cancel),
-            ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.point_of_sale),
-              label: Text(l10n.createSalesReceipt),
-            ),
-          ],
+        bottomNavigationBar: TransactionActionBar(
+          status: TransactionDocumentStatus.draft,
+          loading: _saving,
+          onSaveDraft: null,
+          onSave: _save,
+          onPost: _save,
+          onClear: _clearLines,
+          onVoid: null,
+          onPrintAction: (action) => _showInfo('${action.name} is scheduled for print service wiring.'),
         ),
       ),
     );
   }
 }
 
-class _HeaderCard extends ConsumerWidget {
-  const _HeaderCard({
-    required this.selectedCustomer,
-    required this.onCustomerChanged,
-    required this.receiptDate,
-    required this.onDateChanged,
-    required this.depositAccountId,
-    required this.onDepositAccountChanged,
+class _PaymentPanel extends StatelessWidget {
+  const _PaymentPanel({
+    required this.depositAccountController,
+    required this.selectedDepositAccount,
     required this.paymentMethod,
+    required this.onSelectDepositAccount,
+    required this.onClearDepositAccount,
     required this.onPaymentMethodChanged,
   });
 
-  final CustomerModel? selectedCustomer;
-  final ValueChanged<CustomerModel?> onCustomerChanged;
-  final DateTime receiptDate;
-  final ValueChanged<DateTime> onDateChanged;
-  final String? depositAccountId;
-  final ValueChanged<String?> onDepositAccountChanged;
+  final TextEditingController depositAccountController;
+  final AccountModel? selectedDepositAccount;
   final String paymentMethod;
+  final VoidCallback onSelectDepositAccount;
+  final VoidCallback onClearDepositAccount;
   final ValueChanged<String> onPaymentMethodChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final customersAsync = ref.watch(customersProvider);
-    final accountsAsync = ref.watch(accountsProvider);
-
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(14),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: customersAsync.when(
-                    loading: () => const LinearProgressIndicator(),
-                    error: (e, _) => Text(e.toString()),
-                    data: (customers) {
-                      final activeCustomers = customers
-                          .where((c) => c.isActive)
-                          .toList();
-                      return DropdownButtonFormField<CustomerModel>(
-                        initialValue: selectedCustomer,
-                        decoration: InputDecoration(
-                          labelText: l10n.customer,
-                          hintText: l10n.selectCustomer,
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                        items: activeCustomers
-                            .map(
-                              (customer) => DropdownMenuItem(
-                                value: customer,
-                                child: Text(customer.displayName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: onCustomerChanged,
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _DatePickerField(
-                    label: l10n.receiptDate,
-                    value: receiptDate,
-                    onChanged: onDateChanged,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: accountsAsync.when(
-                    loading: () => const LinearProgressIndicator(),
-                    error: (e, _) => Text(e.toString()),
-                    data: (accounts) {
-                      final depositAccounts = accounts
-                          .where(
-                            (account) =>
-                                account.isActive &&
-                                (account.accountType == AccountType.bank ||
-                                    account.accountType ==
-                                        AccountType.otherCurrentAsset),
-                          )
-                          .toList();
-                      return DropdownButtonFormField<String>(
-                        initialValue: depositAccountId,
-                        decoration: InputDecoration(
-                          labelText: l10n.depositAccount,
-                          hintText: l10n.depositAccountHint,
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.account_balance),
-                        ),
-                        items: depositAccounts
-                            .map(
-                              (account) => DropdownMenuItem(
-                                value: account.id,
-                                child: Text(
-                                  '${account.code} - ${account.name}',
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: onDepositAccountChanged,
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: paymentMethod,
-                    decoration: InputDecoration(
-                      labelText: l10n.paymentMethod,
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.payments_outlined),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                      DropdownMenuItem(value: 'Check', child: Text('Check')),
-                      DropdownMenuItem(
-                        value: 'BankTransfer',
-                        child: Text('Bank Transfer'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'CreditCard',
-                        child: Text('Credit Card'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) onPaymentMethodChanged(value);
-                    },
-                  ),
-                ),
-              ],
-            ),
+            Row(children: [Icon(Icons.payments_outlined, color: cs.primary), const SizedBox(width: 8), const Expanded(child: Text('Payment details', style: TextStyle(fontWeight: FontWeight.w900)))]),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.info_outline, size: 18, color: cs.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.paidNowSale,
-                    style: TextStyle(color: cs.onSurfaceVariant),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 760;
+                final deposit = TextField(
+                  controller: depositAccountController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: 'Deposit account',
+                    hintText: 'Select bank or current asset account',
+                    prefixIcon: const Icon(Icons.account_balance_outlined),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (selectedDepositAccount != null) IconButton(onPressed: onClearDepositAccount, icon: const Icon(Icons.clear), tooltip: 'Clear'),
+                        IconButton(onPressed: onSelectDepositAccount, icon: const Icon(Icons.search), tooltip: 'Select'),
+                      ],
+                    ),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
                   ),
-                ),
-              ],
+                  onTap: onSelectDepositAccount,
+                );
+                final method = DropdownButtonFormField<String>(
+                  initialValue: paymentMethod,
+                  decoration: const InputDecoration(labelText: 'Payment method', border: OutlineInputBorder(), prefixIcon: Icon(Icons.credit_card_outlined), isDense: true),
+                  items: const [
+                    DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                    DropdownMenuItem(value: 'Check', child: Text('Check')),
+                    DropdownMenuItem(value: 'BankTransfer', child: Text('Bank Transfer')),
+                    DropdownMenuItem(value: 'CreditCard', child: Text('Credit Card')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) onPaymentMethodChanged(value);
+                  },
+                );
+
+                if (!wide) return Column(children: [deposit, const SizedBox(height: 12), method]);
+                return Row(children: [Expanded(child: deposit), const SizedBox(width: 12), Expanded(child: method)]);
+              },
             ),
           ],
         ),
@@ -388,99 +484,4 @@ class _HeaderCard extends ConsumerWidget {
   }
 }
 
-class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          prefixIcon: const Icon(Icons.calendar_today_outlined),
-        ),
-        child: Text('${value.day}/${value.month}/${value.year}'),
-      ),
-    );
-  }
-}
-
-class _TotalsCard extends StatelessWidget {
-  const _TotalsCard({required this.subtotal});
-  final double subtotal;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 320,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _AmountRow(label: l10n.subtotal, amount: subtotal),
-              const SizedBox(height: 8),
-              _AmountRow(label: l10n.tax, amount: 0),
-              const Divider(height: 24),
-              _AmountRow(label: l10n.total, amount: subtotal, isTotal: true),
-              const SizedBox(height: 8),
-              Text(l10n.salesReceipt, style: theme.textTheme.bodySmall),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AmountRow extends StatelessWidget {
-  const _AmountRow({
-    required this.label,
-    required this.amount,
-    this.isTotal = false,
-  });
-
-  final String label;
-  final double amount;
-  final bool isTotal;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = isTotal
-        ? Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: style),
-        Text(amount.toStringAsFixed(2), style: style),
-      ],
-    );
-  }
-}
+String _formatDate(DateTime date) => '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
