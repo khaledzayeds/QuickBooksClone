@@ -44,95 +44,7 @@ F) Banking / Inventory Pro / Payroll
 15. Transaction screens must be keyboard-first and scanner-friendly, not mouse-only forms.
 16. Transaction screens must have preview, print, save, post, and clear status behavior planned from the first UI pass.
 17. Transaction screens should support a collapsible context side panel for customer/vendor/item/account history and balances.
-
----
-
-## Phase A — Stability / Build Lock
-
-### Status
-
-`In Progress`
-
-### Goal
-
-تثبيت المشروع قبل إضافة موديولات كبيرة.
-
-### Tasks
-
-- [ ] Run `dotnet build` locally and capture output.
-- [ ] Run `flutter analyze` locally and capture output.
-- [ ] Fix backend compile errors.
-- [ ] Fix Flutter analyzer blocking errors.
-- [ ] Review and remove old temporary files.
-- [x] Replace known hardcoded transaction routes with `AppRoutes` in return/credit screens.
-- [x] Add shared `ComingSoonScreen` instead of inline placeholder builder.
-- [x] Review main route consistency for core list screens.
-- [x] Create local verification checklist.
-- [ ] Confirm all main routes open.
-- [ ] Confirm auth redirect/login flow works.
-- [ ] Confirm API starts and migrations apply.
-
-### Known Findings / Gaps
-
-- `purchase_bill_list_screen.dart` has a TODO inside `onTap` and no purchase bill details route yet. This belongs to Phase C Core MVP Polish.
-- GitHub code search did not return obvious hits for `*_fixed.dart`, `router_fixed.dart`, `router_full_fixed.dart`, or old `Errors.txt`, but local repository scan is still recommended after pulling.
-
----
-
-## Phase B — Settings + Setup Wizard + Connection
-
-### Status
-
-`Mostly Complete / Polish Remaining`
-
-### Current Phase B Notes
-
-- The product direction is one codebase with multiple editions controlled by settings and license.
-- Backup/Restore is now the first paid feature protected on both Flutter and API layers.
-- Users & Permissions is wired to backend security APIs, but password reset/change UI, audit log, device activation limits, and license user-limit enforcement are still future polish.
-- Import Backup endpoint exists but Flutter import file picker is not wired yet.
-
----
-
-## Post Phase B Polish Backlog
-
-### Status
-
-`Scheduled / Not Blocking Core MVP Start`
-
-### Planned Order
-
-1. **Import Backup File Picker** — during Phase D backup polish.
-2. **Password Reset / Change UI** — after auth/login flow is verified.
-3. **Audit Log Display** — after transaction/posting screens are stable.
-4. **License User-Limit Enforcement** — before selling licensed builds.
-5. **Device Activation Limits** — before selling Network/Hosted or multi-device editions.
-
----
-
-## Localization Cleanup Backlog
-
-### Status
-
-`Scheduled / After UI Stabilization`
-
-### Policy
-
-- Continue fast commercial UI polish now, even if some visible strings are temporarily hardcoded.
-- After each module becomes functionally stable, move visible user-facing strings into the existing localization files.
-- Arabic/English switching from settings remains a product requirement.
-- Avoid mixing Arabic and English inside the same polished screen unless intentionally localized.
-
-### Screens needing later localization pass
-
-- [ ] Settings / Setup Wizard screens.
-- [ ] Backup Settings screen.
-- [ ] Users & Permissions screen.
-- [ ] Chart of Accounts and Account Form screens.
-- [ ] Items screens: List, Form, Details, Card widgets.
-- [ ] Customers screens: List, Form, Details, Card widgets.
-- [ ] Vendors screens: List, Form, Details, Card widgets.
-- [ ] Future transaction screens.
+18. Build full QuickBooks-style transaction screens first. POS/cart/mobile fast screens come later as separate UIs over the same backend and reusable transaction components.
 
 ---
 
@@ -141,6 +53,25 @@ F) Banking / Inventory Pro / Payroll
 ### Status
 
 `Required before invoice/purchase screen polish`
+
+### Product Decision
+
+Start with full accounting transaction screens first, not cart-only screens. The first sales and purchase screens should be QuickBooks-style full screens with all important accounting controls visible: customer/vendor, document number, status, dates, terms, line grid, tax, discounts, totals, side context panel, preview, print, save, and post.
+
+Fast POS/cart/mobile screens are still planned, but they should be built later as separate modes using the same backend and reusable transaction components. They must not replace the full accounting screen.
+
+### Why
+
+- Full screens are required for commercial accounting accuracy.
+- They support invoices, terms, due dates, tax, credit, print templates, posting review, and audit behavior.
+- POS/cart/mobile screens are excellent for speed, but not enough for all invoice/accounting cases.
+- Building reusable transaction components now lets us reuse the same logic later in POS/cart/mobile without duplicating posting rules.
+
+### Future Sales UI Modes
+
+- `Accounting Invoice Mode` — full QuickBooks-style invoice/sales receipt screen.
+- `Fast Cashier/POS Mode` — cart-style scanner-first screen.
+- `Mobile Sales Mode` — simplified cart/order screen for mobile or sales reps.
 
 ### Goal
 
@@ -226,98 +157,6 @@ F) Banking / Inventory Pro / Payroll
   - Row number gutter on the left to select/edit/delete lines quickly.
   - Ctrl+Up / Ctrl+Down to jump between transaction lines.
 
-### Grid Requirements
-
-- Columns should be configurable per transaction type.
-- Sales screens usually need:
-  - Item / Barcode / Description
-  - Qty
-  - Unit
-  - Rate
-  - Discount
-  - Tax
-  - Amount
-  - Stock indicator
-- Purchase screens usually need:
-  - Item / Account
-  - Description
-  - Qty
-  - Cost
-  - Tax
-  - Amount
-  - Received / billed state where applicable
-- The grid should show row-level warnings:
-  - Missing item account links.
-  - Negative stock warning.
-  - Price below cost warning.
-  - Tax missing warning.
-  - Inactive customer/vendor/item warning.
-
-### Search / Lookup Requirements
-
-- Search must work by:
-  - Barcode.
-  - SKU.
-  - Item name.
-  - Item code where available.
-  - Customer/vendor display name.
-  - Phone/email where applicable.
-- Lookup must support keyboard selection with arrows and Enter.
-- If one exact match exists, Enter should select it without opening a heavy dialog.
-- If multiple matches exist, show lightweight popup under the cell.
-- If no match exists, offer:
-  - Create new item/customer/vendor if user has permission.
-  - Continue as description-only line where allowed.
-
-### Side Panel Standard
-
-- Collapsible with arrow.
-- Should remember last state per user/device.
-- Invoice/Sales Receipt panel:
-  - Customer balance.
-  - Credits available.
-  - Last invoices/receipts/payments.
-  - Credit limit later.
-  - Customer notes later.
-- Purchase/Bill panel:
-  - Vendor payable balance.
-  - Vendor credits.
-  - Last POs/bills/payments.
-  - Open POs eligible for receiving/billing.
-- Inventory panel:
-  - Current stock.
-  - Average cost or last cost later.
-  - Last movements.
-  - Reorder warnings later.
-
-### Printing / Preview Standard
-
-- Every transaction screen must plan for:
-  - Preview A4.
-  - Print A4.
-  - Print thermal receipt where applicable.
-  - Template choice.
-  - Company logo/header/footer.
-  - Tax summary.
-  - QR code where needed.
-  - Payment status.
-  - Copy labels: Original / Duplicate / Draft / Void.
-- Printing should be available before/after posting according to settings:
-  - Draft print can watermark Draft.
-  - Posted print is official.
-  - Voided print must show Void.
-
-### Save/Post Standard
-
-- Save Draft: keeps editable and should not post to GL/inventory.
-- Save: stores a non-posted business document where appropriate.
-- Post: creates accounting/inventory effects.
-- Posted documents cannot be freely edited; they need Void / Reversal / Adjustment logic.
-- UI must show what will happen before posting:
-  - GL impact preview later.
-  - Inventory impact preview later.
-  - Customer/vendor balance impact.
-
 ### Implementation Direction
 
 - Build reusable transaction widgets before polishing every screen separately:
@@ -365,126 +204,15 @@ F) Banking / Inventory Pro / Payroll
 - [ ] Journal Entries
 - [ ] Reports
 
-### Chart of Accounts Polish Done
-
-- [x] Fixed Flutter account type query filtering bug in `AccountsRemoteDatasource`.
-- [x] Updated backend active toggle endpoint to return the updated `AccountDto` instead of `204 NoContent`, matching Flutter expectations.
-- [x] Polished Chart of Accounts screen and Account Form screen.
-
-### Items Work Done So Far
-
-- [x] Fixed Flutter items datasource item type query bug.
-- [x] Updated item active toggle API to return `ItemDto` instead of `204 NoContent`.
-- [x] Added backend QuickBooks-style validation for Inventory / Non-inventory / Service / Bundle account links.
-- [x] Added item type account selectors in Flutter Item Form.
-- [x] Added default account selection helpers in Item Form.
-- [x] Added opening quantity warning and validation.
-- [x] Added commercial item type labels and helpers for required posting accounts, gross margin, and inventory value.
-- [x] Polished `ItemCard` with type/SKU/status badges, sales/cost/margin/stock/value metrics, and missing-account warnings.
-- [x] Polished `ItemListScreen` into an Inventory Center style screen.
-- [x] Polished `ItemDetailsScreen` with metrics, posting accounts, quick actions, and future activity placeholder.
-
-### Customers Polish Done
-
-- [x] Updated backend customer active toggle endpoint to return the updated `CustomerDto` instead of `204 NoContent`, matching Flutter expectations.
-- [x] Hardened `CustomerModel` parsing and added helpers for contact info, net receivable, and balance flags.
-- [x] Polished `CustomerCard` with status/contact chips, open balance, credit balance, net receivable, and warning indicator.
-- [x] Polished `CustomerListScreen` into a Customer Center style screen.
-- [x] Polished `CustomerFormScreen` with edit loading, commercial layout, contact validation, opening balance warning, and balance/status banner.
-- [x] Polished `CustomerDetailsScreen` with header, balance metrics, contact section, quick actions, and future activity placeholder.
-
-### Customers Productivity Backlog
-
-- [ ] Import Customers from Excel/CSV.
-- [ ] Export Customers to Excel/CSV.
-- [ ] Download customer import template.
-- [ ] Customer Statement Batch.
-- [ ] Customer activity center after transaction screens are stable.
-
-### Vendors Polish Done
-
-- [x] Updated backend vendor active toggle endpoint to return the updated `VendorDto` instead of `204 NoContent`, matching Flutter expectations.
-- [x] Hardened `VendorModel` parsing and added helpers for contact info, net payable, and payable flags.
-- [x] Polished `VendorCard` with status/contact chips, open payable, vendor credits, net payable, and warning indicator.
-- [x] Polished `VendorListScreen` into a Vendor Center style screen.
-- [x] Polished `VendorFormScreen` with edit loading, commercial layout, contact validation, opening payable balance warning, and payable/status banner.
-- [x] Polished `VendorDetailsScreen` with header, payable metrics, contact section, quick actions, and future activity placeholder.
-
-### Vendors Productivity Backlog
-
-- [ ] Import Vendors from Excel/CSV.
-- [ ] Export Vendors to Excel/CSV.
-- [ ] Download vendor import template.
-- [ ] Vendor Statement Batch.
-- [ ] Vendor activity center after transaction screens are stable.
-
 ### Next Recommended Phase C Order
 
-1. Invoices / Sales Receipts
-2. Purchase Orders / Bills / Receive Inventory
-3. Payments / Vendor Payments
-4. Sales/Purchase returns and credits polish
-5. Reports polish
-
----
-
-## Phase D — Printing + Reports + Backup
-
-### Status
-
-`Started`
-
-### Done
-
-- [x] Backend backup/restore service existed in Infrastructure.
-- [x] API endpoints added and license-protected.
-- [x] Flutter Backup Settings wired for list/create/restore/audit.
-
-### Pending
-
-- [ ] Flutter import backup file picker.
-- [ ] Download/export backup file endpoint if needed.
-- [ ] Scheduled automatic backups/background task.
-
----
-
-## Phase E — Licensing + Installer
-
-### Status
-
-`Started as Functional Skeleton`
-
-### Done
-
-- [x] License Settings skeleton.
-- [x] License model/repository/provider.
-- [x] License gate helpers.
-- [x] Initial gated routes.
-- [x] Start Mode gates.
-- [x] Connection profile gates.
-- [x] Device fingerprint skeleton.
-- [x] Signed/offline license package flow.
-- [x] Offline activation request code flow.
-- [x] Ed25519 public-key package verification in Flutter.
-- [x] Ed25519 admin keypair/package signing tools.
-- [x] Online activation backend endpoint.
-- [x] Visible Flutter online activation action.
-- [x] Backend/API license enforcement skeleton.
-- [x] License activation design document.
-
-### Pending
-
-- [ ] Apply backend license attributes to future payroll/advanced inventory APIs.
-- [ ] Production admin panel for generating serials and signed licenses.
-- [ ] Installer integration.
-
----
-
-## Phase F — Banking / Inventory Pro / Payroll
-
-### Status
-
-`Not Started`
+1. Reusable transaction widgets.
+2. Invoices / Sales Receipts full accounting screens.
+3. Purchase Orders / Bills / Receive Inventory full accounting screens.
+4. Payments / Vendor Payments.
+5. Sales/Purchase returns and credits polish.
+6. Reports polish.
+7. POS/cart/mobile fast screens after full screens stabilize.
 
 ---
 
@@ -502,4 +230,5 @@ F) Banking / Inventory Pro / Payroll
 - Completed first Customers polish pass: backend active toggle fix, Customer Center list, card metrics, form polish, and details view.
 - Completed first Vendors polish pass: backend active toggle fix, Vendor Center list, card metrics, form polish, and details view.
 - Added Transaction Screen UX Standards covering scanner support, keyboard shortcuts, fast grids, collapsible context side panels, preview/print actions, and save/post behavior before starting invoice/purchase screen polish.
-- Next focus: sales transaction screens, starting with reusable transaction widgets and Invoices / Sales Receipts.
+- Confirmed product decision: build full QuickBooks-style transaction screens first, then POS/cart/mobile fast screens later over the same backend and reusable transaction components.
+- Next focus: reusable transaction widgets, then Invoices / Sales Receipts full accounting screens.
