@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/router.dart';
 import '../../purchase_bills/data/models/purchase_bill_model.dart';
 import '../../purchase_bills/providers/purchase_bills_provider.dart';
 import '../data/models/purchase_return_model.dart';
@@ -53,7 +54,7 @@ class PurchaseReturnFormScreen extends ConsumerWidget {
         title: const Text('مرتجع شراء جديد'),
         actions: [
           TextButton(
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go('/purchases/returns'),
+            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go(AppRoutes.purchaseReturns),
             child: const Text('إلغاء'),
           ),
           const SizedBox(width: 8),
@@ -123,7 +124,7 @@ class PurchaseReturnFormScreen extends ConsumerWidget {
       success: (_) {
         ref.read(purchaseBillsProvider.notifier).refresh();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ مرتجع الشراء وترحيله بنجاح')));
-        context.go('/purchases/returns');
+        context.go(AppRoutes.purchaseReturns);
       },
       failure: (error) => _error(context, error.message),
     );
