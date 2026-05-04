@@ -49,6 +49,26 @@ enum LicenseStatus {
   }
 }
 
+enum LicenseFeature {
+  localMode,
+  lanMode,
+  hostedMode,
+  backupRestore,
+  demoCompany,
+  advancedInventory,
+  payroll;
+
+  String get label => switch (this) {
+        LicenseFeature.localMode => 'Local Mode',
+        LicenseFeature.lanMode => 'LAN / Network Mode',
+        LicenseFeature.hostedMode => 'Hosted Mode',
+        LicenseFeature.backupRestore => 'Backup / Restore',
+        LicenseFeature.demoCompany => 'Demo Company',
+        LicenseFeature.advancedInventory => 'Advanced Inventory',
+        LicenseFeature.payroll => 'Payroll',
+      };
+}
+
 class LicenseSettingsModel {
   const LicenseSettingsModel({
     required this.edition,
@@ -87,6 +107,38 @@ class LicenseSettingsModel {
   final String? activatedDeviceId;
   final String? expiresAtIso;
   final String? lastValidatedAtIso;
+
+  bool get isActiveLike => status == LicenseStatus.active || status == LicenseStatus.trial;
+
+  bool get isExpiredByDate {
+    final raw = expiresAtIso;
+    if (raw == null || raw.isEmpty) return false;
+    final expiresAt = DateTime.tryParse(raw);
+    if (expiresAt == null) return false;
+    return DateTime.now().isAfter(expiresAt);
+  }
+
+  bool get canUseApp => isActiveLike && !isExpiredByDate && status != LicenseStatus.blocked;
+
+  bool allows(LicenseFeature feature) {
+    if (!canUseApp) return false;
+    return switch (feature) {
+      LicenseFeature.localMode => allowLocalMode,
+      LicenseFeature.lanMode => allowLanMode,
+      LicenseFeature.hostedMode => allowHostedMode,
+      LicenseFeature.backupRestore => allowBackupRestore,
+      LicenseFeature.demoCompany => allowDemoCompany,
+      LicenseFeature.advancedInventory => allowAdvancedInventory,
+      LicenseFeature.payroll => allowPayroll,
+    };
+  }
+
+  String denialReason(LicenseFeature feature) {
+    if (status == LicenseStatus.blocked) return 'This license is blocked.';
+    if (status == LicenseStatus.inactive) return 'No active license is installed.';
+    if (status == LicenseStatus.expired || isExpiredByDate) return 'This license has expired.';
+    return '${feature.label} is not included in the ${edition.label} edition.';
+  }
 
   factory LicenseSettingsModel.defaults() => const LicenseSettingsModel(
         edition: LicenseEdition.trial,
