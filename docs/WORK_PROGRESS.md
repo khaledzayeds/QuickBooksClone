@@ -81,49 +81,11 @@ F) Banking / Inventory Pro / Payroll
 
 `Mostly Complete / Polish Remaining`
 
-### Goal
-
-البرنامج يشتغل عند عميل جديد بدون تدخل يدوي، ويدعم نفس الكود لنسخ Solo / Network / Hosted حسب الإعدادات والترخيص.
-
-### Planned Tasks
-
-- [x] Build Settings home screen.
-- [x] Build Database/Connection Settings screen.
-- [x] Build Company Settings screen.
-- [x] Build Setup Wizard skeleton.
-- [x] Build Setup Wizard Start Mode step.
-- [x] Build Tax Settings screen.
-- [x] Build Backup Settings screen.
-- [x] Build Printer Settings screen.
-- [x] Build Users/Permissions screen.
-- [x] Add license skeleton screen/model/provider.
-- [x] Add license gate helpers.
-- [x] Add license activation design document.
-- [x] Gate Setup Wizard Start Mode options by license.
-- [x] Gate Connection Settings profiles by license.
-- [x] Add device fingerprint skeleton.
-- [x] Add signed/offline license package skeleton.
-- [x] Add offline activation request code flow.
-- [x] Add Ed25519 public-key license signature verification.
-- [x] Add Ed25519 license admin signing tools.
-- [x] Add online activation backend endpoint.
-- [x] Add Flutter online activation repository/provider method.
-- [x] Wire License Settings Activate Online button to provider.
-- [x] Add backend/API license enforcement skeleton.
-- [x] Add backend backup/restore action endpoints.
-- [x] Wire Flutter Backup Settings to backup/restore API.
-- [x] Add setup status endpoint.
-- [x] Add initialize company endpoint.
-- [x] Add first admin user flow.
-- [x] Wire Flutter Setup Wizard to setup status/init endpoints.
-- [x] Add default accounts seeding flow.
-- [x] Wire Users & Permissions screen to security API.
-
 ### Current Phase B Notes
 
 - The product direction is one codebase with multiple editions controlled by settings and license.
 - Backup/Restore is now the first paid feature protected on both Flutter and API layers.
-- Users & Permissions is now wired to backend security APIs, but password reset/change UI, audit log, device activation limits, and license user-limit enforcement are still future polish.
+- Users & Permissions is wired to backend security APIs, but password reset/change UI, audit log, device activation limits, and license user-limit enforcement are still future polish.
 - Import Backup endpoint exists but Flutter import file picker is not wired yet.
 
 ---
@@ -214,14 +176,14 @@ F) Banking / Inventory Pro / Payroll
 
 #### Items UX / Productivity backlog
 
-- [ ] Item List polish with grouped view, type tabs/cards, stock alerts, and account badges.
-- [ ] Item Details polish with posting accounts, stock status, sales/purchase summary, and related transactions placeholders.
+- [x] Item List polish with grouped view, type tabs/cards, stock alerts, and account badges.
+- [x] Item Details polish with posting accounts, stock status, sales/purchase summary, and related transactions placeholders.
 - [ ] Add/Edit Multiple Items grid.
 - [ ] Import Items from Excel/CSV.
 - [ ] Export Items to Excel/CSV.
 - [ ] Download sample import template.
 - [ ] Change Item Prices screen/action.
-- [ ] Inventory Center style screen after list/details are stable.
+- [ ] Inventory Center activity screen after transaction modules are stable.
 
 ### Items Work Done So Far
 
@@ -231,16 +193,31 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added item type account selectors in Flutter Item Form.
 - [x] Added default account selection helpers in Item Form.
 - [x] Added opening quantity warning and validation.
+- [x] Added commercial item type labels and helpers for required posting accounts, gross margin, and inventory value.
+- [x] Polished `ItemCard` with type/SKU/status badges, sales/cost/margin/stock/value metrics, and missing-account warnings.
+- [x] Polished `ItemListScreen` into an Inventory Center style screen:
+  - Summary chips for items, active, inactive, stock value, missing accounts, and zero/low stock.
+  - Type tabs and dropdown filters.
+  - Grouped list by item type.
+  - New Item menu by item type.
+  - Actions menu for Add/Edit Multiple, Excel import/export, template download, and change prices as scheduled backlog actions.
+- [x] Polished `ItemDetailsScreen`:
+  - Header with type/status badges.
+  - Warning banner for missing posting accounts.
+  - Sales, purchase, margin, stock, and value metrics.
+  - Identifier section.
+  - Posting accounts section.
+  - Quick actions for invoice, inventory adjustment, and edit.
+  - Related activity placeholder for later transaction history.
 
 ### Next Recommended Phase C Order
 
-1. Finish Items list/details polish.
-2. Customers
-3. Vendors
-4. Invoices / Sales Receipts
-5. Purchase Orders / Bills / Receive Inventory
-6. Payments / Vendor Payments
-7. Reports polish
+1. Customers
+2. Vendors
+3. Invoices / Sales Receipts
+4. Purchase Orders / Bills / Receive Inventory
+5. Payments / Vendor Payments
+6. Reports polish
 
 ---
 
@@ -313,5 +290,5 @@ F) Banking / Inventory Pro / Payroll
 - Added Post Phase B Polish Backlog with password UI, audit log, device limits, user-limit enforcement, and backup import timing.
 - Started Phase C Core MVP Polish.
 - Polished Chart of Accounts backend/frontend flow and fixed account datasource/toggle mismatches.
-- Started Items polish with QuickBooks-style type/account behavior.
-- Added Items plan for core types, advanced QuickBooks-style types, Add/Edit Multiple, Excel import/export, and Inventory Center future screen.
+- Completed first Items polish pass: backend item rules, item account selectors, Inventory Center style list, item card metrics, and item details view.
+- Items productivity backlog remains scheduled: Add/Edit Multiple, Excel import/export, template download, and change item prices.
