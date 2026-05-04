@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../core/widgets/coming_soon_screen.dart';
 import '../providers/settings_provider.dart';
 
@@ -80,7 +82,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   icon: Icons.language_outlined,
                   title: 'Connection',
                   subtitle: 'Local/LAN/hosted API endpoint and connection test.',
-                  onTap: () => _openComingSoon(context, 'Connection Settings'),
+                  onTap: () => context.go(AppRoutes.connectionSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.calculate_outlined,
