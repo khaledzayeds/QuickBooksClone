@@ -41,6 +41,9 @@ F) Banking / Inventory Pro / Payroll
 12. Default account seeding must be idempotent and skip existing account codes.
 13. Items are not all inventory. Item types must be separated by posting behavior: stock, service, non-stock, bundle/group, document-calculation items, tax items, and advanced assembly/fixed asset items.
 14. During fast UI polish, temporary hardcoded English text is allowed, but every polished screen must later pass through localization cleanup using the existing localization files.
+15. Transaction screens must be keyboard-first and scanner-friendly, not mouse-only forms.
+16. Transaction screens must have preview, print, save, post, and clear status behavior planned from the first UI pass.
+17. Transaction screens should support a collapsible context side panel for customer/vendor/item/account history and balances.
 
 ---
 
@@ -133,6 +136,204 @@ F) Banking / Inventory Pro / Payroll
 
 ---
 
+## Transaction Screen UX Standards
+
+### Status
+
+`Required before invoice/purchase screen polish`
+
+### Goal
+
+كل شاشة مالية تبقى سريعة ومناسبة للمحاسب والكاشير، مش مجرد فورم. المعايير دي تنطبق على:
+
+- Invoices
+- Sales Receipts
+- Purchase Orders
+- Receive Inventory
+- Purchase Bills
+- Payments
+- Vendor Payments
+- Returns / Credits
+- Inventory Adjustments
+- Journal Entries
+
+### Layout Standard
+
+- Header compact:
+  - Transaction type.
+  - Number.
+  - Date.
+  - Status: Draft / Saved / Posted / Voided.
+  - Customer/Vendor selector.
+  - Terms / due date where applicable.
+- Center working area:
+  - Fast item/account grid.
+  - Keyboard navigation.
+  - Scanner-friendly input.
+  - Totals footer always visible.
+- Right collapsible side panel:
+  - Open/close with arrow.
+  - Customer/Vendor balance.
+  - Credits available.
+  - Last transactions.
+  - Notes/warnings.
+  - Related actions.
+- Bottom action bar:
+  - Save Draft.
+  - Save.
+  - Post.
+  - Preview.
+  - Print A4.
+  - Print Thermal where applicable.
+  - Email/Share later.
+  - Void/Reversal after posting.
+
+### Scanner + Keyboard Standard
+
+- Barcode/item search cell must accept scanner input and Enter.
+- Enter after item scan/search should add/select item and move to quantity or next row based on screen mode.
+- Preferred flow for speed:
+  1. Focus starts in item search/barcode cell.
+  2. Scan barcode or type item code/name.
+  3. Enter selects the best match.
+  4. If default quantity is 1, move directly to next row.
+  5. If item requires quantity confirmation, move to quantity cell.
+  6. Enter on quantity moves to price or next row depending settings.
+- Keyboard shortcuts should be configurable later, but default proposal:
+  - Enter: accept current cell / move next logical cell.
+  - Ctrl+Enter: add line and jump to item cell.
+  - Shift+Enter: move previous cell.
+  - F2: edit current row/cell.
+  - F4: focus item search/barcode cell.
+  - F5: jump to previous line quantity cell for quick correction.
+  - F6: jump to totals/payment panel.
+  - F7: open item lookup.
+  - F8: open customer/vendor side panel.
+  - F9: save transaction.
+  - F10: preview/print menu.
+  - Ctrl+P: print.
+  - Ctrl+S: save draft/save.
+  - Ctrl+D: duplicate current line.
+  - Ctrl+L: clear current line.
+  - Esc: close lookup/side panel; second Esc asks to close transaction if unsaved.
+
+### Better alternative to only F5
+
+- Keep F5 as quick shortcut, but also support:
+  - Arrow Up/Down inside grid.
+  - Shift+Enter previous cell.
+  - Click/tap any row for manual edit.
+  - Row number gutter on the left to select/edit/delete lines quickly.
+  - Ctrl+Up / Ctrl+Down to jump between transaction lines.
+
+### Grid Requirements
+
+- Columns should be configurable per transaction type.
+- Sales screens usually need:
+  - Item / Barcode / Description
+  - Qty
+  - Unit
+  - Rate
+  - Discount
+  - Tax
+  - Amount
+  - Stock indicator
+- Purchase screens usually need:
+  - Item / Account
+  - Description
+  - Qty
+  - Cost
+  - Tax
+  - Amount
+  - Received / billed state where applicable
+- The grid should show row-level warnings:
+  - Missing item account links.
+  - Negative stock warning.
+  - Price below cost warning.
+  - Tax missing warning.
+  - Inactive customer/vendor/item warning.
+
+### Search / Lookup Requirements
+
+- Search must work by:
+  - Barcode.
+  - SKU.
+  - Item name.
+  - Item code where available.
+  - Customer/vendor display name.
+  - Phone/email where applicable.
+- Lookup must support keyboard selection with arrows and Enter.
+- If one exact match exists, Enter should select it without opening a heavy dialog.
+- If multiple matches exist, show lightweight popup under the cell.
+- If no match exists, offer:
+  - Create new item/customer/vendor if user has permission.
+  - Continue as description-only line where allowed.
+
+### Side Panel Standard
+
+- Collapsible with arrow.
+- Should remember last state per user/device.
+- Invoice/Sales Receipt panel:
+  - Customer balance.
+  - Credits available.
+  - Last invoices/receipts/payments.
+  - Credit limit later.
+  - Customer notes later.
+- Purchase/Bill panel:
+  - Vendor payable balance.
+  - Vendor credits.
+  - Last POs/bills/payments.
+  - Open POs eligible for receiving/billing.
+- Inventory panel:
+  - Current stock.
+  - Average cost or last cost later.
+  - Last movements.
+  - Reorder warnings later.
+
+### Printing / Preview Standard
+
+- Every transaction screen must plan for:
+  - Preview A4.
+  - Print A4.
+  - Print thermal receipt where applicable.
+  - Template choice.
+  - Company logo/header/footer.
+  - Tax summary.
+  - QR code where needed.
+  - Payment status.
+  - Copy labels: Original / Duplicate / Draft / Void.
+- Printing should be available before/after posting according to settings:
+  - Draft print can watermark Draft.
+  - Posted print is official.
+  - Voided print must show Void.
+
+### Save/Post Standard
+
+- Save Draft: keeps editable and should not post to GL/inventory.
+- Save: stores a non-posted business document where appropriate.
+- Post: creates accounting/inventory effects.
+- Posted documents cannot be freely edited; they need Void / Reversal / Adjustment logic.
+- UI must show what will happen before posting:
+  - GL impact preview later.
+  - Inventory impact preview later.
+  - Customer/vendor balance impact.
+
+### Implementation Direction
+
+- Build reusable transaction widgets before polishing every screen separately:
+  - `TransactionHeaderPanel`
+  - `TransactionPartySelector`
+  - `TransactionLineGrid`
+  - `TransactionLineLookupPopup`
+  - `TransactionTotalsFooter`
+  - `TransactionActionBar`
+  - `TransactionContextSidePanel`
+  - `TransactionPrintMenu`
+  - `TransactionKeyboardShortcuts`
+- Do not duplicate keyboard/grid logic separately for invoices, bills, purchase orders, and receipts.
+
+---
+
 ## Phase C — Core MVP Polish
 
 ### Status
@@ -205,23 +406,9 @@ F) Banking / Inventory Pro / Payroll
 - [x] Updated backend vendor active toggle endpoint to return the updated `VendorDto` instead of `204 NoContent`, matching Flutter expectations.
 - [x] Hardened `VendorModel` parsing and added helpers for contact info, net payable, and payable flags.
 - [x] Polished `VendorCard` with status/contact chips, open payable, vendor credits, net payable, and warning indicator.
-- [x] Polished `VendorListScreen` into a Vendor Center style screen:
-  - Summary chips for vendors, active, inactive, open payable, vendor credits, missing contact info, and payable vendors.
-  - Search and inactive filter.
-  - Grouped sections for open payables, vendor credits available, and no open payable.
-  - Actions menu for import/export/template/statements as scheduled productivity backlog actions.
-- [x] Polished `VendorFormScreen`:
-  - Loading state for edit mode.
-  - Commercial layout card.
-  - Contact validation.
-  - Opening payable balance warning and explanation.
-  - Payable/status banner in edit mode.
-- [x] Polished `VendorDetailsScreen`:
-  - Header with status/currency/payable badges.
-  - Payable metrics.
-  - Contact information section.
-  - Quick actions for purchase order, purchase bill, vendor payment, and edit.
-  - Related activity placeholder for future purchase transaction history.
+- [x] Polished `VendorListScreen` into a Vendor Center style screen.
+- [x] Polished `VendorFormScreen` with edit loading, commercial layout, contact validation, opening payable balance warning, and payable/status banner.
+- [x] Polished `VendorDetailsScreen` with header, payable metrics, contact section, quick actions, and future activity placeholder.
 
 ### Vendors Productivity Backlog
 
@@ -314,4 +501,5 @@ F) Banking / Inventory Pro / Payroll
 - Completed first Items polish pass: backend item rules, item account selectors, Inventory Center style list, item card metrics, and item details view.
 - Completed first Customers polish pass: backend active toggle fix, Customer Center list, card metrics, form polish, and details view.
 - Completed first Vendors polish pass: backend active toggle fix, Vendor Center list, card metrics, form polish, and details view.
-- Next focus: sales transaction screens, starting with Invoices / Sales Receipts.
+- Added Transaction Screen UX Standards covering scanner support, keyboard shortcuts, fast grids, collapsible context side panels, preview/print actions, and save/post behavior before starting invoice/purchase screen polish.
+- Next focus: sales transaction screens, starting with reusable transaction widgets and Invoices / Sales Receipts.
