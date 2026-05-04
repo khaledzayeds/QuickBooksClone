@@ -1,0 +1,98 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/license_settings_repository.dart';
+import '../data/models/license_settings_model.dart';
+
+final licenseSettingsRepositoryProvider = Provider<LicenseSettingsRepository>((ref) => LicenseSettingsRepository());
+
+class LicenseSettingsState {
+  const LicenseSettingsState({
+    required this.license,
+    this.loading = false,
+    this.saving = false,
+    this.saved = false,
+    this.errorMessage,
+  });
+
+  final LicenseSettingsModel license;
+  final bool loading;
+  final bool saving;
+  final bool saved;
+  final String? errorMessage;
+
+  LicenseSettingsState copyWith({
+    LicenseSettingsModel? license,
+    bool? loading,
+    bool? saving,
+    bool? saved,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return LicenseSettingsState(
+      license: license ?? this.license,
+      loading: loading ?? this.loading,
+      saving: saving ?? this.saving,
+      saved: saved ?? this.saved,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    );
+  }
+}
+
+class LicenseSettingsNotifier extends Notifier<LicenseSettingsState> {
+  late final LicenseSettingsRepository _repository;
+
+  @override
+  LicenseSettingsState build() {
+    _repository = ref.watch(licenseSettingsRepositoryProvider);
+    Future.microtask(load);
+    return LicenseSettingsState(license: LicenseSettingsModel.defaults(), loading: true);
+  }
+
+  Future<void> load() async {
+    state = state.copyWith(loading: true, saved: false, clearError: true);
+    try {
+      final license = await _repository.load();
+      state = state.copyWith(license: license, loading: false, clearError: true);
+    } catch (error) {
+      state = state.copyWith(loading: false, errorMessage: error.toString());
+    }
+  }
+
+  void update(LicenseSettingsModel Function(LicenseSettingsModel current) change) {
+    state = state.copyWith(license: change(state.license), saved: false, clearError: true);
+  }
+
+  Future<void> save() async {
+    state = state.copyWith(saving: true, saved: false, clearError: true);
+    try {
+      final saved = await _repository.save(state.license.copyWith(lastValidatedAtIso: DateTime.now().toIso8601String()));
+      state = state.copyWith(license: saved, saving: false, saved: true, clearError: true);
+    } catch (error) {
+      state = state.copyWith(saving: false, saved: false, errorMessage: error.toString());
+    }
+  }
+
+  Future<void> applyEdition(LicenseEdition edition) async {
+    state = state.copyWith(saving: true, saved: false, clearError: true);
+    try {
+      final saved = await _repository.applyEdition(edition);
+      state = state.copyWith(license: saved, saving: false, saved: true, clearError: true);
+    } catch (error) {
+      state = state.copyWith(saving: false, saved: false, errorMessage: error.toString());
+    }
+  }
+
+  Future<void> reset() async {
+    state = state.copyWith(saving: true, saved: false, clearError: true);
+    try {
+      final reset = await _repository.reset();
+      state = state.copyWith(license: reset, saving: false, saved: true, clearError: true);
+    } catch (error) {
+      state = state.copyWith(saving: false, saved: false, errorMessage: error.toString());
+    }
+  }
+}
+
+final licenseSettingsProvider = NotifierProvider<LicenseSettingsNotifier, LicenseSettingsState>(
+  LicenseSettingsNotifier.new,
+);
