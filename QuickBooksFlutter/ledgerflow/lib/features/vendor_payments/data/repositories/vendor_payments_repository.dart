@@ -1,4 +1,4 @@
-// vendor_payments_repository.dart
+﻿// vendor_payments_repository.dart
 
 import '../../../../core/api/api_result.dart';
 import '../datasources/vendor_payments_remote_datasource.dart';
@@ -29,8 +29,9 @@ class VendorPaymentsRepository {
   Future<ApiResult<VendorPaymentModel>> createPayment(
     CreateVendorPaymentDto dto,
   ) =>
-      _datasource.createPayment(dto);
+      _datasource.createPayment(dto.toJson());
 
   Future<ApiResult<VendorPaymentModel>> voidPayment(String id) =>
       _datasource.voidPayment(id);
 }
+

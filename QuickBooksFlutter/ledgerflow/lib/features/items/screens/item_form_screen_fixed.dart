@@ -1,4 +1,4 @@
-// item_form_screen_fixed.dart
+﻿// item_form_screen_fixed.dart
 // Replacement for item_form_screen.dart.
 // Restores item account links required by the backend contract.
 
@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/router.dart';
 import '../../../core/api/api_result.dart';
-import '../../../core/constants/api_enums.dart';
+import '../../../core/constants/api_enums.dart' hide ItemType;
 import '../../../core/navigation/safe_navigation.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -348,3 +348,4 @@ class _AccountDropdown extends StatelessWidget {
     );
   }
 }
+

@@ -108,7 +108,9 @@ class _VendorPaymentFormScreenState
         return;
       }
       if (amount > bill.balanceDue) {
-        _showError('${l10n.amountPaid} > ${bill.balanceDue.toStringAsFixed(2)}');
+        _showError(
+          '${l10n.amountPaid} > ${bill.balanceDue.toStringAsFixed(2)}',
+        );
         return;
       }
       amounts[id] = amount;
@@ -209,7 +211,7 @@ class _VendorPaymentFormScreenState
                                         .toList();
 
                                     return DropdownButtonFormField<String>(
-                                      value: _paymentAccountId,
+                                      initialValue: _paymentAccountId,
                                       decoration: InputDecoration(
                                         labelText: l10n.paymentAccount,
                                         border: const OutlineInputBorder(),
@@ -236,24 +238,25 @@ class _VendorPaymentFormScreenState
                           const SizedBox(width: 16),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _paymentMethod,
+                              initialValue: _paymentMethod,
                               decoration: InputDecoration(
                                 labelText: l10n.paymentMethod,
                                 border: const OutlineInputBorder(),
                               ),
-                              items: [
-                                'Cash',
-                                'Check',
-                                'Credit Card',
-                                'Bank Transfer',
-                              ]
-                                  .map(
-                                    (m) => DropdownMenuItem(
-                                      value: m,
-                                      child: Text(m),
-                                    ),
-                                  )
-                                  .toList(),
+                              items:
+                                  [
+                                        'Cash',
+                                        'Check',
+                                        'Credit Card',
+                                        'Bank Transfer',
+                                      ]
+                                      .map(
+                                        (m) => DropdownMenuItem(
+                                          value: m,
+                                          child: Text(m),
+                                        ),
+                                      )
+                                      .toList(),
                               onChanged: (v) =>
                                   setState(() => _paymentMethod = v!),
                             ),
@@ -268,73 +271,72 @@ class _VendorPaymentFormScreenState
                   child: _loadingBills
                       ? const Center(child: CircularProgressIndicator())
                       : _openBills.isEmpty
-                          ? Center(
-                              child: Text(
-                                _selectedVendor == null
-                                    ? l10n.selectVendorHint
-                                    : l10n.noRecentTransactions,
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.all(24),
-                              itemCount: _openBills.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: 8),
-                              itemBuilder: (context, i) {
-                                final bill = _openBills[i];
-                                final isSelected = _selectedBillIds.contains(
-                                  bill.id,
-                                );
+                      ? Center(
+                          child: Text(
+                            _selectedVendor == null
+                                ? l10n.selectVendorHint
+                                : l10n.noRecentTransactions,
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(24),
+                          itemCount: _openBills.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (context, i) {
+                            final bill = _openBills[i];
+                            final isSelected = _selectedBillIds.contains(
+                              bill.id,
+                            );
 
-                                return Card(
-                                  elevation: isSelected ? 4 : 1,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(
-                                      color: isSelected
-                                          ? cs.primary
-                                          : Colors.transparent,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: CheckboxListTile(
-                                    value: isSelected,
-                                    onChanged: (v) {
-                                      setState(() {
-                                        if (v!) {
-                                          _selectedBillIds.add(bill.id);
-                                        } else {
-                                          _selectedBillIds.remove(bill.id);
-                                        }
-                                      });
-                                    },
-                                    title: Text(
-                                      '${bill.billNumber} — ${bill.billDate.day}/${bill.billDate.month}/${bill.billDate.year}',
-                                    ),
-                                    subtitle: Text(
-                                      '${l10n.total}: ${bill.totalAmount.toStringAsFixed(2)}',
-                                    ),
-                                    secondary: SizedBox(
-                                      width: 150,
-                                      child: TextField(
-                                        controller: _amountControllers[bill.id],
-                                        enabled: isSelected,
-                                        keyboardType:
-                                            const TextInputType.numberWithOptions(
+                            return Card(
+                              elevation: isSelected ? 4 : 1,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? cs.primary
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                              child: CheckboxListTile(
+                                value: isSelected,
+                                onChanged: (v) {
+                                  setState(() {
+                                    if (v!) {
+                                      _selectedBillIds.add(bill.id);
+                                    } else {
+                                      _selectedBillIds.remove(bill.id);
+                                    }
+                                  });
+                                },
+                                title: Text(
+                                  '${bill.billNumber} — ${bill.billDate.day}/${bill.billDate.month}/${bill.billDate.year}',
+                                ),
+                                subtitle: Text(
+                                  '${l10n.total}: ${bill.totalAmount.toStringAsFixed(2)}',
+                                ),
+                                secondary: SizedBox(
+                                  width: 150,
+                                  child: TextField(
+                                    controller: _amountControllers[bill.id],
+                                    enabled: isSelected,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
                                           decimal: true,
                                         ),
-                                        textAlign: TextAlign.right,
-                                        decoration: InputDecoration(
-                                          labelText: l10n.amountPaid,
-                                          isDense: true,
-                                          suffixText: l10n.egp,
-                                        ),
-                                      ),
+                                    textAlign: TextAlign.right,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.amountPaid,
+                                      isDense: true,
+                                      suffixText: l10n.egp,
                                     ),
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ],
             ),

@@ -45,7 +45,7 @@ class CustomerCreditModel {
         customerName: JsonUtils.asNullableString(json['customerName']),
         activityDate: _parseDate(json['activityDate']),
         amount: JsonUtils.asDouble(json['amount']),
-        action: CustomerCreditAction.fromValue(JsonUtils.asInt(json['action'], fallback: 1)),
+        action: CustomerCreditAction.fromValue(JsonUtils.asInt(json['action'], defaultValue: 1)),
         invoiceId: JsonUtils.asNullableString(json['invoiceId']),
         invoiceNumber: JsonUtils.asNullableString(json['invoiceNumber']),
         refundAccountId: JsonUtils.asNullableString(json['refundAccountId']),

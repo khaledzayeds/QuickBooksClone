@@ -84,8 +84,8 @@ class SidebarMenu extends ConsumerWidget {
                 _ShortcutItem(icon: Icons.home_outlined, label: l10n.home, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
                 _ShortcutItem(icon: Icons.business_outlined, label: l10n.myCompany, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
                 _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: l10n.cashFlowHub, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.trending_up_outlined, label: l10n.incomeTracker, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.receipt_outlined, label: l10n.billTracker, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.trending_up_outlined, label: l10n.incomeTracker, path: AppRoutes.invoices, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.receipt_outlined, label: l10n.billTracker, path: AppRoutes.purchaseBills, current: location, isCollapsed: isCollapsed),
                 _ShortcutItem(icon: Icons.calendar_today_outlined, label: l10n.calendar, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
                 _ShortcutItem(icon: Icons.camera_alt_outlined, label: l10n.snapshots, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
                 

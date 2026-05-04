@@ -51,7 +51,7 @@ class PaymentModel {
         depositAccountName: JsonUtils.asNullableString(json['depositAccountName']),
         paymentDate: _parseDate(json['paymentDate']),
         amount: JsonUtils.asDouble(json['amount']),
-        paymentMethod: JsonUtils.asString(json['paymentMethod'], fallback: 'Cash'),
+        paymentMethod: JsonUtils.asString(json['paymentMethod'], defaultValue: 'Cash'),
         status: JsonUtils.asInt(json['status']),
         postedTransactionId: JsonUtils.asNullableString(json['postedTransactionId']),
         postedAt: _parseNullableDate(json['postedAt']),

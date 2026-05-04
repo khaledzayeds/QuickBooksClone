@@ -24,13 +24,29 @@ class DashboardFlowchart extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _FlowIcon(icon: Icons.shopping_cart_outlined, label: l10n.purchaseOrders, path: AppRoutes.purchaseOrderNew),
+                    _FlowIcon(
+                      icon: Icons.shopping_cart_outlined,
+                      label: l10n.purchaseOrders,
+                      path: AppRoutes.purchaseOrderNew,
+                    ),
                     const _Arrow(),
-                    _FlowIcon(icon: Icons.local_shipping_outlined, label: l10n.receiveInventory, path: AppRoutes.receiveInventoryNew),
+                    _FlowIcon(
+                      icon: Icons.local_shipping_outlined,
+                      label: l10n.receiveInventory,
+                      path: AppRoutes.receiveInventoryNew,
+                    ),
                     const _Arrow(),
-                    _FlowIcon(icon: Icons.assignment_outlined, label: l10n.enterBills, path: AppRoutes.purchaseBills),
+                    _FlowIcon(
+                      icon: Icons.assignment_outlined,
+                      label: l10n.enterBills,
+                      path: AppRoutes.purchaseBillNew,
+                    ),
                     const _Arrow(),
-                    _FlowIcon(icon: Icons.account_balance_wallet_outlined, label: l10n.payBills, path: AppRoutes.vendorPayments),
+                    _FlowIcon(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: l10n.payBills,
+                      path: AppRoutes.vendorPaymentNew,
+                    ),
                   ],
                 ),
               ),
@@ -42,24 +58,52 @@ class DashboardFlowchart extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _FlowIcon(icon: Icons.point_of_sale_outlined, label: l10n.salesReceipts, path: AppRoutes.salesReceiptNew),
+                        _FlowIcon(
+                          icon: Icons.point_of_sale_outlined,
+                          label: l10n.salesReceipts,
+                          path: AppRoutes.salesReceiptNew,
+                        ),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.receipt_long_outlined, label: l10n.createInvoices, path: AppRoutes.invoiceNew),
+                        _FlowIcon(
+                          icon: Icons.receipt_long_outlined,
+                          label: l10n.createInvoices,
+                          path: AppRoutes.invoiceNew,
+                        ),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.payments_outlined, label: l10n.receivePayments, path: AppRoutes.payments),
+                        _FlowIcon(
+                          icon: Icons.payments_outlined,
+                          label: l10n.receivePayments,
+                          path: AppRoutes.paymentNew,
+                        ),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.savings_outlined, label: l10n.recordDeposits, path: AppRoutes.dashboard),
+                        _FlowIcon(
+                          icon: Icons.savings_outlined,
+                          label: l10n.recordDeposits,
+                          path: AppRoutes.dashboard,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _FlowIcon(icon: Icons.request_quote_outlined, label: l10n.estimates, path: AppRoutes.estimates),
+                        _FlowIcon(
+                          icon: Icons.request_quote_outlined,
+                          label: l10n.estimates,
+                          path: AppRoutes.estimates,
+                        ),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.inventory_outlined, label: l10n.salesOrders, path: AppRoutes.salesOrders),
+                        _FlowIcon(
+                          icon: Icons.inventory_outlined,
+                          label: l10n.salesOrders,
+                          path: AppRoutes.salesOrders,
+                        ),
                         const _Arrow(),
-                        _FlowIcon(icon: Icons.receipt_outlined, label: l10n.creditSale, path: AppRoutes.invoiceNew),
+                        _FlowIcon(
+                          icon: Icons.receipt_outlined,
+                          label: l10n.creditSale,
+                          path: AppRoutes.invoiceNew,
+                        ),
                       ],
                     ),
                   ],
@@ -75,8 +119,16 @@ class DashboardFlowchart extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _FlowIcon(icon: Icons.timer_outlined, label: l10n.enterTime, path: AppRoutes.dashboard),
-                          _FlowIcon(icon: Icons.monetization_on_outlined, label: l10n.payEmployees, path: AppRoutes.dashboard),
+                          _FlowIcon(
+                            icon: Icons.timer_outlined,
+                            label: l10n.enterTime,
+                            path: AppRoutes.dashboard,
+                          ),
+                          _FlowIcon(
+                            icon: Icons.monetization_on_outlined,
+                            label: l10n.payEmployees,
+                            path: AppRoutes.dashboard,
+                          ),
                         ],
                       ),
                     ),
@@ -85,11 +137,49 @@ class DashboardFlowchart extends StatelessWidget {
                   Expanded(
                     child: _FlowSection(
                       title: l10n.company.toUpperCase(),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      child: Column(
                         children: [
-                          _FlowIcon(icon: Icons.account_tree_outlined, label: l10n.chartOfAccounts, path: AppRoutes.chartOfAccounts),
-                          _FlowIcon(icon: Icons.category_outlined, label: l10n.itemsAndServices, path: AppRoutes.items),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _FlowIcon(
+                                icon: Icons.account_tree_outlined,
+                                label: l10n.chartOfAccounts,
+                                path: AppRoutes.chartOfAccounts,
+                              ),
+                              _FlowIcon(
+                                icon: Icons.category_outlined,
+                                label: l10n.itemsAndServices,
+                                path: AppRoutes.items,
+                              ),
+                              _FlowIcon(
+                                icon: Icons.inventory_2_outlined,
+                                label: l10n.inventoryAdjustments,
+                                path: AppRoutes.inventoryAdjustmentNew,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _FlowIcon(
+                                icon: Icons.bar_chart_outlined,
+                                label: l10n.reports,
+                                path: AppRoutes.reports,
+                              ),
+                              _FlowIcon(
+                                icon: Icons.settings_outlined,
+                                label: l10n.settings,
+                                path: AppRoutes.settings,
+                              ),
+                              _FlowIcon(
+                                icon: Icons.assignment_outlined,
+                                label: l10n.journalEntries,
+                                path: AppRoutes.journalEntries,
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -117,7 +207,11 @@ class _FlowSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade300),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -132,7 +226,12 @@ class _FlowSection extends StatelessWidget {
             child: Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blue.shade900, letterSpacing: 1),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: Colors.blue.shade900,
+                letterSpacing: 1,
+              ),
             ),
           ),
           Padding(padding: const EdgeInsets.all(24), child: child),
@@ -143,7 +242,11 @@ class _FlowSection extends StatelessWidget {
 }
 
 class _FlowIcon extends StatelessWidget {
-  const _FlowIcon({required this.icon, required this.label, required this.path});
+  const _FlowIcon({
+    required this.icon,
+    required this.label,
+    required this.path,
+  });
   final IconData icon;
   final String label;
   final String path;
@@ -164,7 +267,13 @@ class _FlowIcon extends StatelessWidget {
                 color: Colors.white,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.grey.shade200, width: 2),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Icon(icon, size: 28, color: Colors.blue.shade800),
             ),
@@ -172,7 +281,11 @@ class _FlowIcon extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, height: 1.2),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
             ),
           ],
         ),

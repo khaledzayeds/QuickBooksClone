@@ -25,8 +25,9 @@ class CustomerCreditsRemoteDatasource {
         '/api/customer-credits',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
-          if (action != null) 'action': action,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
+          'action': ?action,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
@@ -34,7 +35,10 @@ class CustomerCreditsRemoteDatasource {
       );
 
       final credits = ((response.data?['items'] as List?) ?? const [])
-          .map((json) => CustomerCreditModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) =>
+                CustomerCreditModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
       return Success(credits);
     } on DioException catch (error) {
@@ -44,14 +48,18 @@ class CustomerCreditsRemoteDatasource {
 
   Future<ApiResult<CustomerCreditModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/customer-credits/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/customer-credits/$id',
+      );
       return Success(CustomerCreditModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
   }
 
-  Future<ApiResult<CustomerCreditModel>> create(CreateCustomerCreditDto dto) async {
+  Future<ApiResult<CustomerCreditModel>> create(
+    CreateCustomerCreditDto dto,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/customer-credits',
@@ -65,7 +73,9 @@ class CustomerCreditsRemoteDatasource {
 
   Future<ApiResult<CustomerCreditModel>> post(String id) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>('/api/customer-credits/$id/post');
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/customer-credits/$id/post',
+      );
       return Success(CustomerCreditModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));

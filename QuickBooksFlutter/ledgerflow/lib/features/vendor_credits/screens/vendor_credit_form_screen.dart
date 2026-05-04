@@ -90,7 +90,7 @@ class VendorCreditFormScreen extends ConsumerWidget {
       _error(context, l10n.selectPurchaseBillFirst);
       return;
     }
-    if (form.action == VendorCreditAction.depositRefund && (form.depositAccountId == null || form.depositAccountId!.isEmpty)) {
+    if (form.action == VendorCreditAction.refundReceipt && (form.depositAccountId == null || form.depositAccountId!.isEmpty)) {
       _error(context, l10n.selectDepositAccountFirst);
       return;
     }
@@ -101,8 +101,8 @@ class VendorCreditFormScreen extends ConsumerWidget {
       amount: form.amount,
       action: form.action,
       purchaseBillId: form.action == VendorCreditAction.applyToBill ? form.purchaseBillId : null,
-      depositAccountId: form.action == VendorCreditAction.depositRefund ? form.depositAccountId : null,
-      paymentMethod: form.action == VendorCreditAction.depositRefund ? form.paymentMethod : null,
+      depositAccountId: form.action == VendorCreditAction.refundReceipt ? form.depositAccountId : null,
+      paymentMethod: form.action == VendorCreditAction.refundReceipt ? form.paymentMethod : null,
     );
 
     ref.read(vendorCreditSavingProvider.notifier).state = true;
@@ -148,7 +148,7 @@ class _CreditCard extends ConsumerWidget {
     final vendorBills = billsAsync.maybeWhen(
       data: (bills) => bills
           .where((bill) => form.vendorId == null || bill.vendorId == form.vendorId)
-          .where((bill) => bill.amountDue > 0)
+          .where((bill) => bill.balanceDue > 0)
           .toList(),
       orElse: () => <PurchaseBillModel>[],
     );
@@ -207,7 +207,7 @@ class _CreditCard extends ConsumerWidget {
                     ),
                     items: [
                       DropdownMenuItem(value: VendorCreditAction.applyToBill, child: Text(l10n.purchaseBill)),
-                      DropdownMenuItem(value: VendorCreditAction.depositRefund, child: Text(l10n.recordDeposits)),
+                      DropdownMenuItem(value: VendorCreditAction.refundReceipt, child: Text(l10n.recordDeposits)),
                     ],
                     onChanged: (value) {
                       if (value == null) return;
@@ -244,7 +244,7 @@ class _CreditCard extends ConsumerWidget {
                     .map(
                       (bill) => DropdownMenuItem(
                         value: bill.id,
-                        child: Text('${bill.billNumber} - ${bill.amountDue.toStringAsFixed(2)} ${l10n.egp}'),
+                        child: Text('${bill.billNumber} - ${bill.balanceDue.toStringAsFixed(2)} ${l10n.egp}'),
                       ),
                     )
                     .toList(),
@@ -254,7 +254,7 @@ class _CreditCard extends ConsumerWidget {
                     ref,
                     form
                       ..purchaseBillId = value
-                      ..amount = bill?.amountDue ?? form.amount,
+                      ..amount = bill?.balanceDue ?? form.amount,
                   );
                 },
               )

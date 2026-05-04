@@ -26,7 +26,7 @@ class VendorCreditsRemoteDatasource {
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
           if (vendorId != null && vendorId.isNotEmpty) 'vendorId': vendorId,
-          if (action != null) 'action': action,
+          'action': ?action,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
@@ -34,7 +34,9 @@ class VendorCreditsRemoteDatasource {
       );
 
       final credits = ((response.data?['items'] as List?) ?? const [])
-          .map((json) => VendorCreditModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => VendorCreditModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
       return Success(credits);
     } on DioException catch (error) {
@@ -44,7 +46,9 @@ class VendorCreditsRemoteDatasource {
 
   Future<ApiResult<VendorCreditModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/vendor-credits/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/vendor-credits/$id',
+      );
       return Success(VendorCreditModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));

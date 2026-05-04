@@ -70,7 +70,7 @@ class _VendorCreditCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isDeposit = credit.action == VendorCreditAction.depositRefund;
+    final isDeposit = credit.action == VendorCreditAction.refundReceipt;
 
     return Card(
       clipBehavior: Clip.antiAlias,

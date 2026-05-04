@@ -44,7 +44,7 @@ class TrialBalanceRowModel {
         accountId: JsonUtils.asString(json['accountId']),
         accountCode: JsonUtils.asString(json['accountCode']),
         accountName: JsonUtils.asString(json['accountName']),
-        accountType: AccountType.fromValue(JsonUtils.asInt(json['accountType'], fallback: 14)),
+        accountType: AccountType.fromValue(JsonUtils.asInt(json['accountType'], defaultValue: 14)),
         totalDebit: JsonUtils.asDouble(json['totalDebit']),
         totalCredit: JsonUtils.asDouble(json['totalCredit']),
         closingDebit: JsonUtils.asDouble(json['closingDebit']),
@@ -141,7 +141,7 @@ class FinancialRowModel {
         accountId: JsonUtils.asString(json['accountId']),
         accountCode: JsonUtils.asString(json['accountCode']),
         accountName: JsonUtils.asString(json['accountName']),
-        accountType: AccountType.fromValue(JsonUtils.asInt(json['accountType'], fallback: 14)),
+        accountType: AccountType.fromValue(JsonUtils.asInt(json['accountType'], defaultValue: 14)),
         amount: JsonUtils.asDouble(json['amount']),
       );
 }

@@ -44,6 +44,8 @@ class TopMenuBar extends StatelessWidget {
             label: 'Company', 
             items: {
               'My Company': AppRoutes.dashboard,
+              'Inventory Adjustments': AppRoutes.inventoryAdjustments,
+              'Journal Entries': AppRoutes.journalEntries,
               'Settings': AppRoutes.settings,
             }
           ),
@@ -51,8 +53,10 @@ class TopMenuBar extends StatelessWidget {
             label: 'Customers', 
             items: {
               'Customer Center': AppRoutes.customers,
+              'Estimates': AppRoutes.estimates,
+              'Sales Orders': AppRoutes.salesOrders,
               'Create Invoices': AppRoutes.invoiceNew,
-              'Receive Payments': AppRoutes.payments,
+              'Receive Payments': AppRoutes.paymentNew,
             }
           ),
           _MenuButton(

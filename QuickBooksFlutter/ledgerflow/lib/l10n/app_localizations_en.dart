@@ -27,6 +27,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get salesOrders => 'Sales Orders';
 
   @override
+  String get salesReceipt => 'Sales Receipt';
+
+  @override
+  String get newSalesReceipt => 'New Sales Receipt';
+
+  @override
+  String get salesReceiptDetails => 'Sales Receipt Details';
+
+  @override
+  String get createSalesReceipt => 'Create Sales Receipt';
+
+  @override
+  String get paidNowSale => 'Paid-now Sale';
+
+  @override
+  String get creditSale => 'Credit Sale';
+
+  @override
+  String get receivePayments => 'Receive Payments';
+
+  @override
   String get invoices => 'Invoices';
 
   @override
@@ -172,6 +193,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectVendor => 'Select a vendor...';
+
+  @override
+  String get selectCustomer => 'Select a customer...';
 
   @override
   String get poCreatedSuccess => 'Purchase order created successfully';
@@ -469,4 +493,225 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentAccountHint => 'Select a bank or cash account';
+
+  @override
+  String get salesReceipts => 'Sales Receipts';
+
+  @override
+  String get salesReturns => 'Sales Returns';
+
+  @override
+  String get purchaseReturns => 'Purchase Returns';
+
+  @override
+  String get customerPayments => 'Customer Payments';
+
+  @override
+  String get inventoryAdjustments => 'Inventory Adjustments';
+
+  @override
+  String get newInvoice => 'New Invoice';
+
+  @override
+  String get newPayment => 'New Payment';
+
+  @override
+  String get newSalesReturn => 'New Sales Return';
+
+  @override
+  String get newPurchaseReturn => 'New Purchase Return';
+
+  @override
+  String get newInventoryAdjustment => 'New Inventory Adjustment';
+
+  @override
+  String get noInvoices => 'No invoices found';
+
+  @override
+  String get noPayments => 'No customer payments found';
+
+  @override
+  String get noVendorPayments => 'No vendor payments found';
+
+  @override
+  String get noSalesReturns => 'No sales returns found';
+
+  @override
+  String get noSalesReceipts => 'No sales receipts found';
+
+  @override
+  String get startSalesReceipt => 'Start a paid-now sale with a sales receipt';
+
+  @override
+  String get noPurchaseReturns => 'No purchase returns found';
+
+  @override
+  String get selectCustomerFirst => 'Select a customer first';
+
+  @override
+  String get selectInvoiceFirst => 'Select an invoice first';
+
+  @override
+  String get selectPurchaseBillFirst => 'Select a purchase bill first';
+
+  @override
+  String get selectDepositAccountFirst => 'Select a deposit account first';
+
+  @override
+  String get selectPaymentAccountFirst => 'Select a payment account first';
+
+  @override
+  String get enterPositiveAmount => 'Enter an amount greater than zero';
+
+  @override
+  String get selectAtLeastOneLine => 'Select at least one line';
+
+  @override
+  String get returnQuantityCannotExceedOriginal =>
+      'Return quantity cannot exceed the original quantity';
+
+  @override
+  String get invoiceSavedSuccess => 'Invoice saved successfully';
+
+  @override
+  String get customerPaymentSavedSuccess =>
+      'Customer payment recorded successfully';
+
+  @override
+  String get salesReturnSavedSuccess => 'Sales return saved successfully';
+
+  @override
+  String get salesReceiptCreatedSuccess => 'Sales receipt created successfully';
+
+  @override
+  String get purchaseReturnSavedSuccess => 'Purchase return saved successfully';
+
+  @override
+  String get customer => 'Customer';
+
+  @override
+  String get invoice => 'Invoice';
+
+  @override
+  String get purchaseBill => 'Purchase Bill';
+
+  @override
+  String get depositAccount => 'Deposit Account';
+
+  @override
+  String get selectDepositAccount => 'Select a deposit account...';
+
+  @override
+  String get depositAccountHint => 'Select a bank or cash account';
+
+  @override
+  String get returnDate => 'Return Date';
+
+  @override
+  String get unitCost => 'Unit Cost';
+
+  @override
+  String get unitPrice => 'Unit Price';
+
+  @override
+  String get originalQuantity => 'Original Quantity';
+
+  @override
+  String get returnQuantity => 'Return Quantity';
+
+  @override
+  String get lineTotal => 'Line Total';
+
+  @override
+  String get statusVoided => 'Voided';
+
+  @override
+  String get statusPosted => 'Posted';
+
+  @override
+  String get cash => 'Cash';
+
+  @override
+  String get check => 'Check';
+
+  @override
+  String get bankTransfer => 'Bank Transfer';
+
+  @override
+  String get creditCard => 'Credit Card';
+
+  @override
+  String get reason => 'Reason';
+
+  @override
+  String get totalReturn => 'Total Return';
+
+  @override
+  String get posted => 'Posted';
+
+  @override
+  String get voided => 'Voided';
+
+  @override
+  String get noInventoryAdjustments => 'No inventory adjustments found';
+
+  @override
+  String get startWithNewInventoryAdjustment =>
+      'Start by creating a new inventory adjustment.';
+
+  @override
+  String get selectItemFirst => 'Select an item first';
+
+  @override
+  String get enterValidQuantity => 'Enter a valid quantity';
+
+  @override
+  String get inventoryAdjustmentSavedSuccess =>
+      'Inventory adjustment saved successfully';
+
+  @override
+  String get journalEntries => 'Journal Entries';
+
+  @override
+  String get newJournalEntry => 'New Journal Entry';
+
+  @override
+  String get noJournalEntries => 'No journal entries found';
+
+  @override
+  String get startWithNewJournalEntry =>
+      'Start by creating a balanced manual journal entry.';
+
+  @override
+  String get entryDate => 'Entry Date';
+
+  @override
+  String get memo => 'Memo';
+
+  @override
+  String get debit => 'Debit';
+
+  @override
+  String get credit => 'Credit';
+
+  @override
+  String get totalDebit => 'Total Debit';
+
+  @override
+  String get totalCredit => 'Total Credit';
+
+  @override
+  String get balanced => 'Balanced';
+
+  @override
+  String get unbalanced => 'Unbalanced';
+
+  @override
+  String get saveAndPost => 'Save & Post';
+
+  @override
+  String get journalEntrySavedSuccess => 'Journal entry saved successfully';
+
+  @override
+  String get itemsLines => 'lines';
 }

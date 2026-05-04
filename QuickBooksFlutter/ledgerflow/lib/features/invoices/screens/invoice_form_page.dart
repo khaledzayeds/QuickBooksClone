@@ -82,9 +82,9 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       result.when(
         success: (_) {
           ref.read(invoicesStateProvider.notifier).refresh();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.billCreatedSuccess)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
           if (context.canPop()) {
             context.pop();
           } else {
@@ -140,16 +140,20 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
           children: [
             _HeaderCard(
               selectedCustomer: _selectedCustomer,
-              onCustomerChanged: (customer) => setState(() => _selectedCustomer = customer),
+              onCustomerChanged: (customer) =>
+                  setState(() => _selectedCustomer = customer),
               invoiceDate: _invoiceDate,
-              onInvoiceDateChanged: (date) => setState(() => _invoiceDate = date),
+              onInvoiceDateChanged: (date) =>
+                  setState(() => _invoiceDate = date),
               dueDate: _dueDate,
               onDueDateChanged: (date) => setState(() => _dueDate = date),
             ),
             const SizedBox(height: 24),
             Text(
               l10n.items,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
@@ -249,9 +253,11 @@ class _HeaderCard extends ConsumerWidget {
                     loading: () => const LinearProgressIndicator(),
                     error: (e, _) => Text(e.toString()),
                     data: (customers) {
-                      final activeCustomers = customers.where((c) => c.isActive).toList();
+                      final activeCustomers = customers
+                          .where((c) => c.isActive)
+                          .toList();
                       return DropdownButtonFormField<CustomerModel>(
-                        value: selectedCustomer,
+                        initialValue: selectedCustomer,
                         decoration: InputDecoration(
                           labelText: l10n.customer,
                           hintText: l10n.selectCustomer,
@@ -389,8 +395,12 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
+        ? Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
+        : Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

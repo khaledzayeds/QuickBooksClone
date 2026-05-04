@@ -45,7 +45,7 @@ class VendorCreditModel {
         vendorName: JsonUtils.asNullableString(json['vendorName']),
         activityDate: _parseDate(json['activityDate']),
         amount: JsonUtils.asDouble(json['amount']),
-        action: VendorCreditAction.fromValue(JsonUtils.asInt(json['action'], fallback: 1)),
+        action: VendorCreditAction.fromValue(JsonUtils.asInt(json['action'], defaultValue: 1)),
         purchaseBillId: JsonUtils.asNullableString(json['purchaseBillId']),
         billNumber: JsonUtils.asNullableString(json['billNumber']),
         depositAccountId: JsonUtils.asNullableString(json['depositAccountId']),

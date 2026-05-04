@@ -1,0 +1,168 @@
+Analyzing ledgerflow...
+
+   info - The variable name '_HeaderCell' isn't a lowerCamelCase identifier - lib\core\widgets\transaction_line_table.dart:221:10 - non_constant_identifier_names
+   info - Use the null-aware marker '?' rather than a null check via an 'if' -
+          lib\features\customer_credits\data\datasources\customer_credits_remote_datasource.dart:29:11 - use_null_aware_elements
+  error - The named parameter 'fallback' isn't defined - lib\features\customer_credits\data\models\customer_credit_model.dart:48:80 - undefined_named_parameter
+  error - The getter 'selectCustomerFirst' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:82:28
+         - undefined_getter
+  error - The getter 'enterPositiveAmount' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:86:28
+         - undefined_getter
+  error - The getter 'selectInvoiceFirst' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:90:28 -
+         undefined_getter
+  error - The getter 'selectPaymentAccountFirst' isn't defined for the type 'AppLocalizations' -
+         lib\features\customer_credits\screens\customer_credit_form_screen.dart:94:28 - undefined_getter
+  error - The getter 'invoice' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:209:101 -
+         undefined_getter
+  error - The getter 'invoice' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:239:38 -
+         undefined_getter
+  error - The getter 'cash' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:283:80 -
+         undefined_getter
+  error - The getter 'check' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:284:81 -
+         undefined_getter
+  error - The getter 'bankTransfer' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:285:88 -
+         undefined_getter
+  error - The getter 'creditCard' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_form_screen.dart:286:86 -
+         undefined_getter
+  error - The getter 'invoice' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_list_screen.dart:103:96 -
+         undefined_getter
+  error - The getter 'invoice' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_list_screen.dart:109:33 -
+         undefined_getter
+  error - The getter 'posted' isn't defined for the type 'AppLocalizations' - lib\features\customer_credits\screens\customer_credit_list_screen.dart:133:26 -
+         undefined_getter
+  error - The getter 'selectCustomerFirst' isn't defined for the type 'AppLocalizations' - lib\features\estimates\screens\estimate_form_screen.dart:82:28 -
+         undefined_getter
+  error - The getter 'selectAtLeastOneLine' isn't defined for the type 'AppLocalizations' - lib\features\estimates\screens\estimate_form_screen.dart:88:28 -
+         undefined_getter
+  error - The getter 'statusPosted' isn't defined for the type 'AppLocalizations' - lib\features\estimates\screens\estimate_list_screen.dart:80:28 - undefined_getter
+  error - The getter 'newInventoryAdjustment' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:49:26 - undefined_getter
+  error - The getter 'selectItemFirst' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:85:28 - undefined_getter
+  error - The getter 'selectPaymentAccountFirst' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:89:28 - undefined_getter
+  error - The getter 'enterValidQuantity' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:93:28 - undefined_getter
+  error - The getter 'enterPositiveAmount' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:97:28 - undefined_getter
+  error - The getter 'inventoryAdjustmentSavedSuccess' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:119:80 - undefined_getter
+  error - The getter 'unitCost' isn't defined for the type 'AppLocalizations' - lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:243:36
+         - undefined_getter
+  error - The getter 'reason' isn't defined for the type 'AppLocalizations' - lib\features\inventory_adjustments\screens\inventory_adjustment_form_screen.dart:255:33 -
+         undefined_getter
+  error - The getter 'inventoryAdjustments' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_list_screen.dart:21:26 - undefined_getter
+  error - The getter 'newInventoryAdjustment' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_list_screen.dart:33:32 - undefined_getter
+  error - The getter 'reason' isn't defined for the type 'AppLocalizations' - lib\features\inventory_adjustments\screens\inventory_adjustment_list_screen.dart:108:33 -
+         undefined_getter
+  error - The getter 'posted' isn't defined for the type 'AppLocalizations' - lib\features\inventory_adjustments\screens\inventory_adjustment_list_screen.dart:133:26 -
+         undefined_getter
+  error - The getter 'noInventoryAdjustments' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_list_screen.dart:166:23 - undefined_getter
+  error - The getter 'startWithNewInventoryAdjustment' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_list_screen.dart:168:23 - undefined_getter
+  error - The getter 'newInventoryAdjustment' isn't defined for the type 'AppLocalizations' -
+         lib\features\inventory_adjustments\screens\inventory_adjustment_list_screen.dart:173:32 - undefined_getter
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\invoices\screens\invoice_form_page.dart:254:25 - deprecated_member_use
+  error - The getter 'selectAtLeastOneLine' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_form_screen.dart:92:28 -
+         undefined_getter
+  error - The getter 'enterPositiveAmount' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_form_screen.dart:98:30 -
+         undefined_getter
+  error - The getter 'statusPosted' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_form_screen.dart:367:29 -
+         undefined_getter
+  error - The getter 'journalEntries' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_list_screen.dart:21:26 -
+         undefined_getter
+  error - The getter 'newJournalEntry' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_list_screen.dart:33:32 -
+         undefined_getter
+  error - The getter 'itemsLines' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_list_screen.dart:102:81 -
+         undefined_getter
+  error - The getter 'voided' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_list_screen.dart:118:35 -
+         undefined_getter
+  error - The getter 'posted' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_list_screen.dart:118:66 -
+         undefined_getter
+  error - The getter 'noJournalEntries' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_list_screen.dart:151:23 -
+         undefined_getter
+  error - The getter 'startWithNewJournalEntry' isn't defined for the type 'AppLocalizations' -
+         lib\features\journal_entries\screens\journal_entry_list_screen.dart:153:23 - undefined_getter
+  error - The getter 'newJournalEntry' isn't defined for the type 'AppLocalizations' - lib\features\journal_entries\screens\journal_entry_list_screen.dart:158:32 -
+         undefined_getter
+  error - The named parameter 'fallback' isn't defined - lib\features\payments\data\models\payment_model.dart:54:66 - undefined_named_parameter
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\purchase_bills\screens\purchase_bill_form_screen.dart:396:11 - deprecated_member_use
+warning - The value of the local variable 'isWide' isn't used - lib\features\purchase_orders\screens\purchase_order_form_screen.dart:149:11 - unused_local_variable
+warning - The value of the field '_filters' isn't used - lib\features\purchase_orders\screens\purchase_order_list_screen.dart:23:16 - unused_field
+  error - The named parameter 'fallback' isn't defined - lib\features\reports\data\models\report_models.dart:47:81 - undefined_named_parameter
+  error - The named parameter 'fallback' isn't defined - lib\features\reports\data\models\report_models.dart:144:81 - undefined_named_parameter
+  error - The getter 'unitCost' isn't defined for the type 'AppLocalizations' - lib\features\reports\screens\reports_screen.dart:240:52 - undefined_getter
+warning - The value of the local variable 'l10n' isn't used - lib\features\reports\screens\reports_screen.dart:290:11 - unused_local_variable
+  error - The getter 'selectCustomerFirst' isn't defined for the type 'AppLocalizations' - lib\features\sales_orders\screens\sales_order_form_screen.dart:82:28 -
+         undefined_getter
+  error - The getter 'selectAtLeastOneLine' isn't defined for the type 'AppLocalizations' - lib\features\sales_orders\screens\sales_order_form_screen.dart:88:28 -
+         undefined_getter
+warning - Unused import: '../../accounts/data/models/account_model.dart' - lib\features\sales_receipts\screens\sales_receipt_form_page.dart:10:8 - unused_import
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\sales_receipts\screens\sales_receipt_form_page.dart:265:25 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\sales_receipts\screens\sales_receipt_form_page.dart:312:25 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\sales_receipts\screens\sales_receipt_form_page.dart:335:21 - deprecated_member_use
+warning - Unused import: '../../accounts/data/models/account_model.dart' - lib\features\sales_receipts\screens\sales_receipt_form_screen.dart:10:8 - unused_import
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\sales_receipts\screens\sales_receipt_form_screen.dart:266:25 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\sales_receipts\screens\sales_receipt_form_screen.dart:313:25 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\sales_receipts\screens\sales_receipt_form_screen.dart:336:21 - deprecated_member_use
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\features\vendor_credits\data\datasources\vendor_credits_remote_datasource.dart:29:11
+          - use_null_aware_elements
+  error - The named parameter 'fallback' isn't defined - lib\features\vendor_credits\data\models\vendor_credit_model.dart:48:78 - undefined_named_parameter
+  error - The getter 'enterPositiveAmount' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:86:28 -
+         undefined_getter
+  error - The getter 'selectPurchaseBillFirst' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:90:28
+         - undefined_getter
+  error - There's no constant named 'depositRefund' in 'VendorCreditAction' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:93:43 -
+         undefined_enum_constant
+  error - The getter 'selectDepositAccountFirst' isn't defined for the type 'AppLocalizations' -
+         lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:94:28 - undefined_getter
+  error - There's no constant named 'depositRefund' in 'VendorCreditAction' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:104:59 -
+         undefined_enum_constant
+  error - There's no constant named 'depositRefund' in 'VendorCreditAction' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:105:56 -
+         undefined_enum_constant
+  error - The getter 'amountDue' isn't defined for the type 'PurchaseBillModel' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:151:33 -
+         undefined_getter
+  error - The getter 'purchaseBill' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:209:96 -
+         undefined_getter
+  error - There's no constant named 'depositRefund' in 'VendorCreditAction' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:210:66 -
+         undefined_enum_constant
+  error - The getter 'purchaseBill' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:239:38 -
+         undefined_getter
+  error - The getter 'amountDue' isn't defined for the type 'PurchaseBillModel' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:247:66 -
+         undefined_getter
+  error - The getter 'amountDue' isn't defined for the type 'PurchaseBillModel' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:257:40 -
+         undefined_getter
+  error - The getter 'cash' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:283:80 - undefined_getter
+  error - The getter 'check' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:284:81 -
+         undefined_getter
+  error - The getter 'bankTransfer' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:285:88 -
+         undefined_getter
+  error - The getter 'creditCard' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_form_screen.dart:286:86 -
+         undefined_getter
+  error - There's no constant named 'depositRefund' in 'VendorCreditAction' - lib\features\vendor_credits\screens\vendor_credit_list_screen.dart:73:59 -
+         undefined_enum_constant
+  error - The getter 'purchaseBill' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_list_screen.dart:103:97 -
+         undefined_getter
+  error - The getter 'purchaseBill' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_list_screen.dart:109:33 -
+         undefined_getter
+  error - The getter 'posted' isn't defined for the type 'AppLocalizations' - lib\features\vendor_credits\screens\vendor_credit_list_screen.dart:133:26 -
+         undefined_getter
+warning - Unused import: '../../accounts/data/models/account_model.dart' - lib\features\vendor_payments\screens\vendor_payment_form_screen.dart:11:8 - unused_import
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\vendor_payments\screens\vendor_payment_form_screen.dart:212:39 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after
+          v3.33.0-1.0.pre - lib\features\vendor_payments\screens\vendor_payment_form_screen.dart:239:31 - deprecated_member_use
+
+89 issues found. (ran in 575.0s)
+PS E:\SYSTEMS\QUICKBOOKSCLONE-FRESH\quickbooksflutter\ledgerflow>

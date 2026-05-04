@@ -23,7 +23,8 @@ class SalesReceiptFormScreen extends ConsumerStatefulWidget {
       _SalesReceiptFormScreenState();
 }
 
-class _SalesReceiptFormScreenState extends ConsumerState<SalesReceiptFormScreen> {
+class _SalesReceiptFormScreenState
+    extends ConsumerState<SalesReceiptFormScreen> {
   CustomerModel? _selectedCustomer;
   String? _depositAccountId;
   DateTime _receiptDate = DateTime.now();
@@ -81,7 +82,9 @@ class _SalesReceiptFormScreenState extends ConsumerState<SalesReceiptFormScreen>
 
     setState(() => _saving = true);
     try {
-      final result = await ref.read(salesReceiptsRepositoryProvider).create(dto);
+      final result = await ref
+          .read(salesReceiptsRepositoryProvider)
+          .create(dto);
       result.when(
         success: (_) {
           ref.read(salesReceiptsProvider.notifier).refresh();
@@ -145,18 +148,23 @@ class _SalesReceiptFormScreenState extends ConsumerState<SalesReceiptFormScreen>
           children: [
             _HeaderCard(
               selectedCustomer: _selectedCustomer,
-              onCustomerChanged: (customer) => setState(() => _selectedCustomer = customer),
+              onCustomerChanged: (customer) =>
+                  setState(() => _selectedCustomer = customer),
               receiptDate: _receiptDate,
               onDateChanged: (date) => setState(() => _receiptDate = date),
               depositAccountId: _depositAccountId,
-              onDepositAccountChanged: (id) => setState(() => _depositAccountId = id),
+              onDepositAccountChanged: (id) =>
+                  setState(() => _depositAccountId = id),
               paymentMethod: _paymentMethod,
-              onPaymentMethodChanged: (method) => setState(() => _paymentMethod = method),
+              onPaymentMethodChanged: (method) =>
+                  setState(() => _paymentMethod = method),
             ),
             const SizedBox(height: 24),
             Text(
               l10n.items,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
@@ -261,9 +269,11 @@ class _HeaderCard extends ConsumerWidget {
                     loading: () => const LinearProgressIndicator(),
                     error: (e, _) => Text(e.toString()),
                     data: (customers) {
-                      final activeCustomers = customers.where((c) => c.isActive).toList();
+                      final activeCustomers = customers
+                          .where((c) => c.isActive)
+                          .toList();
                       return DropdownButtonFormField<CustomerModel>(
-                        value: selectedCustomer,
+                        initialValue: selectedCustomer,
                         decoration: InputDecoration(
                           labelText: l10n.customer,
                           hintText: l10n.selectCustomer,
@@ -306,11 +316,12 @@ class _HeaderCard extends ConsumerWidget {
                             (account) =>
                                 account.isActive &&
                                 (account.accountType == AccountType.bank ||
-                                    account.accountType == AccountType.otherCurrentAsset),
+                                    account.accountType ==
+                                        AccountType.otherCurrentAsset),
                           )
                           .toList();
                       return DropdownButtonFormField<String>(
-                        value: depositAccountId,
+                        initialValue: depositAccountId,
                         decoration: InputDecoration(
                           labelText: l10n.depositAccount,
                           hintText: l10n.depositAccountHint,
@@ -321,7 +332,9 @@ class _HeaderCard extends ConsumerWidget {
                             .map(
                               (account) => DropdownMenuItem(
                                 value: account.id,
-                                child: Text('${account.code} - ${account.name}'),
+                                child: Text(
+                                  '${account.code} - ${account.name}',
+                                ),
                               ),
                             )
                             .toList(),
@@ -333,7 +346,7 @@ class _HeaderCard extends ConsumerWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: paymentMethod,
+                    initialValue: paymentMethod,
                     decoration: InputDecoration(
                       labelText: l10n.paymentMethod,
                       border: const OutlineInputBorder(),
@@ -342,8 +355,14 @@ class _HeaderCard extends ConsumerWidget {
                     items: const [
                       DropdownMenuItem(value: 'Cash', child: Text('Cash')),
                       DropdownMenuItem(value: 'Check', child: Text('Check')),
-                      DropdownMenuItem(value: 'BankTransfer', child: Text('Bank Transfer')),
-                      DropdownMenuItem(value: 'CreditCard', child: Text('Credit Card')),
+                      DropdownMenuItem(
+                        value: 'BankTransfer',
+                        child: Text('Bank Transfer'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'CreditCard',
+                        child: Text('Credit Card'),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) onPaymentMethodChanged(value);
@@ -429,10 +448,7 @@ class _TotalsCard extends StatelessWidget {
               const Divider(height: 24),
               _AmountRow(label: l10n.total, amount: subtotal, isTotal: true),
               const SizedBox(height: 8),
-              Text(
-                l10n.salesReceipt,
-                style: theme.textTheme.bodySmall,
-              ),
+              Text(l10n.salesReceipt, style: theme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -455,8 +471,12 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
+        ? Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
+        : Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

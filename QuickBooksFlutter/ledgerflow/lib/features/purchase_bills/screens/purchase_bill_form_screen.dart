@@ -22,10 +22,12 @@ class PurchaseBillFormScreen extends ConsumerStatefulWidget {
   final String? inventoryReceiptId;
 
   @override
-  ConsumerState<PurchaseBillFormScreen> createState() => _PurchaseBillFormScreenState();
+  ConsumerState<PurchaseBillFormScreen> createState() =>
+      _PurchaseBillFormScreenState();
 }
 
-class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen> {
+class _PurchaseBillFormScreenState
+    extends ConsumerState<PurchaseBillFormScreen> {
   VendorModel? _selectedVendor;
   BillingPlanModel? _activePlan;
   ReceiveInventoryModel? _selectedReceipt;
@@ -76,7 +78,9 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
 
     setState(() => _loadingPlan = true);
     try {
-      final result = await ref.read(purchaseBillsRepositoryProvider).getBillingPlan(receipt.id);
+      final result = await ref
+          .read(purchaseBillsRepositoryProvider)
+          .getBillingPlan(receipt.id);
       result.when(
         success: (plan) {
           final billableLines = plan.lines
@@ -124,7 +128,9 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
       return;
     }
 
-    final validLines = _lines.where((l) => l.itemId != null && l.qty > 0).toList();
+    final validLines = _lines
+        .where((l) => l.itemId != null && l.qty > 0)
+        .toList();
     if (validLines.isEmpty) {
       _showError(l10n.minOneQty);
       return;
@@ -133,7 +139,9 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
     if (_activePlan != null) {
       for (final line in validLines) {
         final planLine = _activePlan!.lines
-            .where((p) => p.inventoryReceiptLineId == line.inventoryReceiptLineId)
+            .where(
+              (p) => p.inventoryReceiptLineId == line.inventoryReceiptLineId,
+            )
             .firstOrNull;
         if (planLine != null && line.qty > planLine.remainingQuantity) {
           _showError('${line.descCtrl.text} exceeds remaining quantity.');
@@ -150,20 +158,28 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
         billDate: _billDate,
         dueDate: _dueDate,
         memo: _memoCtrl.text,
-        lines: validLines.map((l) => CreatePurchaseBillLineDto(
-          itemId: l.itemId!,
-          description: l.descCtrl.text,
-          quantity: l.qty,
-          unitCost: l.rate,
-          inventoryReceiptLineId: l.inventoryReceiptLineId,
-        )).toList(),
+        lines: validLines
+            .map(
+              (l) => CreatePurchaseBillLineDto(
+                itemId: l.itemId!,
+                description: l.descCtrl.text,
+                quantity: l.qty,
+                unitCost: l.rate,
+                inventoryReceiptLineId: l.inventoryReceiptLineId,
+              ),
+            )
+            .toList(),
       );
 
-      final result = await ref.read(purchaseBillsRepositoryProvider).createBill(dto);
+      final result = await ref
+          .read(purchaseBillsRepositoryProvider)
+          .createBill(dto);
       result.when(
         success: (_) {
           ref.read(purchaseBillsProvider.notifier).refresh();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
           context.pop();
         },
         failure: (e) => _showError(e.message),
@@ -174,7 +190,9 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   @override
@@ -310,11 +328,15 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
             const SizedBox(width: 12),
             ElevatedButton.icon(
               onPressed: _saving ? null : _save,
-              icon: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save),
+              icon: _saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save),
               label: Text(l10n.save),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(120, 48),
-              ),
+              style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
             ),
           ],
         ),
@@ -324,7 +346,11 @@ class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen>
 }
 
 class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({required this.label, required this.value, required this.onChanged});
+  const _DatePickerField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
   final String label;
   final DateTime value;
   final ValueChanged<DateTime> onChanged;
@@ -367,7 +393,10 @@ class _ReceiptPicker extends ConsumerWidget {
         child: Opacity(
           opacity: 0.5,
           child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(labelText: l10n.linkToRI, border: const OutlineInputBorder()),
+            decoration: InputDecoration(
+              labelText: l10n.linkToRI,
+              border: const OutlineInputBorder(),
+            ),
             items: const [],
             onChanged: (_) {},
           ),
@@ -375,7 +404,9 @@ class _ReceiptPicker extends ConsumerWidget {
       );
     }
 
-    final receiptsAsync = ref.watch(receiveInventoryByVendorProvider(vendorId!));
+    final receiptsAsync = ref.watch(
+      receiveInventoryByVendorProvider(vendorId!),
+    );
 
     return receiptsAsync.when(
       loading: () => const LinearProgressIndicator(),
@@ -387,13 +418,19 @@ class _ReceiptPicker extends ConsumerWidget {
 
         if (activeReceipts.isEmpty) {
           return InputDecorator(
-            decoration: InputDecoration(labelText: l10n.linkToRI, border: const OutlineInputBorder()),
-            child: Text(l10n.noPendingRI, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            decoration: InputDecoration(
+              labelText: l10n.linkToRI,
+              border: const OutlineInputBorder(),
+            ),
+            child: Text(
+              l10n.noPendingRI,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           );
         }
 
         return DropdownButtonFormField<ReceiveInventoryModel?>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             labelText: l10n.linkToRI,
             border: const OutlineInputBorder(),
@@ -401,11 +438,18 @@ class _ReceiptPicker extends ConsumerWidget {
           ),
           hint: Text(l10n.selectRI),
           items: [
-            DropdownMenuItem<ReceiveInventoryModel?>(value: null, child: Text(l10n.clear)),
-            ...activeReceipts.map((r) => DropdownMenuItem<ReceiveInventoryModel?>(
-              value: r,
-              child: Text('${r.receiptNumber} (${r.totalAmount.toStringAsFixed(2)})'),
-            )),
+            DropdownMenuItem<ReceiveInventoryModel?>(
+              value: null,
+              child: Text(l10n.clear),
+            ),
+            ...activeReceipts.map(
+              (r) => DropdownMenuItem<ReceiveInventoryModel?>(
+                value: r,
+                child: Text(
+                  '${r.receiptNumber} (${r.totalAmount.toStringAsFixed(2)})',
+                ),
+              ),
+            ),
           ],
           onChanged: onChanged,
         );
@@ -434,11 +478,7 @@ class _TotalsCard extends StatelessWidget {
             const SizedBox(height: 8),
             _AmountRow(label: l10n.tax, amount: 0.0),
             const Divider(height: 24),
-            _AmountRow(
-              label: l10n.total,
-              amount: subtotal,
-              isTotal: true,
-            ),
+            _AmountRow(label: l10n.total, amount: subtotal, isTotal: true),
           ],
         ),
       ),
@@ -447,7 +487,11 @@ class _TotalsCard extends StatelessWidget {
 }
 
 class _AmountRow extends StatelessWidget {
-  const _AmountRow({required this.label, required this.amount, this.isTotal = false});
+  const _AmountRow({
+    required this.label,
+    required this.amount,
+    this.isTotal = false,
+  });
   final String label;
   final double amount;
   final bool isTotal;
@@ -455,7 +499,11 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0078D4))
+        ? const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0078D4),
+          )
         : const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
     return Row(

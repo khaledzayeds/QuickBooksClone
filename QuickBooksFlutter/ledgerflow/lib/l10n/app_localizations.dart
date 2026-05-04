@@ -134,6 +134,48 @@ abstract class AppLocalizations {
   /// **'أوامر البيع'**
   String get salesOrders;
 
+  /// No description provided for @salesReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيصال بيع'**
+  String get salesReceipt;
+
+  /// No description provided for @newSalesReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيصال بيع جديد'**
+  String get newSalesReceipt;
+
+  /// No description provided for @salesReceiptDetails.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل إيصال البيع'**
+  String get salesReceiptDetails;
+
+  /// No description provided for @createSalesReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء إيصال بيع'**
+  String get createSalesReceipt;
+
+  /// No description provided for @paidNowSale.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيع نقدي مباشر'**
+  String get paidNowSale;
+
+  /// No description provided for @creditSale.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيع آجل'**
+  String get creditSale;
+
+  /// No description provided for @receivePayments.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحصيل المدفوعات'**
+  String get receivePayments;
+
   /// No description provided for @invoices.
   ///
   /// In ar, this message translates to:
@@ -427,6 +469,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اختر مورداً...'**
   String get selectVendor;
+
+  /// No description provided for @selectCustomer.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر عميلاً...'**
+  String get selectCustomer;
 
   /// No description provided for @poCreatedSuccess.
   ///
@@ -1015,6 +1063,438 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اختر حساباً بنكياً أو نقدياً'**
   String get paymentAccountHint;
+
+  /// No description provided for @salesReceipts.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيصالات البيع'**
+  String get salesReceipts;
+
+  /// No description provided for @salesReturns.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرتجعات البيع'**
+  String get salesReturns;
+
+  /// No description provided for @purchaseReturns.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرتجعات الشراء'**
+  String get purchaseReturns;
+
+  /// No description provided for @customerPayments.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحصيلات العملاء'**
+  String get customerPayments;
+
+  /// No description provided for @inventoryAdjustments.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسويات المخزون'**
+  String get inventoryAdjustments;
+
+  /// No description provided for @newInvoice.
+  ///
+  /// In ar, this message translates to:
+  /// **'فاتورة جديدة'**
+  String get newInvoice;
+
+  /// No description provided for @newPayment.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحصيل جديد'**
+  String get newPayment;
+
+  /// No description provided for @newSalesReturn.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرتجع بيع جديد'**
+  String get newSalesReturn;
+
+  /// No description provided for @newPurchaseReturn.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرتجع شراء جديد'**
+  String get newPurchaseReturn;
+
+  /// No description provided for @newInventoryAdjustment.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسوية مخزون جديدة'**
+  String get newInventoryAdjustment;
+
+  /// No description provided for @noInvoices.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد فواتير'**
+  String get noInvoices;
+
+  /// No description provided for @noPayments.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد تحصيلات عملاء'**
+  String get noPayments;
+
+  /// No description provided for @noVendorPayments.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد مدفوعات موردين'**
+  String get noVendorPayments;
+
+  /// No description provided for @noSalesReturns.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد مرتجعات بيع'**
+  String get noSalesReturns;
+
+  /// No description provided for @noSalesReceipts.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد إيصالات بيع'**
+  String get noSalesReceipts;
+
+  /// No description provided for @startSalesReceipt.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابدأ بيعاً مباشراً بإيصال بيع'**
+  String get startSalesReceipt;
+
+  /// No description provided for @noPurchaseReturns.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد مرتجعات شراء'**
+  String get noPurchaseReturns;
+
+  /// No description provided for @selectCustomerFirst.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر العميل أولاً'**
+  String get selectCustomerFirst;
+
+  /// No description provided for @selectInvoiceFirst.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر الفاتورة أولاً'**
+  String get selectInvoiceFirst;
+
+  /// No description provided for @selectPurchaseBillFirst.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر فاتورة الشراء أولاً'**
+  String get selectPurchaseBillFirst;
+
+  /// No description provided for @selectDepositAccountFirst.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر حساب الإيداع أولاً'**
+  String get selectDepositAccountFirst;
+
+  /// No description provided for @selectPaymentAccountFirst.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر حساب الدفع أولاً'**
+  String get selectPaymentAccountFirst;
+
+  /// No description provided for @enterPositiveAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل مبلغاً أكبر من صفر'**
+  String get enterPositiveAmount;
+
+  /// No description provided for @selectAtLeastOneLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر سطرًا واحدًا على الأقل'**
+  String get selectAtLeastOneLine;
+
+  /// No description provided for @returnQuantityCannotExceedOriginal.
+  ///
+  /// In ar, this message translates to:
+  /// **'كمية المرتجع لا يمكن أن تتجاوز الكمية الأصلية'**
+  String get returnQuantityCannotExceedOriginal;
+
+  /// No description provided for @invoiceSavedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ الفاتورة بنجاح'**
+  String get invoiceSavedSuccess;
+
+  /// No description provided for @customerPaymentSavedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل تحصيل العميل بنجاح'**
+  String get customerPaymentSavedSuccess;
+
+  /// No description provided for @salesReturnSavedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ مرتجع البيع بنجاح'**
+  String get salesReturnSavedSuccess;
+
+  /// No description provided for @salesReceiptCreatedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إنشاء إيصال البيع بنجاح'**
+  String get salesReceiptCreatedSuccess;
+
+  /// No description provided for @purchaseReturnSavedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ مرتجع الشراء بنجاح'**
+  String get purchaseReturnSavedSuccess;
+
+  /// No description provided for @customer.
+  ///
+  /// In ar, this message translates to:
+  /// **'العميل'**
+  String get customer;
+
+  /// No description provided for @invoice.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفاتورة'**
+  String get invoice;
+
+  /// No description provided for @purchaseBill.
+  ///
+  /// In ar, this message translates to:
+  /// **'فاتورة الشراء'**
+  String get purchaseBill;
+
+  /// No description provided for @depositAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب الإيداع'**
+  String get depositAccount;
+
+  /// No description provided for @selectDepositAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر حساب الإيداع...'**
+  String get selectDepositAccount;
+
+  /// No description provided for @depositAccountHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر حساباً بنكياً أو نقدياً'**
+  String get depositAccountHint;
+
+  /// No description provided for @returnDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ المرتجع'**
+  String get returnDate;
+
+  /// No description provided for @unitCost.
+  ///
+  /// In ar, this message translates to:
+  /// **'تكلفة الوحدة'**
+  String get unitCost;
+
+  /// No description provided for @unitPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'سعر الوحدة'**
+  String get unitPrice;
+
+  /// No description provided for @originalQuantity.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكمية الأصلية'**
+  String get originalQuantity;
+
+  /// No description provided for @returnQuantity.
+  ///
+  /// In ar, this message translates to:
+  /// **'كمية المرتجع'**
+  String get returnQuantity;
+
+  /// No description provided for @lineTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي السطر'**
+  String get lineTotal;
+
+  /// No description provided for @statusVoided.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملغي'**
+  String get statusVoided;
+
+  /// No description provided for @statusPosted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرحل'**
+  String get statusPosted;
+
+  /// No description provided for @cash.
+  ///
+  /// In ar, this message translates to:
+  /// **'كاش'**
+  String get cash;
+
+  /// No description provided for @check.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيك'**
+  String get check;
+
+  /// No description provided for @bankTransfer.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل بنكي'**
+  String get bankTransfer;
+
+  /// No description provided for @creditCard.
+  ///
+  /// In ar, this message translates to:
+  /// **'بطاقة'**
+  String get creditCard;
+
+  /// No description provided for @reason.
+  ///
+  /// In ar, this message translates to:
+  /// **'السبب'**
+  String get reason;
+
+  /// No description provided for @totalReturn.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المرتجع'**
+  String get totalReturn;
+
+  /// No description provided for @posted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرحل'**
+  String get posted;
+
+  /// No description provided for @voided.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملغي'**
+  String get voided;
+
+  /// No description provided for @noInventoryAdjustments.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد تسويات مخزون'**
+  String get noInventoryAdjustments;
+
+  /// No description provided for @startWithNewInventoryAdjustment.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابدأ بإنشاء تسوية مخزون جديدة.'**
+  String get startWithNewInventoryAdjustment;
+
+  /// No description provided for @selectItemFirst.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر الصنف أولاً'**
+  String get selectItemFirst;
+
+  /// No description provided for @enterValidQuantity.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل كمية صحيحة'**
+  String get enterValidQuantity;
+
+  /// No description provided for @inventoryAdjustmentSavedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ تسوية المخزون بنجاح'**
+  String get inventoryAdjustmentSavedSuccess;
+
+  /// No description provided for @journalEntries.
+  ///
+  /// In ar, this message translates to:
+  /// **'القيود اليومية'**
+  String get journalEntries;
+
+  /// No description provided for @newJournalEntry.
+  ///
+  /// In ar, this message translates to:
+  /// **'قيد يومية جديد'**
+  String get newJournalEntry;
+
+  /// No description provided for @noJournalEntries.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد قيود يومية'**
+  String get noJournalEntries;
+
+  /// No description provided for @startWithNewJournalEntry.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابدأ بإنشاء قيد يومية متوازن.'**
+  String get startWithNewJournalEntry;
+
+  /// No description provided for @entryDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ القيد'**
+  String get entryDate;
+
+  /// No description provided for @memo.
+  ///
+  /// In ar, this message translates to:
+  /// **'مذكرة'**
+  String get memo;
+
+  /// No description provided for @debit.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدين'**
+  String get debit;
+
+  /// No description provided for @credit.
+  ///
+  /// In ar, this message translates to:
+  /// **'دائن'**
+  String get credit;
+
+  /// No description provided for @totalDebit.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المدين'**
+  String get totalDebit;
+
+  /// No description provided for @totalCredit.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الدائن'**
+  String get totalCredit;
+
+  /// No description provided for @balanced.
+  ///
+  /// In ar, this message translates to:
+  /// **'متوازن'**
+  String get balanced;
+
+  /// No description provided for @unbalanced.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير متوازن'**
+  String get unbalanced;
+
+  /// No description provided for @saveAndPost.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ وترحيل'**
+  String get saveAndPost;
+
+  /// No description provided for @journalEntrySavedSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حفظ قيد اليومية بنجاح'**
+  String get journalEntrySavedSuccess;
+
+  /// No description provided for @itemsLines.
+  ///
+  /// In ar, this message translates to:
+  /// **'سطور'**
+  String get itemsLines;
 }
 
 class _AppLocalizationsDelegate
