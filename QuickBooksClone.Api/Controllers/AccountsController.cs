@@ -105,12 +105,24 @@ public sealed class AccountsController : ControllerBase
 
     [HttpPatch("{id:guid}/active")]
     [RequirePermission("Accounting.Manage")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(AccountDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SetActive(Guid id, SetAccountActiveRequest request, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<AccountDto>> SetActive(Guid id, SetAccountActiveRequest request, CancellationToken cancellationToken = default)
     {
         var updated = await _accounts.SetActiveAsync(id, request.IsActive, cancellationToken);
-        return updated ? NoContent() : NotFound();
+        if (!updated)
+        {
+            return NotFound();
+        }
+
+        var account = await _accounts.GetByIdAsync(id, cancellationToken);
+        if (account is null)
+        {
+            return NotFound();
+        }
+
+        var balances = await GetAccountBalancesAsync(cancellationToken);
+        return Ok(ToDto(account, balances));
     }
 
     private async Task<string?> ValidateUniqueAccountAsync(
