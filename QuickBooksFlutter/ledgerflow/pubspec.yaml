@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_localizations:       # ✅ موجود
+  flutter_localizations:
     sdk: flutter
 
   # State Management
@@ -22,8 +22,11 @@ dependencies:
   # Network
   dio: ^5.9.2
 
+  # Local Settings Storage
+  shared_preferences: ^2.5.3
+
   # Formatting — يتوافق مع flutter_localizations في Dart 3.9
-  intl: ^0.20.2              # ← كانت ^0.18.1 (غلط)
+  intl: ^0.20.2
 
   # Icons
   cupertino_icons: ^1.0.8
