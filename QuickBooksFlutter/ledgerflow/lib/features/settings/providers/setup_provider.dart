@@ -11,6 +11,7 @@ class SetupState {
     this.submitting = false,
     this.status,
     this.lastResult,
+    this.defaultAccountsSeed,
     this.errorMessage,
     this.successMessage,
   });
@@ -19,6 +20,7 @@ class SetupState {
   final bool submitting;
   final SetupStatusModel? status;
   final InitializeCompanyResultModel? lastResult;
+  final DefaultAccountsSeedResultModel? defaultAccountsSeed;
   final String? errorMessage;
   final String? successMessage;
 
@@ -27,6 +29,7 @@ class SetupState {
     bool? submitting,
     SetupStatusModel? status,
     InitializeCompanyResultModel? lastResult,
+    DefaultAccountsSeedResultModel? defaultAccountsSeed,
     String? errorMessage,
     String? successMessage,
     bool clearError = false,
@@ -37,6 +40,7 @@ class SetupState {
       submitting: submitting ?? this.submitting,
       status: status ?? this.status,
       lastResult: lastResult ?? this.lastResult,
+      defaultAccountsSeed: defaultAccountsSeed ?? this.defaultAccountsSeed,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       successMessage: clearSuccess ? null : successMessage ?? this.successMessage,
     );
@@ -73,6 +77,21 @@ class SetupNotifier extends Notifier<SetupState> {
         lastResult: result,
         status: status,
         successMessage: 'Company initialized: ${result.companyName}',
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(submitting: false, errorMessage: error.toString());
+    }
+  }
+
+  Future<void> seedDefaultAccounts() async {
+    state = state.copyWith(submitting: true, clearError: true, clearSuccess: true);
+    try {
+      final result = await _repository.seedDefaultAccounts();
+      state = state.copyWith(
+        submitting: false,
+        defaultAccountsSeed: result,
+        successMessage: 'Default accounts ready. Created: ${result.createdCount}, skipped: ${result.skippedCount}',
         clearError: true,
       );
     } catch (error) {
