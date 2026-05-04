@@ -39,13 +39,13 @@ public sealed class SalesActivityService
 
         var pageSize = Math.Clamp(limit, 1, 20);
         var invoiceResult = await _invoices.SearchAsync(
-            new InvoiceSearch(null, customerId, InvoicePaymentMode.Credit, includeVoid: true, page: 1, pageSize: pageSize),
+            new InvoiceSearch(null, customerId, InvoicePaymentMode.Credit, true, 1, pageSize),
             cancellationToken);
         var receiptResult = await _invoices.SearchAsync(
-            new InvoiceSearch(null, customerId, InvoicePaymentMode.Cash, includeVoid: true, page: 1, pageSize: pageSize),
+            new InvoiceSearch(null, customerId, InvoicePaymentMode.Cash, true, 1, pageSize),
             cancellationToken);
         var paymentResult = await _payments.SearchAsync(
-            new PaymentSearch(null, customerId, null, includeVoid: true, page: 1, pageSize: pageSize),
+            new PaymentSearch(null, customerId, null, true, 1, pageSize),
             cancellationToken);
 
         var warnings = new List<string>();
