@@ -69,7 +69,7 @@ class _InvoiceCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.go('/sales/invoices/${invoice.id}'),
+        onTap: () => context.go(AppRoutes.invoiceDetails.replaceFirst(':id', invoice.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
