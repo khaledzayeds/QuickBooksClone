@@ -98,6 +98,11 @@ public sealed class SalesReceiptsController : ControllerBase
             return BadRequest("Customer does not exist.");
         }
 
+        if (!customer.IsActive)
+        {
+            return BadRequest("Cannot create a sales receipt for an inactive customer.");
+        }
+
         if (request.Lines.Count == 0)
         {
             return BadRequest("Sales receipt must have at least one line.");
@@ -124,6 +129,12 @@ public sealed class SalesReceiptsController : ControllerBase
 
         foreach (var line in request.Lines)
         {
+            var lineValidation = ValidateSalesLine(line.ItemId, line.Quantity, line.UnitPrice, line.DiscountPercent);
+            if (lineValidation is not null)
+            {
+                return BadRequest(lineValidation);
+            }
+
             var item = await _items.GetByIdAsync(line.ItemId, cancellationToken);
             if (item is null)
             {
@@ -133,6 +144,11 @@ public sealed class SalesReceiptsController : ControllerBase
             if (!item.IsActive)
             {
                 return BadRequest($"Cannot use inactive item on a sales receipt: {item.Name}");
+            }
+
+            if (item.ItemType == ItemType.Bundle)
+            {
+                return BadRequest($"Bundle item '{item.Name}' cannot be used until component posting is implemented.");
             }
 
             var unitPrice = line.UnitPrice > 0 ? line.UnitPrice : item.SalesPrice;
@@ -299,9 +315,39 @@ public sealed class SalesReceiptsController : ControllerBase
             return "Deposit account does not exist.";
         }
 
+        if (!depositAccount.IsActive)
+        {
+            return "Deposit account is inactive.";
+        }
+
         if (depositAccount.AccountType is not AccountType.Bank and not AccountType.OtherCurrentAsset)
         {
             return "Deposit account must be a bank or other current asset account.";
+        }
+
+        return null;
+    }
+
+    private static string? ValidateSalesLine(Guid itemId, decimal quantity, decimal unitPrice, decimal discountPercent)
+    {
+        if (itemId == Guid.Empty)
+        {
+            return "Line item is required.";
+        }
+
+        if (quantity <= 0)
+        {
+            return "Line quantity must be greater than zero.";
+        }
+
+        if (unitPrice < 0)
+        {
+            return "Line unit price cannot be negative.";
+        }
+
+        if (discountPercent is < 0 or > 100)
+        {
+            return "Line discount percent must be between 0 and 100.";
         }
 
         return null;
