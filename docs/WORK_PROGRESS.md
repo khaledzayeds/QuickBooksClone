@@ -38,6 +38,7 @@ F) Banking / Inventory Pro / Payroll
 9. أي private signing key لازم يفضل خارج تطبيق العميل تمامًا.
 10. Restore operations must create or offer safety backup before overwriting live company data.
 11. First-run setup must not overwrite an already initialized company.
+12. Default account seeding must be idempotent and skip existing account codes.
 
 ---
 
@@ -114,7 +115,7 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add initialize company endpoint.
 - [x] Add first admin user flow.
 - [x] Wire Flutter Setup Wizard to setup status/init endpoints.
-- [ ] Add default accounts seeding flow.
+- [x] Add default accounts seeding flow.
 
 ### Already Done
 
@@ -132,16 +133,24 @@ F) Banking / Inventory Pro / Payroll
 - [x] Added backup/restore API contracts/controller and wired Flutter Backup Settings.
 - [x] Added setup API contracts and controller:
   - `QuickBooksClone.Api/Contracts/Setup/SetupContracts.cs`
+  - `QuickBooksClone.Api/Contracts/Setup/DefaultAccountsSeedContracts.cs`
   - `QuickBooksClone.Api/Controllers/SetupController.cs`
 - [x] Setup API supports:
   - `GET /api/setup/status`
   - `POST /api/setup/initialize-company`
-- [x] Initialize Company flow creates company settings, ensures system `ADMIN` role with all permissions, creates first admin user, hashes initial admin secret, and blocks re-initializing an already initialized company.
+  - `POST /api/setup/seed-default-accounts`
+- [x] Initialize Company flow creates company settings, ensures system `ADMIN` role with all permissions, creates first admin user, hashes initial admin secret, blocks re-initializing an already initialized company, and seeds default chart of accounts.
+- [x] Added default accounts seed service:
+  - `QuickBooksClone.Core/Accounting/DefaultAccountsSeedModels.cs`
+  - `QuickBooksClone.Infrastructure/Accounting/DefaultAccountsSeeder.cs`
+  - Registered `IDefaultAccountsSeeder` in `Program.cs`.
+- [x] Default accounts seed is idempotent: it creates missing codes and skips existing codes.
 - [x] Added Flutter setup models/repository/provider:
   - `setup_models.dart`
   - `setup_repository.dart`
   - `setup_provider.dart`
 - [x] Setup Wizard now calls setup status endpoint and includes a real Create Company + First Admin form.
+- [x] Setup Wizard Default Accounts step now runs default accounts seeding and displays created/skipped account codes.
 - [x] Applied first route gates:
   - Backup Settings gated by `LicenseFeature.backupRestore`
   - Payroll route gated by `LicenseFeature.payroll`
@@ -154,7 +163,7 @@ F) Banking / Inventory Pro / Payroll
 - The visible Flutter Activate Online button calls the backend, verifies the returned signed package, and saves it locally.
 - Backup/Restore is now the first paid feature protected on both Flutter and API layers.
 - Setup Status / Initialize Company is now wired from Flutter to backend.
-- Default accounts seeding is still pending and should happen after or inside initialize-company.
+- Default accounts seeding now happens automatically during initialize-company and can also be re-run manually from the Setup Wizard.
 - The server private key must be supplied through `Licensing:PrivateKey` or `LEDGERFLOW_LICENSE_PRIVATE_KEY`; do not commit a real private key.
 - A real production public key must be generated and pasted into `LicensePublicKeyConfig` before using the flow commercially.
 - Import Backup endpoint exists but Flutter import file picker is not wired yet.
@@ -275,7 +284,8 @@ F) Banking / Inventory Pro / Payroll
 - Wired Flutter Backup Settings to list/create/restore backups and show restore audit log.
 - Added setup status and initialize company endpoints with first admin creation.
 - Wired Flutter Setup Wizard to setup status/init endpoints with a real first-run form.
+- Added idempotent default accounts seeding and wired it into initialize-company and Setup Wizard.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: add default accounts seeding, installer integration, or Core MVP polish.
+- Next focus: users/permissions Flutter API wiring, importer/exporter backup polish, installer integration, or Core MVP polish.
