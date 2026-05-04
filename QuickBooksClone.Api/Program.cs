@@ -1,4 +1,5 @@
 using QuickBooksClone.Api.Middleware;
+using QuickBooksClone.Api.Services;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.CustomerCredits;
@@ -82,6 +83,7 @@ builder.Services.AddScoped<IEstimateRepository, EfEstimateRepository>();
 builder.Services.AddScoped<IItemRepository, EfItemRepository>();
 builder.Services.AddScoped<IInvoiceRepository, EfInvoiceRepository>();
 builder.Services.AddScoped<ISalesInvoicePostingService, SalesInvoicePostingService>();
+builder.Services.AddScoped<SalesPostingPreviewService>();
 builder.Services.AddScoped<IInventoryAdjustmentRepository, EfInventoryAdjustmentRepository>();
 builder.Services.AddScoped<IInventoryAdjustmentPostingService, InventoryAdjustmentPostingService>();
 builder.Services.AddScoped<IJournalEntryRepository, EfJournalEntryRepository>();
