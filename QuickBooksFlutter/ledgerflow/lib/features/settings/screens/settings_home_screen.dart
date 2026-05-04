@@ -112,7 +112,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   icon: Icons.flag_outlined,
                   title: 'Setup Wizard',
                   subtitle: 'First-run company setup, admin user, taxes, and accounts.',
-                  onTap: () => _openComingSoon(context, 'Setup Wizard'),
+                  onTap: () => context.go(AppRoutes.setupWizard),
                 ),
                 _SettingsTile(
                   icon: Icons.verified_user_outlined,
