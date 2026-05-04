@@ -9,11 +9,31 @@ namespace QuickBooksClone.Api.Controllers;
 [Route("api/licenses")]
 public sealed class LicensesController : ControllerBase
 {
+    private readonly IConfiguration _configuration;
     private readonly ILicenseActivationService _activationService;
 
-    public LicensesController(ILicenseActivationService activationService)
+    public LicensesController(IConfiguration configuration, ILicenseActivationService activationService)
     {
+        _configuration = configuration;
         _activationService = activationService;
+    }
+
+    [HttpGet("status")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LicenseStatusResponse), StatusCodes.Status200OK)]
+    public ActionResult<LicenseStatusResponse> GetStatus()
+    {
+        var section = _configuration.GetSection("Licensing:CurrentLicense");
+        var features = section.GetSection("Features").GetChildren()
+            .ToDictionary(child => child.Key, child => bool.TryParse(child.Value, out var value) && value, StringComparer.OrdinalIgnoreCase);
+        var expiresAtRaw = section.GetValue<string>("ExpiresAt");
+        var expiresAt = DateTimeOffset.TryParse(expiresAtRaw, out var parsed) ? parsed : (DateTimeOffset?)null;
+
+        return Ok(new LicenseStatusResponse(
+            section.GetValue("Edition", "unknown")!,
+            section.GetValue("Status", "inactive")!,
+            expiresAt,
+            features));
     }
 
     [HttpPost("activate")]
