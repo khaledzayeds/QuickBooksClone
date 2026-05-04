@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../data/models/setup_models.dart';
+import '../providers/setup_provider.dart';
 
-class SetupWizardScreen extends StatefulWidget {
+class SetupWizardScreen extends ConsumerStatefulWidget {
   const SetupWizardScreen({super.key});
 
   @override
-  State<SetupWizardScreen> createState() => _SetupWizardScreenState();
+  ConsumerState<SetupWizardScreen> createState() => _SetupWizardScreenState();
 }
 
-class _SetupWizardScreenState extends State<SetupWizardScreen> {
+class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
   int _currentStep = 0;
 
   static const _steps = [
@@ -30,11 +33,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       status: 'Ready',
     ),
     _WizardStepData(
-      title: 'Company Profile',
-      subtitle: 'Used for New Company flow. Restored or connected companies should load this from existing company data.',
+      title: 'Create Company',
+      subtitle: 'Create the company profile and first administrator user.',
       icon: Icons.business_outlined,
-      route: AppRoutes.companySettings,
+      route: null,
       status: 'Ready',
+      kind: _WizardStepKind.initializeCompany,
     ),
     _WizardStepData(
       title: 'Tax Defaults',
@@ -52,7 +56,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
     ),
     _WizardStepData(
       title: 'Users & Permissions',
-      subtitle: 'New Company creates first admin here. Restore/Connect should use existing users unless Recovery Admin is needed.',
+      subtitle: 'Review users, roles, and permissions after first admin is created.',
       icon: Icons.admin_panel_settings_outlined,
       route: AppRoutes.usersPermissions,
       status: 'Partial',
@@ -62,7 +66,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       subtitle: 'Review database backup status and prepare backup/restore operations.',
       icon: Icons.backup_outlined,
       route: AppRoutes.backupSettings,
-      status: 'Partial',
+      status: 'Ready',
     ),
     _WizardStepData(
       title: 'Printing',
@@ -84,11 +88,23 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final current = _steps[_currentStep];
+    final setupState = ref.watch(setupProvider);
+
+    ref.listen(setupProvider, (previous, next) {
+      if (next.successMessage != null && previous?.successMessage != next.successMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.successMessage!)));
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Setup Wizard'),
         actions: [
+          IconButton(
+            tooltip: 'Refresh setup status',
+            onPressed: () => ref.read(setupProvider.notifier).loadStatus(),
+            icon: const Icon(Icons.refresh),
+          ),
           TextButton.icon(
             onPressed: () => context.go(AppRoutes.settings),
             icon: const Icon(Icons.close),
@@ -105,7 +121,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   children: [
                     SizedBox(width: 360, child: _StepRail(currentStep: _currentStep, onStepSelected: _goToStep)),
                     const VerticalDivider(width: 1),
-                    Expanded(child: _StepDetails(step: current, index: _currentStep, total: _steps.length, onBack: _back, onNext: _next)),
+                    Expanded(child: _StepDetails(step: current, index: _currentStep, total: _steps.length, onBack: _back, onNext: _next, setupState: setupState, setupNotifier: ref.read(setupProvider.notifier))),
                   ],
                 )
               : ListView(
@@ -120,7 +136,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     const SizedBox(height: 24),
                     _StepRail(currentStep: _currentStep, onStepSelected: _goToStep, compact: true),
                     const SizedBox(height: 24),
-                    _StepDetails(step: current, index: _currentStep, total: _steps.length, onBack: _back, onNext: _next),
+                    _StepDetails(step: current, index: _currentStep, total: _steps.length, onBack: _back, onNext: _next, setupState: setupState, setupNotifier: ref.read(setupProvider.notifier)),
                   ],
                 );
         },
@@ -201,6 +217,8 @@ class _StepDetails extends StatelessWidget {
     required this.total,
     required this.onBack,
     required this.onNext,
+    required this.setupState,
+    required this.setupNotifier,
   });
 
   final _WizardStepData step;
@@ -208,6 +226,8 @@ class _StepDetails extends StatelessWidget {
   final int total;
   final VoidCallback onBack;
   final VoidCallback onNext;
+  final SetupState setupState;
+  final SetupNotifier setupNotifier;
 
   @override
   Widget build(BuildContext context) {
@@ -238,9 +258,17 @@ class _StepDetails extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        _SetupStatusCard(state: setupState),
+        if (setupState.errorMessage != null) ...[
+          const SizedBox(height: 12),
+          _ErrorBanner(message: setupState.errorMessage!),
+        ],
         const SizedBox(height: 24),
         if (step.kind == _WizardStepKind.startMode)
           _StartModePanel(onNext: onNext)
+        else if (step.kind == _WizardStepKind.initializeCompany)
+          _InitializeCompanyPanel(state: setupState, notifier: setupNotifier, onInitialized: onNext)
         else
           Card(
             child: Padding(
@@ -289,6 +317,184 @@ class _StepDetails extends StatelessWidget {
   }
 }
 
+class _SetupStatusCard extends StatelessWidget {
+  const _SetupStatusCard({required this.state});
+  final SetupState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final status = state.status;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: state.loading
+            ? const Row(children: [SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 12), Text('Checking setup status...')])
+            : Row(
+                children: [
+                  Icon(status?.isInitialized == true ? Icons.check_circle_outline : Icons.pending_actions_outlined, color: status?.isInitialized == true ? cs.primary : cs.secondary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      status?.isInitialized == true
+                          ? 'Initialized: ${status?.companyName ?? '-'} • Admin: ${status?.adminUserName ?? '-'}'
+                          : 'Not fully initialized yet. Company: ${status?.hasCompanySettings == true ? 'yes' : 'no'} • Admin: ${status?.hasAdminUser == true ? 'yes' : 'no'}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _InitializeCompanyPanel extends StatefulWidget {
+  const _InitializeCompanyPanel({required this.state, required this.notifier, required this.onInitialized});
+  final SetupState state;
+  final SetupNotifier notifier;
+  final VoidCallback onInitialized;
+
+  @override
+  State<_InitializeCompanyPanel> createState() => _InitializeCompanyPanelState();
+}
+
+class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
+  final _formKey = GlobalKey<FormState>();
+  final _companyName = TextEditingController(text: 'My Company');
+  final _currency = TextEditingController(text: 'EGP');
+  final _country = TextEditingController(text: 'Egypt');
+  final _timeZone = TextEditingController(text: 'Africa/Cairo');
+  final _language = TextEditingController(text: 'ar');
+  final _adminUser = TextEditingController(text: 'admin');
+  final _adminName = TextEditingController(text: 'Owner Administrator');
+  final _adminEmail = TextEditingController();
+  final _adminSecret = TextEditingController();
+
+  @override
+  void dispose() {
+    _companyName.dispose();
+    _currency.dispose();
+    _country.dispose();
+    _timeZone.dispose();
+    _language.dispose();
+    _adminUser.dispose();
+    _adminName.dispose();
+    _adminEmail.dispose();
+    _adminSecret.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final alreadyInitialized = widget.state.status?.isInitialized == true;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: alreadyInitialized
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Company is already initialized', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 8),
+                  Text('You can continue to tax defaults, default accounts, users, backup, and printing.'),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(onPressed: widget.onInitialized, icon: const Icon(Icons.arrow_forward), label: const Text('Continue')),
+                ],
+              )
+            : Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Create New Company', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 8),
+                    Text('This creates company settings, ADMIN role, and the first administrator account.'),
+                    const SizedBox(height: 20),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final two = constraints.maxWidth >= 760;
+                        final fields = [
+                          _Field(controller: _companyName, label: 'Company Name', required: true),
+                          _Field(controller: _currency, label: 'Currency', required: true),
+                          _Field(controller: _country, label: 'Country', required: true),
+                          _Field(controller: _timeZone, label: 'Time Zone', required: true),
+                          _Field(controller: _language, label: 'Default Language', required: true),
+                          _Field(controller: _adminUser, label: 'Admin Username', required: true),
+                          _Field(controller: _adminName, label: 'Admin Display Name', required: true),
+                          _Field(controller: _adminEmail, label: 'Admin Email'),
+                          _Field(controller: _adminSecret, label: 'Initial Admin Secret', required: true, obscure: true),
+                        ];
+                        if (!two) return Column(children: fields.map((f) => Padding(padding: const EdgeInsets.only(bottom: 12), child: f)).toList());
+                        return Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: fields.map((field) => SizedBox(width: (constraints.maxWidth - 12) / 2, child: field)).toList(),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: widget.state.submitting ? null : _submit,
+                      icon: widget.state.submitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.add_business_outlined),
+                      label: const Text('Initialize Company'),
+                    ),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    await widget.notifier.initializeCompany(
+      InitializeCompanyPayload(
+        companyName: _companyName.text,
+        currency: _currency.text,
+        country: _country.text,
+        timeZoneId: _timeZone.text,
+        defaultLanguage: _language.text,
+        adminUserName: _adminUser.text,
+        adminDisplayName: _adminName.text,
+        adminEmail: _adminEmail.text.isEmpty ? null : _adminEmail.text,
+        initialAdminSecret: _adminSecret.text,
+      ),
+    );
+    if (mounted && widget.notifier.state.status?.isInitialized == true) {
+      widget.onInitialized();
+    }
+  }
+}
+
+class _Field extends StatelessWidget {
+  const _Field({required this.controller, required this.label, this.required = false, this.obscure = false});
+  final TextEditingController controller;
+  final String label;
+  final bool required;
+  final bool obscure;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscure,
+      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      validator: required
+          ? (value) {
+              if (value == null || value.trim().isEmpty) return '$label is required';
+              if (label.contains('Secret') && value.trim().length < 8) return 'Must be at least 8 characters';
+              return null;
+            }
+          : null,
+    );
+  }
+}
+
 class _StartModePanel extends StatelessWidget {
   const _StartModePanel({required this.onNext});
   final VoidCallback onNext;
@@ -326,7 +532,7 @@ class _StartModePanel extends StatelessWidget {
                     icon: Icons.restore_outlined,
                     title: 'Restore Existing Backup',
                     subtitle: 'Restore a previous company backup, then login using restored users. Recovery Admin only if required.',
-                    badge: 'Needs backend restore',
+                    badge: 'Ready',
                     onPressed: () => context.go(AppRoutes.backupSettings),
                   ),
                   _StartModeCard(
@@ -459,7 +665,28 @@ class _StatusBanner extends StatelessWidget {
   }
 }
 
-enum _WizardStepKind { normal, startMode }
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: cs.onErrorContainer),
+          const SizedBox(width: 12),
+          Expanded(child: Text(message, style: TextStyle(color: cs.onErrorContainer))),
+        ],
+      ),
+    );
+  }
+}
+
+enum _WizardStepKind { normal, startMode, initializeCompany }
 
 class _WizardStepData {
   const _WizardStepData({
