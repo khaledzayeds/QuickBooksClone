@@ -5,38 +5,45 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../settings/data/models/printing_settings_model.dart';
 import '../data/models/print_data_contracts.dart';
 
 class ThermalDocumentPdfService {
   const ThermalDocumentPdfService();
 
-  Future<Uint8List> build(DocumentPrintDataModel data) async {
+  Future<Uint8List> build(DocumentPrintDataModel data, PrintingSettingsModel settings) async {
     final doc = pw.Document();
-    final pageWidth = 80 * PdfPageFormat.mm;
+    final pageWidth = settings.thermalWidth.widthMillimeters * PdfPageFormat.mm;
+    final margin = settings.thermalWidth == ThermalWidth.mm58 ? 3 * PdfPageFormat.mm : 5 * PdfPageFormat.mm;
 
     doc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(pageWidth, double.infinity, marginAll: 5 * PdfPageFormat.mm),
+        pageFormat: PdfPageFormat(pageWidth, double.infinity, marginAll: margin),
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
+            if (settings.showLogo) _center('[ LOGO ]', fontSize: 8),
             _center(data.company.companyName, fontSize: 12, bold: true),
+            if (settings.showCompanyAddress) _center(data.company.country, fontSize: 8),
             if ((data.company.phone ?? '').isNotEmpty) _center('Tel: ${data.company.phone}', fontSize: 8),
             if ((data.company.email ?? '').isNotEmpty) _center(data.company.email!, fontSize: 8),
-            _divider(),
+            _divider(settings),
             _center(data.documentType.toUpperCase(), fontSize: 11, bold: true),
             _center('#${data.documentNumber}', fontSize: 10, bold: true),
             pw.SizedBox(height: 4),
             _kv('Date', _formatDate(data.documentDate)),
             _kv('Customer', data.customer.displayName),
+            if (settings.showCustomerBalance) _kv('Balance', '${data.customer.openBalance.toStringAsFixed(2)} ${data.customer.currency}'),
             if ((data.payment?.paymentMethod ?? '').isNotEmpty) _kv('Pay', data.payment!.paymentMethod!),
             if ((data.payment?.depositAccountName ?? '').isNotEmpty) _kv('Deposit', data.payment!.depositAccountName!),
-            _divider(),
+            _divider(settings),
             ...data.lines.map(_line),
-            _divider(),
-            ...data.summaryRows.map((row) => _amountRow(row.label, row.amount, data.company.currency, bold: row.isStrong)),
-            _divider(),
-            _center('Thank you', fontSize: 9, bold: true),
+            _divider(settings),
+            ...data.summaryRows
+                .where((row) => settings.showTaxSummary || row.label.toLowerCase() != 'tax')
+                .map((row) => _amountRow(row.label, row.amount, data.company.currency, bold: row.isStrong)),
+            _divider(settings),
+            if ((settings.receiptFooterMessage ?? '').isNotEmpty) _center(settings.receiptFooterMessage!, fontSize: 9, bold: true),
             _center('Generated: ${_formatDateTime(data.generatedAt)}', fontSize: 7),
           ],
         ),
@@ -97,10 +104,11 @@ class ThermalDocumentPdfService {
     );
   }
 
-  pw.Widget _divider() {
+  pw.Widget _divider(PrintingSettingsModel settings) {
+    final marks = settings.thermalWidth == ThermalWidth.mm58 ? '------------------------' : '--------------------------------';
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 5),
-      child: pw.Text('--------------------------------', textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8)),
+      child: pw.Text(marks, textAlign: pw.TextAlign.center, style: const pw.TextStyle(fontSize: 8)),
     );
   }
 
