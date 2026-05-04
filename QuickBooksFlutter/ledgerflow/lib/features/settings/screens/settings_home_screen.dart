@@ -100,7 +100,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                   icon: Icons.print_outlined,
                   title: 'Printing',
                   subtitle: 'A4 invoices, thermal receipts, logos, and document templates.',
-                  onTap: () => _openComingSoon(context, 'Printing Settings'),
+                  onTap: () => context.go(AppRoutes.printingSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.admin_panel_settings_outlined,
