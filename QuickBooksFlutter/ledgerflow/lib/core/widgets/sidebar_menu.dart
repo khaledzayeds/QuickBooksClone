@@ -24,7 +24,6 @@ class SidebarMenu extends ConsumerWidget {
       color: AppColors.sidebarBg,
       child: Column(
         children: [
-          // ── Logo Section ──────────────────────────
           Container(
             height: 64,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -44,7 +43,6 @@ class SidebarMenu extends ConsumerWidget {
             ),
           ),
 
-          // ── Search Mockup (QuickBooks Style) ──────
           if (!isCollapsed)
             Padding(
               padding: const EdgeInsets.all(12),
@@ -64,7 +62,6 @@ class SidebarMenu extends ConsumerWidget {
 
           const Divider(color: Colors.white12, height: 1),
 
-          // ── Shortcuts Section ─────────────────────
           if (!isCollapsed)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -82,13 +79,24 @@ class SidebarMenu extends ConsumerWidget {
               padding: EdgeInsets.zero,
               children: [
                 _ShortcutItem(icon: Icons.home_outlined, label: l10n.home, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.business_outlined, label: l10n.myCompany, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: l10n.cashFlowHub, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.business_outlined, label: l10n.myCompany, path: AppRoutes.myCompany, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: l10n.cashFlowHub, path: AppRoutes.cashFlowHub, current: location, isCollapsed: isCollapsed),
                 _ShortcutItem(icon: Icons.trending_up_outlined, label: l10n.incomeTracker, path: AppRoutes.invoices, current: location, isCollapsed: isCollapsed),
                 _ShortcutItem(icon: Icons.receipt_outlined, label: l10n.billTracker, path: AppRoutes.purchaseBills, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.calendar_today_outlined, label: l10n.calendar, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.camera_alt_outlined, label: l10n.snapshots, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                
+                _ShortcutItem(icon: Icons.calendar_today_outlined, label: l10n.calendar, path: AppRoutes.calendar, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.camera_alt_outlined, label: l10n.snapshots, path: AppRoutes.snapshots, current: location, isCollapsed: isCollapsed),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Divider(color: Colors.white12, height: 1),
+                ),
+
+                _ShortcutItem(icon: Icons.point_of_sale_outlined, label: l10n.salesReceipts, path: AppRoutes.salesReceipts, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.assignment_return_outlined, label: 'Sales Returns', path: AppRoutes.salesReturns, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: 'Customer Credits', path: AppRoutes.customerCredits, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.keyboard_return_outlined, label: 'Purchase Returns', path: AppRoutes.purchaseReturns, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.account_balance_outlined, label: 'Vendor Credits', path: AppRoutes.vendorCredits, current: location, isCollapsed: isCollapsed),
+
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(color: Colors.white12, height: 1),
@@ -96,12 +104,11 @@ class SidebarMenu extends ConsumerWidget {
 
                 _ShortcutItem(icon: Icons.list_alt_outlined, label: l10n.viewBalances, path: AppRoutes.chartOfAccounts, current: location, isCollapsed: isCollapsed),
                 _ShortcutItem(icon: Icons.description_outlined, label: l10n.runFavoriteReports, path: AppRoutes.reports, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.window_outlined, label: l10n.openWindows, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(icon: Icons.window_outlined, label: l10n.openWindows, path: AppRoutes.openWindows, current: location, isCollapsed: isCollapsed),
               ],
             ),
           ),
 
-          // ── Collapse Toggle ─────────────────────
           InkWell(
             onTap: () => ref.read(sidebarCollapsedProvider.notifier).state = !isCollapsed,
             child: Container(
@@ -126,10 +133,10 @@ class _ShortcutItem extends StatelessWidget {
   });
 
   final IconData icon;
-  final String   label;
-  final String   path;
-  final String   current;
-  final bool     isCollapsed;
+  final String label;
+  final String path;
+  final String current;
+  final bool isCollapsed;
 
   bool get _isActive {
     if (path == AppRoutes.dashboard) return current == '/';
