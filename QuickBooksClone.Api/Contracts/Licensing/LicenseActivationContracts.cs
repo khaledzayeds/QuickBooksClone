@@ -13,3 +13,9 @@ public sealed record ActivateLicenseResponse(
     string Status,
     DateTimeOffset IssuedAt,
     DateTimeOffset? ExpiresAt);
+
+public sealed record LicenseStatusResponse(
+    string Edition,
+    string Status,
+    DateTimeOffset? ExpiresAt,
+    IReadOnlyDictionary<string, bool> Features);
