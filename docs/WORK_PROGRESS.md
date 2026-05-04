@@ -52,7 +52,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Status
 
-`Required before invoice/purchase screen polish`
+`Reusable foundation started`
 
 ### Product Decision
 
@@ -60,116 +60,43 @@ Start with full accounting transaction screens first, not cart-only screens. The
 
 Fast POS/cart/mobile screens are still planned, but they should be built later as separate modes using the same backend and reusable transaction components. They must not replace the full accounting screen.
 
-### Why
+### Reusable Transaction Widgets Started
 
-- Full screens are required for commercial accounting accuracy.
-- They support invoices, terms, due dates, tax, credit, print templates, posting review, and audit behavior.
-- POS/cart/mobile screens are excellent for speed, but not enough for all invoice/accounting cases.
-- Building reusable transaction components now lets us reuse the same logic later in POS/cart/mobile without duplicating posting rules.
+- [x] `transaction_models.dart`
+  - Shared transaction kind/status/party/print enums.
+  - Shared line, totals, context metric, and activity UI models.
+- [x] `transaction_header_panel.dart`
+  - Full transaction header with document kind, status, number, date, due date, terms, and reference fields.
+- [x] `transaction_party_selector.dart`
+  - Reusable customer/vendor/account selector with balance/credit chips.
+- [x] `transaction_line_grid.dart`
+  - Scanner-friendly item/barcode/SKU entry.
+  - Wide transaction line grid with item, description, qty, unit, rate, discount, tax, amount, warnings, and row actions.
+  - Shows shortcut hint text.
+- [x] `transaction_totals_footer.dart`
+  - Reusable subtotal/discount/tax/shipping/total/paid/balance due footer.
+- [x] `transaction_print_menu.dart`
+  - Preview A4, Print A4, Print Thermal, Email/Share menu skeleton.
+- [x] `transaction_action_bar.dart`
+  - Save Draft, Save, Post, Print, Clear, and Void actions with status-aware disabling.
+- [x] `transaction_context_side_panel.dart`
+  - Collapsible right panel with party snapshot metrics, recent activity, warnings, and notes.
+- [x] `transaction_keyboard_shortcuts.dart`
+  - Shortcut wrapper for Ctrl+Enter, F4, F5, F7, F8, F9, F10, Ctrl+S, Ctrl+P, Ctrl+D, Ctrl+L, and Esc.
 
-### Future Sales UI Modes
+### Still Needed Before Invoice Screen Is Final
 
-- `Accounting Invoice Mode` — full QuickBooks-style invoice/sales receipt screen.
-- `Fast Cashier/POS Mode` — cart-style scanner-first screen.
-- `Mobile Sales Mode` — simplified cart/order screen for mobile or sales reps.
-
-### Goal
-
-كل شاشة مالية تبقى سريعة ومناسبة للمحاسب والكاشير، مش مجرد فورم. المعايير دي تنطبق على:
-
-- Invoices
-- Sales Receipts
-- Purchase Orders
-- Receive Inventory
-- Purchase Bills
-- Payments
-- Vendor Payments
-- Returns / Credits
-- Inventory Adjustments
-- Journal Entries
-
-### Layout Standard
-
-- Header compact:
-  - Transaction type.
-  - Number.
-  - Date.
-  - Status: Draft / Saved / Posted / Voided.
-  - Customer/Vendor selector.
-  - Terms / due date where applicable.
-- Center working area:
-  - Fast item/account grid.
-  - Keyboard navigation.
-  - Scanner-friendly input.
-  - Totals footer always visible.
-- Right collapsible side panel:
-  - Open/close with arrow.
-  - Customer/Vendor balance.
-  - Credits available.
-  - Last transactions.
-  - Notes/warnings.
-  - Related actions.
-- Bottom action bar:
-  - Save Draft.
-  - Save.
-  - Post.
-  - Preview.
-  - Print A4.
-  - Print Thermal where applicable.
-  - Email/Share later.
-  - Void/Reversal after posting.
-
-### Scanner + Keyboard Standard
-
-- Barcode/item search cell must accept scanner input and Enter.
-- Enter after item scan/search should add/select item and move to quantity or next row based on screen mode.
-- Preferred flow for speed:
-  1. Focus starts in item search/barcode cell.
-  2. Scan barcode or type item code/name.
-  3. Enter selects the best match.
-  4. If default quantity is 1, move directly to next row.
-  5. If item requires quantity confirmation, move to quantity cell.
-  6. Enter on quantity moves to price or next row depending settings.
-- Keyboard shortcuts should be configurable later, but default proposal:
-  - Enter: accept current cell / move next logical cell.
-  - Ctrl+Enter: add line and jump to item cell.
-  - Shift+Enter: move previous cell.
-  - F2: edit current row/cell.
-  - F4: focus item search/barcode cell.
-  - F5: jump to previous line quantity cell for quick correction.
-  - F6: jump to totals/payment panel.
-  - F7: open item lookup.
-  - F8: open customer/vendor side panel.
-  - F9: save transaction.
-  - F10: preview/print menu.
-  - Ctrl+P: print.
-  - Ctrl+S: save draft/save.
-  - Ctrl+D: duplicate current line.
-  - Ctrl+L: clear current line.
-  - Esc: close lookup/side panel; second Esc asks to close transaction if unsaved.
-
-### Better alternative to only F5
-
-- Keep F5 as quick shortcut, but also support:
-  - Arrow Up/Down inside grid.
-  - Shift+Enter previous cell.
-  - Click/tap any row for manual edit.
-  - Row number gutter on the left to select/edit/delete lines quickly.
-  - Ctrl+Up / Ctrl+Down to jump between transaction lines.
+- [ ] Wire shortcut callbacks into real focus nodes/cell navigation.
+- [ ] Build lightweight item lookup popup under active grid cell.
+- [ ] Connect real customer/item repositories to invoice screen.
+- [ ] Add invoice/sales receipt form state provider.
+- [ ] Add print preview service integration.
 
 ### Implementation Direction
 
-- Build reusable transaction widgets before polishing every screen separately:
-  - `TransactionHeaderPanel`
-  - `TransactionPartySelector`
-  - `TransactionLineGrid`
-  - `TransactionLineLookupPopup`
-  - `TransactionTotalsFooter`
-  - `TransactionActionBar`
-  - `TransactionContextSidePanel`
-  - `TransactionPrintMenu`
-  - `TransactionKeyboardShortcuts`
+- Build reusable transaction widgets before polishing every screen separately.
 - Do not duplicate keyboard/grid logic separately for invoices, bills, purchase orders, and receipts.
+- First real consumer should be full accounting Invoice / Sales Receipt screen.
 
 ---
 
@@ -206,13 +133,12 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 
 ### Next Recommended Phase C Order
 
-1. Reusable transaction widgets.
-2. Invoices / Sales Receipts full accounting screens.
-3. Purchase Orders / Bills / Receive Inventory full accounting screens.
-4. Payments / Vendor Payments.
-5. Sales/Purchase returns and credits polish.
-6. Reports polish.
-7. POS/cart/mobile fast screens after full screens stabilize.
+1. Wire reusable transaction widgets into Invoices / Sales Receipts full accounting screens.
+2. Purchase Orders / Bills / Receive Inventory full accounting screens.
+3. Payments / Vendor Payments.
+4. Sales/Purchase returns and credits polish.
+5. Reports polish.
+6. POS/cart/mobile fast screens after full screens stabilize.
 
 ---
 
@@ -231,4 +157,5 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 - Completed first Vendors polish pass: backend active toggle fix, Vendor Center list, card metrics, form polish, and details view.
 - Added Transaction Screen UX Standards covering scanner support, keyboard shortcuts, fast grids, collapsible context side panels, preview/print actions, and save/post behavior before starting invoice/purchase screen polish.
 - Confirmed product decision: build full QuickBooks-style transaction screens first, then POS/cart/mobile fast screens later over the same backend and reusable transaction components.
-- Next focus: reusable transaction widgets, then Invoices / Sales Receipts full accounting screens.
+- Added first reusable transaction widget foundation for header, party selector, line grid, totals footer, action bar, print menu, context side panel, and keyboard shortcuts.
+- Next focus: wire reusable transaction widgets into Invoices / Sales Receipts full accounting screens.
