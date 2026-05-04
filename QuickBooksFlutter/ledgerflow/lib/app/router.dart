@@ -50,6 +50,7 @@ import '../features/sales_receipts/screens/sales_receipt_form_page.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
 import '../features/sales_returns/screens/sales_return_list_screen.dart';
+import '../features/settings/data/models/license_settings_model.dart';
 import '../features/settings/screens/backup_settings_screen.dart';
 import '../features/settings/screens/company_settings_screen.dart';
 import '../features/settings/screens/connection_settings_screen.dart';
@@ -59,6 +60,7 @@ import '../features/settings/screens/settings_home_screen.dart';
 import '../features/settings/screens/setup_wizard_screen.dart';
 import '../features/settings/screens/tax_settings_screen.dart';
 import '../features/settings/screens/users_permissions_screen.dart';
+import '../features/settings/widgets/license_gate.dart';
 import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_list_screen.dart';
 import '../features/vendor_payments/screens/vendor_payment_form_screen.dart';
@@ -219,14 +221,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.connectionSettings, builder: (context, state) => const ConnectionSettingsScreen()),
           GoRoute(path: AppRoutes.setupWizard, builder: (context, state) => const SetupWizardScreen()),
           GoRoute(path: AppRoutes.taxSettings, builder: (context, state) => const TaxSettingsScreen()),
-          GoRoute(path: AppRoutes.backupSettings, builder: (context, state) => const BackupSettingsScreen()),
+          GoRoute(
+            path: AppRoutes.backupSettings,
+            builder: (context, state) => const LicenseGate(feature: LicenseFeature.backupRestore, child: BackupSettingsScreen()),
+          ),
           GoRoute(path: AppRoutes.printingSettings, builder: (context, state) => const PrintingSettingsScreen()),
           GoRoute(path: AppRoutes.usersPermissions, builder: (context, state) => const UsersPermissionsScreen()),
           GoRoute(path: AppRoutes.licenseSettings, builder: (context, state) => const LicenseSettingsScreen()),
           _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
           _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
           _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
-          _comingSoon(AppRoutes.payroll, 'Payroll'),
+          _comingSoonGated(AppRoutes.payroll, 'Payroll', LicenseFeature.payroll),
           _comingSoon(AppRoutes.timeTracking, 'Enter Time'),
           _comingSoon(AppRoutes.calendar, 'Calendar'),
           _comingSoon(AppRoutes.snapshots, 'Snapshots'),
@@ -242,4 +247,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 GoRoute _comingSoon(String path, String title) => GoRoute(
       path: path,
       builder: (context, state) => ComingSoonScreen(title: title),
+    );
+
+GoRoute _comingSoonGated(String path, String title, LicenseFeature feature) => GoRoute(
+      path: path,
+      builder: (context, state) => LicenseGate(
+        feature: feature,
+        child: ComingSoonScreen(title: title),
+      ),
     );
