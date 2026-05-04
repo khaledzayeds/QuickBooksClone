@@ -100,21 +100,22 @@ F) Banking / Inventory Pro / Payroll
 - [x] Add device fingerprint skeleton.
 - [x] Add signed/offline license package skeleton.
 - [x] Add offline activation request code flow.
-- [x] Add development license admin package generator.
+- [x] Add Ed25519 public-key license signature verification.
+- [x] Add Ed25519 license admin signing tools.
 - [ ] Add backend users/roles/permissions endpoints.
 - [ ] Add backend backup/restore action endpoints.
 - [ ] Add backend setup status endpoint if missing.
 - [ ] Add initialize company endpoint if missing.
 - [ ] Add default accounts seeding flow.
 - [ ] Add first admin user flow.
-- [ ] Add real public-key license signature verification.
-- [ ] Add license activation server/manual offline validation.
+- [ ] Add online activation server/manual offline validation backend.
 
 ### Already Done
 
 - [x] Added settings models/providers/screens for runtime, company, connection, tax, backup, printing, users/permissions, setup wizard, and license.
 - [x] Added `shared_preferences` dependency for local client settings storage.
 - [x] Added `crypto` dependency for license fingerprint hashing.
+- [x] Added `cryptography` dependency for Ed25519 public-key verification in Flutter.
 - [x] Added `DeviceFingerprintService`:
   - Creates a stable installation id on first run.
   - Stores it locally.
@@ -134,22 +135,23 @@ F) Banking / Inventory Pro / Payroll
   - Request Code display
   - Created At
   - Payload Preview
-- [x] Added `LicensePackageVerifier` skeleton:
-  - Accepts `base64url(payloadJson).base64url(signature)`.
-  - Decodes payload.
+- [x] Added Ed25519 public-key verification flow:
+  - `LicensePublicKeyConfig`
+  - `LicensePackageVerifier.verifyPackage(...)` as async verifier.
+  - Verifies `base64url(payloadJson).base64url(ed25519Signature)` using embedded public key.
   - Checks optional `deviceId` against current fingerprint.
   - Maps payload to `LicenseSettingsModel`.
-  - Uses placeholder non-empty signature check until production public-key verification is added.
 - [x] Added repository/provider apply package flow:
   - `LicenseSettingsRepository.applyPackage(...)`
   - `LicenseSettingsNotifier.applyPackage(...)`
 - [x] License Settings now includes a Signed / Offline License Package input card with Apply Package button.
-- [x] Added development admin tool:
+- [x] Added license admin tools:
+  - `tools/license_admin/generate_keypair.py`
   - `tools/license_admin/generate_license_package.py`
   - `tools/license_admin/README.md`
-  - Generates dev license packages from offline request codes for testing.
-  - Supports editions, serial, customer name, user/device limits, expiry, and feature overrides.
-  - Uses development signature placeholder only.
+  - Generates Ed25519 private/public keys.
+  - Signs license packages with private key.
+  - Documents pasting public key into Flutter and never shipping private key.
 - [x] Added Setup Wizard Start Mode step:
   - Create New Company
   - Restore Existing Backup
@@ -190,10 +192,10 @@ F) Banking / Inventory Pro / Payroll
 - The product direction is one codebase with multiple editions controlled by settings and license.
 - License skeleton supports Trial / Solo / Network / Hosted, limits, feature flags, license key, device id, expiry, and local save.
 - Device fingerprint skeleton is local-installation based for now. Production can later add OS/device attributes carefully without storing raw sensitive values.
-- License package flow is wired end-to-end as a development skeleton. It does not yet perform real cryptographic public-key verification.
 - Offline request code flow is now wired in the UI so a customer can generate a request code from the target device.
-- Development license admin script can generate packages for testing the full offline flow now.
-- Production activation still needs real signed payload verification, online/offline activation admin tooling, renewal/expiry rules, and backend verification.
+- License packages are now signed with Ed25519 in the admin tool and verified with the embedded public key in Flutter.
+- A real production public key must be generated and pasted into `LicensePublicKeyConfig` before using the flow commercially.
+- Online activation server/backend verification is still pending.
 - Solo: Local API + SQLite.
 - Network: LAN API + SQL Server.
 - Hosted: Online API + hosted database.
@@ -202,7 +204,7 @@ F) Banking / Inventory Pro / Payroll
 - Connect Existing path should connect to LAN/Hosted API and login with server-side users. No local first admin creation.
 - Backup Settings currently reads runtime database status from `GET /api/settings/runtime` and exposes disabled backup/restore actions until backend action endpoints are added.
 - Printing Settings stores local client preferences for A4 and thermal printing, including print mode, A4 template style, 58/80mm thermal width, logo path, QR, tax summary, customer balance, SKU display, Arabic fonts, preview behavior, and footer messages.
-- Coming next: real public-key signature verification, online activation endpoint, or backend backup/users/setup endpoints.
+- Coming next: online activation endpoint, backend backup/users/setup endpoints, or installer integration.
 
 ---
 
@@ -251,7 +253,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Status
 
-`Started as Skeleton`
+`Started as Functional Skeleton`
 
 ### Done
 
@@ -262,16 +264,17 @@ F) Banking / Inventory Pro / Payroll
 - [x] Start Mode gates.
 - [x] Connection profile gates.
 - [x] Device fingerprint skeleton.
-- [x] Signed/offline license package skeleton.
+- [x] Signed/offline license package flow.
 - [x] Offline activation request code flow.
-- [x] Development license admin package generator.
+- [x] Ed25519 public-key package verification in Flutter.
+- [x] Ed25519 admin keypair/package signing tools.
 - [x] License activation design document.
 
 ### Pending
 
-- [ ] Real public-key signed license payload verification.
 - [ ] Online activation endpoint.
-- [ ] Production admin tool for generating serials and signed licenses.
+- [ ] Production admin panel for generating serials and signed licenses.
+- [ ] Backend/API license enforcement.
 - [ ] Installer integration.
 
 ---
@@ -297,10 +300,9 @@ F) Banking / Inventory Pro / Payroll
 - Added LicenseFeature, license helper methods, reusable LicenseGate, and initial route gates for Backup/Restore and Payroll.
 - Added gates for Setup Wizard Start Mode options and Connection Settings profiles based on the current license edition.
 - Added DeviceFingerprintService and surfaced Installation ID / Device Fingerprint in License Settings.
-- Added LicensePackageVerifier skeleton and Signed / Offline License Package UI in License Settings.
 - Added Offline Activation Request service and UI so the customer can generate a request code from the target device.
-- Added development License Admin Tool script for generating test packages from offline request codes.
+- Added Ed25519 public-key verification in Flutter and Ed25519 signing tools for offline license packages.
 - Added `docs/LICENSE_ACTIVATION_DESIGN.md` documenting signed license payloads, serial generation, device fingerprint, online activation, offline activation, expiry/renewal, and owner/admin workflows.
 - Wired `/settings`, `/settings/connection`, `/settings/company`, `/settings/tax`, `/settings/backup`, `/settings/printing`, `/settings/users-permissions`, `/settings/license`, and `/settings/setup-wizard`.
 - Confirmed product direction: one app, editions controlled by Settings + License.
-- Next focus: real public-key signature verification, online activation endpoint, or backend backup/users/setup endpoints.
+- Next focus: online activation endpoint, backend backup/users/setup endpoints, or installer integration.
