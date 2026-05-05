@@ -24,6 +24,16 @@ class InvoiceDetailsPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.invoices),
         actions: [
+          invoiceAsync.maybeWhen(
+            data: (invoice) => invoice.isDraft
+                ? IconButton(
+                    tooltip: 'Edit draft',
+                    onPressed: () => context.go('/sales/invoices/edit/$id'),
+                    icon: const Icon(Icons.edit_outlined),
+                  )
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             tooltip: 'Print preview',
             onPressed: () => showDocumentPrintPreviewDialog(
