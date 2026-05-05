@@ -19,12 +19,9 @@ Future<void> showDocumentPrintPreviewDialog({
 }) {
   return showDialog<void>(
     context: context,
-    builder: (_) => ProviderScope(
-      parent: ProviderScope.containerOf(context),
-      child: DocumentPrintPreviewDialog(
-        documentType: documentType,
-        documentId: documentId,
-      ),
+    builder: (_) => DocumentPrintPreviewDialog(
+      documentType: documentType,
+      documentId: documentId,
     ),
   );
 }
@@ -41,7 +38,10 @@ class DocumentPrintPreviewDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final request = DocumentPrintDataRequest(documentType: documentType, documentId: documentId);
+    final request = DocumentPrintDataRequest(
+      documentType: documentType,
+      documentId: documentId,
+    );
     final dataAsync = ref.watch(documentPrintDataProvider(request));
     final settingsState = ref.watch(printingSettingsProvider);
 
@@ -51,8 +51,12 @@ class DocumentPrintPreviewDialog extends ConsumerWidget {
         constraints: const BoxConstraints(maxWidth: 980, maxHeight: 760),
         child: dataAsync.when(
           loading: () => const _LoadingPrintPreview(),
-          error: (error, stackTrace) => _PrintPreviewError(message: error.toString()),
-          data: (data) => _PrintPreviewContent(data: data, settings: settingsState.settings),
+          error: (error, stackTrace) =>
+              _PrintPreviewError(message: error.toString()),
+          data: (data) => _PrintPreviewContent(
+            data: data,
+            settings: settingsState.settings,
+          ),
         ),
       ),
     );
@@ -96,7 +100,10 @@ class _PrintPreviewError extends StatelessWidget {
             children: [
               Icon(Icons.error_outline, color: cs.error),
               const SizedBox(width: 8),
-              Text('Print preview failed', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Print preview failed',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -121,8 +128,12 @@ class _PrintPreviewContent extends StatelessWidget {
   final DocumentPrintDataModel data;
   final PrintingSettingsModel settings;
 
-  bool get _a4Enabled => settings.printMode == PrintMode.a4 || settings.printMode == PrintMode.both;
-  bool get _thermalEnabled => settings.printMode == PrintMode.thermal || settings.printMode == PrintMode.both;
+  bool get _a4Enabled =>
+      settings.printMode == PrintMode.a4 ||
+      settings.printMode == PrintMode.both;
+  bool get _thermalEnabled =>
+      settings.printMode == PrintMode.thermal ||
+      settings.printMode == PrintMode.both;
 
   Future<void> _printA4(BuildContext context) async {
     try {
@@ -133,7 +144,9 @@ class _PrintPreviewContent extends StatelessWidget {
       );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('A4 PDF failed: $error')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('A4 PDF failed: $error')));
       }
     }
   }
@@ -147,7 +160,9 @@ class _PrintPreviewContent extends StatelessWidget {
       );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Thermal print failed: $error')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Thermal print failed: $error')));
       }
     }
   }
@@ -172,8 +187,16 @@ class _PrintPreviewContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${data.documentType} ${data.documentNumber}', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-                    Text('${data.customer.displayName} • ${_formatDate(data.documentDate)} • ${settings.printMode.label}', style: theme.textTheme.bodySmall),
+                    Text(
+                      '${data.documentType} ${data.documentNumber}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      '${data.customer.displayName} • ${_formatDate(data.documentDate)} • ${settings.printMode.label}',
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -210,7 +233,13 @@ class _PrintPreviewContent extends StatelessWidget {
                   color: cs.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: cs.outlineVariant),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 18, offset: const Offset(0, 8))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .06),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -222,12 +251,20 @@ class _PrintPreviewContent extends StatelessWidget {
                     _LinesTable(data: data, settings: settings),
                     const SizedBox(height: 18),
                     _Summary(data: data, settings: settings),
-                    if ((data.terms ?? '').isNotEmpty || (data.notes ?? '').isNotEmpty || (settings.invoiceFooterMessage ?? '').isNotEmpty) ...[
+                    if ((data.terms ?? '').isNotEmpty ||
+                        (data.notes ?? '').isNotEmpty ||
+                        (settings.invoiceFooterMessage ?? '').isNotEmpty) ...[
                       const SizedBox(height: 18),
                       _Notes(data: data, settings: settings),
                     ],
                     const SizedBox(height: 18),
-                    Text('Generated: ${_formatDateTime(data.generatedAt)}', textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                    Text(
+                      'Generated: ${_formatDateTime(data.generatedAt)}',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -256,8 +293,16 @@ class _Header extends StatelessWidget {
             width: 54,
             height: 54,
             alignment: Alignment.center,
-            decoration: BoxDecoration(border: Border.all(color: Theme.of(context).colorScheme.outlineVariant), borderRadius: BorderRadius.circular(8)),
-            child: const Text('LOGO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'LOGO',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+            ),
           ),
           const SizedBox(width: 12),
         ],
@@ -265,18 +310,32 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(data.company.companyName, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-              if ((data.company.legalName ?? '').isNotEmpty) Text(data.company.legalName!),
-              if (settings.showCompanyAddress) Text('${data.company.country} • ${data.company.currency}'),
-              if ((data.company.phone ?? '').isNotEmpty) Text('Phone: ${data.company.phone}'),
-              if ((data.company.email ?? '').isNotEmpty) Text('Email: ${data.company.email}'),
+              Text(
+                data.company.companyName,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if ((data.company.legalName ?? '').isNotEmpty)
+                Text(data.company.legalName!),
+              if (settings.showCompanyAddress)
+                Text('${data.company.country} • ${data.company.currency}'),
+              if ((data.company.phone ?? '').isNotEmpty)
+                Text('Phone: ${data.company.phone}'),
+              if ((data.company.email ?? '').isNotEmpty)
+                Text('Email: ${data.company.email}'),
             ],
           ),
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(data.documentType.toUpperCase(), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+            Text(
+              data.documentType.toUpperCase(),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             Text('#${data.documentNumber}', style: theme.textTheme.titleMedium),
             const SizedBox(height: 6),
             Chip(label: Text(data.status)),
@@ -302,12 +361,21 @@ class _PartyAndMeta extends StatelessWidget {
           child: _InfoBox(
             title: 'Bill To',
             children: [
-              Text(data.customer.displayName, style: const TextStyle(fontWeight: FontWeight.w800)),
-              if ((data.customer.phone ?? '').isNotEmpty) Text('Phone: ${data.customer.phone}'),
-              if ((data.customer.email ?? '').isNotEmpty) Text('Email: ${data.customer.email}'),
+              Text(
+                data.customer.displayName,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              if ((data.customer.phone ?? '').isNotEmpty)
+                Text('Phone: ${data.customer.phone}'),
+              if ((data.customer.email ?? '').isNotEmpty)
+                Text('Email: ${data.customer.email}'),
               if (settings.showCustomerBalance) ...[
-                Text('Balance: ${_money(data.customer.openBalance, data.customer.currency)}'),
-                Text('Credits: ${_money(data.customer.creditBalance, data.customer.currency)}'),
+                Text(
+                  'Balance: ${_money(data.customer.openBalance, data.customer.currency)}',
+                ),
+                Text(
+                  'Credits: ${_money(data.customer.creditBalance, data.customer.currency)}',
+                ),
               ],
             ],
           ),
@@ -319,8 +387,16 @@ class _PartyAndMeta extends StatelessWidget {
             children: [
               _KeyValue(label: 'Date', value: _formatDate(data.documentDate)),
               _KeyValue(label: 'Due date', value: _formatDate(data.dueDate)),
-              if ((data.payment?.paymentMethod ?? '').isNotEmpty) _KeyValue(label: 'Payment', value: data.payment!.paymentMethod!),
-              if ((data.payment?.depositAccountName ?? '').isNotEmpty) _KeyValue(label: 'Deposit', value: data.payment!.depositAccountName!),
+              if ((data.payment?.paymentMethod ?? '').isNotEmpty)
+                _KeyValue(
+                  label: 'Payment',
+                  value: data.payment!.paymentMethod!,
+                ),
+              if ((data.payment?.depositAccountName ?? '').isNotEmpty)
+                _KeyValue(
+                  label: 'Deposit',
+                  value: data.payment!.depositAccountName!,
+                ),
             ],
           ),
         ),
@@ -348,15 +424,25 @@ class _LinesTable extends StatelessWidget {
       },
       border: TableBorder.all(color: cs.outlineVariant),
       children: [
-        _tableRow(['#', settings.showItemSku ? 'Item / SKU' : 'Item', 'Qty', 'Price', if (settings.showTaxSummary) 'Tax', 'Total'], header: true),
-        ...data.lines.map((line) => _tableRow([
-              line.lineNumber.toString(),
-              line.description.isNotEmpty ? line.description : line.itemName,
-              line.quantity.toStringAsFixed(2),
-              _money(line.unitPrice, data.company.currency),
-              if (settings.showTaxSummary) _money(line.taxAmount, data.company.currency),
-              _money(line.lineTotal, data.company.currency),
-            ])),
+        _tableRow([
+          '#',
+          settings.showItemSku ? 'Item / SKU' : 'Item',
+          'Qty',
+          'Price',
+          if (settings.showTaxSummary) 'Tax',
+          'Total',
+        ], header: true),
+        ...data.lines.map(
+          (line) => _tableRow([
+            line.lineNumber.toString(),
+            line.description.isNotEmpty ? line.description : line.itemName,
+            line.quantity.toStringAsFixed(2),
+            _money(line.unitPrice, data.company.currency),
+            if (settings.showTaxSummary)
+              _money(line.taxAmount, data.company.currency),
+            _money(line.lineTotal, data.company.currency),
+          ]),
+        ),
       ],
     );
   }
@@ -367,7 +453,12 @@ class _LinesTable extends StatelessWidget {
           .map(
             (cell) => Padding(
               padding: const EdgeInsets.all(8),
-              child: Text(cell, style: TextStyle(fontWeight: header ? FontWeight.w900 : FontWeight.w400)),
+              child: Text(
+                cell,
+                style: TextStyle(
+                  fontWeight: header ? FontWeight.w900 : FontWeight.w400,
+                ),
+              ),
             ),
           )
           .toList(),
@@ -383,7 +474,11 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = settings.showTaxSummary ? data.summaryRows : data.summaryRows.where((row) => row.label.toLowerCase() != 'tax').toList();
+    final rows = settings.showTaxSummary
+        ? data.summaryRows
+        : data.summaryRows
+              .where((row) => row.label.toLowerCase() != 'tax')
+              .toList();
     return Align(
       alignment: AlignmentDirectional.centerEnd,
       child: SizedBox(
@@ -395,8 +490,24 @@ class _Summary extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
-                      Expanded(child: Text(row.label, style: TextStyle(fontWeight: row.isStrong ? FontWeight.w900 : FontWeight.w500))),
-                      Text(_money(row.amount, data.company.currency), style: TextStyle(fontWeight: row.isStrong ? FontWeight.w900 : FontWeight.w500)),
+                      Expanded(
+                        child: Text(
+                          row.label,
+                          style: TextStyle(
+                            fontWeight: row.isStrong
+                                ? FontWeight.w900
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _money(row.amount, data.company.currency),
+                        style: TextStyle(
+                          fontWeight: row.isStrong
+                              ? FontWeight.w900
+                              : FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -421,7 +532,8 @@ class _Notes extends StatelessWidget {
       children: [
         if ((data.terms ?? '').isNotEmpty) Text('Terms: ${data.terms}'),
         if ((data.notes ?? '').isNotEmpty) Text(data.notes!),
-        if ((settings.invoiceFooterMessage ?? '').isNotEmpty) Text(settings.invoiceFooterMessage!),
+        if ((settings.invoiceFooterMessage ?? '').isNotEmpty)
+          Text(settings.invoiceFooterMessage!),
       ],
     );
   }
@@ -471,6 +583,9 @@ class _KeyValue extends StatelessWidget {
   }
 }
 
-String _money(double value, String currency) => '${value.toStringAsFixed(2)} $currency';
-String _formatDate(DateTime date) => '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-String _formatDateTime(DateTime date) => '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+String _money(double value, String currency) =>
+    '${value.toStringAsFixed(2)} $currency';
+String _formatDate(DateTime date) =>
+    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+String _formatDateTime(DateTime date) =>
+    '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
