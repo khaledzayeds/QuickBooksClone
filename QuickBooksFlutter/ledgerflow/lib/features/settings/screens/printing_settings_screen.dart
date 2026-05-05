@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/printing_settings_model.dart';
 import '../providers/printing_settings_provider.dart';
+import '../widgets/printing_test_preview_card.dart';
 
 class PrintingSettingsScreen extends ConsumerWidget {
   const PrintingSettingsScreen({super.key});
@@ -77,6 +78,8 @@ class PrintingSettingsScreen extends ConsumerWidget {
                         _OptionsCard(state: state, notifier: notifier),
                         const SizedBox(height: 16),
                         _PreviewCard(settings: state.settings),
+                        const SizedBox(height: 16),
+                        PrintingTestPreviewCard(settings: state.settings),
                       ],
                     );
 
