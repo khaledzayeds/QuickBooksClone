@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/api/api_result.dart';
+import '../../sales_orders/providers/sales_orders_provider.dart'
+    as sales_orders;
 import '../data/models/estimate_model.dart';
 import '../providers/estimates_provider.dart';
 
@@ -12,16 +15,28 @@ class EstimateDetailsScreen extends ConsumerWidget {
 
   final String id;
 
-  Future<void> _runAction(
+  Future<void> _runAction<T>(
     BuildContext context,
     WidgetRef ref,
     String label,
-    Future<void> Function() action,
+    Future<ApiResult<T>> Function() action,
   ) async {
-    await action();
+    final result = await action();
     if (!context.mounted) return;
-    ref.invalidate(estimateDetailsProvider(id));
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
+    result.when(
+      success: (_) {
+        ref.invalidate(estimateDetailsProvider(id));
+        ref.invalidate(sales_orders.salesOrdersProvider);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(label)));
+      },
+      failure: (error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      },
+    );
   }
 
   @override
@@ -64,47 +79,60 @@ class _EstimateActions extends ConsumerWidget {
   const _EstimateActions({required this.estimate, required this.onRun});
 
   final EstimateModel estimate;
-  final Future<void> Function(String label, Future<void> Function() action)
+  final Future<void> Function<T>(
+    String label,
+    Future<ApiResult<T>> Function() action,
+  )
   onRun;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (estimate.isCancelled || estimate.isAccepted || estimate.isDeclined)
+    if (estimate.isCancelled || estimate.isDeclined) {
       return const SizedBox.shrink();
+    }
     final notifier = ref.read(estimatesProvider.notifier);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        TextButton(
-          onPressed: () =>
-              onRun('Estimate sent.', () async => notifier.send(estimate.id)),
-          child: const Text('Send'),
-        ),
+        if (!estimate.isAccepted) ...[
+          TextButton(
+            onPressed: () =>
+                onRun('Estimate sent.', () => notifier.send(estimate.id)),
+            child: const Text('Send'),
+          ),
+          TextButton(
+            onPressed: () =>
+                onRun('Estimate accepted.', () => notifier.accept(estimate.id)),
+            child: const Text('Accept'),
+          ),
+        ],
         TextButton(
           onPressed: () => onRun(
-            'Estimate accepted.',
-            () async => notifier.accept(estimate.id),
+            'Sales order created.',
+            () => notifier.convertToSalesOrder(estimate.id),
           ),
-          child: const Text('Accept'),
+          child: const Text('Create SO'),
         ),
-        TextButton(
-          onPressed: () => onRun(
-            'Estimate declined.',
-            () async => notifier.decline(estimate.id),
+        if (!estimate.isAccepted) ...[
+          TextButton(
+            onPressed: () => onRun(
+              'Estimate declined.',
+              () => notifier.decline(estimate.id),
+            ),
+            child: const Text('Decline'),
           ),
-          child: const Text('Decline'),
-        ),
-        IconButton(
-          tooltip: 'Cancel estimate',
-          onPressed: () => onRun(
-            'Estimate cancelled.',
-            () async => notifier.cancel(estimate.id),
+          IconButton(
+            tooltip: 'Cancel estimate',
+            onPressed: () => onRun(
+              'Estimate cancelled.',
+              () => notifier.cancel(estimate.id),
+            ),
+            icon: Icon(
+              Icons.block_outlined,
+              color: Theme.of(context).colorScheme.error,
+            ),
           ),
-          icon: Icon(
-            Icons.block_outlined,
-            color: Theme.of(context).colorScheme.error,
-          ),
-        ),
+        ],
       ],
     );
   }

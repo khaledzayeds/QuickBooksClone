@@ -16,9 +16,10 @@ final estimatesRepositoryProvider = Provider<EstimatesRepository>(
   (ref) => EstimatesRepository(ref.watch(estimatesDatasourceProvider)),
 );
 
-final estimatesProvider = AsyncNotifierProvider<EstimatesNotifier, List<EstimateModel>>(
-  EstimatesNotifier.new,
-);
+final estimatesProvider =
+    AsyncNotifierProvider<EstimatesNotifier, List<EstimateModel>>(
+      EstimatesNotifier.new,
+    );
 
 class EstimatesNotifier extends AsyncNotifier<List<EstimateModel>> {
   String _search = '';
@@ -30,7 +31,9 @@ class EstimatesNotifier extends AsyncNotifier<List<EstimateModel>> {
   Future<List<EstimateModel>> build() => _fetch();
 
   Future<List<EstimateModel>> _fetch() async {
-    final result = await ref.read(estimatesRepositoryProvider).getAll(
+    final result = await ref
+        .read(estimatesRepositoryProvider)
+        .getAll(
           search: _search,
           customerId: _customerId,
           includeClosed: _includeClosed,
@@ -73,22 +76,39 @@ class EstimatesNotifier extends AsyncNotifier<List<EstimateModel>> {
     return result;
   }
 
-  Future<ApiResult<EstimateModel>> send(String id) => _action(() => ref.read(estimatesRepositoryProvider).send(id));
-  Future<ApiResult<EstimateModel>> accept(String id) => _action(() => ref.read(estimatesRepositoryProvider).accept(id));
-  Future<ApiResult<EstimateModel>> decline(String id) => _action(() => ref.read(estimatesRepositoryProvider).decline(id));
-  Future<ApiResult<EstimateModel>> cancel(String id) => _action(() => ref.read(estimatesRepositoryProvider).cancel(id));
+  Future<ApiResult<EstimateModel>> send(String id) =>
+      _action(() => ref.read(estimatesRepositoryProvider).send(id));
+  Future<ApiResult<EstimateModel>> accept(String id) =>
+      _action(() => ref.read(estimatesRepositoryProvider).accept(id));
+  Future<ApiResult<EstimateModel>> decline(String id) =>
+      _action(() => ref.read(estimatesRepositoryProvider).decline(id));
+  Future<ApiResult<EstimateModel>> cancel(String id) =>
+      _action(() => ref.read(estimatesRepositoryProvider).cancel(id));
 
-  Future<ApiResult<EstimateModel>> _action(Future<ApiResult<EstimateModel>> Function() call) async {
+  Future<ApiResult<void>> convertToSalesOrder(String id) async {
+    final result = await ref
+        .read(estimatesRepositoryProvider)
+        .convertToSalesOrder(id);
+    if (result.isSuccess) refresh();
+    return result.when(
+      success: (_) => const Success(null),
+      failure: (error) => Failure(error),
+    );
+  }
+
+  Future<ApiResult<EstimateModel>> _action(
+    Future<ApiResult<EstimateModel>> Function() call,
+  ) async {
     final result = await call();
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final estimateDetailsProvider = FutureProvider.family<EstimateModel, String>((ref, id) async {
+final estimateDetailsProvider = FutureProvider.family<EstimateModel, String>((
+  ref,
+  id,
+) async {
   final result = await ref.read(estimatesRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
+  return result.when(success: (data) => data, failure: (error) => throw error);
 });

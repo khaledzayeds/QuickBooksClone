@@ -1,6 +1,7 @@
 // estimates_repository.dart
 
 import '../../../../core/api/api_result.dart';
+import '../../../sales_orders/data/models/sales_order_model.dart';
 import '../datasources/estimates_remote_datasource.dart';
 import '../models/estimate_model.dart';
 
@@ -16,25 +17,30 @@ class EstimatesRepository {
     bool includeCancelled = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        customerId: customerId,
-        includeClosed: includeClosed,
-        includeCancelled: includeCancelled,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    customerId: customerId,
+    includeClosed: includeClosed,
+    includeCancelled: includeCancelled,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<EstimateModel>> getById(String id) => _datasource.getById(id);
+  Future<ApiResult<EstimateModel>> getById(String id) =>
+      _datasource.getById(id);
 
-  Future<ApiResult<EstimateModel>> create(CreateEstimateDto dto) => _datasource.create(dto);
+  Future<ApiResult<EstimateModel>> create(CreateEstimateDto dto) =>
+      _datasource.create(dto);
 
   Future<ApiResult<EstimateModel>> send(String id) => _datasource.send(id);
 
   Future<ApiResult<EstimateModel>> accept(String id) => _datasource.accept(id);
 
-  Future<ApiResult<EstimateModel>> decline(String id) => _datasource.decline(id);
+  Future<ApiResult<EstimateModel>> decline(String id) =>
+      _datasource.decline(id);
 
   Future<ApiResult<EstimateModel>> cancel(String id) => _datasource.cancel(id);
+
+  Future<ApiResult<SalesOrderModel>> convertToSalesOrder(String id) =>
+      _datasource.convertToSalesOrder(id);
 }

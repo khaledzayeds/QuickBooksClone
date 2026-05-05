@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/api/api_result.dart';
+import '../../invoices/providers/invoices_provider.dart' as invoices;
 import '../data/models/sales_order_model.dart';
 import '../providers/sales_orders_provider.dart';
 
@@ -12,16 +14,28 @@ class SalesOrderDetailsScreen extends ConsumerWidget {
 
   final String id;
 
-  Future<void> _runAction(
+  Future<void> _runAction<T>(
     BuildContext context,
     WidgetRef ref,
     String label,
-    Future<void> Function() action,
+    Future<ApiResult<T>> Function() action,
   ) async {
-    await action();
+    final result = await action();
     if (!context.mounted) return;
-    ref.invalidate(salesOrderDetailsProvider(id));
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
+    result.when(
+      success: (_) {
+        ref.invalidate(salesOrderDetailsProvider(id));
+        ref.invalidate(invoices.invoicesProvider);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(label)));
+      },
+      failure: (error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      },
+    );
   }
 
   @override
@@ -64,7 +78,10 @@ class _SalesOrderActions extends ConsumerWidget {
   const _SalesOrderActions({required this.order, required this.onRun});
 
   final SalesOrderModel order;
-  final Future<void> Function(String label, Future<void> Function() action)
+  final Future<void> Function<T>(
+    String label,
+    Future<ApiResult<T>> Function() action,
+  )
   onRun;
 
   @override
@@ -76,26 +93,30 @@ class _SalesOrderActions extends ConsumerWidget {
       children: [
         if (!order.isOpen && !order.isClosed)
           TextButton(
-            onPressed: () => onRun(
-              'Sales order opened.',
-              () async => notifier.open(order.id),
-            ),
+            onPressed: () =>
+                onRun('Sales order opened.', () => notifier.open(order.id)),
             child: const Text('Open'),
           ),
         if (order.isOpen)
           TextButton(
-            onPressed: () => onRun(
-              'Sales order closed.',
-              () async => notifier.close(order.id),
-            ),
+            onPressed: () =>
+                onRun('Sales order closed.', () => notifier.close(order.id)),
             child: const Text('Close'),
+          ),
+        if (!order.isClosed)
+          TextButton(
+            onPressed: () => onRun(
+              'Invoice created.',
+              () => notifier.convertToInvoice(order.id),
+            ),
+            child: const Text('Create invoice'),
           ),
         if (!order.isClosed)
           IconButton(
             tooltip: 'Cancel sales order',
             onPressed: () => onRun(
               'Sales order cancelled.',
-              () async => notifier.cancel(order.id),
+              () => notifier.cancel(order.id),
             ),
             icon: Icon(
               Icons.block_outlined,

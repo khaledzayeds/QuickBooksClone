@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/error_handler.dart';
+import '../../../sales_orders/data/models/sales_order_model.dart';
 import '../models/estimate_model.dart';
 
 class EstimatesRemoteDatasource {
@@ -25,7 +26,8 @@ class EstimatesRemoteDatasource {
         '/api/estimates',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
           'includeClosed': includeClosed,
           'includeCancelled': includeCancelled,
           'page': page,
@@ -44,7 +46,9 @@ class EstimatesRemoteDatasource {
 
   Future<ApiResult<EstimateModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/estimates/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/estimates/$id',
+      );
       return Success(EstimateModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -64,13 +68,36 @@ class EstimatesRemoteDatasource {
   }
 
   Future<ApiResult<EstimateModel>> send(String id) => _postAction(id, 'send');
-  Future<ApiResult<EstimateModel>> accept(String id) => _postAction(id, 'accept');
-  Future<ApiResult<EstimateModel>> decline(String id) => _postAction(id, 'decline');
+  Future<ApiResult<EstimateModel>> accept(String id) =>
+      _postAction(id, 'accept');
+  Future<ApiResult<EstimateModel>> decline(String id) =>
+      _postAction(id, 'decline');
 
   Future<ApiResult<EstimateModel>> cancel(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/estimates/$id/cancel');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/estimates/$id/cancel',
+      );
       return Success(EstimateModel.fromJson(response.data!));
+    } on DioException catch (error) {
+      return Failure(parseError(error));
+    }
+  }
+
+  Future<ApiResult<SalesOrderModel>> convertToSalesOrder(String id) async {
+    final today = DateTime.now();
+    final expected = today.add(const Duration(days: 7));
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/estimates/$id/convert-to-sales-order',
+        data: {
+          'orderDate': _dateOnly(today),
+          'expectedDate': _dateOnly(expected),
+          'saveMode': 2,
+          'lines': <Map<String, dynamic>>[],
+        },
+      );
+      return Success(SalesOrderModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
@@ -78,10 +105,15 @@ class EstimatesRemoteDatasource {
 
   Future<ApiResult<EstimateModel>> _postAction(String id, String action) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>('/api/estimates/$id/$action');
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/estimates/$id/$action',
+      );
       return Success(EstimateModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
   }
+
+  static String _dateOnly(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }

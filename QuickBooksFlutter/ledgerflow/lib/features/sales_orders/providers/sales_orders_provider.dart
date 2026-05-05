@@ -16,9 +16,10 @@ final salesOrdersRepositoryProvider = Provider<SalesOrdersRepository>(
   (ref) => SalesOrdersRepository(ref.watch(salesOrdersDatasourceProvider)),
 );
 
-final salesOrdersProvider = AsyncNotifierProvider<SalesOrdersNotifier, List<SalesOrderModel>>(
-  SalesOrdersNotifier.new,
-);
+final salesOrdersProvider =
+    AsyncNotifierProvider<SalesOrdersNotifier, List<SalesOrderModel>>(
+      SalesOrdersNotifier.new,
+    );
 
 class SalesOrdersNotifier extends AsyncNotifier<List<SalesOrderModel>> {
   String _search = '';
@@ -30,7 +31,9 @@ class SalesOrdersNotifier extends AsyncNotifier<List<SalesOrderModel>> {
   Future<List<SalesOrderModel>> build() => _fetch();
 
   Future<List<SalesOrderModel>> _fetch() async {
-    final result = await ref.read(salesOrdersRepositoryProvider).getAll(
+    final result = await ref
+        .read(salesOrdersRepositoryProvider)
+        .getAll(
           search: _search,
           customerId: _customerId,
           includeClosed: _includeClosed,
@@ -73,21 +76,38 @@ class SalesOrdersNotifier extends AsyncNotifier<List<SalesOrderModel>> {
     return result;
   }
 
-  Future<ApiResult<SalesOrderModel>> open(String id) => _action(() => ref.read(salesOrdersRepositoryProvider).open(id));
-  Future<ApiResult<SalesOrderModel>> close(String id) => _action(() => ref.read(salesOrdersRepositoryProvider).close(id));
-  Future<ApiResult<SalesOrderModel>> cancel(String id) => _action(() => ref.read(salesOrdersRepositoryProvider).cancel(id));
+  Future<ApiResult<SalesOrderModel>> open(String id) =>
+      _action(() => ref.read(salesOrdersRepositoryProvider).open(id));
+  Future<ApiResult<SalesOrderModel>> close(String id) =>
+      _action(() => ref.read(salesOrdersRepositoryProvider).close(id));
+  Future<ApiResult<SalesOrderModel>> cancel(String id) =>
+      _action(() => ref.read(salesOrdersRepositoryProvider).cancel(id));
 
-  Future<ApiResult<SalesOrderModel>> _action(Future<ApiResult<SalesOrderModel>> Function() call) async {
+  Future<ApiResult<void>> convertToInvoice(String id) async {
+    final result = await ref
+        .read(salesOrdersRepositoryProvider)
+        .convertToInvoice(id);
+    if (result.isSuccess) refresh();
+    return result.when(
+      success: (_) => const Success(null),
+      failure: (error) => Failure(error),
+    );
+  }
+
+  Future<ApiResult<SalesOrderModel>> _action(
+    Future<ApiResult<SalesOrderModel>> Function() call,
+  ) async {
     final result = await call();
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final salesOrderDetailsProvider = FutureProvider.family<SalesOrderModel, String>((ref, id) async {
-  final result = await ref.read(salesOrdersRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final salesOrderDetailsProvider =
+    FutureProvider.family<SalesOrderModel, String>((ref, id) async {
+      final result = await ref.read(salesOrdersRepositoryProvider).getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });
