@@ -95,6 +95,7 @@ class AppRoutes {
   static const invoices = '/sales/invoices';
   static const invoiceNew = '/sales/invoices/new';
   static const invoiceDetails = '/sales/invoices/:id';
+  static const invoiceEdit = '/sales/invoices/edit/:id';
   static const payments = '/sales/payments';
   static const paymentNew = '/sales/payments/new';
   static const customerCredits = '/sales/customer-credits';
@@ -204,6 +205,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.salesReceiptDetails, builder: (context, state) => SalesReceiptDetailsPage(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.invoices, builder: (context, state) => const InvoicesListPage()),
           GoRoute(path: AppRoutes.invoiceNew, builder: (context, state) => const InvoiceFormPage()),
+          GoRoute(path: AppRoutes.invoiceEdit, builder: (context, state) => InvoiceFormPage(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.invoiceDetails, builder: (context, state) => InvoiceDetailsPage(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.payments, builder: (context, state) => const PaymentListScreen()),
           GoRoute(path: AppRoutes.paymentNew, builder: (context, state) => const PaymentFormScreen()),
