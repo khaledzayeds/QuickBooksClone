@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ledgerflow/app/router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../core/widgets/transaction_sidebar.dart';
@@ -22,10 +23,12 @@ class ReceiveInventoryFormScreen extends ConsumerStatefulWidget {
   final String? purchaseOrderId;
 
   @override
-  ConsumerState<ReceiveInventoryFormScreen> createState() => _ReceiveInventoryFormScreenState();
+  ConsumerState<ReceiveInventoryFormScreen> createState() =>
+      _ReceiveInventoryFormScreenState();
 }
 
-class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFormScreen> {
+class _ReceiveInventoryFormScreenState
+    extends ConsumerState<ReceiveInventoryFormScreen> {
   VendorModel? _selectedVendor;
   PurchaseOrderModel? _selectedOrder;
   ReceivingPlanModel? _activePlan;
@@ -81,7 +84,9 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
 
     setState(() => _loadingPlan = true);
     try {
-      final result = await ref.read(receiveInventoryRepoProvider).getReceivingPlan(order.id);
+      final result = await ref
+          .read(receiveInventoryRepoProvider)
+          .getReceivingPlan(order.id);
       result.when(
         success: (plan) {
           if (mounted) {
@@ -99,7 +104,10 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
   }
 
   void _fillLinesFromPlan(ReceivingPlanModel plan) {
-    for (final existing in _manualLines.where((line) => line.purchaseOrderLineId != null).toList()) {
+    for (final existing
+        in _manualLines
+            .where((line) => line.purchaseOrderLineId != null)
+            .toList()) {
       _manualLines.remove(existing);
       existing.dispose();
     }
@@ -119,7 +127,8 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
       return entry;
     }).toList();
 
-    final hasOnlyBlankLine = _manualLines.length == 1 && _manualLines.first.isBlank;
+    final hasOnlyBlankLine =
+        _manualLines.length == 1 && _manualLines.first.isBlank;
     if (hasOnlyBlankLine) {
       final blank = _manualLines.removeAt(0);
       blank.dispose();
@@ -130,7 +139,10 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
 
   void _clearPoLinkedLines() {
     setState(() {
-      for (final existing in _manualLines.where((line) => line.purchaseOrderLineId != null).toList()) {
+      for (final existing
+          in _manualLines
+              .where((line) => line.purchaseOrderLineId != null)
+              .toList()) {
         _manualLines.remove(existing);
         existing.dispose();
       }
@@ -161,14 +173,19 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                     return ListTile(
                       leading: const Icon(Icons.storefront_outlined),
                       title: Text(vendor.displayName),
-                      subtitle: Text('Balance: ${vendor.balance.toStringAsFixed(2)} ${vendor.currency}'),
+                      subtitle: Text(
+                        'Balance: ${vendor.balance.toStringAsFixed(2)} ${vendor.currency}',
+                      ),
                       onTap: () => Navigator.of(context).pop(vendor),
                     );
                   },
                 ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
         ],
       ),
     );
@@ -185,7 +202,8 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
   Future<void> _selectManualItem(_ManualReceiveLine line) async {
     final itemsAsync = ref.read(itemsProvider);
     final items = itemsAsync.maybeWhen(
-      data: (items) => items.where((item) => item.isActive && item.isInventory).toList(),
+      data: (items) =>
+          items.where((item) => item.isActive && item.isInventory).toList(),
       orElse: () => const <ItemModel>[],
     );
 
@@ -205,14 +223,19 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                     return ListTile(
                       leading: const Icon(Icons.inventory_2_outlined),
                       title: Text(item.name),
-                      subtitle: Text('On hand: ${item.quantityOnHand.toStringAsFixed(2)} • Cost: ${item.purchasePrice.toStringAsFixed(2)}'),
+                      subtitle: Text(
+                        'On hand: ${item.quantityOnHand.toStringAsFixed(2)} • Cost: ${item.purchasePrice.toStringAsFixed(2)}',
+                      ),
                       onTap: () => Navigator.of(context).pop(item),
                     );
                   },
                 ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
         ],
       ),
     );
@@ -232,7 +255,8 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
     });
   }
 
-  void _addManualLine() => setState(() => _manualLines.add(_ManualReceiveLine()));
+  void _addManualLine() =>
+      setState(() => _manualLines.add(_ManualReceiveLine()));
 
   void _removeManualLine(_ManualReceiveLine line) {
     if (_manualLines.length == 1) return;
@@ -274,10 +298,14 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
           ref.invalidate(openPurchaseOrdersProvider);
           ref.read(purchaseOrdersProvider.notifier).refresh();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${l10n.riSavedSuccess} ✅')),
-            );
-            context.pop();
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('${l10n.riSavedSuccess} ✅')));
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.receiveInventory);
+            }
           }
         },
         failure: (error) => _showError(error.message),
@@ -305,24 +333,35 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
         _showError('Unit cost must be greater than zero.');
         return null;
       }
-      if (line.purchaseOrderLineId != null && line.remainingQuantity != null && qty > line.remainingQuantity!) {
-        _showError('${line.descriptionCtrl.text}: quantity exceeds remaining PO quantity ${line.remainingQuantity!.toStringAsFixed(2)}');
+      if (line.purchaseOrderLineId != null &&
+          line.remainingQuantity != null &&
+          qty > line.remainingQuantity!) {
+        _showError(
+          '${line.descriptionCtrl.text}: quantity exceeds remaining PO quantity ${line.remainingQuantity!.toStringAsFixed(2)}',
+        );
         return null;
       }
-      lines.add(CreateReceiveInventoryLineDto(
-        itemId: line.itemId!,
-        quantity: qty,
-        unitCost: cost,
-        description: line.descriptionCtrl.text.trim().isEmpty ? line.itemName : line.descriptionCtrl.text.trim(),
-        purchaseOrderLineId: line.purchaseOrderLineId,
-      ));
+      lines.add(
+        CreateReceiveInventoryLineDto(
+          itemId: line.itemId!,
+          quantity: qty,
+          unitCost: cost,
+          description: line.descriptionCtrl.text.trim().isEmpty
+              ? line.itemName
+              : line.descriptionCtrl.text.trim(),
+          purchaseOrderLineId: line.purchaseOrderLineId,
+        ),
+      );
     }
     return lines;
   }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Theme.of(context).colorScheme.error),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 
@@ -340,7 +379,9 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
         error: (e, _) => Center(child: Text(e.toString())),
         data: (orders) {
           _tryPreselect(orders);
-          final vendorOrders = _selectedVendor == null ? orders : orders.where((o) => o.vendorId == _selectedVendor!.id).toList();
+          final vendorOrders = _selectedVendor == null
+              ? orders
+              : orders.where((o) => o.vendorId == _selectedVendor!.id).toList();
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -367,17 +408,20 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                         labelText: 'Optional Purchase Order',
                         prefixIcon: const Icon(Icons.receipt_long_outlined),
                         border: const OutlineInputBorder(),
-                        helperText: 'Select PO to fill lines. You can still edit/add manual lines.',
+                        helperText:
+                            'Select PO to fill lines. You can still edit/add manual lines.',
                       ),
                       items: [
                         const DropdownMenuItem<PurchaseOrderModel?>(
                           value: null,
                           child: Text('Standalone receive — no PO'),
                         ),
-                        ...vendorOrders.map((o) => DropdownMenuItem<PurchaseOrderModel?>(
-                              value: o,
-                              child: Text('${o.orderNumber} — ${o.vendorName}'),
-                            )),
+                        ...vendorOrders.map(
+                          (o) => DropdownMenuItem<PurchaseOrderModel?>(
+                            value: o,
+                            child: Text('${o.orderNumber} — ${o.vendorName}'),
+                          ),
+                        ),
                       ],
                       onChanged: (v) => _selectOrder(v),
                     ),
@@ -398,12 +442,19 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                           prefixIcon: const Icon(Icons.calendar_today_outlined),
                           border: const OutlineInputBorder(),
                         ),
-                        child: Text('${_receiptDate.day}/${_receiptDate.month}/${_receiptDate.year}'),
+                        child: Text(
+                          '${_receiptDate.day}/${_receiptDate.month}/${_receiptDate.year}',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     if (_loadingPlan)
-                      const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator()))
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
                     else
                       _buildEditableReceiveLines(context),
                     const SizedBox(height: 16),
@@ -430,7 +481,14 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
           padding: const EdgeInsets.all(16),
           child: ElevatedButton.icon(
             icon: _saving
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Icon(Icons.save_outlined),
             label: Text(_saving ? l10n.saving : l10n.saveReceipt),
             onPressed: _saving || _loadingPlan ? null : _save,
@@ -447,85 +505,143 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
       children: [
         Row(
           children: [
-            Text('Receive Lines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              'Receive Lines',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
             if (_selectedOrder != null) ...[
               const SizedBox(width: 8),
               Chip(label: Text('Filled from ${_selectedOrder!.orderNumber}')),
             ],
             const Spacer(),
-            TextButton.icon(onPressed: _addManualLine, icon: const Icon(Icons.add), label: const Text('Add line')),
+            TextButton.icon(
+              onPressed: _addManualLine,
+              icon: const Icon(Icons.add),
+              label: const Text('Add line'),
+            ),
           ],
         ),
         const SizedBox(height: 8),
-        ..._manualLines.map((line) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
+        ..._manualLines.map(
+          (line) => Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            line.purchaseOrderLineId == null
+                                ? Icons.inventory_2_outlined
+                                : Icons.receipt_long_outlined,
+                          ),
+                          title: Text(
+                            line.itemName.isEmpty
+                                ? 'Select item'
+                                : line.itemName,
+                          ),
+                          subtitle: Text(
+                            line.purchaseOrderLineId == null
+                                ? 'Manual receive line'
+                                : 'PO linked • Remaining ${line.remainingQuantity?.toStringAsFixed(2) ?? '-'}',
+                          ),
+                          onTap: () => _selectManualItem(line),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Remove line',
+                        onPressed: _manualLines.length == 1
+                            ? null
+                            : () => _removeManualLine(line),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
+                  if (line.purchaseOrderLineId != null) ...[
                     Row(
                       children: [
-                        Expanded(
-                          child: ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Icon(line.purchaseOrderLineId == null ? Icons.inventory_2_outlined : Icons.receipt_long_outlined),
-                            title: Text(line.itemName.isEmpty ? 'Select item' : line.itemName),
-                            subtitle: Text(line.purchaseOrderLineId == null ? 'Manual receive line' : 'PO linked • Remaining ${line.remainingQuantity?.toStringAsFixed(2) ?? '-'}'),
-                            onTap: () => _selectManualItem(line),
-                          ),
+                        _QtyChip(
+                          label: l10n.ordered,
+                          value: line.orderedQuantity ?? 0,
                         ),
-                        IconButton(
-                          tooltip: 'Remove line',
-                          onPressed: _manualLines.length == 1 ? null : () => _removeManualLine(line),
-                          icon: const Icon(Icons.delete_outline),
+                        const SizedBox(width: 8),
+                        _QtyChip(
+                          label: '${l10n.received} (Prev)',
+                          value: line.previouslyReceivedQuantity ?? 0,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        _QtyChip(
+                          label: 'Rem.',
+                          value: line.remainingQuantity ?? 0,
+                          color: Colors.orange.shade900,
                         ),
                       ],
-                    ),
-                    if (line.purchaseOrderLineId != null) ...[
-                      Row(children: [
-                        _QtyChip(label: l10n.ordered, value: line.orderedQuantity ?? 0),
-                        const SizedBox(width: 8),
-                        _QtyChip(label: '${l10n.received} (Prev)', value: line.previouslyReceivedQuantity ?? 0, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        _QtyChip(label: 'Rem.', value: line.remainingQuantity ?? 0, color: Colors.orange.shade900),
-                      ]),
-                      const SizedBox(height: 8),
-                    ],
-                    TextField(
-                      controller: line.descriptionCtrl,
-                      decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder(), isDense: true),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: line.qtyCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: InputDecoration(labelText: l10n.qty, border: const OutlineInputBorder(), isDense: true),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: line.costCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(labelText: 'Unit Cost', border: OutlineInputBorder(), isDense: true),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
-                ),
+                  TextField(
+                    controller: line.descriptionCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: line.qtyCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: l10n.qty,
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: line.costCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Unit Cost',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            )),
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
 class _VendorCard extends StatelessWidget {
-  const _VendorCard({required this.vendor, required this.onSelect, required this.onClear});
+  const _VendorCard({
+    required this.vendor,
+    required this.onSelect,
+    required this.onClear,
+  });
   final VendorModel? vendor;
   final VoidCallback onSelect;
   final VoidCallback onClear;
@@ -540,13 +656,28 @@ class _VendorCard extends StatelessWidget {
             const Icon(Icons.storefront_outlined),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(vendor?.displayName ?? 'No vendor selected', style: const TextStyle(fontWeight: FontWeight.w800)),
-                Text(vendor == null ? 'Vendor is required for standalone or PO receiving.' : 'Balance: ${vendor!.balance.toStringAsFixed(2)} ${vendor!.currency}'),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    vendor?.displayName ?? 'No vendor selected',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    vendor == null
+                        ? 'Vendor is required for standalone or PO receiving.'
+                        : 'Balance: ${vendor!.balance.toStringAsFixed(2)} ${vendor!.currency}',
+                  ),
+                ],
+              ),
             ),
-            TextButton.icon(onPressed: onSelect, icon: const Icon(Icons.search), label: const Text('Select Vendor')),
-            if (vendor != null) IconButton(onPressed: onClear, icon: const Icon(Icons.clear)),
+            TextButton.icon(
+              onPressed: onSelect,
+              icon: const Icon(Icons.search),
+              label: const Text('Select Vendor'),
+            ),
+            if (vendor != null)
+              IconButton(onPressed: onClear, icon: const Icon(Icons.clear)),
           ],
         ),
       ),
@@ -562,12 +693,18 @@ class _QtyChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          Text(value.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w700, color: color ?? Theme.of(context).colorScheme.primary)),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      Text(
+        value.toStringAsFixed(2),
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: color ?? Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    ],
+  );
 }
 
 class _ManualReceiveLine {
@@ -590,7 +727,11 @@ class _ManualReceiveLine {
   final qtyCtrl = TextEditingController(text: '1');
   final costCtrl = TextEditingController();
 
-  bool get isBlank => itemId == null && descriptionCtrl.text.trim().isEmpty && (double.tryParse(qtyCtrl.text.trim()) ?? 0) <= 1 && costCtrl.text.trim().isEmpty;
+  bool get isBlank =>
+      itemId == null &&
+      descriptionCtrl.text.trim().isEmpty &&
+      (double.tryParse(qtyCtrl.text.trim()) ?? 0) <= 1 &&
+      costCtrl.text.trim().isEmpty;
 
   void dispose() {
     descriptionCtrl.dispose();
