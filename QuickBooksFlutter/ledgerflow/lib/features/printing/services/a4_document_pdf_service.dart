@@ -7,12 +7,18 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../settings/data/models/printing_settings_model.dart';
 import '../data/models/print_data_contracts.dart';
+import 'printing_asset_loader.dart';
 
 class A4DocumentPdfService {
-  const A4DocumentPdfService();
+  const A4DocumentPdfService({this.assetLoader = const PrintingAssetLoader()});
+
+  final PrintingAssetLoader assetLoader;
 
   Future<Uint8List> build(DocumentPrintDataModel data, PrintingSettingsModel settings) async {
-    final doc = pw.Document();
+    final logo = await assetLoader.loadLogo(settings);
+    final arabicFont = await assetLoader.loadArabicFont(settings);
+    final theme = arabicFont == null ? null : pw.ThemeData.withFont(base: arabicFont, bold: arabicFont);
+    final doc = pw.Document(theme: theme);
     final margin = switch (settings.a4TemplateStyle) {
       A4TemplateStyle.compact => 20.0,
       A4TemplateStyle.classic => 32.0,
@@ -24,7 +30,7 @@ class A4DocumentPdfService {
         pageFormat: PdfPageFormat.a4,
         margin: pw.EdgeInsets.all(margin),
         build: (context) => [
-          _header(data, settings),
+          _header(data, settings, logo),
           pw.SizedBox(height: settings.a4TemplateStyle == A4TemplateStyle.compact ? 12 : 18),
           _partyAndMeta(data, settings),
           pw.SizedBox(height: settings.a4TemplateStyle == A4TemplateStyle.compact ? 12 : 18),
@@ -49,7 +55,7 @@ class A4DocumentPdfService {
     return doc.save();
   }
 
-  pw.Widget _header(DocumentPrintDataModel data, PrintingSettingsModel settings) {
+  pw.Widget _header(DocumentPrintDataModel data, PrintingSettingsModel settings, pw.ImageProvider? logo) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -63,8 +69,8 @@ class A4DocumentPdfService {
                   height: 46,
                   alignment: pw.Alignment.center,
                   margin: const pw.EdgeInsets.only(right: 10),
-                  decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500, width: .5), borderRadius: pw.BorderRadius.circular(4)),
-                  child: pw.Text('LOGO', style: const pw.TextStyle(fontSize: 8)),
+                  decoration: logo == null ? pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500, width: .5), borderRadius: pw.BorderRadius.circular(4)) : null,
+                  child: logo == null ? pw.Text('LOGO', style: const pw.TextStyle(fontSize: 8)) : pw.Image(logo, fit: pw.BoxFit.contain),
                 ),
               pw.Expanded(
                 child: pw.Column(
