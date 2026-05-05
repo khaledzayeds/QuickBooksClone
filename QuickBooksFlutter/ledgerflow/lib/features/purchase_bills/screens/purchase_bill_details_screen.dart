@@ -68,6 +68,16 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
             orElse: () => const SizedBox.shrink(),
           ),
           billAsync.maybeWhen(
+            data: (bill) => bill.canPay
+                ? TextButton.icon(
+                    onPressed: () => context.push('${AppRoutes.vendorCreditNew}?billId=${bill.id}'),
+                    icon: const Icon(Icons.account_balance_wallet_outlined),
+                    label: const Text('Use Credit'),
+                  )
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
+          billAsync.maybeWhen(
             data: (bill) => bill.canVoid
                 ? IconButton(
                     tooltip: 'Void bill',
