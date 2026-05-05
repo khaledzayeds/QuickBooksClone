@@ -14,10 +14,17 @@ final purchaseBillsRepositoryProvider = Provider<PurchaseBillsRepository>(
   (ref) => PurchaseBillsRepository(ref.watch(purchaseBillsDatasourceProvider)),
 );
 
-final purchaseBillsProvider =
-    AsyncNotifierProvider<PurchaseBillsNotifier, List<PurchaseBillModel>>(
+final purchaseBillsProvider = AsyncNotifierProvider<PurchaseBillsNotifier, List<PurchaseBillModel>>(
   PurchaseBillsNotifier.new,
 );
+
+final purchaseBillDetailsProvider = FutureProvider.family<PurchaseBillModel, String>((ref, id) async {
+  final result = await ref.read(purchaseBillsRepositoryProvider).getBill(id);
+  return result.when(
+    success: (data) => data,
+    failure: (error) => throw error,
+  );
+});
 
 class PurchaseBillsNotifier extends AsyncNotifier<List<PurchaseBillModel>> {
   String? _search;
