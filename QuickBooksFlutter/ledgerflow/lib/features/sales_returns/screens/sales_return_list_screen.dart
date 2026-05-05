@@ -51,7 +51,8 @@ class SalesReturnListScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: returns.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) => _SalesReturnCard(salesReturn: returns[index]),
+              itemBuilder: (context, index) =>
+                  _SalesReturnCard(salesReturn: returns[index]),
             ),
           );
         },
@@ -73,16 +74,24 @@ class _SalesReturnCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: () => context.push(
+          AppRoutes.salesReturnDetails.replaceFirst(':id', salesReturn.id),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: salesReturn.isVoid ? cs.errorContainer : cs.tertiaryContainer,
+                backgroundColor: salesReturn.isVoid
+                    ? cs.errorContainer
+                    : cs.tertiaryContainer,
                 child: Icon(
-                  salesReturn.isVoid ? Icons.block : Icons.assignment_return_outlined,
-                  color: salesReturn.isVoid ? cs.onErrorContainer : cs.onTertiaryContainer,
+                  salesReturn.isVoid
+                      ? Icons.block
+                      : Icons.assignment_return_outlined,
+                  color: salesReturn.isVoid
+                      ? cs.onErrorContainer
+                      : cs.onTertiaryContainer,
                 ),
               ),
               const SizedBox(width: 16),
@@ -91,15 +100,21 @@ class _SalesReturnCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      salesReturn.returnNumber.isEmpty ? 'مرتجع بدون رقم' : salesReturn.returnNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      salesReturn.returnNumber.isEmpty
+                          ? 'مرتجع بدون رقم'
+                          : salesReturn.returnNumber,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(salesReturn.customerName ?? 'عميل غير محدد'),
                     const SizedBox(height: 4),
                     Text(
                       '${_date(salesReturn.returnDate)} • ${salesReturn.invoiceNumber ?? 'فاتورة'}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -110,7 +125,9 @@ class _SalesReturnCard extends StatelessWidget {
                 children: [
                   Text(
                     '${salesReturn.totalAmount.toStringAsFixed(2)} ج.م',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -129,7 +146,8 @@ class _SalesReturnCard extends StatelessWidget {
     );
   }
 
-  static String _date(DateTime date) => '${date.day}/${date.month}/${date.year}';
+  static String _date(DateTime date) =>
+      '${date.day}/${date.month}/${date.year}';
 }
 
 class _EmptyState extends StatelessWidget {
@@ -145,9 +163,15 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.assignment_return_outlined, size: 56),
             const SizedBox(height: 16),
-            Text('لا توجد مرتجعات بيع', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'لا توجد مرتجعات بيع',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
-            const Text('ابدأ بإنشاء مرتجع من فاتورة بيع مرحلة.', textAlign: TextAlign.center),
+            const Text(
+              'ابدأ بإنشاء مرتجع من فاتورة بيع مرحلة.',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () => context.go(AppRoutes.salesReturnNew),
@@ -174,7 +198,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

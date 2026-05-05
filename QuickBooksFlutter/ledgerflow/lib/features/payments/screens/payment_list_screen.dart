@@ -50,7 +50,8 @@ class PaymentListScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: payments.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) => _PaymentCard(payment: payments[index]),
+              itemBuilder: (context, index) =>
+                  _PaymentCard(payment: payments[index]),
             ),
           );
         },
@@ -71,16 +72,22 @@ class _PaymentCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: () => context.push(
+          AppRoutes.paymentDetails.replaceFirst(':id', payment.id),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: payment.isVoid ? cs.errorContainer : cs.primaryContainer,
+                backgroundColor: payment.isVoid
+                    ? cs.errorContainer
+                    : cs.primaryContainer,
                 child: Icon(
                   payment.isVoid ? Icons.block : Icons.payments_outlined,
-                  color: payment.isVoid ? cs.onErrorContainer : cs.onPrimaryContainer,
+                  color: payment.isVoid
+                      ? cs.onErrorContainer
+                      : cs.onPrimaryContainer,
                 ),
               ),
               const SizedBox(width: 16),
@@ -89,21 +96,29 @@ class _PaymentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      payment.paymentNumber.isEmpty ? 'تحصيل بدون رقم' : payment.paymentNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      payment.paymentNumber.isEmpty
+                          ? 'تحصيل بدون رقم'
+                          : payment.paymentNumber,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(payment.customerName ?? 'عميل غير محدد'),
                     const SizedBox(height: 4),
                     Text(
                       '${_date(payment.paymentDate)} • ${payment.invoiceNumber ?? 'فاتورة'} • ${payment.paymentMethod}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     if (payment.depositAccountName != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         'إيداع في: ${payment.depositAccountName}',
-                        style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ],
@@ -115,7 +130,9 @@ class _PaymentCard extends StatelessWidget {
                 children: [
                   Text(
                     '${payment.amount.toStringAsFixed(2)} ج.م',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -134,7 +151,8 @@ class _PaymentCard extends StatelessWidget {
     );
   }
 
-  static String _date(DateTime date) => '${date.day}/${date.month}/${date.year}';
+  static String _date(DateTime date) =>
+      '${date.day}/${date.month}/${date.year}';
 }
 
 class _EmptyState extends StatelessWidget {
@@ -150,9 +168,15 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.payments_outlined, size: 56),
             const SizedBox(height: 16),
-            Text('لا توجد تحصيلات عملاء', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'لا توجد تحصيلات عملاء',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
-            const Text('ابدأ بتسجيل تحصيل جديد من فاتورة بيع آجلة.', textAlign: TextAlign.center),
+            const Text(
+              'ابدأ بتسجيل تحصيل جديد من فاتورة بيع آجلة.',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () => context.go(AppRoutes.paymentNew),
@@ -179,7 +203,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

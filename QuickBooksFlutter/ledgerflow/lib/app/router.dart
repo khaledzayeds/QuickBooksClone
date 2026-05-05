@@ -32,6 +32,7 @@ import '../features/items/screens/item_list_screen.dart';
 import '../features/journal_entries/screens/journal_entry_form_screen.dart';
 import '../features/journal_entries/screens/journal_entry_list_screen.dart';
 import '../features/payments/screens/payment_form_screen.dart';
+import '../features/payments/screens/payment_details_screen.dart';
 import '../features/payments/screens/payment_list_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_details_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
@@ -52,6 +53,7 @@ import '../features/sales_receipts/screens/sales_receipt_details_page.dart';
 import '../features/sales_receipts/screens/sales_receipt_form_page.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
+import '../features/sales_returns/screens/sales_return_details_screen.dart';
 import '../features/sales_returns/screens/sales_return_list_screen.dart';
 import '../features/settings/data/models/license_settings_model.dart';
 import '../features/settings/screens/backup_settings_screen.dart';
@@ -67,7 +69,9 @@ import '../features/settings/widgets/license_gate.dart';
 import '../features/vendor_credits/screens/vendor_credit_details_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_list_screen.dart';
+import '../features/vendor_payments/screens/vendor_payment_details_screen.dart';
 import '../features/vendor_payments/screens/vendor_payment_form_screen.dart';
+import '../features/vendor_payments/screens/vendor_payment_list_screen.dart';
 import '../features/vendors/screens/vendor_details_screen.dart';
 import '../features/vendors/screens/vendor_form_screen.dart';
 import '../features/vendors/screens/vendor_list_screen.dart';
@@ -87,6 +91,7 @@ class AppRoutes {
   static const receiveInventoryDetails = '/purchases/receive/:id';
   static const vendorPayments = '/purchases/vendor-payments';
   static const vendorPaymentNew = '/purchases/vendor-payments/new';
+  static const vendorPaymentDetails = '/purchases/vendor-payments/:id';
   static const vendorCredits = '/purchases/vendor-credits';
   static const vendorCreditNew = '/purchases/vendor-credits/new';
   static const vendorCreditDetails = '/purchases/vendor-credits/:id';
@@ -106,11 +111,13 @@ class AppRoutes {
   static const invoiceEdit = '/sales/invoices/edit/:id';
   static const payments = '/sales/payments';
   static const paymentNew = '/sales/payments/new';
+  static const paymentDetails = '/sales/payments/:id';
   static const customerCredits = '/sales/customer-credits';
   static const customerCreditNew = '/sales/customer-credits/new';
   static const customerCreditDetails = '/sales/customer-credits/:id';
   static const salesReturns = '/sales/returns';
   static const salesReturnNew = '/sales/returns/new';
+  static const salesReturnDetails = '/sales/returns/:id';
   static const items = '/master/items';
   static const itemNew = '/master/items/new';
   static const itemDetails = '/master/items/:id';
@@ -299,13 +306,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.vendorPayments,
-            builder: (context, state) => const VendorPaymentFormScreen(),
+            builder: (context, state) => const VendorPaymentListScreen(),
           ),
           GoRoute(
             path: AppRoutes.vendorPaymentNew,
             builder: (context, state) => VendorPaymentFormScreen(
               billId: state.uri.queryParameters['billId'],
             ),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorPaymentDetails,
+            builder: (context, state) =>
+                VendorPaymentDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.vendorCredits,
@@ -393,6 +405,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const PaymentFormScreen(),
           ),
           GoRoute(
+            path: AppRoutes.paymentDetails,
+            builder: (context, state) =>
+                PaymentDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
             path: AppRoutes.customerCredits,
             builder: (context, state) => const CustomerCreditListScreen(),
           ),
@@ -412,6 +429,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.salesReturnNew,
             builder: (context, state) => const SalesReturnFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReturnDetails,
+            builder: (context, state) =>
+                SalesReturnDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.inventoryAdjustments,

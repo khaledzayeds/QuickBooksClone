@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/router.dart';
 import '../data/models/vendor_payment_model.dart';
 import '../providers/vendor_payments_provider.dart';
 
@@ -20,13 +21,14 @@ class VendorPaymentListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'تحديث',
-            onPressed: () => ref.read(vendorPaymentsProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(vendorPaymentsProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh),
           ),
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 12),
             child: FilledButton.icon(
-              onPressed: () => context.go('/purchases/vendor-payments/new'),
+              onPressed: () => context.go(AppRoutes.vendorPaymentNew),
               icon: const Icon(Icons.add),
               label: const Text('دفع جديد'),
             ),
@@ -42,12 +44,14 @@ class VendorPaymentListScreen extends ConsumerWidget {
         data: (payments) {
           if (payments.isEmpty) return const _EmptyState();
           return RefreshIndicator(
-            onRefresh: () => ref.read(vendorPaymentsProvider.notifier).refresh(),
+            onRefresh: () =>
+                ref.read(vendorPaymentsProvider.notifier).refresh(),
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: payments.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) => _VendorPaymentCard(payment: payments[index]),
+              itemBuilder: (context, index) =>
+                  _VendorPaymentCard(payment: payments[index]),
             ),
           );
         },
@@ -70,13 +74,17 @@ class _VendorPaymentCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: () => context.push(
+          AppRoutes.vendorPaymentDetails.replaceFirst(':id', payment.id),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: isVoid ? cs.errorContainer : cs.primaryContainer,
+                backgroundColor: isVoid
+                    ? cs.errorContainer
+                    : cs.primaryContainer,
                 child: Icon(
                   isVoid ? Icons.block : Icons.account_balance_wallet_outlined,
                   color: isVoid ? cs.onErrorContainer : cs.onPrimaryContainer,
@@ -88,20 +96,28 @@ class _VendorPaymentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      payment.paymentNumber.isEmpty ? 'دفع بدون رقم' : payment.paymentNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      payment.paymentNumber.isEmpty
+                          ? 'دفع بدون رقم'
+                          : payment.paymentNumber,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(payment.vendorName),
                     const SizedBox(height: 4),
                     Text(
                       '${_date(payment.paymentDate)} • ${payment.paymentMethod}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'حساب الدفع: ${payment.paymentAccountName}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -112,7 +128,9 @@ class _VendorPaymentCard extends StatelessWidget {
                 children: [
                   Text(
                     '${payment.amount.toStringAsFixed(2)} ج.م',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -131,7 +149,8 @@ class _VendorPaymentCard extends StatelessWidget {
     );
   }
 
-  static String _date(DateTime date) => '${date.day}/${date.month}/${date.year}';
+  static String _date(DateTime date) =>
+      '${date.day}/${date.month}/${date.year}';
 }
 
 class _EmptyState extends StatelessWidget {
@@ -147,12 +166,18 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.account_balance_wallet_outlined, size: 56),
             const SizedBox(height: 16),
-            Text('لا توجد مدفوعات موردين', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'لا توجد مدفوعات موردين',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
-            const Text('ابدأ بتسجيل دفع لفواتير شراء مستحقة.', textAlign: TextAlign.center),
+            const Text(
+              'ابدأ بتسجيل دفع لفواتير شراء مستحقة.',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () => context.go('/purchases/vendor-payments/new'),
+              onPressed: () => context.go(AppRoutes.vendorPaymentNew),
               icon: const Icon(Icons.add),
               label: const Text('دفع جديد'),
             ),
@@ -176,7 +201,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

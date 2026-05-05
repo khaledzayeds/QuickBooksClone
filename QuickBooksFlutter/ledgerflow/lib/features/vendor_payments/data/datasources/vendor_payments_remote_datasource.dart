@@ -40,7 +40,9 @@ class VendorPaymentsRemoteDatasource {
     }
   }
 
-  Future<ApiResult<VendorPaymentModel>> createPayment(Map<String, dynamic> body) async {
+  Future<ApiResult<VendorPaymentModel>> createPayment(
+    Map<String, dynamic> body,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/vendor-payments',
@@ -52,9 +54,22 @@ class VendorPaymentsRemoteDatasource {
     }
   }
 
+  Future<ApiResult<VendorPaymentModel>> getById(String id) async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/vendor-payments/$id',
+      );
+      return Success(VendorPaymentModel.fromJson(response.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
   Future<ApiResult<VendorPaymentModel>> voidPayment(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/vendor-payments/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/vendor-payments/$id/void',
+      );
       return Success(VendorPaymentModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));

@@ -8,25 +8,29 @@ import '../data/models/create_vendor_payment_dto.dart';
 import '../data/models/vendor_payment_model.dart';
 import '../data/repositories/vendor_payments_repository.dart';
 
-final vendorPaymentsDatasourceProvider = Provider<VendorPaymentsRemoteDatasource>(
-  (ref) => VendorPaymentsRemoteDatasource(ApiClient.instance),
-);
+final vendorPaymentsDatasourceProvider =
+    Provider<VendorPaymentsRemoteDatasource>(
+      (ref) => VendorPaymentsRemoteDatasource(ApiClient.instance),
+    );
 
 final vendorPaymentsRepositoryProvider = Provider<VendorPaymentsRepository>(
-  (ref) => VendorPaymentsRepository(ref.watch(vendorPaymentsDatasourceProvider)),
+  (ref) =>
+      VendorPaymentsRepository(ref.watch(vendorPaymentsDatasourceProvider)),
 );
 
 final vendorPaymentsProvider =
     AsyncNotifierProvider<VendorPaymentsNotifier, List<VendorPaymentModel>>(
-  VendorPaymentsNotifier.new,
-);
+      VendorPaymentsNotifier.new,
+    );
 
 class VendorPaymentsNotifier extends AsyncNotifier<List<VendorPaymentModel>> {
   @override
   Future<List<VendorPaymentModel>> build() => _fetch();
 
   Future<List<VendorPaymentModel>> _fetch() async {
-    final result = await ref.read(vendorPaymentsRepositoryProvider).getPayments();
+    final result = await ref
+        .read(vendorPaymentsRepositoryProvider)
+        .getPayments();
     return result.when(
       success: (data) => data,
       failure: (error) => throw error,
@@ -36,6 +40,14 @@ class VendorPaymentsNotifier extends AsyncNotifier<List<VendorPaymentModel>> {
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(_fetch);
+  }
+
+  Future<ApiResult<VendorPaymentModel>> voidPayment(String id) async {
+    final result = await ref
+        .read(vendorPaymentsRepositoryProvider)
+        .voidPayment(id);
+    if (result.isSuccess) refresh();
+    return result;
   }
 
   /// Batch payment logic: loops through selected bills and creates payments sequentially.
@@ -73,3 +85,14 @@ class VendorPaymentsNotifier extends AsyncNotifier<List<VendorPaymentModel>> {
     return const Success(null);
   }
 }
+
+final vendorPaymentDetailsProvider =
+    FutureProvider.family<VendorPaymentModel, String>((ref, id) async {
+      final result = await ref
+          .read(vendorPaymentsRepositoryProvider)
+          .getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });
