@@ -32,6 +32,8 @@ class InvoicesRepo {
 
   Future<ApiResult<InvoiceModel>> create(CreateInvoiceDto dto) => _api.create(dto);
 
+  Future<ApiResult<InvoiceModel>> update(String id, UpdateInvoiceDto dto) => _api.update(id, dto);
+
   Future<ApiResult<InvoiceModel>> postInvoice(String id) => _api.postInvoice(id);
 
   Future<ApiResult<void>> markSent(String id) => _api.markSent(id);
