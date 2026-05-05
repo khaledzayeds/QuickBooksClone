@@ -32,6 +32,7 @@ import '../features/journal_entries/screens/journal_entry_form_screen.dart';
 import '../features/journal_entries/screens/journal_entry_list_screen.dart';
 import '../features/payments/screens/payment_form_screen.dart';
 import '../features/payments/screens/payment_list_screen.dart';
+import '../features/purchase_bills/screens/purchase_bill_details_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_details_screen.dart';
@@ -77,6 +78,7 @@ class AppRoutes {
   static const purchaseOrderDetails = '/purchases/orders/:id';
   static const purchaseBillNew = '/purchases/bills/new';
   static const purchaseBills = '/purchases/bills';
+  static const purchaseBillDetails = '/purchases/bills/:id';
   static const receiveInventory = '/purchases/receive';
   static const receiveInventoryNew = '/purchases/receive/new';
   static const receiveInventoryDetails = '/purchases/receive/:id';
@@ -191,7 +193,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.receiveInventoryNew, builder: (context, state) => ReceiveInventoryFormScreen(purchaseOrderId: state.uri.queryParameters['poId'])),
           GoRoute(path: AppRoutes.receiveInventoryDetails, builder: (context, state) => ReceiveInventoryDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.purchaseBills, builder: (context, state) => const PurchaseBillListScreen()),
-          GoRoute(path: AppRoutes.purchaseBillNew, builder: (context, state) => const PurchaseBillFormScreen()),
+          GoRoute(path: AppRoutes.purchaseBillNew, builder: (context, state) => PurchaseBillFormScreen(inventoryReceiptId: state.uri.queryParameters['receiptId'])),
+          GoRoute(path: AppRoutes.purchaseBillDetails, builder: (context, state) => PurchaseBillDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.vendorPayments, builder: (context, state) => const VendorPaymentFormScreen()),
           GoRoute(path: AppRoutes.vendorPaymentNew, builder: (context, state) => const VendorPaymentFormScreen()),
           GoRoute(path: AppRoutes.vendorCredits, builder: (context, state) => const VendorCreditListScreen()),
