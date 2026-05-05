@@ -88,11 +88,15 @@ class TopMenuBar extends StatelessWidget {
             label: 'Reports',
             items: const {
               'Reports Center': AppRoutes.reports,
+              'Transactions': AppRoutes.transactions,
               'Profit & Loss': AppRoutes.reports,
               'Balance Sheet': AppRoutes.reports,
             },
           ),
-          _MenuButton(label: 'Help', items: const {'About LedgerFlow': AppRoutes.myCompany}),
+          _MenuButton(
+            label: 'Help',
+            items: const {'About LedgerFlow': AppRoutes.myCompany},
+          ),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),

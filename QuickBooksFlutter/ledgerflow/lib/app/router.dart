@@ -22,6 +22,7 @@ import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/estimates/screens/estimate_details_screen.dart';
 import '../features/estimates/screens/estimate_form_screen.dart';
 import '../features/estimates/screens/estimate_list_screen.dart';
+import '../features/inventory_adjustments/screens/inventory_adjustment_details_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_form_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_list_screen.dart';
 import '../features/invoices/screens/invoice_details_page.dart';
@@ -69,6 +70,8 @@ import '../features/settings/screens/setup_wizard_screen.dart';
 import '../features/settings/screens/tax_settings_screen.dart';
 import '../features/settings/screens/users_permissions_screen.dart';
 import '../features/settings/widgets/license_gate.dart';
+import '../features/transactions/screens/transaction_details_screen.dart';
+import '../features/transactions/screens/transaction_list_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_details_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_list_screen.dart';
@@ -140,10 +143,13 @@ class AppRoutes {
   static const accountEdit = '/master/coa/edit/:id';
   static const inventoryAdjustments = '/inventory/adjustments';
   static const inventoryAdjustmentNew = '/inventory/adjustments/new';
+  static const inventoryAdjustmentDetails = '/inventory/adjustments/:id';
   static const journalEntries = '/company/journal-entries';
   static const journalEntryNew = '/company/journal-entries/new';
   static const journalEntryDetails = '/company/journal-entries/:id';
   static const reports = '/reports';
+  static const transactions = '/transactions';
+  static const transactionDetails = '/transactions/:id';
   static const settings = '/settings';
   static const companySettings = '/settings/company';
   static const connectionSettings = '/settings/connection';
@@ -460,6 +466,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const InventoryAdjustmentFormScreen(),
           ),
           GoRoute(
+            path: AppRoutes.inventoryAdjustmentDetails,
+            builder: (context, state) => InventoryAdjustmentDetailsScreen(
+              id: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.journalEntries,
             builder: (context, state) => const JournalEntryListScreen(),
           ),
@@ -475,6 +487,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.reports,
             builder: (context, state) => const ReportsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.transactions,
+            builder: (context, state) => const TransactionListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.transactionDetails,
+            builder: (context, state) =>
+                TransactionDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.settings,

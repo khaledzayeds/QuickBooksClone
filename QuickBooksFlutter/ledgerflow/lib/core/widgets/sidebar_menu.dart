@@ -29,14 +29,24 @@ class SidebarMenu extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.center,
             child: Row(
-              mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              mainAxisAlignment: isCollapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
               children: [
-                const Icon(Icons.account_balance, color: Colors.white70, size: 28),
+                const Icon(
+                  Icons.account_balance,
+                  color: Colors.white70,
+                  size: 28,
+                ),
                 if (!isCollapsed) ...[
                   const SizedBox(width: 12),
                   const Text(
                     'QB',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                    ),
                   ),
                 ],
               ],
@@ -50,12 +60,22 @@ class SidebarMenu extends ConsumerWidget {
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: InputDecoration(
                   hintText: l10n.searchHelp,
-                  hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
-                  prefixIcon: const Icon(Icons.search, size: 14, color: Colors.white54),
+                  hintStyle: const TextStyle(
+                    color: Colors.white30,
+                    fontSize: 11,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 14,
+                    color: Colors.white54,
+                  ),
                   fillColor: Colors.white.withValues(alpha: 0.1),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
@@ -67,7 +87,15 @@ class SidebarMenu extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  Text(l10n.myShortcuts.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                  Text(
+                    l10n.myShortcuts.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                   const Spacer(),
                   const Icon(Icons.settings, size: 12, color: Colors.white38),
                 ],
@@ -78,43 +106,144 @@ class SidebarMenu extends ConsumerWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _ShortcutItem(icon: Icons.home_outlined, label: l10n.home, path: AppRoutes.dashboard, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.business_outlined, label: l10n.myCompany, path: AppRoutes.myCompany, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: l10n.cashFlowHub, path: AppRoutes.cashFlowHub, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.trending_up_outlined, label: l10n.incomeTracker, path: AppRoutes.invoices, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.receipt_outlined, label: l10n.billTracker, path: AppRoutes.purchaseBills, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.calendar_today_outlined, label: l10n.calendar, path: AppRoutes.calendar, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.camera_alt_outlined, label: l10n.snapshots, path: AppRoutes.snapshots, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(
+                  icon: Icons.home_outlined,
+                  label: l10n.home,
+                  path: AppRoutes.dashboard,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.business_outlined,
+                  label: l10n.myCompany,
+                  path: AppRoutes.myCompany,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: l10n.cashFlowHub,
+                  path: AppRoutes.cashFlowHub,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.trending_up_outlined,
+                  label: l10n.incomeTracker,
+                  path: AppRoutes.invoices,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.receipt_outlined,
+                  label: l10n.billTracker,
+                  path: AppRoutes.purchaseBills,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.calendar_today_outlined,
+                  label: l10n.calendar,
+                  path: AppRoutes.calendar,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.camera_alt_outlined,
+                  label: l10n.snapshots,
+                  path: AppRoutes.snapshots,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
 
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(color: Colors.white12, height: 1),
                 ),
 
-                _ShortcutItem(icon: Icons.point_of_sale_outlined, label: l10n.salesReceipts, path: AppRoutes.salesReceipts, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.assignment_return_outlined, label: 'Sales Returns', path: AppRoutes.salesReturns, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.account_balance_wallet_outlined, label: 'Customer Credits', path: AppRoutes.customerCredits, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.keyboard_return_outlined, label: 'Purchase Returns', path: AppRoutes.purchaseReturns, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.account_balance_outlined, label: 'Vendor Credits', path: AppRoutes.vendorCredits, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(
+                  icon: Icons.point_of_sale_outlined,
+                  label: l10n.salesReceipts,
+                  path: AppRoutes.salesReceipts,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.assignment_return_outlined,
+                  label: 'Sales Returns',
+                  path: AppRoutes.salesReturns,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'Customer Credits',
+                  path: AppRoutes.customerCredits,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.keyboard_return_outlined,
+                  label: 'Purchase Returns',
+                  path: AppRoutes.purchaseReturns,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.account_balance_outlined,
+                  label: 'Vendor Credits',
+                  path: AppRoutes.vendorCredits,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
 
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(color: Colors.white12, height: 1),
                 ),
 
-                _ShortcutItem(icon: Icons.list_alt_outlined, label: l10n.viewBalances, path: AppRoutes.chartOfAccounts, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.description_outlined, label: l10n.runFavoriteReports, path: AppRoutes.reports, current: location, isCollapsed: isCollapsed),
-                _ShortcutItem(icon: Icons.window_outlined, label: l10n.openWindows, path: AppRoutes.openWindows, current: location, isCollapsed: isCollapsed),
+                _ShortcutItem(
+                  icon: Icons.list_alt_outlined,
+                  label: l10n.viewBalances,
+                  path: AppRoutes.chartOfAccounts,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Transactions',
+                  path: AppRoutes.transactions,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.description_outlined,
+                  label: l10n.runFavoriteReports,
+                  path: AppRoutes.reports,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.window_outlined,
+                  label: l10n.openWindows,
+                  path: AppRoutes.openWindows,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
               ],
             ),
           ),
 
           InkWell(
-            onTap: () => ref.read(sidebarCollapsedProvider.notifier).state = !isCollapsed,
+            onTap: () => ref.read(sidebarCollapsedProvider.notifier).state =
+                !isCollapsed,
             child: Container(
               padding: const EdgeInsets.all(16),
               alignment: Alignment.center,
-              child: Icon(isCollapsed ? Icons.chevron_right : Icons.chevron_left, color: Colors.white38),
+              child: Icon(
+                isCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                color: Colors.white38,
+              ),
             ),
           ),
         ],
@@ -152,11 +281,20 @@ class _ShortcutItem extends StatelessWidget {
       child: InkWell(
         onTap: () => context.go(path),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: isCollapsed ? 12 : 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: isCollapsed ? 12 : 10,
+          ),
           child: Row(
-            mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: isCollapsed
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
-              Icon(icon, size: 18, color: active ? Colors.white : Colors.white60),
+              Icon(
+                icon,
+                size: 18,
+                color: active ? Colors.white : Colors.white60,
+              ),
               if (!isCollapsed) ...[
                 const SizedBox(width: 12),
                 Expanded(

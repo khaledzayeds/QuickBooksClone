@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show AccountType;
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -27,11 +28,14 @@ class InventoryAdjustmentFormState {
   double get total => quantityChange.abs() * unitCost;
 }
 
-final inventoryAdjustmentFormProvider = StateProvider.autoDispose<InventoryAdjustmentFormState>(
-  (ref) => InventoryAdjustmentFormState(),
-);
+final inventoryAdjustmentFormProvider =
+    StateProvider.autoDispose<InventoryAdjustmentFormState>(
+      (ref) => InventoryAdjustmentFormState(),
+    );
 
-final inventoryAdjustmentSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final inventoryAdjustmentSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 
 class InventoryAdjustmentFormScreen extends ConsumerWidget {
   const InventoryAdjustmentFormScreen({super.key});
@@ -51,7 +55,11 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go('/master/items'),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.inventoryAdjustments),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -71,7 +79,10 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
             accountsAsync: accountsAsync,
           ),
           const SizedBox(height: 24),
-          Align(alignment: AlignmentDirectional.centerEnd, child: _TotalCard(total: form.total)),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: _TotalCard(total: form.total),
+          ),
         ],
       ),
     );
@@ -108,7 +119,9 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
     );
 
     ref.read(inventoryAdjustmentSavingProvider.notifier).state = true;
-    final result = await ref.read(inventoryAdjustmentsProvider.notifier).create(dto);
+    final result = await ref
+        .read(inventoryAdjustmentsProvider.notifier)
+        .create(dto);
     ref.read(inventoryAdjustmentSavingProvider.notifier).state = false;
 
     if (!context.mounted) return;
@@ -116,8 +129,10 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.read(itemsProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.inventoryAdjustmentSavedSuccess)));
-        context.go('/master/items');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.inventoryAdjustmentSavedSuccess)),
+        );
+        context.go(AppRoutes.inventoryAdjustments);
       },
       failure: (error) => _error(context, error.message),
     );
@@ -127,12 +142,18 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
 
 class _AdjustmentCard extends ConsumerWidget {
-  const _AdjustmentCard({required this.form, required this.itemsAsync, required this.accountsAsync});
+  const _AdjustmentCard({
+    required this.form,
+    required this.itemsAsync,
+    required this.accountsAsync,
+  });
 
   final InventoryAdjustmentFormState form;
   final AsyncValue<List<ItemModel>> itemsAsync;
@@ -142,7 +163,8 @@ class _AdjustmentCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final inventoryItems = itemsAsync.maybeWhen(
-      data: (items) => items.where((item) => item.isActive && item.isInventory).toList(),
+      data: (items) =>
+          items.where((item) => item.isActive && item.isInventory).toList(),
       orElse: () => <ItemModel>[],
     );
     final adjustmentAccounts = accountsAsync.maybeWhen(
@@ -160,9 +182,14 @@ class _AdjustmentCard extends ConsumerWidget {
       orElse: () => <AccountModel>[],
     );
 
-    final selectedItem = inventoryItems.where((item) => item.id == form.itemId).firstOrNull;
+    final selectedItem = inventoryItems
+        .where((item) => item.id == form.itemId)
+        .firstOrNull;
     final safeItemId = selectedItem?.id;
-    final safeAccountId = adjustmentAccounts.any((account) => account.id == form.adjustmentAccountId)
+    final safeAccountId =
+        adjustmentAccounts.any(
+          (account) => account.id == form.adjustmentAccountId,
+        )
         ? form.adjustmentAccountId
         : null;
 
@@ -182,12 +209,16 @@ class _AdjustmentCard extends ConsumerWidget {
                   .map(
                     (item) => DropdownMenuItem(
                       value: item.id,
-                      child: Text('${item.name} • ${l10n.stock}: ${item.quantityOnHand.toStringAsFixed(2)}'),
+                      child: Text(
+                        '${item.name} • ${l10n.stock}: ${item.quantityOnHand.toStringAsFixed(2)}',
+                      ),
                     ),
                   )
                   .toList(),
               onChanged: (value) {
-                final item = inventoryItems.where((i) => i.id == value).firstOrNull;
+                final item = inventoryItems
+                    .where((i) => i.id == value)
+                    .firstOrNull;
                 _update(
                   ref,
                   form
@@ -205,9 +236,15 @@ class _AdjustmentCard extends ConsumerWidget {
                 prefixIcon: const Icon(Icons.account_balance_outlined),
               ),
               items: adjustmentAccounts
-                  .map((account) => DropdownMenuItem(value: account.id, child: Text('${account.code} - ${account.name}')))
+                  .map(
+                    (account) => DropdownMenuItem(
+                      value: account.id,
+                      child: Text('${account.code} - ${account.name}'),
+                    ),
+                  )
                   .toList(),
-              onChanged: (value) => _update(ref, form..adjustmentAccountId = value),
+              onChanged: (value) =>
+                  _update(ref, form..adjustmentAccountId = value),
             ),
             const SizedBox(height: 16),
             Row(
@@ -216,7 +253,9 @@ class _AdjustmentCard extends ConsumerWidget {
                   child: AppTextField(
                     label: l10n.paymentDate,
                     readOnly: true,
-                    initialValue: InventoryAdjustmentFormScreen._dateOnly(form.adjustmentDate),
+                    initialValue: InventoryAdjustmentFormScreen._dateOnly(
+                      form.adjustmentDate,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -224,8 +263,13 @@ class _AdjustmentCard extends ConsumerWidget {
                   child: AppTextField(
                     key: ValueKey('qty-${form.itemId}-${form.quantityChange}'),
                     label: '${l10n.qty} *',
-                    initialValue: form.quantityChange == 0 ? '' : form.quantityChange.toString(),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                    initialValue: form.quantityChange == 0
+                        ? ''
+                        : form.quantityChange.toString(),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
                     onChanged: (value) {
                       form.quantityChange = double.tryParse(value) ?? 0;
                       _update(ref, form);
@@ -241,8 +285,12 @@ class _AdjustmentCard extends ConsumerWidget {
                   child: AppTextField(
                     key: ValueKey('unitCost-${form.itemId}-${form.unitCost}'),
                     label: '${l10n.unitCost} *',
-                    initialValue: form.unitCost == 0 ? '' : form.unitCost.toStringAsFixed(2),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    initialValue: form.unitCost == 0
+                        ? ''
+                        : form.unitCost.toStringAsFixed(2),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     onChanged: (value) {
                       form.unitCost = double.tryParse(value) ?? 0;
                       _update(ref, form);
@@ -284,10 +332,15 @@ class _TotalCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(l10n.total, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                l10n.total,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text(
                 '${total.toStringAsFixed(2)} ${l10n.egp}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ],
           ),
@@ -298,7 +351,9 @@ class _TotalCard extends StatelessWidget {
 }
 
 void _update(WidgetRef ref, InventoryAdjustmentFormState old) {
-  ref.read(inventoryAdjustmentFormProvider.notifier).state = InventoryAdjustmentFormState()
+  ref
+      .read(inventoryAdjustmentFormProvider.notifier)
+      .state = InventoryAdjustmentFormState()
     ..itemId = old.itemId
     ..adjustmentAccountId = old.adjustmentAccountId
     ..adjustmentDate = old.adjustmentDate
