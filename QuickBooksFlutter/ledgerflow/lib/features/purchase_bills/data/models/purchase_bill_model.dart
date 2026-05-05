@@ -16,6 +16,7 @@ class PurchaseBillModel {
     required this.totalAmount,
     required this.amountPaid,
     required this.balanceDue,
+    this.inventoryReceiptId,
     this.memo,
     required this.lines,
   });
@@ -32,24 +33,34 @@ class PurchaseBillModel {
   final double totalAmount;
   final double amountPaid;
   final double balanceDue;
+  final String? inventoryReceiptId;
   final String? memo;
   final List<PurchaseBillLineModel> lines;
 
+  bool get isDraft => status == 1;
+  bool get isPosted => status == 2;
+  bool get isVoid => status == 3;
+  bool get isPartiallyPaid => status == 4;
+  bool get isPaid => status == 5 || balanceDue <= 0;
+  bool get canVoid => !isVoid && amountPaid <= 0;
+  bool get canPay => !isVoid && balanceDue > 0;
+
   factory PurchaseBillModel.fromJson(Map<String, dynamic> json) => PurchaseBillModel(
-        id:          JsonUtils.asString(json['id']),
-        billNumber:  JsonUtils.asString(json['billNumber']),
-        vendorId:    JsonUtils.asString(json['vendorId']),
-        vendorName:  JsonUtils.asString(json['vendorName']),
-        billDate:    _parseDate(json['billDate']),
-        dueDate:     _parseDate(json['dueDate']),
-        status:      JsonUtils.asInt(json['status']),
-        subtotal:    JsonUtils.asDouble(json['subtotal']),
-        taxAmount:   JsonUtils.asDouble(json['taxAmount']),
+        id: JsonUtils.asString(json['id']),
+        billNumber: JsonUtils.asString(json['billNumber']),
+        vendorId: JsonUtils.asString(json['vendorId']),
+        vendorName: JsonUtils.asString(json['vendorName']),
+        billDate: _parseDate(json['billDate']),
+        dueDate: _parseDate(json['dueDate']),
+        status: JsonUtils.asInt(json['status']),
+        subtotal: JsonUtils.asDouble(json['subtotal']),
+        taxAmount: JsonUtils.asDouble(json['taxAmount']),
         totalAmount: JsonUtils.asDouble(json['totalAmount']),
-        amountPaid:  JsonUtils.asDouble(json['amountPaid']),
-        balanceDue:  JsonUtils.asDouble(json['balanceDue']),
-        memo:        JsonUtils.asString(json['memo']),
-        lines:       JsonUtils.asList(json['lines'], (l) => PurchaseBillLineModel.fromJson(l)),
+        amountPaid: JsonUtils.asDouble(json['amountPaid']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+        inventoryReceiptId: JsonUtils.asNullableString(json['inventoryReceiptId']),
+        memo: JsonUtils.asNullableString(json['memo']),
+        lines: JsonUtils.asList(json['lines'], (l) => PurchaseBillLineModel.fromJson(l)),
       );
 
   static DateTime _parseDate(dynamic value) {
@@ -80,13 +91,13 @@ class PurchaseBillLineModel {
   final String? inventoryReceiptLineId;
 
   factory PurchaseBillLineModel.fromJson(Map<String, dynamic> json) => PurchaseBillLineModel(
-        id:                     JsonUtils.asString(json['id']),
-        itemId:                 JsonUtils.asString(json['itemId']),
-        itemName:               JsonUtils.asString(json['itemName']),
-        description:            JsonUtils.asString(json['description']),
-        quantity:               JsonUtils.asDouble(json['quantity']),
-        unitCost:               JsonUtils.asDouble(json['unitCost']),
-        lineTotal:              JsonUtils.asDouble(json['lineTotal']),
-        inventoryReceiptLineId: JsonUtils.asString(json['inventoryReceiptLineId']),
+        id: JsonUtils.asString(json['id']),
+        itemId: JsonUtils.asString(json['itemId']),
+        itemName: JsonUtils.asString(json['itemName']),
+        description: JsonUtils.asString(json['description']),
+        quantity: JsonUtils.asDouble(json['quantity']),
+        unitCost: JsonUtils.asDouble(json['unitCost']),
+        lineTotal: JsonUtils.asDouble(json['lineTotal']),
+        inventoryReceiptLineId: JsonUtils.asNullableString(json['inventoryReceiptLineId']),
       );
 }
