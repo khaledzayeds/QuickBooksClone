@@ -160,6 +160,27 @@ class CreateInvoiceDto {
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
+class UpdateInvoiceDto {
+  const UpdateInvoiceDto({
+    required this.customerId,
+    required this.invoiceDate,
+    required this.dueDate,
+    required this.lines,
+  });
+
+  final String customerId;
+  final DateTime invoiceDate;
+  final DateTime dueDate;
+  final List<CreateInvoiceLineDto> lines;
+
+  Map<String, dynamic> toJson() => {
+        'customerId': customerId,
+        'invoiceDate': CreateInvoiceDto._dateOnly(invoiceDate),
+        'dueDate': CreateInvoiceDto._dateOnly(dueDate),
+        'lines': lines.map((line) => line.toJson()).toList(),
+      };
+}
+
 class CreateInvoiceLineDto {
   const CreateInvoiceLineDto({
     required this.itemId,
