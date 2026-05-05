@@ -14,6 +14,8 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
   const ReceiveInventoryDetailsScreen({super.key, required this.id});
   final String id;
 
+  bool _isVoidStatus(String status) => status.toLowerCase().contains('void') || status.toLowerCase().contains('cancel');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final receiptAsync = ref.watch(receiveInventoryDetailsProvider(id));
@@ -23,11 +25,20 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('${l10n.receipt} | ${l10n.orderDetails}'),
         actions: [
+          receiptAsync.maybeWhen(
+            data: (receipt) => !_isVoidStatus(receipt.status)
+                ? TextButton.icon(
+                    onPressed: () => context.push('${AppRoutes.purchaseBillNew}?receiptId=${receipt.id}'),
+                    icon: const Icon(Icons.request_quote_outlined),
+                    label: const Text('Create Bill'),
+                  )
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: l10n.retry,
-            onPressed: () =>
-                ref.invalidate(receiveInventoryDetailsProvider(id)),
+            onPressed: () => ref.invalidate(receiveInventoryDetailsProvider(id)),
           ),
         ],
       ),
@@ -37,32 +48,27 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.error),
+              Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 12),
               Text(e.toString(), textAlign: TextAlign.center),
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 icon: const Icon(Icons.refresh),
                 label: Text(l10n.retry),
-                onPressed: () =>
-                    ref.invalidate(receiveInventoryDetailsProvider(id)),
+                onPressed: () => ref.invalidate(receiveInventoryDetailsProvider(id)),
               ),
             ],
           ),
         ),
         data: (receipt) {
-          final fmt   = DateFormat('dd/MM/yyyy');
-          final date  = fmt.format(receipt.receiptDate);
-          final title = receipt.receiptNumber.isEmpty
-              ? '${l10n.receipt} #${receipt.id.substring(0, 8)}'
-              : receipt.receiptNumber;
+          final fmt = DateFormat('dd/MM/yyyy');
+          final date = fmt.format(receipt.receiptDate);
+          final title = receipt.receiptNumber.isEmpty ? '${l10n.receipt} #${receipt.id.substring(0, 8)}' : receipt.receiptNumber;
+          final isFromPo = receipt.purchaseOrderId.isNotEmpty;
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // ── Header Card ──────────────────────────────
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -72,63 +78,38 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(title,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.w800)),
+                            child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                           ),
                           Chip(
-                            label: Text(receipt.status, // We should localize status eventually
-                                style: const TextStyle(fontSize: 12)),
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer,
+                            label: Text(receipt.status, style: const TextStyle(fontSize: 12)),
+                            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                           ),
                         ],
                       ),
                       const Divider(height: 24),
-                      _InfoRow(
-                          label: l10n.vendor,
-                          value: receipt.vendorName),
-                      _InfoRow(
-                          label: l10n.receiptDate,
-                          value: date),
-                      if (receipt.purchaseOrderId.isNotEmpty)
+                      _InfoRow(label: l10n.vendor, value: receipt.vendorName),
+                      _InfoRow(label: l10n.receiptDate, value: date),
+                      _InfoRow(label: 'Receipt Mode', value: isFromPo ? 'From Purchase Order' : 'Standalone'),
+                      if (isFromPo)
                         _InfoRow(
                           label: l10n.purchaseOrders,
                           value: receipt.purchaseOrderId,
                           isLink: true,
-                          onTap: () => context.push(
-                            AppRoutes.purchaseOrderDetails.replaceFirst(
-                                ':id', receipt.purchaseOrderId),
-                          ),
+                          onTap: () => context.push(AppRoutes.purchaseOrderDetails.replaceFirst(':id', receipt.purchaseOrderId)),
                         ),
-                      if (receipt.notes != null &&
-                          receipt.notes!.isNotEmpty)
-                        _InfoRow(
-                            label: l10n.notes,
-                            value: receipt.notes!),
+                      if (receipt.notes != null && receipt.notes!.isNotEmpty) _InfoRow(label: l10n.notes, value: receipt.notes!),
                     ],
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // ── Lines ────────────────────────────────────
-              Text(l10n.receivedItems,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+              Text(l10n.receivedItems, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-
               if (receipt.lines.isEmpty)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text(l10n.underDevelopment), // Fallback
+                    child: Text(l10n.underDevelopment),
                   ),
                 )
               else
@@ -140,37 +121,47 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.1),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.inventory_2_outlined,
-                            size: 20,
-                            color:
-                                Theme.of(context).colorScheme.primary),
+                        child: Icon(
+                          line.purchaseOrderLineId == null ? Icons.inventory_2_outlined : Icons.receipt_long_outlined,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                      title: Text(line.itemName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600)),
-                      subtitle: Text('ID: ${line.itemId.substring(0, 8)}…'),
+                      title: Text(line.itemName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Text(line.purchaseOrderLineId == null ? 'Manual line • ID: ${line.itemId.substring(0, 8)}…' : 'PO-linked line • ID: ${line.itemId.substring(0, 8)}…'),
                       trailing: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(line.quantityReceived.toStringAsFixed(2),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16)),
-                          Text(l10n.received,
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.grey)),
+                          Text(line.quantityReceived.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                          Text('${line.unitCost.toStringAsFixed(2)} / unit', style: const TextStyle(fontSize: 10, color: Colors.grey)),
                         ],
                       ),
                     ),
                   ),
                 ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: SizedBox(
+                  width: 320,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(l10n.total, style: const TextStyle(fontWeight: FontWeight.w800)),
+                          Text(receipt.totalAmount.toStringAsFixed(2), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -179,14 +170,8 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
   }
 }
 
-// ── Info Row ─────────────────────────────────────────────────────────────
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.isLink = false,
-    this.onTap,
-  });
+  const _InfoRow({required this.label, required this.value, this.isLink = false, this.onTap});
   final String label;
   final String value;
   final bool isLink;
@@ -198,24 +183,18 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Text(label,
-              style: TextStyle(color: Theme.of(context).hintColor)),
+          Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
           const Spacer(),
           isLink
               ? GestureDetector(
                   onTap: onTap,
-                  child: Text(value,
-                      textAlign: TextAlign.end,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.primary,
-                          decoration: TextDecoration.underline)),
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary, decoration: TextDecoration.underline),
+                  ),
                 )
-              : Flexible(
-                  child: Text(value,
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                ),
+              : Flexible(child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w600))),
         ],
       ),
     );
