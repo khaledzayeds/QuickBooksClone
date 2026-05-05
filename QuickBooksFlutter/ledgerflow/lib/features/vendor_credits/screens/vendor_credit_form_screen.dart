@@ -1,4 +1,6 @@
 // vendor_credit_form_screen.dart
+// Applies existing vendor credit to bills or records vendor refund receipts.
+// Supports direct opening from Purchase Bill details with billId.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,18 +32,66 @@ class VendorCreditFormState {
 
 final vendorCreditFormProvider = StateProvider.autoDispose<VendorCreditFormState>((ref) => VendorCreditFormState());
 final vendorCreditSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final vendorCreditLoadingInitialBillProvider = StateProvider.autoDispose<bool>((ref) => false);
 
-class VendorCreditFormScreen extends ConsumerWidget {
-  const VendorCreditFormScreen({super.key});
+class VendorCreditFormScreen extends ConsumerStatefulWidget {
+  const VendorCreditFormScreen({super.key, this.billId});
+
+  final String? billId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VendorCreditFormScreen> createState() => _VendorCreditFormScreenState();
+}
+
+class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.billId != null && widget.billId!.isNotEmpty) {
+      Future.microtask(_loadInitialBill);
+    }
+  }
+
+  Future<void> _loadInitialBill() async {
+    final billId = widget.billId;
+    if (billId == null || billId.isEmpty) return;
+
+    ref.read(vendorCreditLoadingInitialBillProvider.notifier).state = true;
+    final result = await ref.read(purchaseBillsRepositoryProvider).getBill(billId);
+    ref.read(vendorCreditLoadingInitialBillProvider.notifier).state = false;
+
+    if (!mounted) return;
+    result.when(
+      success: (bill) {
+        if (!bill.canPay) {
+          _error(context, 'This bill does not have a payable balance.');
+          return;
+        }
+        final state = VendorCreditFormState()
+          ..vendorId = bill.vendorId
+          ..purchaseBillId = bill.id
+          ..amount = bill.balanceDue
+          ..action = VendorCreditAction.applyToBill
+          ..activityDate = DateTime.now();
+        ref.read(vendorCreditFormProvider.notifier).state = state;
+      },
+      failure: (error) => _error(context, error.message),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final form = ref.watch(vendorCreditFormProvider);
     final saving = ref.watch(vendorCreditSavingProvider);
+    final loadingInitialBill = ref.watch(vendorCreditLoadingInitialBillProvider);
     final vendorsAsync = ref.watch(vendorsProvider);
     final billsAsync = ref.watch(purchaseBillsProvider);
     final accountsAsync = ref.watch(accountsProvider);
+
+    if (loadingInitialBill) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -56,7 +106,7 @@ class VendorCreditFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.save,
             loading: saving,
-            onPressed: saving ? null : () => _save(context, ref),
+            onPressed: saving ? null : () => _save(context),
           ),
           const SizedBox(width: 12),
         ],
@@ -64,6 +114,26 @@ class VendorCreditFormScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          if (widget.billId != null && widget.billId!.isNotEmpty && form.purchaseBillId != null) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    const Icon(Icons.receipt_long_outlined),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Applying vendor credit to selected bill',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           _CreditCard(
             form: form,
             vendorsAsync: vendorsAsync,
@@ -75,7 +145,7 @@ class VendorCreditFormScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _save(BuildContext context, WidgetRef ref) async {
+  Future<void> _save(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final form = ref.read(vendorCreditFormProvider);
 
@@ -114,8 +184,17 @@ class VendorCreditFormScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.read(purchaseBillsProvider.notifier).refresh();
+        if (form.purchaseBillId != null && form.purchaseBillId!.isNotEmpty) {
+          ref.invalidate(purchaseBillDetailsProvider(form.purchaseBillId!));
+        }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
-        context.go(AppRoutes.vendorCredits);
+        if (context.canPop()) {
+          context.pop();
+        } else if (form.purchaseBillId != null && form.purchaseBillId!.isNotEmpty) {
+          context.go(AppRoutes.purchaseBillDetails.replaceFirst(':id', form.purchaseBillId!));
+        } else {
+          context.go(AppRoutes.vendorCredits);
+        }
       },
       failure: (error) => _error(context, error.message),
     );
@@ -149,7 +228,7 @@ class _CreditCard extends ConsumerWidget {
     final vendorBills = billsAsync.maybeWhen(
       data: (bills) => bills
           .where((bill) => form.vendorId == null || bill.vendorId == form.vendorId)
-          .where((bill) => bill.balanceDue > 0)
+          .where((bill) => bill.canPay)
           .toList(),
       orElse: () => <PurchaseBillModel>[],
     );
@@ -159,9 +238,7 @@ class _CreditCard extends ConsumerWidget {
           .where(
             (account) =>
                 account.isActive &&
-                (account.accountType == AccountType.bank ||
-                    account.accountType == AccountType.otherCurrentAsset ||
-                    account.accountType == AccountType.creditCard),
+                (account.accountType == AccountType.bank || account.accountType == AccountType.otherCurrentAsset || account.accountType == AccountType.creditCard),
           )
           .toList(),
       orElse: () => <AccountModel>[],
@@ -184,7 +261,7 @@ class _CreditCard extends ConsumerWidget {
               ),
               items: vendorsAsync.maybeWhen(
                 data: (vendors) => vendors
-                    .map<DropdownMenuItem<String>>((vendor) => DropdownMenuItem(value: vendor.id, child: Text(vendor.displayName)))
+                    .map<DropdownMenuItem<String>>((vendor) => DropdownMenuItem(value: vendor.id, child: Text('${vendor.displayName} — Credit ${vendor.creditBalance.toStringAsFixed(2)}')))
                     .toList(),
                 orElse: () => const <DropdownMenuItem<String>>[],
               ),
@@ -267,9 +344,7 @@ class _CreditCard extends ConsumerWidget {
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.account_balance_outlined),
                 ),
-                items: depositAccounts
-                    .map((account) => DropdownMenuItem(value: account.id, child: Text('${account.code} - ${account.name}')))
-                    .toList(),
+                items: depositAccounts.map((account) => DropdownMenuItem(value: account.id, child: Text('${account.code} - ${account.name}'))).toList(),
                 onChanged: (value) => _update(ref, form..depositAccountId = value),
               ),
               const SizedBox(height: 16),
