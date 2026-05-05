@@ -7,12 +7,18 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../settings/data/models/printing_settings_model.dart';
 import '../data/models/print_data_contracts.dart';
+import 'printing_asset_loader.dart';
 
 class ThermalDocumentPdfService {
-  const ThermalDocumentPdfService();
+  const ThermalDocumentPdfService({this.assetLoader = const PrintingAssetLoader()});
+
+  final PrintingAssetLoader assetLoader;
 
   Future<Uint8List> build(DocumentPrintDataModel data, PrintingSettingsModel settings) async {
-    final doc = pw.Document();
+    final logo = await assetLoader.loadLogo(settings);
+    final arabicFont = await assetLoader.loadArabicFont(settings);
+    final theme = arabicFont == null ? null : pw.ThemeData.withFont(base: arabicFont, bold: arabicFont);
+    final doc = pw.Document(theme: theme);
     final pageWidth = settings.thermalWidth.widthMillimeters * PdfPageFormat.mm;
     final margin = settings.thermalWidth == ThermalWidth.mm58 ? 3 * PdfPageFormat.mm : 5 * PdfPageFormat.mm;
 
@@ -22,7 +28,7 @@ class ThermalDocumentPdfService {
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
-            if (settings.showLogo) _center('[ LOGO ]', fontSize: 8),
+            if (settings.showLogo && logo != null) pw.Center(child: pw.Image(logo, width: 42, height: 42, fit: pw.BoxFit.contain)) else if (settings.showLogo) _center('[ LOGO ]', fontSize: 8),
             _center(data.company.companyName, fontSize: 12, bold: true),
             if (settings.showCompanyAddress) _center(data.company.country, fontSize: 8),
             if ((data.company.phone ?? '').isNotEmpty) _center('Tel: ${data.company.phone}', fontSize: 8),
@@ -39,9 +45,7 @@ class ThermalDocumentPdfService {
             _divider(settings),
             ...data.lines.map(_line),
             _divider(settings),
-            ...data.summaryRows
-                .where((row) => settings.showTaxSummary || row.label.toLowerCase() != 'tax')
-                .map((row) => _amountRow(row.label, row.amount, data.company.currency, bold: row.isStrong)),
+            ...data.summaryRows.where((row) => settings.showTaxSummary || row.label.toLowerCase() != 'tax').map((row) => _amountRow(row.label, row.amount, data.company.currency, bold: row.isStrong)),
             _divider(settings),
             if ((settings.receiptFooterMessage ?? '').isNotEmpty) _center(settings.receiptFooterMessage!, fontSize: 9, bold: true),
             _center('Generated: ${_formatDateTime(data.generatedAt)}', fontSize: 7),
