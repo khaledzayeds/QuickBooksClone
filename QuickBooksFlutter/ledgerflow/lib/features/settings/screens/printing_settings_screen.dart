@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -216,6 +217,24 @@ class _BrandingCard extends StatelessWidget {
   final PrintingSettingsState state;
   final PrintingSettingsNotifier notifier;
 
+  Future<void> _pickLogo(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp'],
+        allowMultiple: false,
+        withData: false,
+      );
+      final path = result?.files.single.path;
+      if (path == null || path.trim().isEmpty) return;
+      notifier.update((current) => current.copyWith(logoPath: path, showLogo: true));
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logo picker failed: $error')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
@@ -227,6 +246,24 @@ class _BrandingCard extends StatelessWidget {
           value: state.settings.logoPath ?? '',
           icon: Icons.folder_open_outlined,
           onChanged: (value) => notifier.update((current) => current.copyWith(logoPath: value)),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _pickLogo(context),
+              icon: const Icon(Icons.upload_file_outlined),
+              label: const Text('Choose Logo'),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: (state.settings.logoPath ?? '').isEmpty
+                  ? null
+                  : () => notifier.update((current) => current.copyWith(logoPath: '', showLogo: false)),
+              icon: const Icon(Icons.clear_outlined),
+              label: const Text('Clear'),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         _SwitchRow(
@@ -331,6 +368,7 @@ class _PreviewCard extends StatelessWidget {
             _PreviewLine(label: 'A4 style', value: settings.a4TemplateStyle.label),
             _PreviewLine(label: 'Thermal width', value: settings.thermalWidth.label),
             _PreviewLine(label: 'Logo', value: settings.showLogo ? 'Visible' : 'Hidden'),
+            if ((settings.logoPath ?? '').isNotEmpty) _PreviewLine(label: 'Logo path', value: settings.logoPath!),
             _PreviewLine(label: 'QR', value: settings.showQrCode ? 'Visible' : 'Hidden'),
             const SizedBox(height: 16),
             Container(
@@ -346,7 +384,7 @@ class _PreviewCard extends StatelessWidget {
                   Text('Template wiring note', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Text(
-                    'Next step: PDF/A4 and 80mm thermal services should read these settings when rendering invoices, receipts, statements, and reports.',
+                    'Print preview and PDF renderers now read these settings, including print mode, logo, fonts, thermal width, footer, tax, and balance options.',
                     style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -442,7 +480,7 @@ class _PreviewLine extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(width: 120, child: Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
-          Expanded(child: Text(value)),
+          Expanded(child: Text(value, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
