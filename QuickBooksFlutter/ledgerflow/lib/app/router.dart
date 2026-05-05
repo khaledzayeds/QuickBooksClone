@@ -73,6 +73,7 @@ class AppRoutes {
   static const login = '/login';
   static const purchaseOrders = '/purchases/orders';
   static const purchaseOrderNew = '/purchases/orders/new';
+  static const purchaseOrderEdit = '/purchases/orders/edit/:id';
   static const purchaseOrderDetails = '/purchases/orders/:id';
   static const purchaseBillNew = '/purchases/bills/new';
   static const purchaseBills = '/purchases/bills';
@@ -184,6 +185,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.accountEdit, builder: (context, state) => AccountFormScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.purchaseOrders, builder: (context, state) => const PurchaseOrderListScreen()),
           GoRoute(path: AppRoutes.purchaseOrderNew, builder: (context, state) => const PurchaseOrderFormScreen()),
+          GoRoute(path: AppRoutes.purchaseOrderEdit, builder: (context, state) => PurchaseOrderFormScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.purchaseOrderDetails, builder: (context, state) => PurchaseOrderDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.receiveInventory, builder: (context, state) => const ReceiveInventoryListScreen()),
           GoRoute(path: AppRoutes.receiveInventoryNew, builder: (context, state) => ReceiveInventoryFormScreen(purchaseOrderId: state.uri.queryParameters['poId'])),
