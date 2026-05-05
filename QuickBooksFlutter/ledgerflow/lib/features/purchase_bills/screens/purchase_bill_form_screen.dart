@@ -1,5 +1,6 @@
 // purchase_bill_form_screen.dart
 // QuickBooks-style Bill form with sidebar and Inventory Receipt linking.
+// Supports direct opening from /purchases/bills/new?receiptId=...
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,12 +23,10 @@ class PurchaseBillFormScreen extends ConsumerStatefulWidget {
   final String? inventoryReceiptId;
 
   @override
-  ConsumerState<PurchaseBillFormScreen> createState() =>
-      _PurchaseBillFormScreenState();
+  ConsumerState<PurchaseBillFormScreen> createState() => _PurchaseBillFormScreenState();
 }
 
-class _PurchaseBillFormScreenState
-    extends ConsumerState<PurchaseBillFormScreen> {
+class _PurchaseBillFormScreenState extends ConsumerState<PurchaseBillFormScreen> {
   VendorModel? _selectedVendor;
   BillingPlanModel? _activePlan;
   ReceiveInventoryModel? _selectedReceipt;
@@ -37,8 +36,18 @@ class _PurchaseBillFormScreenState
   final _memoCtrl = TextEditingController();
   final List<TransactionLineEntry> _lines = [];
 
+  bool _loadingInitialReceipt = false;
   bool _loadingPlan = false;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lines.add(TransactionLineEntry());
+    if (widget.inventoryReceiptId != null && widget.inventoryReceiptId!.isNotEmpty) {
+      Future.microtask(_loadInitialReceipt);
+    }
+  }
 
   @override
   void dispose() {
@@ -54,6 +63,34 @@ class _PurchaseBillFormScreenState
       l.dispose();
     }
     _lines.clear();
+  }
+
+  Future<void> _loadInitialReceipt() async {
+    final receiptId = widget.inventoryReceiptId;
+    if (receiptId == null || receiptId.isEmpty) return;
+
+    setState(() => _loadingInitialReceipt = true);
+    try {
+      final result = await ref.read(receiveInventoryRepoProvider).getById(receiptId);
+      if (!mounted) return;
+      result.when(
+        success: (receipt) async {
+          setState(() {
+            _selectedVendor = VendorModel(
+              id: receipt.vendorId,
+              displayName: receipt.vendorName,
+              isActive: true,
+              balance: 0,
+              creditBalance: 0,
+            );
+          });
+          await _onReceiptChanged(receipt);
+        },
+        failure: (e) => _showError(e.message),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingInitialReceipt = false);
+    }
   }
 
   void _onVendorChanged(VendorModel vendor) {
@@ -72,20 +109,25 @@ class _PurchaseBillFormScreenState
       _activePlan = null;
       _clearLines();
       _lines.add(TransactionLineEntry());
+      if (receipt != null) {
+        _selectedVendor = VendorModel(
+          id: receipt.vendorId,
+          displayName: receipt.vendorName,
+          isActive: true,
+          balance: _selectedVendor?.balance ?? 0,
+          creditBalance: _selectedVendor?.creditBalance ?? 0,
+        );
+      }
     });
 
     if (receipt == null) return;
 
     setState(() => _loadingPlan = true);
     try {
-      final result = await ref
-          .read(purchaseBillsRepositoryProvider)
-          .getBillingPlan(receipt.id);
+      final result = await ref.read(purchaseBillsRepositoryProvider).getBillingPlan(receipt.id);
       result.when(
         success: (plan) {
-          final billableLines = plan.lines
-              .where((line) => line.remainingQuantity > 0)
-              .toList();
+          final billableLines = plan.lines.where((line) => line.remainingQuantity > 0).toList();
 
           if (plan.totalRemainingQuantity <= 0 || billableLines.isEmpty) {
             setState(() {
@@ -110,6 +152,8 @@ class _PurchaseBillFormScreenState
                 inventoryReceiptLineId: lp.inventoryReceiptLineId,
               );
               entry.descCtrl.text = lp.description;
+              entry.qtyCtrl.text = lp.suggestedBillQuantity.toStringAsFixed(2);
+              entry.rateCtrl.text = lp.unitCost.toStringAsFixed(2);
               _lines.add(entry);
             }
           });
@@ -128,9 +172,12 @@ class _PurchaseBillFormScreenState
       return;
     }
 
-    final validLines = _lines
-        .where((l) => l.itemId != null && l.qty > 0)
-        .toList();
+    if (_dueDate.isBefore(_billDate)) {
+      _showError('${l10n.dueDate} < ${l10n.billDate}');
+      return;
+    }
+
+    final validLines = _lines.where((l) => l.itemId != null && l.qty > 0).toList();
     if (validLines.isEmpty) {
       _showError(l10n.minOneQty);
       return;
@@ -138,11 +185,7 @@ class _PurchaseBillFormScreenState
 
     if (_activePlan != null) {
       for (final line in validLines) {
-        final planLine = _activePlan!.lines
-            .where(
-              (p) => p.inventoryReceiptLineId == line.inventoryReceiptLineId,
-            )
-            .firstOrNull;
+        final planLine = _activePlan!.lines.where((p) => p.inventoryReceiptLineId == line.inventoryReceiptLineId).firstOrNull;
         if (planLine != null && line.qty > planLine.remainingQuantity) {
           _showError('${line.descCtrl.text} exceeds remaining quantity.');
           return;
@@ -171,15 +214,15 @@ class _PurchaseBillFormScreenState
             .toList(),
       );
 
-      final result = await ref
-          .read(purchaseBillsRepositoryProvider)
-          .createBill(dto);
+      final result = await ref.read(purchaseBillsRepositoryProvider).createBill(dto);
       result.when(
         success: (_) {
           ref.read(purchaseBillsProvider.notifier).refresh();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
+          ref.invalidate(receiveInventoryListProvider);
+          if (_selectedReceipt != null) {
+            ref.invalidate(receiveInventoryDetailsProvider(_selectedReceipt!.id));
+          }
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
           context.pop();
         },
         failure: (e) => _showError(e.message),
@@ -190,9 +233,7 @@ class _PurchaseBillFormScreenState
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   @override
@@ -201,12 +242,16 @@ class _PurchaseBillFormScreenState
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    if (_loadingInitialReceipt) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('${l10n.enterBills} | ${l10n.purchases}'),
         actions: [
           IconButton(
-            onPressed: _save,
+            onPressed: _saving || _loadingPlan ? null : _save,
             icon: const Icon(Icons.check),
             tooltip: l10n.save,
           ),
@@ -221,6 +266,27 @@ class _PurchaseBillFormScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_selectedReceipt != null)
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.inventory_2_outlined),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Billing inventory receipt ${_selectedReceipt!.receiptNumber.isEmpty ? _selectedReceipt!.id.substring(0, 8) : _selectedReceipt!.receiptNumber}',
+                                style: const TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            if (_activePlan != null)
+                              Chip(label: Text('Remaining ${_activePlan!.totalRemainingQuantity.toStringAsFixed(2)}')),
+                          ],
+                        ),
+                      ),
+                    ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -327,13 +393,9 @@ class _PurchaseBillFormScreenState
             ),
             const SizedBox(width: 12),
             ElevatedButton.icon(
-              onPressed: _saving ? null : _save,
+              onPressed: _saving || _loadingPlan ? null : _save,
               icon: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.save),
               label: Text(l10n.save),
               style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
@@ -346,11 +408,7 @@ class _PurchaseBillFormScreenState
 }
 
 class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+  const _DatePickerField({required this.label, required this.value, required this.onChanged});
   final String label;
   final DateTime value;
   final ValueChanged<DateTime> onChanged;
@@ -393,10 +451,7 @@ class _ReceiptPicker extends ConsumerWidget {
         child: Opacity(
           opacity: 0.5,
           child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              labelText: l10n.linkToRI,
-              border: const OutlineInputBorder(),
-            ),
+            decoration: InputDecoration(labelText: l10n.linkToRI, border: const OutlineInputBorder()),
             items: const [],
             onChanged: (_) {},
           ),
@@ -404,28 +459,18 @@ class _ReceiptPicker extends ConsumerWidget {
       );
     }
 
-    final receiptsAsync = ref.watch(
-      receiveInventoryByVendorProvider(vendorId!),
-    );
+    final receiptsAsync = ref.watch(receiveInventoryByVendorProvider(vendorId!));
 
     return receiptsAsync.when(
       loading: () => const LinearProgressIndicator(),
       error: (e, _) => Text(e.toString()),
       data: (receipts) {
-        final activeReceipts = receipts
-            .where((r) => r.status.toLowerCase() != 'void')
-            .toList();
+        final activeReceipts = receipts.where((r) => r.status.toLowerCase() != 'void').toList();
 
         if (activeReceipts.isEmpty) {
           return InputDecorator(
-            decoration: InputDecoration(
-              labelText: l10n.linkToRI,
-              border: const OutlineInputBorder(),
-            ),
-            child: Text(
-              l10n.noPendingRI,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            decoration: InputDecoration(labelText: l10n.linkToRI, border: const OutlineInputBorder()),
+            child: Text(l10n.noPendingRI, style: const TextStyle(fontSize: 12, color: Colors.grey)),
           );
         }
 
@@ -438,16 +483,11 @@ class _ReceiptPicker extends ConsumerWidget {
           ),
           hint: Text(l10n.selectRI),
           items: [
-            DropdownMenuItem<ReceiveInventoryModel?>(
-              value: null,
-              child: Text(l10n.clear),
-            ),
+            DropdownMenuItem<ReceiveInventoryModel?>(value: null, child: Text(l10n.clear)),
             ...activeReceipts.map(
               (r) => DropdownMenuItem<ReceiveInventoryModel?>(
                 value: r,
-                child: Text(
-                  '${r.receiptNumber} (${r.totalAmount.toStringAsFixed(2)})',
-                ),
+                child: Text('${r.receiptNumber} (${r.totalAmount.toStringAsFixed(2)})'),
               ),
             ),
           ],
@@ -487,11 +527,7 @@ class _TotalsCard extends StatelessWidget {
 }
 
 class _AmountRow extends StatelessWidget {
-  const _AmountRow({
-    required this.label,
-    required this.amount,
-    this.isTotal = false,
-  });
+  const _AmountRow({required this.label, required this.amount, this.isTotal = false});
   final String label;
   final double amount;
   final bool isTotal;
@@ -499,11 +535,7 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF0078D4),
-          )
+        ? const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0078D4))
         : const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
     return Row(
