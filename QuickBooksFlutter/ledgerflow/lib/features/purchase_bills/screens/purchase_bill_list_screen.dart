@@ -46,7 +46,8 @@ class PurchaseBillListScreen extends ConsumerWidget {
               final bill = bills[i];
               return Card(
                 child: ListTile(
-                  title: Text(bill.billNumber),
+                  leading: Icon(bill.isVoid ? Icons.block_outlined : Icons.receipt_long_outlined),
+                  title: Text(bill.billNumber.isEmpty ? l10n.purchaseBills : bill.billNumber),
                   subtitle: Text(bill.vendorName),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -57,17 +58,23 @@ class PurchaseBillListScreen extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        bill.balanceDue == 0 ? l10n.paid : l10n.unpaid,
+                        bill.isVoid
+                            ? 'Void'
+                            : bill.balanceDue == 0
+                                ? l10n.paid
+                                : l10n.unpaid,
                         style: TextStyle(
                           fontSize: 12,
-                          color: bill.balanceDue == 0 ? Colors.green : Colors.orange,
+                          color: bill.isVoid
+                              ? Colors.red
+                              : bill.balanceDue == 0
+                                  ? Colors.green
+                                  : Colors.orange,
                         ),
                       ),
                     ],
                   ),
-                  onTap: () {
-                    // Navigate to details
-                  },
+                  onTap: () => context.push(AppRoutes.purchaseBillDetails.replaceFirst(':id', bill.id)),
                 ),
               );
             },
