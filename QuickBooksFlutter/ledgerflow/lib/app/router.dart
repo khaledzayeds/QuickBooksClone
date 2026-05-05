@@ -19,6 +19,7 @@ import '../features/customers/screens/customer_details_screen.dart';
 import '../features/customers/screens/customer_form_screen.dart';
 import '../features/customers/screens/customer_list_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
+import '../features/estimates/screens/estimate_details_screen.dart';
 import '../features/estimates/screens/estimate_form_screen.dart';
 import '../features/estimates/screens/estimate_list_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_form_screen.dart';
@@ -29,6 +30,7 @@ import '../features/invoices/screens/invoices_list_page.dart';
 import '../features/items/screens/item_details_screen.dart';
 import '../features/items/screens/item_form_screen.dart';
 import '../features/items/screens/item_list_screen.dart';
+import '../features/journal_entries/screens/journal_entry_details_screen.dart';
 import '../features/journal_entries/screens/journal_entry_form_screen.dart';
 import '../features/journal_entries/screens/journal_entry_list_screen.dart';
 import '../features/payments/screens/payment_form_screen.dart';
@@ -48,6 +50,7 @@ import '../features/receive_inventory/screens/receive_inventory_form_screen.dart
 import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/sales_orders/screens/sales_order_form_screen.dart';
+import '../features/sales_orders/screens/sales_order_details_screen.dart';
 import '../features/sales_orders/screens/sales_order_list_screen.dart';
 import '../features/sales_receipts/screens/sales_receipt_details_page.dart';
 import '../features/sales_receipts/screens/sales_receipt_form_page.dart';
@@ -100,8 +103,10 @@ class AppRoutes {
   static const purchaseReturnDetails = '/purchases/returns/:id';
   static const estimates = '/sales/estimates';
   static const estimateNew = '/sales/estimates/new';
+  static const estimateDetails = '/sales/estimates/:id';
   static const salesOrders = '/sales/orders';
   static const salesOrderNew = '/sales/orders/new';
+  static const salesOrderDetails = '/sales/orders/:id';
   static const salesReceipts = '/sales/receipts';
   static const salesReceiptNew = '/sales/receipts/new';
   static const salesReceiptDetails = '/sales/receipts/:id';
@@ -137,6 +142,7 @@ class AppRoutes {
   static const inventoryAdjustmentNew = '/inventory/adjustments/new';
   static const journalEntries = '/company/journal-entries';
   static const journalEntryNew = '/company/journal-entries/new';
+  static const journalEntryDetails = '/company/journal-entries/:id';
   static const reports = '/reports';
   static const settings = '/settings';
   static const companySettings = '/settings/company';
@@ -358,12 +364,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const EstimateFormScreen(),
           ),
           GoRoute(
+            path: AppRoutes.estimateDetails,
+            builder: (context, state) =>
+                EstimateDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
             path: AppRoutes.salesOrders,
             builder: (context, state) => const SalesOrderListScreen(),
           ),
           GoRoute(
             path: AppRoutes.salesOrderNew,
             builder: (context, state) => const SalesOrderFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesOrderDetails,
+            builder: (context, state) =>
+                SalesOrderDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.salesReceipts,
@@ -450,6 +466,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.journalEntryNew,
             builder: (context, state) => const JournalEntryFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.journalEntryDetails,
+            builder: (context, state) =>
+                JournalEntryDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.reports,

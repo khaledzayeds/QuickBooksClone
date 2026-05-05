@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../../app/router.dart';
 import '../data/models/estimate_model.dart';
 import '../providers/estimates_provider.dart';
 
@@ -28,7 +29,7 @@ class EstimateListScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 12),
             child: FilledButton.icon(
-              onPressed: () => context.go('/sales/estimates/new'),
+              onPressed: () => context.go(AppRoutes.estimateNew),
               icon: const Icon(Icons.add),
               label: Text('${l10n.newText} ${l10n.estimates}'),
             ),
@@ -50,7 +51,8 @@ class EstimateListScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: estimates.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) => _EstimateCard(estimate: estimates[index]),
+              itemBuilder: (context, index) =>
+                  _EstimateCard(estimate: estimates[index]),
             ),
           );
         },
@@ -73,28 +75,38 @@ class _EstimateCard extends StatelessWidget {
     final statusLabel = estimate.isCancelled
         ? l10n.statusCancelled
         : estimate.isAccepted
-            ? l10n.statusOpen
-            : estimate.isDeclined
-                ? l10n.statusClosed
-                : estimate.sentAt != null
-                    ? l10n.statusPosted
-                    : l10n.statusDraft;
+        ? l10n.statusOpen
+        : estimate.isDeclined
+        ? l10n.statusClosed
+        : estimate.sentAt != null
+        ? l10n.statusPosted
+        : l10n.statusDraft;
 
-    final statusColor = estimate.isCancelled || estimate.isDeclined ? cs.error : cs.primary;
+    final statusColor = estimate.isCancelled || estimate.isDeclined
+        ? cs.error
+        : cs.primary;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: () => context.push(
+          AppRoutes.estimateDetails.replaceFirst(':id', estimate.id),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: estimate.isCancelled || estimate.isDeclined ? cs.errorContainer : cs.primaryContainer,
+                backgroundColor: estimate.isCancelled || estimate.isDeclined
+                    ? cs.errorContainer
+                    : cs.primaryContainer,
                 child: Icon(
-                  estimate.isCancelled || estimate.isDeclined ? Icons.block : Icons.request_quote_outlined,
-                  color: estimate.isCancelled || estimate.isDeclined ? cs.onErrorContainer : cs.onPrimaryContainer,
+                  estimate.isCancelled || estimate.isDeclined
+                      ? Icons.block
+                      : Icons.request_quote_outlined,
+                  color: estimate.isCancelled || estimate.isDeclined
+                      ? cs.onErrorContainer
+                      : cs.onPrimaryContainer,
                 ),
               ),
               const SizedBox(width: 16),
@@ -103,15 +115,21 @@ class _EstimateCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      estimate.estimateNumber.isEmpty ? '-' : estimate.estimateNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      estimate.estimateNumber.isEmpty
+                          ? '-'
+                          : estimate.estimateNumber,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(estimate.customerName ?? '-'),
                     const SizedBox(height: 4),
                     Text(
                       '${_date(estimate.estimateDate)} • ${l10n.dueDate}: ${_date(estimate.expirationDate)}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -122,7 +140,9 @@ class _EstimateCard extends StatelessWidget {
                 children: [
                   Text(
                     '${estimate.totalAmount.toStringAsFixed(2)} ${l10n.egp}',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -141,7 +161,8 @@ class _EstimateCard extends StatelessWidget {
     );
   }
 
-  static String _date(DateTime date) => '${date.day}/${date.month}/${date.year}';
+  static String _date(DateTime date) =>
+      '${date.day}/${date.month}/${date.year}';
 }
 
 class _EmptyState extends StatelessWidget {
@@ -164,7 +185,7 @@ class _EmptyState extends StatelessWidget {
             Text(l10n.underDevelopment, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () => context.go('/sales/estimates/new'),
+              onPressed: () => context.go(AppRoutes.estimateNew),
               icon: const Icon(Icons.add),
               label: Text('${l10n.newText} ${l10n.estimates}'),
             ),
@@ -191,7 +212,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
