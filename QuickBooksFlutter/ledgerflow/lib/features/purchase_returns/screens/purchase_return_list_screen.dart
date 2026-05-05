@@ -21,7 +21,8 @@ class PurchaseReturnListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'تحديث',
-            onPressed: () => ref.read(purchaseReturnsProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(purchaseReturnsProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh),
           ),
           Padding(
@@ -43,12 +44,14 @@ class PurchaseReturnListScreen extends ConsumerWidget {
         data: (returns) {
           if (returns.isEmpty) return const _EmptyState();
           return RefreshIndicator(
-            onRefresh: () => ref.read(purchaseReturnsProvider.notifier).refresh(),
+            onRefresh: () =>
+                ref.read(purchaseReturnsProvider.notifier).refresh(),
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: returns.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) => _PurchaseReturnCard(purchaseReturn: returns[index]),
+              itemBuilder: (context, index) =>
+                  _PurchaseReturnCard(purchaseReturn: returns[index]),
             ),
           );
         },
@@ -69,16 +72,27 @@ class _PurchaseReturnCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: () => context.push(
+          AppRoutes.purchaseReturnDetails.replaceFirst(
+            ':id',
+            purchaseReturn.id,
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: purchaseReturn.isVoid ? cs.errorContainer : cs.secondaryContainer,
+                backgroundColor: purchaseReturn.isVoid
+                    ? cs.errorContainer
+                    : cs.secondaryContainer,
                 child: Icon(
-                  purchaseReturn.isVoid ? Icons.block : Icons.keyboard_return_outlined,
-                  color: purchaseReturn.isVoid ? cs.onErrorContainer : cs.onSecondaryContainer,
+                  purchaseReturn.isVoid
+                      ? Icons.block
+                      : Icons.keyboard_return_outlined,
+                  color: purchaseReturn.isVoid
+                      ? cs.onErrorContainer
+                      : cs.onSecondaryContainer,
                 ),
               ),
               const SizedBox(width: 16),
@@ -87,15 +101,21 @@ class _PurchaseReturnCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      purchaseReturn.returnNumber.isEmpty ? 'مرتجع بدون رقم' : purchaseReturn.returnNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      purchaseReturn.returnNumber.isEmpty
+                          ? 'مرتجع بدون رقم'
+                          : purchaseReturn.returnNumber,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(purchaseReturn.vendorName ?? 'مورد غير محدد'),
                     const SizedBox(height: 4),
                     Text(
                       '${_date(purchaseReturn.returnDate)} • ${purchaseReturn.billNumber ?? 'فاتورة شراء'}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -106,7 +126,9 @@ class _PurchaseReturnCard extends StatelessWidget {
                 children: [
                   Text(
                     '${purchaseReturn.totalAmount.toStringAsFixed(2)} ج.م',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -125,7 +147,8 @@ class _PurchaseReturnCard extends StatelessWidget {
     );
   }
 
-  static String _date(DateTime date) => '${date.day}/${date.month}/${date.year}';
+  static String _date(DateTime date) =>
+      '${date.day}/${date.month}/${date.year}';
 }
 
 class _EmptyState extends StatelessWidget {
@@ -141,9 +164,15 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.keyboard_return_outlined, size: 56),
             const SizedBox(height: 16),
-            Text('لا توجد مرتجعات شراء', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'لا توجد مرتجعات شراء',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
-            const Text('ابدأ بإنشاء مرتجع من فاتورة شراء مرحلة.', textAlign: TextAlign.center),
+            const Text(
+              'ابدأ بإنشاء مرتجع من فاتورة شراء مرحلة.',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () => context.go(AppRoutes.purchaseReturnNew),
@@ -170,7 +199,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

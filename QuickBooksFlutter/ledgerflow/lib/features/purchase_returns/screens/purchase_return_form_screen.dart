@@ -37,11 +37,18 @@ class PurchaseReturnFormState {
   double get total => lines.fold(0, (sum, line) => sum + line.total);
 }
 
-final purchaseReturnFormProvider = StateProvider.autoDispose<PurchaseReturnFormState>((ref) => PurchaseReturnFormState());
-final purchaseReturnSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final purchaseReturnFormProvider =
+    StateProvider.autoDispose<PurchaseReturnFormState>(
+      (ref) => PurchaseReturnFormState(),
+    );
+final purchaseReturnSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 
 class PurchaseReturnFormScreen extends ConsumerWidget {
-  const PurchaseReturnFormScreen({super.key});
+  const PurchaseReturnFormScreen({super.key, this.billId});
+
+  final String? billId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,19 +56,40 @@ class PurchaseReturnFormScreen extends ConsumerWidget {
     final saving = ref.watch(purchaseReturnSavingProvider);
     final billsAsync = ref.watch(purchaseBillsProvider);
 
+    if (billId != null && billId!.isNotEmpty && form.purchaseBillId == null) {
+      billsAsync.whenData((bills) {
+        final bill = bills.where((item) => item.id == billId).firstOrNull;
+        if (bill == null) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(purchaseReturnFormProvider.notifier).state = _formFromBill(
+            bill,
+            form.returnDate,
+          );
+        });
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('مرتجع شراء جديد'),
         actions: [
           TextButton(
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go(AppRoutes.purchaseReturns),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.purchaseReturns),
             child: const Text('إلغاء'),
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: saving ? null : () => _save(context, ref),
             icon: saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: const Text('حفظ المرتجع'),
           ),
@@ -75,7 +103,10 @@ class PurchaseReturnFormScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           _LinesCard(form: form),
           const SizedBox(height: 24),
-          Align(alignment: AlignmentDirectional.centerEnd, child: _TotalCard(total: form.total)),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: _TotalCard(total: form.total),
+          ),
         ],
       ),
     );
@@ -123,7 +154,9 @@ class PurchaseReturnFormScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.read(purchaseBillsProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ مرتجع الشراء وترحيله بنجاح')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ مرتجع الشراء وترحيله بنجاح')),
+        );
         context.go(AppRoutes.purchaseReturns);
       },
       failure: (error) => _error(context, error.message),
@@ -134,9 +167,30 @@ class PurchaseReturnFormScreen extends ConsumerWidget {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
+
+PurchaseReturnFormState _formFromBill(
+  PurchaseBillModel bill,
+  DateTime returnDate,
+) => PurchaseReturnFormState()
+  ..purchaseBillId = bill.id
+  ..returnDate = returnDate
+  ..lines = bill.lines
+      .map(
+        (line) => PurchaseReturnLineState(
+          purchaseBillLineId: line.id,
+          description: line.description.isEmpty
+              ? line.itemName
+              : line.description,
+          originalQuantity: line.quantity,
+          unitCost: line.unitCost,
+        ),
+      )
+      .toList();
 
 class _BillCard extends ConsumerWidget {
   const _BillCard({required this.form, required this.billsAsync});
@@ -147,10 +201,17 @@ class _BillCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bills = billsAsync.maybeWhen(
-      data: (data) => data.where((bill) => bill.status != 1 && bill.status != 3 && bill.lines.isNotEmpty).toList(),
+      data: (data) => data
+          .where(
+            (bill) =>
+                bill.status != 1 && bill.status != 3 && bill.lines.isNotEmpty,
+          )
+          .toList(),
       orElse: () => <PurchaseBillModel>[],
     );
-    final selected = bills.where((bill) => bill.id == form.purchaseBillId).firstOrNull;
+    final selected = bills
+        .where((bill) => bill.id == form.purchaseBillId)
+        .firstOrNull;
 
     return Card(
       child: Padding(
@@ -168,26 +229,21 @@ class _BillCard extends ConsumerWidget {
                   .map(
                     (bill) => DropdownMenuItem(
                       value: bill.id,
-                      child: Text('${bill.billNumber} - ${bill.vendorName} - ${bill.totalAmount.toStringAsFixed(2)}'),
+                      child: Text(
+                        '${bill.billNumber} - ${bill.vendorName} - ${bill.totalAmount.toStringAsFixed(2)}',
+                      ),
                     ),
                   )
                   .toList(),
               onChanged: (value) {
-                final bill = bills.where((item) => item.id == value).firstOrNull;
-                final newState = PurchaseReturnFormState()
-                  ..purchaseBillId = value
-                  ..returnDate = form.returnDate
-                  ..lines = (bill?.lines ?? const [])
-                      .map(
-                        (line) => PurchaseReturnLineState(
-                          purchaseBillLineId: line.id,
-                          description: line.description.isEmpty ? line.itemName : line.description,
-                          originalQuantity: line.quantity,
-                          unitCost: line.unitCost,
-                        ),
-                      )
-                      .toList();
-                ref.read(purchaseReturnFormProvider.notifier).state = newState;
+                final bill = bills
+                    .where((item) => item.id == value)
+                    .firstOrNull;
+                ref
+                    .read(purchaseReturnFormProvider.notifier)
+                    .state = bill == null
+                    ? (PurchaseReturnFormState()..returnDate = form.returnDate)
+                    : _formFromBill(bill, form.returnDate);
               },
             ),
             const SizedBox(height: 16),
@@ -237,7 +293,10 @@ class _LinesCard extends ConsumerWidget {
               ],
             ),
             const Divider(),
-            ...form.lines.asMap().entries.map((entry) => _LineRow(index: entry.key, line: entry.value, form: form)),
+            ...form.lines.asMap().entries.map(
+              (entry) =>
+                  _LineRow(index: entry.key, line: entry.value, form: form),
+            ),
           ],
         ),
       ),
@@ -264,9 +323,16 @@ class _LineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: TextFormField(
-                initialValue: line.quantity == 0 ? '' : line.quantity.toString(),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                initialValue: line.quantity == 0
+                    ? ''
+                    : line.quantity.toString(),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
                 onChanged: (value) {
                   form.lines[index].quantity = double.tryParse(value) ?? 0;
                   _update(ref, form);
@@ -296,8 +362,16 @@ class _TotalCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('إجمالي المرتجع', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(total.toStringAsFixed(2), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+              const Text(
+                'إجمالي المرتجع',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                total.toStringAsFixed(2),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ),
             ],
           ),
         ),
@@ -307,7 +381,9 @@ class _TotalCard extends StatelessWidget {
 }
 
 void _update(WidgetRef ref, PurchaseReturnFormState old) {
-  ref.read(purchaseReturnFormProvider.notifier).state = PurchaseReturnFormState()
+  ref
+      .read(purchaseReturnFormProvider.notifier)
+      .state = PurchaseReturnFormState()
     ..purchaseBillId = old.purchaseBillId
     ..returnDate = old.returnDate
     ..lines = List.from(old.lines);

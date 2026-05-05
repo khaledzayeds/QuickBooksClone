@@ -14,17 +14,31 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
   const PurchaseBillDetailsScreen({super.key, required this.id});
   final String id;
 
-  Future<void> _voidBill(BuildContext context, WidgetRef ref, PurchaseBillModel bill) async {
+  Future<void> _voidBill(
+    BuildContext context,
+    WidgetRef ref,
+    PurchaseBillModel bill,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: Icon(Icons.block_outlined, color: Theme.of(context).colorScheme.error),
+        icon: Icon(
+          Icons.block_outlined,
+          color: Theme.of(context).colorScheme.error,
+        ),
         title: Text('Void ${bill.billNumber}?'),
-        content: const Text('This will cancel the bill and reverse accounting activity when allowed.'),
+        content: const Text(
+          'This will cancel the bill and reverse accounting activity when allowed.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Keep Bill')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep Bill'),
+          ),
           FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             icon: const Icon(Icons.block_outlined),
             label: const Text('Void'),
@@ -34,16 +48,23 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
     );
 
     if (confirmed != true || !context.mounted) return;
-    final result = await ref.read(purchaseBillsRepositoryProvider).voidBill(bill.id);
+    final result = await ref
+        .read(purchaseBillsRepositoryProvider)
+        .voidBill(bill.id);
     if (!context.mounted) return;
     result.when(
       success: (_) {
         ref.invalidate(purchaseBillDetailsProvider(bill.id));
         ref.read(purchaseBillsProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Bill ${bill.billNumber} voided.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bill ${bill.billNumber} voided.')),
+        );
       },
       failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message), backgroundColor: Theme.of(context).colorScheme.error),
+        SnackBar(
+          content: Text(error.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       ),
     );
   }
@@ -60,7 +81,9 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
           billAsync.maybeWhen(
             data: (bill) => bill.canPay
                 ? TextButton.icon(
-                    onPressed: () => context.push('${AppRoutes.vendorPaymentNew}?billId=${bill.id}'),
+                    onPressed: () => context.push(
+                      '${AppRoutes.vendorPaymentNew}?billId=${bill.id}',
+                    ),
                     icon: const Icon(Icons.payments_outlined),
                     label: const Text('Pay Bill'),
                   )
@@ -70,9 +93,23 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
           billAsync.maybeWhen(
             data: (bill) => bill.canPay
                 ? TextButton.icon(
-                    onPressed: () => context.push('${AppRoutes.vendorCreditNew}?billId=${bill.id}'),
+                    onPressed: () => context.push(
+                      '${AppRoutes.vendorCreditNew}?billId=${bill.id}',
+                    ),
                     icon: const Icon(Icons.account_balance_wallet_outlined),
                     label: const Text('Use Credit'),
+                  )
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
+          billAsync.maybeWhen(
+            data: (bill) => (!bill.isDraft && !bill.isVoid)
+                ? TextButton.icon(
+                    onPressed: () => context.push(
+                      '${AppRoutes.purchaseReturnNew}?billId=${bill.id}',
+                    ),
+                    icon: const Icon(Icons.keyboard_return_outlined),
+                    label: const Text('Return'),
                   )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
@@ -82,7 +119,10 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
                 ? IconButton(
                     tooltip: 'Void bill',
                     onPressed: () => _voidBill(context, ref, bill),
-                    icon: Icon(Icons.block_outlined, color: Theme.of(context).colorScheme.error),
+                    icon: Icon(
+                      Icons.block_outlined,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
@@ -126,8 +166,12 @@ class _BillDetailsBody extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        bill.billNumber.isEmpty ? l10n.purchaseBills : bill.billNumber,
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                        bill.billNumber.isEmpty
+                            ? l10n.purchaseBills
+                            : bill.billNumber,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     _StatusChip(bill: bill),
@@ -135,16 +179,26 @@ class _BillDetailsBody extends StatelessWidget {
                 ),
                 const Divider(height: 24),
                 _InfoRow(label: l10n.vendor, value: bill.vendorName),
-                _InfoRow(label: l10n.billDate, value: fmt.format(bill.billDate)),
+                _InfoRow(
+                  label: l10n.billDate,
+                  value: fmt.format(bill.billDate),
+                ),
                 _InfoRow(label: l10n.dueDate, value: fmt.format(bill.dueDate)),
-                if (bill.inventoryReceiptId != null && bill.inventoryReceiptId!.isNotEmpty)
+                if (bill.inventoryReceiptId != null &&
+                    bill.inventoryReceiptId!.isNotEmpty)
                   _InfoRow(
                     label: 'Inventory Receipt',
                     value: bill.inventoryReceiptId!,
                     isLink: true,
-                    onTap: () => context.push(AppRoutes.receiveInventoryDetails.replaceFirst(':id', bill.inventoryReceiptId!)),
+                    onTap: () => context.push(
+                      AppRoutes.receiveInventoryDetails.replaceFirst(
+                        ':id',
+                        bill.inventoryReceiptId!,
+                      ),
+                    ),
                   ),
-                if (bill.memo != null && bill.memo!.isNotEmpty) _InfoRow(label: l10n.memoInternal, value: bill.memo!),
+                if (bill.memo != null && bill.memo!.isNotEmpty)
+                  _InfoRow(label: l10n.memoInternal, value: bill.memo!),
               ],
             ),
           ),
@@ -156,7 +210,12 @@ class _BillDetailsBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.items, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  l10n.items,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const Divider(height: 20),
                 if (bill.lines.isEmpty)
                   Text(l10n.noRecentTransactions)
@@ -184,7 +243,11 @@ class _BillDetailsBody extends StatelessWidget {
                     const SizedBox(height: 8),
                     _AmountRow(label: l10n.amountDue, amount: bill.balanceDue),
                     const Divider(height: 24),
-                    _AmountRow(label: l10n.total, amount: bill.totalAmount, isTotal: true),
+                    _AmountRow(
+                      label: l10n.total,
+                      amount: bill.totalAmount,
+                      isTotal: true,
+                    ),
                   ],
                 ),
               ),
@@ -205,19 +268,19 @@ class _StatusChip extends StatelessWidget {
     final label = bill.isVoid
         ? 'Void'
         : bill.isPaid
-            ? 'Paid'
-            : bill.isPartiallyPaid
-                ? 'Partially Paid'
-                : bill.isDraft
-                    ? 'Draft'
-                    : 'Open';
+        ? 'Paid'
+        : bill.isPartiallyPaid
+        ? 'Partially Paid'
+        : bill.isDraft
+        ? 'Draft'
+        : 'Open';
     final color = bill.isVoid
         ? Theme.of(context).colorScheme.error
         : bill.isPaid
-            ? Colors.green.shade800
-            : bill.isPartiallyPaid
-                ? Colors.orange.shade800
-                : Theme.of(context).colorScheme.primary;
+        ? Colors.green.shade800
+        : bill.isPartiallyPaid
+        ? Colors.orange.shade800
+        : Theme.of(context).colorScheme.primary;
 
     return Chip(
       label: Text(label),
@@ -235,16 +298,33 @@ class _LineTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(line.inventoryReceiptLineId == null ? Icons.inventory_2_outlined : Icons.link_outlined),
-      title: Text(line.description.isEmpty ? line.itemName : line.description, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text('Qty ${line.quantity.toStringAsFixed(2)} × ${line.unitCost.toStringAsFixed(2)}'),
-      trailing: Text(line.lineTotal.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.w900)),
+      leading: Icon(
+        line.inventoryReceiptLineId == null
+            ? Icons.inventory_2_outlined
+            : Icons.link_outlined,
+      ),
+      title: Text(
+        line.description.isEmpty ? line.itemName : line.description,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      subtitle: Text(
+        'Qty ${line.quantity.toStringAsFixed(2)} × ${line.unitCost.toStringAsFixed(2)}',
+      ),
+      trailing: Text(
+        line.lineTotal.toStringAsFixed(2),
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
     );
   }
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value, this.isLink = false, this.onTap});
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.isLink = false,
+    this.onTap,
+  });
   final String label;
   final String value;
   final bool isLink;
@@ -252,24 +332,41 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
-            const Spacer(),
-            isLink
-                ? GestureDetector(
-                    onTap: onTap,
-                    child: Text(value, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700, decoration: TextDecoration.underline)),
-                  )
-                : Flexible(child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w700))),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
+        const Spacer(),
+        isLink
+            ? GestureDetector(
+                onTap: onTap,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              )
+            : Flexible(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+      ],
+    ),
+  );
 }
 
 class _AmountRow extends StatelessWidget {
-  const _AmountRow({required this.label, required this.amount, this.isTotal = false});
+  const _AmountRow({
+    required this.label,
+    required this.amount,
+    this.isTotal = false,
+  });
   final String label;
   final double amount;
   final bool isTotal;
@@ -277,8 +374,12 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700);
+        ? Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
+        : Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
