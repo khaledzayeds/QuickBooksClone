@@ -173,7 +173,7 @@ public sealed class ReceiveInventoryController : ControllerBase
         }
 
         var requestedQuantitiesByOrderLine = request.Lines
-            .Where(line => line.PurchaseOrderLineId.HasValue)
+            .Where(line => line.PurchaseOrderLineId.HasValue && line.PurchaseOrderLineId != Guid.Empty)
             .GroupBy(line => line.PurchaseOrderLineId!.Value)
             .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity));
 
@@ -204,11 +204,11 @@ public sealed class ReceiveInventoryController : ControllerBase
             }
 
             Guid? purchaseOrderLineId = null;
-            if (order is not null)
+            if (line.PurchaseOrderLineId is not null && line.PurchaseOrderLineId != Guid.Empty)
             {
-                if (line.PurchaseOrderLineId is null || line.PurchaseOrderLineId == Guid.Empty)
+                if (order is null)
                 {
-                    return BadRequest("Every received line must reference a purchase order line when a purchase order is selected.");
+                    return BadRequest("Cannot specify purchase order line without selecting a purchase order.");
                 }
 
                 var orderLine = order.Lines.FirstOrDefault(current => current.Id == line.PurchaseOrderLineId.Value);
@@ -230,10 +230,6 @@ public sealed class ReceiveInventoryController : ControllerBase
                 }
 
                 purchaseOrderLineId = orderLine.Id;
-            }
-            else if (line.PurchaseOrderLineId is not null)
-            {
-                return BadRequest("Cannot specify purchase order line without selecting a purchase order.");
             }
 
             var unitCost = line.UnitCost > 0 ? line.UnitCost : item.PurchasePrice;

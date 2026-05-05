@@ -28,9 +28,9 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
     }
 
     public Guid CompanyId { get; }
-    public Guid VendorId { get; }
+    public Guid VendorId { get; private set; }
     public string OrderNumber { get; }
-    public DateOnly OrderDate { get; }
+    public DateOnly OrderDate { get; private set; }
     public DateOnly ExpectedDate { get; private set; }
     public PurchaseOrderStatus Status { get; private set; }
     public IReadOnlyList<PurchaseOrderLine> Lines => _lines;
@@ -40,6 +40,41 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
     public DateTimeOffset? OpenedAt { get; private set; }
     public DateTimeOffset? ClosedAt { get; private set; }
     public DateTimeOffset? CancelledAt { get; private set; }
+
+    public void UpdateDraftHeader(Guid vendorId, DateOnly orderDate, DateOnly expectedDate)
+    {
+        EnsureDraftEditable();
+
+        if (vendorId == Guid.Empty)
+        {
+            throw new ArgumentException("Vendor is required.", nameof(vendorId));
+        }
+
+        if (expectedDate < orderDate)
+        {
+            throw new InvalidOperationException("Expected date cannot be before purchase order date.");
+        }
+
+        VendorId = vendorId;
+        OrderDate = orderDate;
+        ExpectedDate = expectedDate;
+        TouchForLocalChange();
+    }
+
+    public void ReplaceDraftLines(IEnumerable<PurchaseOrderLine> lines)
+    {
+        EnsureDraftEditable();
+
+        var newLines = lines.ToList();
+        if (newLines.Count == 0)
+        {
+            throw new InvalidOperationException("Purchase order must have at least one line.");
+        }
+
+        _lines.Clear();
+        _lines.AddRange(newLines);
+        TouchForLocalChange();
+    }
 
     public void AddLine(PurchaseOrderLine line)
     {
@@ -101,5 +136,18 @@ public sealed class PurchaseOrder : SyncDocumentBase, ITenantEntity
         Status = PurchaseOrderStatus.Cancelled;
         CancelledAt = DateTimeOffset.UtcNow;
         TouchForLocalChange();
+    }
+
+    private void EnsureDraftEditable()
+    {
+        if (Status != PurchaseOrderStatus.Draft)
+        {
+            throw new InvalidOperationException("Only draft purchase orders can be edited.");
+        }
+
+        if (OpenedAt is not null || ClosedAt is not null || CancelledAt is not null)
+        {
+            throw new InvalidOperationException("Purchase order has workflow activity and cannot be edited as a draft.");
+        }
     }
 }

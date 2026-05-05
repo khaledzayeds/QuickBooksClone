@@ -7,6 +7,7 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
 import '../../printing/widgets/document_print_preview_dialog.dart';
+import '../../transactions/widgets/void_confirmation_dialog.dart';
 import '../data/models/invoice_contracts.dart';
 import '../providers/invoices_state.dart';
 
@@ -14,6 +15,28 @@ class InvoiceDetailsPage extends ConsumerWidget {
   const InvoiceDetailsPage({super.key, required this.id});
 
   final String id;
+
+  Future<void> _voidInvoice(BuildContext context, WidgetRef ref, InvoiceModel invoice) async {
+    final confirmed = await showVoidConfirmationDialog(
+      context: context,
+      documentLabel: 'invoice ${invoice.invoiceNumber}',
+      warning: invoice.paidAmount > 0 ? 'Invoices with applied payments may be rejected by the accounting rules.' : null,
+    );
+    if (!confirmed || !context.mounted) return;
+
+    final result = await ref.read(invoicesRepoProvider).voidInvoice(invoice.id);
+    if (!context.mounted) return;
+    result.when(
+      success: (updated) {
+        ref.read(invoicesStateProvider.notifier).refresh();
+        ref.invalidate(invoiceDetailsStateProvider(invoice.id));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invoice ${updated.invoiceNumber} voided.')));
+      },
+      failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Theme.of(context).colorScheme.error),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,6 +47,26 @@ class InvoiceDetailsPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.invoices),
         actions: [
+          invoiceAsync.maybeWhen(
+            data: (invoice) => invoice.isDraft
+                ? IconButton(
+                    tooltip: 'Edit draft',
+                    onPressed: () => context.go('/sales/invoices/edit/$id'),
+                    icon: const Icon(Icons.edit_outlined),
+                  )
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
+          invoiceAsync.maybeWhen(
+            data: (invoice) => !invoice.isVoid
+                ? IconButton(
+                    tooltip: 'Void invoice',
+                    onPressed: () => _voidInvoice(context, ref, invoice),
+                    icon: Icon(Icons.block_outlined, color: Theme.of(context).colorScheme.error),
+                  )
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             tooltip: 'Print preview',
             onPressed: () => showDocumentPrintPreviewDialog(

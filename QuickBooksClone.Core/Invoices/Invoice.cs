@@ -42,14 +42,14 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
     }
 
     public Guid CompanyId { get; }
-    public Guid CustomerId { get; }
+    public Guid CustomerId { get; private set; }
     public Guid? SalesOrderId { get; }
     public string InvoiceNumber { get; }
-    public DateOnly InvoiceDate { get; }
-    public DateOnly DueDate { get; }
+    public DateOnly InvoiceDate { get; private set; }
+    public DateOnly DueDate { get; private set; }
     public InvoicePaymentMode PaymentMode { get; }
-    public Guid? DepositAccountId { get; }
-    public string? PaymentMethod { get; }
+    public Guid? DepositAccountId { get; private set; }
+    public string? PaymentMethod { get; private set; }
     public Guid? ReceiptPaymentId { get; private set; }
     public InvoiceStatus Status { get; private set; }
     public IReadOnlyList<InvoiceLine> Lines => _lines;
@@ -65,6 +65,53 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversalTransactionId { get; private set; }
     public DateTimeOffset? VoidedAt { get; private set; }
+
+    public void UpdateDraftHeader(Guid customerId, DateOnly invoiceDate, DateOnly dueDate, Guid? depositAccountId = null, string? paymentMethod = null)
+    {
+        EnsureDraftEditable();
+
+        if (customerId == Guid.Empty)
+        {
+            throw new ArgumentException("Customer is required.", nameof(customerId));
+        }
+
+        if (dueDate < invoiceDate)
+        {
+            throw new InvalidOperationException("Due date cannot be before document date.");
+        }
+
+        CustomerId = customerId;
+        InvoiceDate = invoiceDate;
+        DueDate = dueDate;
+        if (PaymentMode == InvoicePaymentMode.Cash)
+        {
+            DepositAccountId = depositAccountId;
+            PaymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? null : paymentMethod.Trim();
+        }
+
+        TouchForLocalChange();
+    }
+
+    public void ReplaceDraftLines(IEnumerable<InvoiceLine> lines)
+    {
+        EnsureDraftEditable();
+
+        var newLines = lines.ToList();
+        if (newLines.Count == 0)
+        {
+            throw new InvalidOperationException("Document must have at least one line.");
+        }
+
+        _lines.Clear();
+        TaxAmount = 0;
+        foreach (var line in newLines)
+        {
+            _lines.Add(line);
+            TaxAmount += line.TaxAmount;
+        }
+
+        TouchForLocalChange();
+    }
 
     public void AddLine(InvoiceLine line)
     {
@@ -276,5 +323,18 @@ public sealed class Invoice : SyncDocumentBase, ITenantEntity
         }
 
         TouchForLocalChange();
+    }
+
+    private void EnsureDraftEditable()
+    {
+        if (Status != InvoiceStatus.Draft)
+        {
+            throw new InvalidOperationException("Only draft documents can be edited.");
+        }
+
+        if (PostedTransactionId is not null || PaidAmount > 0 || ReceiptPaymentId is not null)
+        {
+            throw new InvalidOperationException("Document has accounting activity and cannot be edited as a draft.");
+        }
     }
 }

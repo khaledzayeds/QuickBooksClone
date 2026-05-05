@@ -7,6 +7,7 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
 import '../../printing/widgets/document_print_preview_dialog.dart';
+import '../../transactions/widgets/void_confirmation_dialog.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
 
@@ -14,6 +15,28 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
   const SalesReceiptDetailsPage({super.key, required this.id});
 
   final String id;
+
+  Future<void> _voidReceipt(BuildContext context, WidgetRef ref, SalesReceiptModel receipt) async {
+    final confirmed = await showVoidConfirmationDialog(
+      context: context,
+      documentLabel: 'sales receipt ${receipt.receiptNumber}',
+      warning: 'Voiding a sales receipt will also reverse its linked payment when possible.',
+    );
+    if (!confirmed || !context.mounted) return;
+
+    final result = await ref.read(salesReceiptsRepoProvider).voidReceipt(receipt.id);
+    if (!context.mounted) return;
+    result.when(
+      success: (updated) {
+        ref.read(salesReceiptsStateProvider.notifier).refresh();
+        ref.invalidate(salesReceiptDetailsStateProvider(receipt.id));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sales receipt ${updated.receiptNumber} voided.')));
+      },
+      failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Theme.of(context).colorScheme.error),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,6 +47,16 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.salesReceiptDetails),
         actions: [
+          receiptAsync.maybeWhen(
+            data: (receipt) => !receipt.isVoid
+                ? IconButton(
+                    tooltip: 'Void sales receipt',
+                    onPressed: () => _voidReceipt(context, ref, receipt),
+                    icon: Icon(Icons.block_outlined, color: Theme.of(context).colorScheme.error),
+                  )
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             tooltip: 'Print preview',
             onPressed: () => showDocumentPrintPreviewDialog(

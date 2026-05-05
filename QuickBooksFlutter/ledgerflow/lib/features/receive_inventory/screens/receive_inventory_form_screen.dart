@@ -1,50 +1,51 @@
 // receive_inventory_form_screen.dart
-// Fully localized and aligned with backend receiving-plan flow.
+// Item Receipt style: PO can fill lines, but the receipt remains editable.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../../core/widgets/transaction_sidebar.dart';
+import '../../items/data/models/item_model.dart';
+import '../../items/providers/items_provider.dart';
 import '../../purchase_orders/data/models/purchase_order_model.dart';
 import '../../purchase_orders/providers/purchase_orders_provider.dart';
+import '../../vendors/data/models/vendor_model.dart';
+import '../../vendors/providers/vendors_provider.dart';
 import '../data/models/create_receive_inventory_dto.dart';
 import '../data/models/receiving_plan_model.dart';
 import '../providers/receive_inventory_provider.dart';
-import '../../../../core/widgets/transaction_sidebar.dart';
 
 class ReceiveInventoryFormScreen extends ConsumerStatefulWidget {
-  /// Optional — if coming from PO Details, pre-select the order.
   const ReceiveInventoryFormScreen({super.key, this.purchaseOrderId});
   final String? purchaseOrderId;
 
   @override
-  ConsumerState<ReceiveInventoryFormScreen> createState() =>
-      _ReceiveInventoryFormScreenState();
+  ConsumerState<ReceiveInventoryFormScreen> createState() => _ReceiveInventoryFormScreenState();
 }
 
-class _ReceiveInventoryFormScreenState
-    extends ConsumerState<ReceiveInventoryFormScreen> {
+class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFormScreen> {
+  VendorModel? _selectedVendor;
   PurchaseOrderModel? _selectedOrder;
   ReceivingPlanModel? _activePlan;
   bool _loadingPlan = false;
 
   DateTime _receiptDate = DateTime.now();
   final _notesCtrl = TextEditingController();
-  final Map<String, TextEditingController> _qtyControllers = {};
+  final List<_ManualReceiveLine> _manualLines = [_ManualReceiveLine()];
   bool _saving = false;
   bool _initialised = false;
 
   @override
   void dispose() {
     _notesCtrl.dispose();
-    for (final c in _qtyControllers.values) {
-      c.dispose();
+    for (final line in _manualLines) {
+      line.dispose();
     }
     super.dispose();
   }
 
-  // Pre-select order when purchaseOrderId is passed
   void _tryPreselect(List<PurchaseOrderModel> orders) {
     if (_initialised) return;
     _initialised = true;
@@ -62,13 +63,21 @@ class _ReceiveInventoryFormScreenState
     setState(() {
       _selectedOrder = order;
       _activePlan = null;
-      for (final c in _qtyControllers.values) {
-        c.dispose();
+      if (order != null) {
+        _selectedVendor = VendorModel(
+          id: order.vendorId,
+          displayName: order.vendorName,
+          isActive: true,
+          balance: 0,
+          creditBalance: 0,
+        );
       }
-      _qtyControllers.clear();
     });
 
-    if (order == null) return;
+    if (order == null) {
+      _clearPoLinkedLines();
+      return;
+    }
 
     setState(() => _loadingPlan = true);
     try {
@@ -78,12 +87,7 @@ class _ReceiveInventoryFormScreenState
           if (mounted) {
             setState(() {
               _activePlan = plan;
-              for (final line in plan.lines) {
-                // Use suggested quantity as default
-                _qtyControllers[line.purchaseOrderLineId] = TextEditingController(
-                  text: line.suggestedReceiveQuantity.toStringAsFixed(2),
-                );
-              }
+              _fillLinesFromPlan(plan);
             });
           }
         },
@@ -94,39 +98,160 @@ class _ReceiveInventoryFormScreenState
     }
   }
 
+  void _fillLinesFromPlan(ReceivingPlanModel plan) {
+    for (final existing in _manualLines.where((line) => line.purchaseOrderLineId != null).toList()) {
+      _manualLines.remove(existing);
+      existing.dispose();
+    }
+
+    final poLines = plan.lines.map((line) {
+      final entry = _ManualReceiveLine(
+        itemId: line.itemId,
+        itemName: line.description,
+        purchaseOrderLineId: line.purchaseOrderLineId,
+        orderedQuantity: line.orderedQuantity,
+        previouslyReceivedQuantity: line.receivedQuantity,
+        remainingQuantity: line.remainingQuantity,
+      );
+      entry.descriptionCtrl.text = line.description;
+      entry.qtyCtrl.text = line.suggestedReceiveQuantity.toStringAsFixed(2);
+      entry.costCtrl.text = line.unitCost.toStringAsFixed(2);
+      return entry;
+    }).toList();
+
+    final hasOnlyBlankLine = _manualLines.length == 1 && _manualLines.first.isBlank;
+    if (hasOnlyBlankLine) {
+      final blank = _manualLines.removeAt(0);
+      blank.dispose();
+    }
+    _manualLines.insertAll(0, poLines);
+    if (_manualLines.isEmpty) _manualLines.add(_ManualReceiveLine());
+  }
+
+  void _clearPoLinkedLines() {
+    setState(() {
+      for (final existing in _manualLines.where((line) => line.purchaseOrderLineId != null).toList()) {
+        _manualLines.remove(existing);
+        existing.dispose();
+      }
+      if (_manualLines.isEmpty) _manualLines.add(_ManualReceiveLine());
+    });
+  }
+
+  Future<void> _selectVendor() async {
+    final vendorsAsync = ref.read(vendorsProvider);
+    final vendors = vendorsAsync.maybeWhen(
+      data: (items) => items.where((vendor) => vendor.isActive).toList(),
+      orElse: () => const <VendorModel>[],
+    );
+
+    final selected = await showDialog<VendorModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Vendor'),
+        content: SizedBox(
+          width: 520,
+          child: vendors.isEmpty
+              ? const Text('No active vendors loaded yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: vendors.length,
+                  itemBuilder: (context, index) {
+                    final vendor = vendors[index];
+                    return ListTile(
+                      leading: const Icon(Icons.storefront_outlined),
+                      title: Text(vendor.displayName),
+                      subtitle: Text('Balance: ${vendor.balance.toStringAsFixed(2)} ${vendor.currency}'),
+                      onTap: () => Navigator.of(context).pop(vendor),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        ],
+      ),
+    );
+
+    if (selected == null) return;
+    setState(() {
+      _selectedVendor = selected;
+      _selectedOrder = null;
+      _activePlan = null;
+    });
+    _clearPoLinkedLines();
+  }
+
+  Future<void> _selectManualItem(_ManualReceiveLine line) async {
+    final itemsAsync = ref.read(itemsProvider);
+    final items = itemsAsync.maybeWhen(
+      data: (items) => items.where((item) => item.isActive && item.isInventory).toList(),
+      orElse: () => const <ItemModel>[],
+    );
+
+    final selected = await showDialog<ItemModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Inventory Item'),
+        content: SizedBox(
+          width: 560,
+          child: items.isEmpty
+              ? const Text('No active inventory items loaded yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ListTile(
+                      leading: const Icon(Icons.inventory_2_outlined),
+                      title: Text(item.name),
+                      subtitle: Text('On hand: ${item.quantityOnHand.toStringAsFixed(2)} • Cost: ${item.purchasePrice.toStringAsFixed(2)}'),
+                      onTap: () => Navigator.of(context).pop(item),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        ],
+      ),
+    );
+
+    if (selected == null) return;
+    setState(() {
+      line.itemId = selected.id;
+      line.itemName = selected.name;
+      line.purchaseOrderLineId = null;
+      line.orderedQuantity = null;
+      line.previouslyReceivedQuantity = null;
+      line.remainingQuantity = null;
+      line.descriptionCtrl.text = selected.name;
+      if ((double.tryParse(line.costCtrl.text.trim()) ?? 0) <= 0) {
+        line.costCtrl.text = selected.purchasePrice.toStringAsFixed(2);
+      }
+    });
+  }
+
+  void _addManualLine() => setState(() => _manualLines.add(_ManualReceiveLine()));
+
+  void _removeManualLine(_ManualReceiveLine line) {
+    if (_manualLines.length == 1) return;
+    setState(() {
+      _manualLines.remove(line);
+      line.dispose();
+    });
+  }
+
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
-    final order = _selectedOrder;
-    final plan = _activePlan;
-    
-    if (order == null || plan == null) {
-      _showError(l10n.selectOpenPO);
+
+    if (_selectedVendor == null) {
+      _showError('Select a vendor first.');
       return;
     }
 
-    final lines = <CreateReceiveInventoryLineDto>[];
-    for (final line in plan.lines) {
-      final qty = double.tryParse(
-              _qtyControllers[line.purchaseOrderLineId]?.text.trim() ?? '') ??
-          0;
-      if (qty <= 0) continue;
-      
-      // Strict validation: cannot exceed remaining quantity
-      if (qty > line.remainingQuantity) {
-        _showError(
-            '${line.description}: ${l10n.qty} > ${line.remainingQuantity.toStringAsFixed(2)}');
-        return;
-      }
-      
-      lines.add(CreateReceiveInventoryLineDto(
-        itemId:              line.itemId,
-        quantity:            qty, // Backend expects 'quantity'
-        unitCost:            line.unitCost,
-        description:         line.description,
-        purchaseOrderLineId: line.purchaseOrderLineId,
-      ));
-    }
-
+    final lines = _buildEditableLines();
+    if (lines == null) return;
     if (lines.isEmpty) {
       _showError(l10n.minOneQty);
       return;
@@ -135,13 +260,13 @@ class _ReceiveInventoryFormScreenState
     setState(() => _saving = true);
     try {
       final dto = CreateReceiveInventoryDto(
-        vendorId:        plan.vendorId, // Using vendor from plan
-        purchaseOrderId: plan.purchaseOrderId,
-        receiptDate:     _receiptDate,
-        saveMode:        2, // Always SaveAndPost as requested
-        lines:           lines,
+        vendorId: _selectedVendor!.id,
+        purchaseOrderId: _selectedOrder?.id,
+        receiptDate: _receiptDate,
+        saveMode: 2,
+        lines: lines,
       );
-      
+
       final result = await ref.read(receiveInventoryRepoProvider).create(dto);
       result.when(
         success: (_) {
@@ -162,19 +287,49 @@ class _ReceiveInventoryFormScreenState
     }
   }
 
+  List<CreateReceiveInventoryLineDto>? _buildEditableLines() {
+    final lines = <CreateReceiveInventoryLineDto>[];
+    for (final line in _manualLines) {
+      final qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
+      final cost = double.tryParse(line.costCtrl.text.trim()) ?? 0;
+      if (line.itemId == null && qty <= 0 && cost <= 0) continue;
+      if (line.itemId == null) {
+        _showError('Select item for every receive line.');
+        return null;
+      }
+      if (qty <= 0) {
+        _showError('Quantity must be greater than zero.');
+        return null;
+      }
+      if (cost <= 0) {
+        _showError('Unit cost must be greater than zero.');
+        return null;
+      }
+      if (line.purchaseOrderLineId != null && line.remainingQuantity != null && qty > line.remainingQuantity!) {
+        _showError('${line.descriptionCtrl.text}: quantity exceeds remaining PO quantity ${line.remainingQuantity!.toStringAsFixed(2)}');
+        return null;
+      }
+      lines.add(CreateReceiveInventoryLineDto(
+        itemId: line.itemId!,
+        quantity: qty,
+        unitCost: cost,
+        description: line.descriptionCtrl.text.trim().isEmpty ? line.itemName : line.descriptionCtrl.text.trim(),
+        purchaseOrderLineId: line.purchaseOrderLineId,
+      ));
+    }
+    return lines;
+  }
+
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
+      SnackBar(content: Text(msg), backgroundColor: Theme.of(context).colorScheme.error),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(openPurchaseOrdersProvider);
-    final l10n        = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
@@ -185,6 +340,7 @@ class _ReceiveInventoryFormScreenState
         error: (e, _) => Center(child: Text(e.toString())),
         data: (orders) {
           _tryPreselect(orders);
+          final vendorOrders = _selectedVendor == null ? orders : orders.where((o) => o.vendorId == _selectedVendor!.id).toList();
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -192,78 +348,79 @@ class _ReceiveInventoryFormScreenState
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-              // PO Dropdown
-              DropdownButtonFormField<PurchaseOrderModel>(
-                initialValue: _selectedOrder,
-                decoration: InputDecoration(
-                  labelText: l10n.openPO,
-                  prefixIcon: const Icon(Icons.receipt_long_outlined),
-                  border: const OutlineInputBorder(),
-                ),
-                items: orders
-                    .map((o) => DropdownMenuItem(
-                          value: o,
-                          child:
-                              Text('${o.orderNumber} — ${o.vendorName}'),
-                        ))
-                    .toList(),
-                onChanged: (v) => _selectOrder(v),
-              ),
-              const SizedBox(height: 16),
-
-              // Receipt Date
-              InkWell(
-                onTap: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _receiptDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2030),
-                  );
-                  if (d != null) setState(() => _receiptDate = d);
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: l10n.receiptDate,
-                    prefixIcon: const Icon(Icons.calendar_today_outlined),
-                    border: const OutlineInputBorder(),
-                  ),
-                  child: Text(
-                      '${_receiptDate.day}/${_receiptDate.month}/${_receiptDate.year}'),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Lines
-              if (_selectedOrder == null)
-                _HintCard()
-              else if (_loadingPlan)
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ))
-              else if (_activePlan != null)
-                ..._buildPlanLines(context, _activePlan!)
-              else
-                _HintCard(),
-              
-              const SizedBox(height: 16),
-
-              // Notes
-              TextField(
-                controller: _notesCtrl,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: l10n.notes,
-                  hintText: '${l10n.notes}...',
-                  border: const OutlineInputBorder(),
-                ),
-              ),
+                    _VendorCard(
+                      vendor: _selectedVendor,
+                      onSelect: _selectVendor,
+                      onClear: () {
+                        setState(() {
+                          _selectedVendor = null;
+                          _selectedOrder = null;
+                          _activePlan = null;
+                        });
+                        _clearPoLinkedLines();
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<PurchaseOrderModel?>(
+                      initialValue: _selectedOrder,
+                      decoration: InputDecoration(
+                        labelText: 'Optional Purchase Order',
+                        prefixIcon: const Icon(Icons.receipt_long_outlined),
+                        border: const OutlineInputBorder(),
+                        helperText: 'Select PO to fill lines. You can still edit/add manual lines.',
+                      ),
+                      items: [
+                        const DropdownMenuItem<PurchaseOrderModel?>(
+                          value: null,
+                          child: Text('Standalone receive — no PO'),
+                        ),
+                        ...vendorOrders.map((o) => DropdownMenuItem<PurchaseOrderModel?>(
+                              value: o,
+                              child: Text('${o.orderNumber} — ${o.vendorName}'),
+                            )),
+                      ],
+                      onChanged: (v) => _selectOrder(v),
+                    ),
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _receiptDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+                        if (d != null) setState(() => _receiptDate = d);
+                      },
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: l10n.receiptDate,
+                          prefixIcon: const Icon(Icons.calendar_today_outlined),
+                          border: const OutlineInputBorder(),
+                        ),
+                        child: Text('${_receiptDate.day}/${_receiptDate.month}/${_receiptDate.year}'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_loadingPlan)
+                      const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator()))
+                    else
+                      _buildEditableReceiveLines(context),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _notesCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: l10n.notes,
+                        hintText: '${l10n.notes}...',
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
                     const SizedBox(height: 80),
                   ],
                 ),
               ),
-              TransactionSidebar(vendorId: _selectedOrder?.vendorId),
+              TransactionSidebar(vendorId: _selectedVendor?.id),
             ],
           );
         },
@@ -273,12 +430,7 @@ class _ReceiveInventoryFormScreenState
           padding: const EdgeInsets.all(16),
           child: ElevatedButton.icon(
             icon: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.save_outlined),
             label: Text(_saving ? l10n.saving : l10n.saveReceipt),
             onPressed: _saving || _loadingPlan ? null : _save,
@@ -288,90 +440,113 @@ class _ReceiveInventoryFormScreenState
     );
   }
 
-  List<Widget> _buildPlanLines(BuildContext context, ReceivingPlanModel plan) {
-    final l10n  = AppLocalizations.of(context)!;
-    final lines = plan.lines;
-
-    if (lines.isEmpty) {
-      return [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle_outline, color: Colors.green),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: Text(l10n.noInventoryReceipts)),
-              ],
-            ),
-          ),
+  Widget _buildEditableReceiveLines(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Receive Lines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            if (_selectedOrder != null) ...[
+              const SizedBox(width: 8),
+              Chip(label: Text('Filled from ${_selectedOrder!.orderNumber}')),
+            ],
+            const Spacer(),
+            TextButton.icon(onPressed: _addManualLine, icon: const Icon(Icons.add), label: const Text('Add line')),
+          ],
         ),
-      ];
-    }
-
-    return [
-      Text(l10n.items,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700)),
-      const SizedBox(height: 8),
-      ...lines.map((line) => Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(line.description,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 15)),
-                  const SizedBox(height: 6),
-                  Row(children: [
-                    _QtyChip(
-                        label: l10n.ordered, value: line.orderedQuantity),
-                    const SizedBox(width: 8),
-                    _QtyChip(
-                        label: '${l10n.received} (Prev)', value: line.receivedQuantity, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    _QtyChip(
-                        label: 'Rem.', value: line.remainingQuantity, color: Colors.orange.shade900),
-                  ]),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _qtyControllers[line.purchaseOrderLineId],
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
-                    decoration: InputDecoration(
-                      labelText: l10n.qtyToReceive,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      suffixText:
-                          '${l10n.from} ${line.remainingQuantity.toStringAsFixed(2)}',
+        const SizedBox(height: 8),
+        ..._manualLines.map((line) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(line.purchaseOrderLineId == null ? Icons.inventory_2_outlined : Icons.receipt_long_outlined),
+                            title: Text(line.itemName.isEmpty ? 'Select item' : line.itemName),
+                            subtitle: Text(line.purchaseOrderLineId == null ? 'Manual receive line' : 'PO linked • Remaining ${line.remainingQuantity?.toStringAsFixed(2) ?? '-'}'),
+                            onTap: () => _selectManualItem(line),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Remove line',
+                          onPressed: _manualLines.length == 1 ? null : () => _removeManualLine(line),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    if (line.purchaseOrderLineId != null) ...[
+                      Row(children: [
+                        _QtyChip(label: l10n.ordered, value: line.orderedQuantity ?? 0),
+                        const SizedBox(width: 8),
+                        _QtyChip(label: '${l10n.received} (Prev)', value: line.previouslyReceivedQuantity ?? 0, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        _QtyChip(label: 'Rem.', value: line.remainingQuantity ?? 0, color: Colors.orange.shade900),
+                      ]),
+                      const SizedBox(height: 8),
+                    ],
+                    TextField(
+                      controller: line.descriptionCtrl,
+                      decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder(), isDense: true),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: line.qtyCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: InputDecoration(labelText: l10n.qty, border: const OutlineInputBorder(), isDense: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: line.costCtrl,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(labelText: 'Unit Cost', border: OutlineInputBorder(), isDense: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          )),
-    ];
+            )),
+      ],
+    );
   }
 }
 
-class _HintCard extends StatelessWidget {
+class _VendorCard extends StatelessWidget {
+  const _VendorCard({required this.vendor, required this.onSelect, required this.onClear});
+  final VendorModel? vendor;
+  final VoidCallback onSelect;
+  final VoidCallback onClear;
+
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            const Icon(Icons.info_outline, color: Colors.blue),
+            const Icon(Icons.storefront_outlined),
             const SizedBox(width: 12),
             Expanded(
-                child: Text(l10n.selectOpenPOHint)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(vendor?.displayName ?? 'No vendor selected', style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(vendor == null ? 'Vendor is required for standalone or PO receiving.' : 'Balance: ${vendor!.balance.toStringAsFixed(2)} ${vendor!.currency}'),
+              ]),
+            ),
+            TextButton.icon(onPressed: onSelect, icon: const Icon(Icons.search), label: const Text('Select Vendor')),
+            if (vendor != null) IconButton(onPressed: onClear, icon: const Icon(Icons.clear)),
           ],
         ),
       ),
@@ -389,12 +564,37 @@ class _QtyChip extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          Text(value.toStringAsFixed(2),
-              style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: color ?? Theme.of(context).colorScheme.primary)),
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(value.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w700, color: color ?? Theme.of(context).colorScheme.primary)),
         ],
       );
+}
+
+class _ManualReceiveLine {
+  _ManualReceiveLine({
+    this.itemId,
+    this.itemName = '',
+    this.purchaseOrderLineId,
+    this.orderedQuantity,
+    this.previouslyReceivedQuantity,
+    this.remainingQuantity,
+  });
+
+  String? itemId;
+  String itemName;
+  String? purchaseOrderLineId;
+  double? orderedQuantity;
+  double? previouslyReceivedQuantity;
+  double? remainingQuantity;
+  final descriptionCtrl = TextEditingController();
+  final qtyCtrl = TextEditingController(text: '1');
+  final costCtrl = TextEditingController();
+
+  bool get isBlank => itemId == null && descriptionCtrl.text.trim().isEmpty && (double.tryParse(qtyCtrl.text.trim()) ?? 0) <= 1 && costCtrl.text.trim().isEmpty;
+
+  void dispose() {
+    descriptionCtrl.dispose();
+    qtyCtrl.dispose();
+    costCtrl.dispose();
+  }
 }

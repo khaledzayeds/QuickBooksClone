@@ -83,6 +83,18 @@ class InvoicesApi {
     }
   }
 
+  Future<ApiResult<InvoiceModel>> update(String id, UpdateInvoiceDto dto) async {
+    try {
+      final response = await _client.put<Map<String, dynamic>>(
+        '/api/invoices/$id',
+        data: dto.toJson(),
+      );
+      return Success(InvoiceModel.fromJson(response.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
   Future<ApiResult<InvoiceModel>> postInvoice(String id) async {
     try {
       final response = await _client.post<Map<String, dynamic>>('/api/invoices/$id/post');

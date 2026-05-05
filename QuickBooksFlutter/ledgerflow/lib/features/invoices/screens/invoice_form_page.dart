@@ -22,7 +22,9 @@ import '../data/models/sales_preview_contracts.dart';
 import '../providers/invoices_state.dart';
 
 class InvoiceFormPage extends ConsumerStatefulWidget {
-  const InvoiceFormPage({super.key});
+  const InvoiceFormPage({super.key, this.id});
+
+  final String? id;
 
   @override
   ConsumerState<InvoiceFormPage> createState() => _InvoiceFormPageState();
@@ -32,12 +34,16 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
   CustomerModel? _selectedCustomer;
   CustomerSalesActivityModel? _customerActivity;
   SalesPostingPreviewModel? _preview;
+  InvoiceModel? _editingInvoice;
   DateTime _invoiceDate = DateTime.now();
   DateTime _dueDate = DateTime.now().add(const Duration(days: 14));
   bool _saving = false;
   bool _previewing = false;
   bool _loadingActivity = false;
+  bool _loadingExisting = false;
   bool _sidePanelExpanded = true;
+
+  bool get _isEdit => widget.id != null && widget.id!.isNotEmpty;
 
   final _numberCtrl = TextEditingController(text: 'AUTO');
   final _dateCtrl = TextEditingController();
@@ -52,6 +58,9 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
   void initState() {
     super.initState();
     _syncDateControllers();
+    if (_isEdit) {
+      Future.microtask(_loadExistingInvoice);
+    }
   }
 
   @override
@@ -71,12 +80,12 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
   double get _subtotal => _lines.fold(0, (sum, line) => sum + line.amount);
 
   TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
-        subtotal: _preview?.subtotal ?? _subtotal,
-        discountTotal: _preview?.discountTotal ?? 0,
-        taxTotal: _preview?.taxTotal ?? 0,
-        total: _preview?.total ?? _subtotal,
-        paid: _preview?.paidAmount ?? 0,
-        balanceDue: _preview?.balanceDue ?? _subtotal,
+        subtotal: _preview?.subtotal ?? _editingInvoice?.subtotal ?? _subtotal,
+        discountTotal: _preview?.discountTotal ?? _editingInvoice?.discountAmount ?? 0,
+        taxTotal: _preview?.taxTotal ?? _editingInvoice?.taxAmount ?? 0,
+        total: _preview?.total ?? _editingInvoice?.totalAmount ?? _subtotal,
+        paid: _preview?.paidAmount ?? _editingInvoice?.paidAmount ?? 0,
+        balanceDue: _preview?.balanceDue ?? _editingInvoice?.balanceDue ?? _subtotal,
         currency: _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP',
       );
 
@@ -90,7 +99,7 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
         TransactionContextMetric(label: 'Open balance', value: '${_selectedCustomer!.balance.toStringAsFixed(2)} $currency', icon: Icons.receipt_long_outlined),
         TransactionContextMetric(label: 'Credits', value: '${_selectedCustomer!.creditBalance.toStringAsFixed(2)} $currency', icon: Icons.credit_score_outlined),
       ],
-      TransactionContextMetric(label: 'Current invoice', value: '${_totals.total.toStringAsFixed(2)} ${_totals.currency}', icon: Icons.description_outlined),
+      TransactionContextMetric(label: _isEdit ? 'Editing invoice' : 'Current invoice', value: '${_totals.total.toStringAsFixed(2)} ${_totals.currency}', icon: Icons.description_outlined),
       if (_preview != null) TransactionContextMetric(label: 'Tax', value: '${_preview!.taxTotal.toStringAsFixed(2)} ${_totals.currency}', icon: Icons.percent_outlined),
     ];
   }
@@ -121,6 +130,60 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
   }
 
   List<TransactionLineEntry> _validLines() => _lines.where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0).toList();
+
+  Future<void> _loadExistingInvoice() async {
+    final id = widget.id;
+    if (id == null || id.isEmpty) return;
+    setState(() => _loadingExisting = true);
+    final result = await ref.read(invoicesRepoProvider).getById(id);
+    if (!mounted) return;
+    setState(() => _loadingExisting = false);
+    result.when(
+      success: (invoice) async {
+        if (!invoice.isDraft) {
+          _showError('Only draft invoices can be edited.');
+          context.go('/sales/invoices/${invoice.id}');
+          return;
+        }
+        for (final line in _lines) {
+          line.dispose();
+        }
+        final loadedLines = invoice.lines.map((line) {
+          final entry = TransactionLineEntry(
+            itemId: line.itemId,
+            itemName: line.description,
+            qty: line.quantity,
+            rate: line.unitPrice,
+          );
+          entry.descCtrl.text = line.description;
+          entry.qtyCtrl.text = line.quantity.toString();
+          entry.rateCtrl.text = line.unitPrice.toString();
+          return entry;
+        }).toList();
+        setState(() {
+          _editingInvoice = invoice;
+          _invoiceDate = invoice.invoiceDate;
+          _dueDate = invoice.dueDate;
+          _numberCtrl.text = invoice.invoiceNumber;
+          _selectedCustomer = CustomerModel(
+            id: invoice.customerId,
+            displayName: invoice.customerName,
+            isActive: true,
+            balance: invoice.balanceDue,
+            creditBalance: invoice.creditAppliedAmount,
+          );
+          _customerCtrl.text = invoice.customerName;
+          _lines
+            ..clear()
+            ..addAll(loadedLines.isEmpty ? [TransactionLineEntry()] : loadedLines);
+          _preview = null;
+          _syncDateControllers();
+        });
+        await _loadCustomerActivity(invoice.customerId);
+      },
+      failure: (error) => _showError(error.message),
+    );
+  }
 
   Future<void> _loadCustomerActivity(String customerId) async {
     setState(() => _loadingActivity = true);
@@ -162,7 +225,10 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
     setState(() => _previewing = false);
     result.when(
       success: (preview) {
-        setState(() => _preview = preview);
+        setState(() {
+          _preview = preview;
+          _editingInvoice = null;
+        });
         _showInfo('Preview updated: ${preview.total.toStringAsFixed(2)} ${_totals.currency}');
       },
       failure: (error) => _showError(error.message),
@@ -187,35 +253,56 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       return;
     }
 
-    final dto = CreateInvoiceDto(
-      customerId: _selectedCustomer!.id,
-      invoiceDate: _invoiceDate,
-      dueDate: _dueDate,
-      saveMode: post ? 2 : 1,
-      lines: validLines
-          .map(
-            (line) => CreateInvoiceLineDto(
-              itemId: line.itemId!,
-              description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
-              quantity: line.qty,
-              unitPrice: line.rate,
-            ),
-          )
-          .toList(),
-    );
+    final lines = validLines
+        .map(
+          (line) => CreateInvoiceLineDto(
+            itemId: line.itemId!,
+            description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
+            quantity: line.qty,
+            unitPrice: line.rate,
+          ),
+        )
+        .toList();
 
     setState(() => _saving = true);
     try {
+      if (_isEdit) {
+        final id = widget.id!;
+        final dto = UpdateInvoiceDto(
+          customerId: _selectedCustomer!.id,
+          invoiceDate: _invoiceDate,
+          dueDate: _dueDate,
+          lines: lines,
+        );
+        final result = await ref.read(invoicesRepoProvider).update(id, dto);
+        if (!mounted) return;
+        result.when(
+          success: (updated) {
+            ref.read(invoicesStateProvider.notifier).refresh();
+            ref.invalidate(invoiceDetailsStateProvider(updated.id));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft invoice updated.')));
+            context.go('/sales/invoices/${updated.id}');
+          },
+          failure: (error) => _showError(error.message),
+        );
+        return;
+      }
+
+      final dto = CreateInvoiceDto(
+        customerId: _selectedCustomer!.id,
+        invoiceDate: _invoiceDate,
+        dueDate: _dueDate,
+        saveMode: post ? 2 : 1,
+        lines: lines,
+      );
+
       final result = await ref.read(invoicesRepoProvider).create(dto);
+      if (!mounted) return;
       result.when(
-        success: (_) {
+        success: (invoice) {
           ref.read(invoicesStateProvider.notifier).refresh();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.billCreatedSuccess)));
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go(AppRoutes.invoices);
-          }
+          context.go('/sales/invoices/${invoice.id}');
         },
         failure: (error) => _showError(error.message),
       );
@@ -239,6 +326,7 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       _invoiceDate = picked;
       if (_dueDate.isBefore(_invoiceDate)) _dueDate = _invoiceDate.add(const Duration(days: 14));
       _preview = null;
+      _editingInvoice = null;
       _syncDateControllers();
     });
   }
@@ -249,6 +337,7 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
     setState(() {
       _dueDate = picked;
       _preview = null;
+      _editingInvoice = null;
       _syncDateControllers();
     });
   }
@@ -293,6 +382,7 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       _selectedCustomer = selected;
       _customerActivity = null;
       _preview = null;
+      _editingInvoice = null;
       _customerCtrl.text = selected.displayName;
     });
     await _loadCustomerActivity(selected.id);
@@ -303,12 +393,14 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       _selectedCustomer = null;
       _customerActivity = null;
       _preview = null;
+      _editingInvoice = null;
       _customerCtrl.clear();
     });
   }
 
   void _addLine() => setState(() {
         _preview = null;
+        _editingInvoice = null;
         _lines.add(TransactionLineEntry());
       });
 
@@ -322,10 +414,15 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
         ..clear()
         ..add(TransactionLineEntry());
       _preview = null;
+      _editingInvoice = null;
     });
   }
 
   void _cancel() {
+    if (_isEdit && widget.id != null) {
+      context.go('/sales/invoices/${widget.id}');
+      return;
+    }
     if (context.canPop()) {
       context.pop();
     } else {
@@ -339,6 +436,10 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    if (_loadingExisting) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return TransactionKeyboardShortcuts(
       onAddLine: _addLine,
       onFocusBarcode: () => _showInfo('F4 barcode focus will be connected to the new grid focus node.'),
@@ -346,11 +447,11 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
       onLookup: () => _showInfo('F7 item lookup is scheduled for the transaction grid.'),
       onToggleSidePanel: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
       onSave: _saving ? null : () => _save(post: false),
-      onPrint: () => _showInfo('Print preview will be connected to the print service.'),
+      onPrint: () => _showInfo(_isEdit ? 'Save changes first, then print from invoice details.' : 'Print preview will be available after saving.'),
       onEscape: _cancel,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Invoice — Full Accounting Mode'),
+          title: Text(_isEdit ? 'Edit Draft Invoice' : 'Invoice — Full Accounting Mode'),
           actions: [
             TextButton.icon(onPressed: _previewing ? null : _runPreview, icon: _previewing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.analytics_outlined), label: const Text('Preview')),
             IconButton(onPressed: _pickInvoiceDate, icon: const Icon(Icons.calendar_today_outlined), tooltip: 'Invoice date'),
@@ -403,7 +504,10 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
                         child: TransactionLineTable(
                           lines: _lines,
                           priceMode: TransactionLinePriceMode.sales,
-                          onChanged: () => setState(() => _preview = null),
+                          onChanged: () => setState(() {
+                            _preview = null;
+                            _editingInvoice = null;
+                          }),
                         ),
                       ),
                     ),
@@ -417,7 +521,7 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
               expanded: _sidePanelExpanded,
               onToggle: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
               title: _selectedCustomer?.displayName ?? 'Customer context',
-              subtitle: _loadingActivity ? 'Loading customer activity...' : (_selectedCustomer == null ? 'Select a customer to show balances and recent activity.' : 'Invoice customer snapshot'),
+              subtitle: _loadingActivity ? 'Loading customer activity...' : (_selectedCustomer == null ? 'Select a customer to show balances and recent activity.' : (_isEdit ? 'Editing draft invoice snapshot' : 'Invoice customer snapshot')),
               warning: _sideWarning,
               notes: _preview == null ? 'Press Preview to calculate GL, inventory impact, tax, and warnings before posting.' : 'Preview includes ${_preview!.ledgerImpacts.length} ledger impacts and ${_preview!.inventoryImpacts.length} inventory impacts.',
               metrics: _contextMetrics,
@@ -425,7 +529,16 @@ class _InvoiceFormPageState extends ConsumerState<InvoiceFormPage> {
             ),
           ],
         ),
-        bottomNavigationBar: TransactionActionBar(status: TransactionDocumentStatus.draft, loading: _saving, onSaveDraft: () => _save(post: false), onSave: () => _save(post: false), onPost: () => _save(post: true), onClear: _clearLines, onVoid: null, onPrintAction: (action) => _showInfo('${action.name} is scheduled for print service wiring.')),
+        bottomNavigationBar: TransactionActionBar(
+          status: TransactionDocumentStatus.draft,
+          loading: _saving,
+          onSaveDraft: () => _save(post: false),
+          onSave: () => _save(post: false),
+          onPost: _isEdit ? null : () => _save(post: true),
+          onClear: _clearLines,
+          onVoid: null,
+          onPrintAction: (action) => _showInfo(_isEdit ? 'Save changes first, then print from invoice details.' : '${action.name} is available after saving.'),
+        ),
       ),
     );
   }
