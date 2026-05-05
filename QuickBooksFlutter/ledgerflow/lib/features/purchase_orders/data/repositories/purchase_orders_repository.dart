@@ -11,7 +11,7 @@ class PurchaseOrdersRepository {
   Future<ApiResult<List<PurchaseOrderModel>>> getAll({
     String? search,
     String? vendorId,
-    bool includeClosed    = false,
+    bool includeClosed = false,
     bool includeCancelled = false,
   }) =>
       _remote.getAll(
@@ -21,20 +21,17 @@ class PurchaseOrdersRepository {
         includeCancelled: includeCancelled,
       );
 
-  Future<ApiResult<PurchaseOrderModel>> getById(String id) =>
-      _remote.getById(id);
+  Future<ApiResult<PurchaseOrderModel>> getById(String id) => _remote.getById(id);
 
-  Future<ApiResult<PurchaseOrderModel>> create(CreatePurchaseOrderDto dto) =>
-      _remote.create(dto);
+  Future<ApiResult<PurchaseOrderModel>> create(CreatePurchaseOrderDto dto) => _remote.create(dto);
 
-  Future<ApiResult<PurchaseOrderModel>> openOrder(String id) =>
-      _remote.openOrder(id);
+  Future<ApiResult<PurchaseOrderModel>> update(String id, UpdatePurchaseOrderDto dto) => _remote.update(id, dto);
 
-  Future<ApiResult<PurchaseOrderModel>> closeOrder(String id) =>
-      _remote.closeOrder(id);
+  Future<ApiResult<PurchaseOrderModel>> openOrder(String id) => _remote.openOrder(id);
 
-  Future<ApiResult<PurchaseOrderModel>> cancelOrder(String id) =>
-      _remote.cancelOrder(id);
+  Future<ApiResult<PurchaseOrderModel>> closeOrder(String id) => _remote.closeOrder(id);
+
+  Future<ApiResult<PurchaseOrderModel>> cancelOrder(String id) => _remote.cancelOrder(id);
 
   Future<ApiResult<void>> delete(String id) => _remote.delete(id);
 }
