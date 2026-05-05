@@ -14,30 +14,6 @@ class SalesOrderDetailsScreen extends ConsumerWidget {
 
   final String id;
 
-  Future<void> _runAction<T>(
-    BuildContext context,
-    WidgetRef ref,
-    String label,
-    Future<ApiResult<T>> Function() action,
-  ) async {
-    final result = await action();
-    if (!context.mounted) return;
-    result.when(
-      success: (_) {
-        ref.invalidate(salesOrderDetailsProvider(id));
-        ref.invalidate(invoices.invoicesProvider);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(label)));
-      },
-      failure: (error) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orderAsync = ref.watch(salesOrderDetailsProvider(id));
@@ -47,10 +23,7 @@ class SalesOrderDetailsScreen extends ConsumerWidget {
         title: const Text('Sales Order'),
         actions: [
           orderAsync.maybeWhen(
-            data: (order) => _SalesOrderActions(
-              order: order,
-              onRun: (label, action) => _runAction(context, ref, label, action),
-            ),
+            data: (order) => _SalesOrderActions(order: order),
             orElse: () => const SizedBox.shrink(),
           ),
           IconButton(
@@ -75,14 +48,33 @@ class SalesOrderDetailsScreen extends ConsumerWidget {
 }
 
 class _SalesOrderActions extends ConsumerWidget {
-  const _SalesOrderActions({required this.order, required this.onRun});
+  const _SalesOrderActions({required this.order});
 
   final SalesOrderModel order;
-  final Future<void> Function<T>(
+
+  Future<void> _runAction<T>(
+    BuildContext context,
+    WidgetRef ref,
     String label,
     Future<ApiResult<T>> Function() action,
-  )
-  onRun;
+  ) async {
+    final result = await action();
+    if (!context.mounted) return;
+    result.when(
+      success: (_) {
+        ref.invalidate(salesOrderDetailsProvider(order.id));
+        ref.invalidate(invoices.invoicesProvider);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(label)));
+      },
+      failure: (error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -93,19 +85,29 @@ class _SalesOrderActions extends ConsumerWidget {
       children: [
         if (!order.isOpen && !order.isClosed)
           TextButton(
-            onPressed: () =>
-                onRun('Sales order opened.', () => notifier.open(order.id)),
+            onPressed: () => _runAction(
+              context,
+              ref,
+              'Sales order opened.',
+              () => notifier.open(order.id),
+            ),
             child: const Text('Open'),
           ),
         if (order.isOpen)
           TextButton(
-            onPressed: () =>
-                onRun('Sales order closed.', () => notifier.close(order.id)),
+            onPressed: () => _runAction(
+              context,
+              ref,
+              'Sales order closed.',
+              () => notifier.close(order.id),
+            ),
             child: const Text('Close'),
           ),
         if (!order.isClosed)
           TextButton(
-            onPressed: () => onRun(
+            onPressed: () => _runAction(
+              context,
+              ref,
               'Invoice created.',
               () => notifier.convertToInvoice(order.id),
             ),
@@ -114,7 +116,9 @@ class _SalesOrderActions extends ConsumerWidget {
         if (!order.isClosed)
           IconButton(
             tooltip: 'Cancel sales order',
-            onPressed: () => onRun(
+            onPressed: () => _runAction(
+              context,
+              ref,
               'Sales order cancelled.',
               () => notifier.cancel(order.id),
             ),

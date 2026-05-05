@@ -15,30 +15,6 @@ class EstimateDetailsScreen extends ConsumerWidget {
 
   final String id;
 
-  Future<void> _runAction<T>(
-    BuildContext context,
-    WidgetRef ref,
-    String label,
-    Future<ApiResult<T>> Function() action,
-  ) async {
-    final result = await action();
-    if (!context.mounted) return;
-    result.when(
-      success: (_) {
-        ref.invalidate(estimateDetailsProvider(id));
-        ref.invalidate(sales_orders.salesOrdersProvider);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(label)));
-      },
-      failure: (error) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final estimateAsync = ref.watch(estimateDetailsProvider(id));
@@ -48,10 +24,7 @@ class EstimateDetailsScreen extends ConsumerWidget {
         title: const Text('Estimate'),
         actions: [
           estimateAsync.maybeWhen(
-            data: (estimate) => _EstimateActions(
-              estimate: estimate,
-              onRun: (label, action) => _runAction(context, ref, label, action),
-            ),
+            data: (estimate) => _EstimateActions(estimate: estimate),
             orElse: () => const SizedBox.shrink(),
           ),
           IconButton(
@@ -76,14 +49,33 @@ class EstimateDetailsScreen extends ConsumerWidget {
 }
 
 class _EstimateActions extends ConsumerWidget {
-  const _EstimateActions({required this.estimate, required this.onRun});
+  const _EstimateActions({required this.estimate});
 
   final EstimateModel estimate;
-  final Future<void> Function<T>(
+
+  Future<void> _runAction<T>(
+    BuildContext context,
+    WidgetRef ref,
     String label,
     Future<ApiResult<T>> Function() action,
-  )
-  onRun;
+  ) async {
+    final result = await action();
+    if (!context.mounted) return;
+    result.when(
+      success: (_) {
+        ref.invalidate(estimateDetailsProvider(estimate.id));
+        ref.invalidate(sales_orders.salesOrdersProvider);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(label)));
+      },
+      failure: (error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -96,18 +88,28 @@ class _EstimateActions extends ConsumerWidget {
       children: [
         if (!estimate.isAccepted) ...[
           TextButton(
-            onPressed: () =>
-                onRun('Estimate sent.', () => notifier.send(estimate.id)),
+            onPressed: () => _runAction(
+              context,
+              ref,
+              'Estimate sent.',
+              () => notifier.send(estimate.id),
+            ),
             child: const Text('Send'),
           ),
           TextButton(
-            onPressed: () =>
-                onRun('Estimate accepted.', () => notifier.accept(estimate.id)),
+            onPressed: () => _runAction(
+              context,
+              ref,
+              'Estimate accepted.',
+              () => notifier.accept(estimate.id),
+            ),
             child: const Text('Accept'),
           ),
         ],
         TextButton(
-          onPressed: () => onRun(
+          onPressed: () => _runAction(
+            context,
+            ref,
             'Sales order created.',
             () => notifier.convertToSalesOrder(estimate.id),
           ),
@@ -115,7 +117,9 @@ class _EstimateActions extends ConsumerWidget {
         ),
         if (!estimate.isAccepted) ...[
           TextButton(
-            onPressed: () => onRun(
+            onPressed: () => _runAction(
+              context,
+              ref,
               'Estimate declined.',
               () => notifier.decline(estimate.id),
             ),
@@ -123,7 +127,9 @@ class _EstimateActions extends ConsumerWidget {
           ),
           IconButton(
             tooltip: 'Cancel estimate',
-            onPressed: () => onRun(
+            onPressed: () => _runAction(
+              context,
+              ref,
               'Estimate cancelled.',
               () => notifier.cancel(estimate.id),
             ),
