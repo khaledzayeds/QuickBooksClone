@@ -1,5 +1,5 @@
 // receive_inventory_form_screen.dart
-// Supports standalone receive inventory and optional purchase-order receiving.
+// Item Receipt style: PO can fill lines, but the receipt remains editable.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,19 +33,13 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
 
   DateTime _receiptDate = DateTime.now();
   final _notesCtrl = TextEditingController();
-  final Map<String, TextEditingController> _qtyControllers = {};
   final List<_ManualReceiveLine> _manualLines = [_ManualReceiveLine()];
   bool _saving = false;
   bool _initialised = false;
 
-  bool get _isPoMode => _selectedOrder != null;
-
   @override
   void dispose() {
     _notesCtrl.dispose();
-    for (final c in _qtyControllers.values) {
-      c.dispose();
-    }
     for (final line in _manualLines) {
       line.dispose();
     }
@@ -69,10 +63,6 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
     setState(() {
       _selectedOrder = order;
       _activePlan = null;
-      for (final c in _qtyControllers.values) {
-        c.dispose();
-      }
-      _qtyControllers.clear();
       if (order != null) {
         _selectedVendor = VendorModel(
           id: order.vendorId,
@@ -84,7 +74,10 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
       }
     });
 
-    if (order == null) return;
+    if (order == null) {
+      _clearPoLinkedLines();
+      return;
+    }
 
     setState(() => _loadingPlan = true);
     try {
@@ -94,11 +87,7 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
           if (mounted) {
             setState(() {
               _activePlan = plan;
-              for (final line in plan.lines) {
-                _qtyControllers[line.purchaseOrderLineId] = TextEditingController(
-                  text: line.suggestedReceiveQuantity.toStringAsFixed(2),
-                );
-              }
+              _fillLinesFromPlan(plan);
             });
           }
         },
@@ -107,6 +96,46 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
     } finally {
       if (mounted) setState(() => _loadingPlan = false);
     }
+  }
+
+  void _fillLinesFromPlan(ReceivingPlanModel plan) {
+    for (final existing in _manualLines.where((line) => line.purchaseOrderLineId != null).toList()) {
+      _manualLines.remove(existing);
+      existing.dispose();
+    }
+
+    final poLines = plan.lines.map((line) {
+      final entry = _ManualReceiveLine(
+        itemId: line.itemId,
+        itemName: line.description,
+        purchaseOrderLineId: line.purchaseOrderLineId,
+        orderedQuantity: line.orderedQuantity,
+        previouslyReceivedQuantity: line.receivedQuantity,
+        remainingQuantity: line.remainingQuantity,
+      );
+      entry.descriptionCtrl.text = line.description;
+      entry.qtyCtrl.text = line.suggestedReceiveQuantity.toStringAsFixed(2);
+      entry.costCtrl.text = line.unitCost.toStringAsFixed(2);
+      return entry;
+    }).toList();
+
+    final hasOnlyBlankLine = _manualLines.length == 1 && _manualLines.first.isBlank;
+    if (hasOnlyBlankLine) {
+      final blank = _manualLines.removeAt(0);
+      blank.dispose();
+    }
+    _manualLines.insertAll(0, poLines);
+    if (_manualLines.isEmpty) _manualLines.add(_ManualReceiveLine());
+  }
+
+  void _clearPoLinkedLines() {
+    setState(() {
+      for (final existing in _manualLines.where((line) => line.purchaseOrderLineId != null).toList()) {
+        _manualLines.remove(existing);
+        existing.dispose();
+      }
+      if (_manualLines.isEmpty) _manualLines.add(_ManualReceiveLine());
+    });
   }
 
   Future<void> _selectVendor() async {
@@ -149,11 +178,8 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
       _selectedVendor = selected;
       _selectedOrder = null;
       _activePlan = null;
-      for (final c in _qtyControllers.values) {
-        c.dispose();
-      }
-      _qtyControllers.clear();
     });
+    _clearPoLinkedLines();
   }
 
   Future<void> _selectManualItem(_ManualReceiveLine line) async {
@@ -195,6 +221,10 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
     setState(() {
       line.itemId = selected.id;
       line.itemName = selected.name;
+      line.purchaseOrderLineId = null;
+      line.orderedQuantity = null;
+      line.previouslyReceivedQuantity = null;
+      line.remainingQuantity = null;
       line.descriptionCtrl.text = selected.name;
       if ((double.tryParse(line.costCtrl.text.trim()) ?? 0) <= 0) {
         line.costCtrl.text = selected.purchasePrice.toStringAsFixed(2);
@@ -220,7 +250,7 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
       return;
     }
 
-    final lines = _isPoMode ? _buildPoLines(l10n) : _buildManualLines();
+    final lines = _buildEditableLines();
     if (lines == null) return;
     if (lines.isEmpty) {
       _showError(l10n.minOneQty);
@@ -231,7 +261,7 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
     try {
       final dto = CreateReceiveInventoryDto(
         vendorId: _selectedVendor!.id,
-        purchaseOrderId: _activePlan?.purchaseOrderId,
+        purchaseOrderId: _selectedOrder?.id,
         receiptDate: _receiptDate,
         saveMode: 2,
         lines: lines,
@@ -257,41 +287,14 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
     }
   }
 
-  List<CreateReceiveInventoryLineDto>? _buildPoLines(AppLocalizations l10n) {
-    final plan = _activePlan;
-    if (plan == null) {
-      _showError(l10n.selectOpenPO);
-      return null;
-    }
-
-    final lines = <CreateReceiveInventoryLineDto>[];
-    for (final line in plan.lines) {
-      final qty = double.tryParse(_qtyControllers[line.purchaseOrderLineId]?.text.trim() ?? '') ?? 0;
-      if (qty <= 0) continue;
-      if (qty > line.remainingQuantity) {
-        _showError('${line.description}: ${l10n.qty} > ${line.remainingQuantity.toStringAsFixed(2)}');
-        return null;
-      }
-
-      lines.add(CreateReceiveInventoryLineDto(
-        itemId: line.itemId,
-        quantity: qty,
-        unitCost: line.unitCost,
-        description: line.description,
-        purchaseOrderLineId: line.purchaseOrderLineId,
-      ));
-    }
-    return lines;
-  }
-
-  List<CreateReceiveInventoryLineDto>? _buildManualLines() {
+  List<CreateReceiveInventoryLineDto>? _buildEditableLines() {
     final lines = <CreateReceiveInventoryLineDto>[];
     for (final line in _manualLines) {
       final qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
       final cost = double.tryParse(line.costCtrl.text.trim()) ?? 0;
       if (line.itemId == null && qty <= 0 && cost <= 0) continue;
       if (line.itemId == null) {
-        _showError('Select item for every manual receive line.');
+        _showError('Select item for every receive line.');
         return null;
       }
       if (qty <= 0) {
@@ -302,11 +305,16 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
         _showError('Unit cost must be greater than zero.');
         return null;
       }
+      if (line.purchaseOrderLineId != null && line.remainingQuantity != null && qty > line.remainingQuantity!) {
+        _showError('${line.descriptionCtrl.text}: quantity exceeds remaining PO quantity ${line.remainingQuantity!.toStringAsFixed(2)}');
+        return null;
+      }
       lines.add(CreateReceiveInventoryLineDto(
         itemId: line.itemId!,
         quantity: qty,
         unitCost: cost,
         description: line.descriptionCtrl.text.trim().isEmpty ? line.itemName : line.descriptionCtrl.text.trim(),
+        purchaseOrderLineId: line.purchaseOrderLineId,
       ));
     }
     return lines;
@@ -343,11 +351,14 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                     _VendorCard(
                       vendor: _selectedVendor,
                       onSelect: _selectVendor,
-                      onClear: () => setState(() {
-                        _selectedVendor = null;
-                        _selectedOrder = null;
-                        _activePlan = null;
-                      }),
+                      onClear: () {
+                        setState(() {
+                          _selectedVendor = null;
+                          _selectedOrder = null;
+                          _activePlan = null;
+                        });
+                        _clearPoLinkedLines();
+                      },
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<PurchaseOrderModel?>(
@@ -356,7 +367,7 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                         labelText: 'Optional Purchase Order',
                         prefixIcon: const Icon(Icons.receipt_long_outlined),
                         border: const OutlineInputBorder(),
-                        helperText: 'Leave empty for standalone inventory receiving.',
+                        helperText: 'Select PO to fill lines. You can still edit/add manual lines.',
                       ),
                       items: [
                         const DropdownMenuItem<PurchaseOrderModel?>(
@@ -391,15 +402,10 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (_isPoMode)
-                      if (_loadingPlan)
-                        const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator()))
-                      else if (_activePlan != null)
-                        ..._buildPlanLines(context, _activePlan!)
-                      else
-                        const _HintCard(text: 'Select a purchase order to fill receive lines.')
+                    if (_loadingPlan)
+                      const Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator()))
                     else
-                      _buildManualReceiveLines(context),
+                      _buildEditableReceiveLines(context),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _notesCtrl,
@@ -434,14 +440,18 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
     );
   }
 
-  Widget _buildManualReceiveLines(BuildContext context) {
+  Widget _buildEditableReceiveLines(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text('Manual Receive Lines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            Text('Receive Lines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            if (_selectedOrder != null) ...[
+              const SizedBox(width: 8),
+              Chip(label: Text('Filled from ${_selectedOrder!.orderNumber}')),
+            ],
             const Spacer(),
             TextButton.icon(onPressed: _addManualLine, icon: const Icon(Icons.add), label: const Text('Add line')),
           ],
@@ -458,9 +468,9 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                         Expanded(
                           child: ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.inventory_2_outlined),
+                            leading: Icon(line.purchaseOrderLineId == null ? Icons.inventory_2_outlined : Icons.receipt_long_outlined),
                             title: Text(line.itemName.isEmpty ? 'Select item' : line.itemName),
-                            subtitle: Text(line.itemId == null ? 'Inventory item required' : line.itemId!),
+                            subtitle: Text(line.purchaseOrderLineId == null ? 'Manual receive line' : 'PO linked • Remaining ${line.remainingQuantity?.toStringAsFixed(2) ?? '-'}'),
                             onTap: () => _selectManualItem(line),
                           ),
                         ),
@@ -471,6 +481,16 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
                         ),
                       ],
                     ),
+                    if (line.purchaseOrderLineId != null) ...[
+                      Row(children: [
+                        _QtyChip(label: l10n.ordered, value: line.orderedQuantity ?? 0),
+                        const SizedBox(width: 8),
+                        _QtyChip(label: '${l10n.received} (Prev)', value: line.previouslyReceivedQuantity ?? 0, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        _QtyChip(label: 'Rem.', value: line.remainingQuantity ?? 0, color: Colors.orange.shade900),
+                      ]),
+                      const SizedBox(height: 8),
+                    ],
                     TextField(
                       controller: line.descriptionCtrl,
                       decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder(), isDense: true),
@@ -501,51 +521,6 @@ class _ReceiveInventoryFormScreenState extends ConsumerState<ReceiveInventoryFor
             )),
       ],
     );
-  }
-
-  List<Widget> _buildPlanLines(BuildContext context, ReceivingPlanModel plan) {
-    final l10n = AppLocalizations.of(context)!;
-    final lines = plan.lines;
-
-    if (lines.isEmpty) {
-      return [const _HintCard(text: 'This purchase order has no remaining quantities to receive.')];
-    }
-
-    return [
-      Text(l10n.items, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-      const SizedBox(height: 8),
-      ...lines.map((line) => Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(line.description, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  const SizedBox(height: 6),
-                  Row(children: [
-                    _QtyChip(label: l10n.ordered, value: line.orderedQuantity),
-                    const SizedBox(width: 8),
-                    _QtyChip(label: '${l10n.received} (Prev)', value: line.receivedQuantity, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    _QtyChip(label: 'Rem.', value: line.remainingQuantity, color: Colors.orange.shade900),
-                  ]),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _qtyControllers[line.purchaseOrderLineId],
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      labelText: l10n.qtyToReceive,
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      suffixText: '${l10n.from} ${line.remainingQuantity.toStringAsFixed(2)}',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )),
-    ];
   }
 }
 
@@ -579,23 +554,6 @@ class _VendorCard extends StatelessWidget {
   }
 }
 
-class _HintCard extends StatelessWidget {
-  const _HintCard({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(children: [
-            const Icon(Icons.info_outline, color: Colors.blue),
-            const SizedBox(width: 12),
-            Expanded(child: Text(text)),
-          ]),
-        ),
-      );
-}
-
 class _QtyChip extends StatelessWidget {
   const _QtyChip({required this.label, required this.value, this.color});
   final String label;
@@ -613,11 +571,26 @@ class _QtyChip extends StatelessWidget {
 }
 
 class _ManualReceiveLine {
+  _ManualReceiveLine({
+    this.itemId,
+    this.itemName = '',
+    this.purchaseOrderLineId,
+    this.orderedQuantity,
+    this.previouslyReceivedQuantity,
+    this.remainingQuantity,
+  });
+
   String? itemId;
-  String itemName = '';
+  String itemName;
+  String? purchaseOrderLineId;
+  double? orderedQuantity;
+  double? previouslyReceivedQuantity;
+  double? remainingQuantity;
   final descriptionCtrl = TextEditingController();
   final qtyCtrl = TextEditingController(text: '1');
   final costCtrl = TextEditingController();
+
+  bool get isBlank => itemId == null && descriptionCtrl.text.trim().isEmpty && (double.tryParse(qtyCtrl.text.trim()) ?? 0) <= 1 && costCtrl.text.trim().isEmpty;
 
   void dispose() {
     descriptionCtrl.dispose();
