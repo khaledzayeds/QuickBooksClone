@@ -272,23 +272,42 @@ class _HeaderCard extends ConsumerWidget {
                       final activeCustomers = customers
                           .where((c) => c.isActive)
                           .toList();
-                      return DropdownButtonFormField<CustomerModel>(
-                        initialValue: selectedCustomer,
+                      final uniqueCustomers = <CustomerModel>[];
+                      final seenCustomerIds = <String>{};
+                      for (final customer in activeCustomers) {
+                        if (seenCustomerIds.add(customer.id)) {
+                          uniqueCustomers.add(customer);
+                        }
+                      }
+                      final selectedCustomerId =
+                          selectedCustomer != null &&
+                              seenCustomerIds.contains(selectedCustomer!.id)
+                          ? selectedCustomer!.id
+                          : null;
+                      return DropdownButtonFormField<String>(
+                        initialValue: selectedCustomerId,
                         decoration: InputDecoration(
                           labelText: l10n.customer,
                           hintText: l10n.selectCustomer,
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.person_outline),
                         ),
-                        items: activeCustomers
+                        items: uniqueCustomers
                             .map(
                               (customer) => DropdownMenuItem(
-                                value: customer,
+                                value: customer.id,
                                 child: Text(customer.displayName),
                               ),
                             )
                             .toList(),
-                        onChanged: onCustomerChanged,
+                        onChanged: (id) {
+                          final customer = id == null
+                              ? null
+                              : uniqueCustomers
+                                    .where((customer) => customer.id == id)
+                                    .firstOrNull;
+                          onCustomerChanged(customer);
+                        },
                       );
                     },
                   ),

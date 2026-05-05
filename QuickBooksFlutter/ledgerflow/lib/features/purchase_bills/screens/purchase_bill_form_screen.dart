@@ -522,8 +522,15 @@ class _ReceiptPicker extends ConsumerWidget {
         final activeReceipts = receipts
             .where((r) => r.status.toLowerCase() != 'void')
             .toList();
+        final uniqueReceipts = <ReceiveInventoryModel>[];
+        final seenReceiptIds = <String>{};
+        for (final receipt in activeReceipts) {
+          if (seenReceiptIds.add(receipt.id)) {
+            uniqueReceipts.add(receipt);
+          }
+        }
 
-        if (activeReceipts.isEmpty) {
+        if (uniqueReceipts.isEmpty) {
           return InputDecorator(
             decoration: InputDecoration(
               labelText: l10n.linkToRI,
@@ -536,8 +543,13 @@ class _ReceiptPicker extends ConsumerWidget {
           );
         }
 
-        return DropdownButtonFormField<ReceiveInventoryModel?>(
-          initialValue: value,
+        final selectedReceiptId =
+            value != null && seenReceiptIds.contains(value!.id)
+            ? value!.id
+            : null;
+
+        return DropdownButtonFormField<String?>(
+          initialValue: selectedReceiptId,
           decoration: InputDecoration(
             labelText: l10n.linkToRI,
             border: const OutlineInputBorder(),
@@ -545,20 +557,24 @@ class _ReceiptPicker extends ConsumerWidget {
           ),
           hint: Text(l10n.selectRI),
           items: [
-            DropdownMenuItem<ReceiveInventoryModel?>(
-              value: null,
-              child: Text(l10n.clear),
-            ),
-            ...activeReceipts.map(
-              (r) => DropdownMenuItem<ReceiveInventoryModel?>(
-                value: r,
+            DropdownMenuItem<String?>(value: null, child: Text(l10n.clear)),
+            ...uniqueReceipts.map(
+              (r) => DropdownMenuItem<String?>(
+                value: r.id,
                 child: Text(
                   '${r.receiptNumber} (${r.totalAmount.toStringAsFixed(2)})',
                 ),
               ),
             ),
           ],
-          onChanged: onChanged,
+          onChanged: (id) {
+            final receipt = id == null
+                ? null
+                : uniqueReceipts
+                      .where((receipt) => receipt.id == id)
+                      .firstOrNull;
+            onChanged(receipt);
+          },
         );
       },
     );

@@ -382,6 +382,18 @@ class _ReceiveInventoryFormScreenState
           final vendorOrders = _selectedVendor == null
               ? orders
               : orders.where((o) => o.vendorId == _selectedVendor!.id).toList();
+          final uniqueVendorOrders = <PurchaseOrderModel>[];
+          final seenOrderIds = <String>{};
+          for (final order in vendorOrders) {
+            if (seenOrderIds.add(order.id)) {
+              uniqueVendorOrders.add(order);
+            }
+          }
+          final selectedOrderId =
+              _selectedOrder != null &&
+                  seenOrderIds.contains(_selectedOrder!.id)
+              ? _selectedOrder!.id
+              : null;
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -402,8 +414,8 @@ class _ReceiveInventoryFormScreenState
                       },
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<PurchaseOrderModel?>(
-                      initialValue: _selectedOrder,
+                    DropdownButtonFormField<String?>(
+                      initialValue: selectedOrderId,
                       decoration: InputDecoration(
                         labelText: 'Optional Purchase Order',
                         prefixIcon: const Icon(Icons.receipt_long_outlined),
@@ -412,18 +424,25 @@ class _ReceiveInventoryFormScreenState
                             'Select PO to fill lines. You can still edit/add manual lines.',
                       ),
                       items: [
-                        const DropdownMenuItem<PurchaseOrderModel?>(
+                        const DropdownMenuItem<String?>(
                           value: null,
                           child: Text('Standalone receive — no PO'),
                         ),
-                        ...vendorOrders.map(
-                          (o) => DropdownMenuItem<PurchaseOrderModel?>(
-                            value: o,
+                        ...uniqueVendorOrders.map(
+                          (o) => DropdownMenuItem<String?>(
+                            value: o.id,
                             child: Text('${o.orderNumber} — ${o.vendorName}'),
                           ),
                         ),
                       ],
-                      onChanged: (v) => _selectOrder(v),
+                      onChanged: (id) {
+                        final order = id == null
+                            ? null
+                            : uniqueVendorOrders
+                                  .where((order) => order.id == id)
+                                  .firstOrNull;
+                        _selectOrder(order);
+                      },
                     ),
                     const SizedBox(height: 16),
                     InkWell(
