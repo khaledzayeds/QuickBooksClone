@@ -60,7 +60,7 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
           billAsync.maybeWhen(
             data: (bill) => bill.canPay
                 ? TextButton.icon(
-                    onPressed: () => context.push(AppRoutes.vendorPaymentNew),
+                    onPressed: () => context.push('${AppRoutes.vendorPaymentNew}?billId=${bill.id}'),
                     icon: const Icon(Icons.payments_outlined),
                     label: const Text('Pay Bill'),
                   )
