@@ -9,7 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
-import '../../../core/constants/api_enums.dart' show AccountType, PaymentMethod, VendorCreditAction;
+import '../../../core/constants/api_enums.dart'
+    show AccountType, PaymentMethod, VendorCreditAction;
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../accounts/data/models/account_model.dart';
@@ -30,9 +31,16 @@ class VendorCreditFormState {
   PaymentMethod paymentMethod = PaymentMethod.cash;
 }
 
-final vendorCreditFormProvider = StateProvider.autoDispose<VendorCreditFormState>((ref) => VendorCreditFormState());
-final vendorCreditSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
-final vendorCreditLoadingInitialBillProvider = StateProvider.autoDispose<bool>((ref) => false);
+final vendorCreditFormProvider =
+    StateProvider.autoDispose<VendorCreditFormState>(
+      (ref) => VendorCreditFormState(),
+    );
+final vendorCreditSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
+final vendorCreditLoadingInitialBillProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 
 class VendorCreditFormScreen extends ConsumerStatefulWidget {
   const VendorCreditFormScreen({super.key, this.billId});
@@ -40,10 +48,12 @@ class VendorCreditFormScreen extends ConsumerStatefulWidget {
   final String? billId;
 
   @override
-  ConsumerState<VendorCreditFormScreen> createState() => _VendorCreditFormScreenState();
+  ConsumerState<VendorCreditFormScreen> createState() =>
+      _VendorCreditFormScreenState();
 }
 
-class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen> {
+class _VendorCreditFormScreenState
+    extends ConsumerState<VendorCreditFormScreen> {
   @override
   void initState() {
     super.initState();
@@ -57,7 +67,9 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
     if (billId == null || billId.isEmpty) return;
 
     ref.read(vendorCreditLoadingInitialBillProvider.notifier).state = true;
-    final result = await ref.read(purchaseBillsRepositoryProvider).getBill(billId);
+    final result = await ref
+        .read(purchaseBillsRepositoryProvider)
+        .getBill(billId);
     ref.read(vendorCreditLoadingInitialBillProvider.notifier).state = false;
 
     if (!mounted) return;
@@ -84,7 +96,9 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
     final l10n = AppLocalizations.of(context)!;
     final form = ref.watch(vendorCreditFormProvider);
     final saving = ref.watch(vendorCreditSavingProvider);
-    final loadingInitialBill = ref.watch(vendorCreditLoadingInitialBillProvider);
+    final loadingInitialBill = ref.watch(
+      vendorCreditLoadingInitialBillProvider,
+    );
     final vendorsAsync = ref.watch(vendorsProvider);
     final billsAsync = ref.watch(purchaseBillsProvider);
     final accountsAsync = ref.watch(accountsProvider);
@@ -100,7 +114,11 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go(AppRoutes.vendorCredits),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.vendorCredits),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -114,7 +132,9 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          if (widget.billId != null && widget.billId!.isNotEmpty && form.purchaseBillId != null) ...[
+          if (widget.billId != null &&
+              widget.billId!.isNotEmpty &&
+              form.purchaseBillId != null) ...[
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(14),
@@ -125,7 +145,9 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
                     Expanded(
                       child: Text(
                         'Applying vendor credit to selected bill',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -157,11 +179,13 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
       _error(context, l10n.enterPositiveAmount);
       return;
     }
-    if (form.action == VendorCreditAction.applyToBill && (form.purchaseBillId == null || form.purchaseBillId!.isEmpty)) {
+    if (form.action == VendorCreditAction.applyToBill &&
+        (form.purchaseBillId == null || form.purchaseBillId!.isEmpty)) {
       _error(context, l10n.selectPurchaseBillFirst);
       return;
     }
-    if (form.action == VendorCreditAction.refundReceipt && (form.depositAccountId == null || form.depositAccountId!.isEmpty)) {
+    if (form.action == VendorCreditAction.refundReceipt &&
+        (form.depositAccountId == null || form.depositAccountId!.isEmpty)) {
       _error(context, l10n.selectDepositAccountFirst);
       return;
     }
@@ -171,9 +195,15 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
       activityDate: form.activityDate,
       amount: form.amount,
       action: form.action,
-      purchaseBillId: form.action == VendorCreditAction.applyToBill ? form.purchaseBillId : null,
-      depositAccountId: form.action == VendorCreditAction.refundReceipt ? form.depositAccountId : null,
-      paymentMethod: form.action == VendorCreditAction.refundReceipt ? form.paymentMethod : null,
+      purchaseBillId: form.action == VendorCreditAction.applyToBill
+          ? form.purchaseBillId
+          : null,
+      depositAccountId: form.action == VendorCreditAction.refundReceipt
+          ? form.depositAccountId
+          : null,
+      paymentMethod: form.action == VendorCreditAction.refundReceipt
+          ? form.paymentMethod
+          : null,
     );
 
     ref.read(vendorCreditSavingProvider.notifier).state = true;
@@ -187,11 +217,19 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
         if (form.purchaseBillId != null && form.purchaseBillId!.isNotEmpty) {
           ref.invalidate(purchaseBillDetailsProvider(form.purchaseBillId!));
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
         if (context.canPop()) {
           context.pop();
-        } else if (form.purchaseBillId != null && form.purchaseBillId!.isNotEmpty) {
-          context.go(AppRoutes.purchaseBillDetails.replaceFirst(':id', form.purchaseBillId!));
+        } else if (form.purchaseBillId != null &&
+            form.purchaseBillId!.isNotEmpty) {
+          context.go(
+            AppRoutes.purchaseBillDetails.replaceFirst(
+              ':id',
+              form.purchaseBillId!,
+            ),
+          );
         } else {
           context.go(AppRoutes.vendorCredits);
         }
@@ -204,7 +242,9 @@ class _VendorCreditFormScreenState extends ConsumerState<VendorCreditFormScreen>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
 
@@ -227,7 +267,9 @@ class _CreditCard extends ConsumerWidget {
 
     final vendorBills = billsAsync.maybeWhen(
       data: (bills) => bills
-          .where((bill) => form.vendorId == null || bill.vendorId == form.vendorId)
+          .where(
+            (bill) => form.vendorId == null || bill.vendorId == form.vendorId,
+          )
           .where((bill) => bill.canPay)
           .toList(),
       orElse: () => <PurchaseBillModel>[],
@@ -238,14 +280,21 @@ class _CreditCard extends ConsumerWidget {
           .where(
             (account) =>
                 account.isActive &&
-                (account.accountType == AccountType.bank || account.accountType == AccountType.otherCurrentAsset || account.accountType == AccountType.creditCard),
+                (account.accountType == AccountType.bank ||
+                    account.accountType == AccountType.otherCurrentAsset ||
+                    account.accountType == AccountType.creditCard),
           )
           .toList(),
       orElse: () => <AccountModel>[],
     );
 
-    final safeBillId = vendorBills.any((bill) => bill.id == form.purchaseBillId) ? form.purchaseBillId : null;
-    final safeAccountId = depositAccounts.any((account) => account.id == form.depositAccountId) ? form.depositAccountId : null;
+    final safeBillId = vendorBills.any((bill) => bill.id == form.purchaseBillId)
+        ? form.purchaseBillId
+        : null;
+    final safeAccountId =
+        depositAccounts.any((account) => account.id == form.depositAccountId)
+        ? form.depositAccountId
+        : null;
 
     return Card(
       child: Padding(
@@ -261,7 +310,14 @@ class _CreditCard extends ConsumerWidget {
               ),
               items: vendorsAsync.maybeWhen(
                 data: (vendors) => vendors
-                    .map<DropdownMenuItem<String>>((vendor) => DropdownMenuItem(value: vendor.id, child: Text('${vendor.displayName} — Credit ${vendor.creditBalance.toStringAsFixed(2)}')))
+                    .map<DropdownMenuItem<String>>(
+                      (vendor) => DropdownMenuItem(
+                        value: vendor.id,
+                        child: Text(
+                          '${vendor.displayName} — Credit ${vendor.creditBalance.toStringAsFixed(2)}',
+                        ),
+                      ),
+                    )
                     .toList(),
                 orElse: () => const <DropdownMenuItem<String>>[],
               ),
@@ -281,11 +337,19 @@ class _CreditCard extends ConsumerWidget {
                     decoration: InputDecoration(
                       labelText: l10n.creditBalance,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
+                      prefixIcon: const Icon(
+                        Icons.account_balance_wallet_outlined,
+                      ),
                     ),
                     items: [
-                      DropdownMenuItem(value: VendorCreditAction.applyToBill, child: Text(l10n.purchaseBill)),
-                      DropdownMenuItem(value: VendorCreditAction.refundReceipt, child: Text(l10n.recordDeposits)),
+                      DropdownMenuItem(
+                        value: VendorCreditAction.applyToBill,
+                        child: Text(l10n.purchaseBill),
+                      ),
+                      DropdownMenuItem(
+                        value: VendorCreditAction.refundReceipt,
+                        child: Text(l10n.recordDeposits),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value == null) return;
@@ -304,7 +368,9 @@ class _CreditCard extends ConsumerWidget {
                   child: AppTextField(
                     label: l10n.paymentDate,
                     readOnly: true,
-                    initialValue: VendorCreditFormScreen._dateOnly(form.activityDate),
+                    initialValue: _VendorCreditFormScreenState._dateOnly(
+                      form.activityDate,
+                    ),
                   ),
                 ),
               ],
@@ -322,12 +388,16 @@ class _CreditCard extends ConsumerWidget {
                     .map(
                       (bill) => DropdownMenuItem(
                         value: bill.id,
-                        child: Text('${bill.billNumber} - ${bill.balanceDue.toStringAsFixed(2)} ${l10n.egp}'),
+                        child: Text(
+                          '${bill.billNumber} - ${bill.balanceDue.toStringAsFixed(2)} ${l10n.egp}',
+                        ),
                       ),
                     )
                     .toList(),
                 onChanged: (value) {
-                  final bill = vendorBills.where((b) => b.id == value).firstOrNull;
+                  final bill = vendorBills
+                      .where((b) => b.id == value)
+                      .firstOrNull;
                   _update(
                     ref,
                     form
@@ -344,8 +414,16 @@ class _CreditCard extends ConsumerWidget {
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.account_balance_outlined),
                 ),
-                items: depositAccounts.map((account) => DropdownMenuItem(value: account.id, child: Text('${account.code} - ${account.name}'))).toList(),
-                onChanged: (value) => _update(ref, form..depositAccountId = value),
+                items: depositAccounts
+                    .map(
+                      (account) => DropdownMenuItem(
+                        value: account.id,
+                        child: Text('${account.code} - ${account.name}'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    _update(ref, form..depositAccountId = value),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<PaymentMethod>(
@@ -356,10 +434,22 @@ class _CreditCard extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.payments_outlined),
                 ),
                 items: [
-                  DropdownMenuItem(value: PaymentMethod.cash, child: Text(l10n.cash)),
-                  DropdownMenuItem(value: PaymentMethod.check, child: Text(l10n.check)),
-                  DropdownMenuItem(value: PaymentMethod.bankTransfer, child: Text(l10n.bankTransfer)),
-                  DropdownMenuItem(value: PaymentMethod.creditCard, child: Text(l10n.creditCard)),
+                  DropdownMenuItem(
+                    value: PaymentMethod.cash,
+                    child: Text(l10n.cash),
+                  ),
+                  DropdownMenuItem(
+                    value: PaymentMethod.check,
+                    child: Text(l10n.check),
+                  ),
+                  DropdownMenuItem(
+                    value: PaymentMethod.bankTransfer,
+                    child: Text(l10n.bankTransfer),
+                  ),
+                  DropdownMenuItem(
+                    value: PaymentMethod.creditCard,
+                    child: Text(l10n.creditCard),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) _update(ref, form..paymentMethod = value);
@@ -368,10 +458,16 @@ class _CreditCard extends ConsumerWidget {
             ],
             const SizedBox(height: 16),
             AppTextField(
-              key: ValueKey('vendor-credit-amount-${form.purchaseBillId}-${form.amount}'),
+              key: ValueKey(
+                'vendor-credit-amount-${form.purchaseBillId}-${form.amount}',
+              ),
               label: '${l10n.amount} *',
-              initialValue: form.amount == 0 ? '' : form.amount.toStringAsFixed(2),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              initialValue: form.amount == 0
+                  ? ''
+                  : form.amount.toStringAsFixed(2),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               onChanged: (value) {
                 form.amount = double.tryParse(value) ?? 0;
                 _update(ref, form);
