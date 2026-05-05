@@ -15,8 +15,11 @@ class PurchaseBillModel {
     required this.taxAmount,
     required this.totalAmount,
     required this.amountPaid,
+    required this.creditAppliedAmount,
+    required this.returnedAmount,
     required this.balanceDue,
     this.inventoryReceiptId,
+    this.inventoryReceiptNumber,
     this.memo,
     required this.lines,
   });
@@ -27,13 +30,16 @@ class PurchaseBillModel {
   final String vendorName;
   final DateTime billDate;
   final DateTime dueDate;
-  final int status; // 1 Draft, 2 Posted, 3 Void, 4 PartiallyPaid, 5 Paid
+  final int status; // 1 Draft, 2 Posted, 3 Void, 4 PartiallyPaid, 5 Paid, 6 Returned
   final double subtotal;
   final double taxAmount;
   final double totalAmount;
   final double amountPaid;
+  final double creditAppliedAmount;
+  final double returnedAmount;
   final double balanceDue;
   final String? inventoryReceiptId;
+  final String? inventoryReceiptNumber;
   final String? memo;
   final List<PurchaseBillLineModel> lines;
 
@@ -42,30 +48,58 @@ class PurchaseBillModel {
   bool get isVoid => status == 3;
   bool get isPartiallyPaid => status == 4;
   bool get isPaid => status == 5 || balanceDue <= 0;
+  bool get isReturned => status == 6;
   bool get canVoid => !isVoid && amountPaid <= 0;
-  bool get canPay => !isVoid && balanceDue > 0;
+  bool get canPay => !isVoid && !isReturned && balanceDue > 0;
 
-  factory PurchaseBillModel.fromJson(Map<String, dynamic> json) => PurchaseBillModel(
-        id: JsonUtils.asString(json['id']),
-        billNumber: JsonUtils.asString(json['billNumber']),
-        vendorId: JsonUtils.asString(json['vendorId']),
-        vendorName: JsonUtils.asString(json['vendorName']),
-        billDate: _parseDate(json['billDate']),
-        dueDate: _parseDate(json['dueDate']),
-        status: JsonUtils.asInt(json['status']),
-        subtotal: JsonUtils.asDouble(json['subtotal']),
-        taxAmount: JsonUtils.asDouble(json['taxAmount']),
-        totalAmount: JsonUtils.asDouble(json['totalAmount']),
-        amountPaid: JsonUtils.asDouble(json['amountPaid']),
-        balanceDue: JsonUtils.asDouble(json['balanceDue']),
-        inventoryReceiptId: JsonUtils.asNullableString(json['inventoryReceiptId']),
-        memo: JsonUtils.asNullableString(json['memo']),
-        lines: JsonUtils.asList(json['lines'], (l) => PurchaseBillLineModel.fromJson(l)),
-      );
+  factory PurchaseBillModel.fromJson(Map<String, dynamic> json) {
+    final taxAmount = JsonUtils.asDouble(json['taxAmount']);
+    final totalAmount = JsonUtils.asDouble(json['totalAmount']);
+    final subtotal = json.containsKey('subtotal')
+        ? JsonUtils.asDouble(json['subtotal'])
+        : totalAmount - taxAmount;
+
+    return PurchaseBillModel(
+      id: JsonUtils.asString(json['id']),
+      billNumber: JsonUtils.asString(json['billNumber']),
+      vendorId: JsonUtils.asString(json['vendorId']),
+      vendorName: JsonUtils.asString(json['vendorName']),
+      billDate: _parseDate(json['billDate']),
+      dueDate: _parseDate(json['dueDate']),
+      status: _parseStatus(json['status']),
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      totalAmount: totalAmount,
+      amountPaid: JsonUtils.asDouble(json['paidAmount'] ?? json['amountPaid']),
+      creditAppliedAmount: JsonUtils.asDouble(json['creditAppliedAmount']),
+      returnedAmount: JsonUtils.asDouble(json['returnedAmount']),
+      balanceDue: JsonUtils.asDouble(json['balanceDue']),
+      inventoryReceiptId: JsonUtils.asNullableString(json['inventoryReceiptId']),
+      inventoryReceiptNumber: JsonUtils.asNullableString(json['inventoryReceiptNumber']),
+      memo: JsonUtils.asNullableString(json['memo']),
+      lines: JsonUtils.asList(json['lines'], (l) => PurchaseBillLineModel.fromJson(l)),
+    );
+  }
 
   static DateTime _parseDate(dynamic value) {
     final parsed = DateTime.tryParse(value?.toString() ?? '');
     return parsed ?? DateTime.now();
+  }
+
+  static int _parseStatus(dynamic value) {
+    final numeric = JsonUtils.asInt(value, defaultValue: -1);
+    if (numeric > 0) return numeric;
+
+    final text = value?.toString().toLowerCase() ?? '';
+    return switch (text) {
+      'draft' => 1,
+      'posted' || 'open' => 2,
+      'void' => 3,
+      'partiallypaid' || 'partially_paid' || 'partially paid' => 4,
+      'paid' => 5,
+      'returned' => 6,
+      _ => 2,
+    };
   }
 }
 
