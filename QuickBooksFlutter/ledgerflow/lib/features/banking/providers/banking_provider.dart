@@ -40,6 +40,8 @@ final bankRegisterProvider = FutureProvider.autoDispose<BankRegisterResponseMode
 });
 
 final bankTransferSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final bankDepositSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final bankCheckSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
 
 class BankingActions {
   BankingActions(this.ref);
@@ -47,11 +49,27 @@ class BankingActions {
 
   Future<ApiResult<void>> createTransfer(CreateBankTransferDto dto) async {
     final result = await ref.read(bankingRepositoryProvider).createTransfer(dto);
+    _refreshOnSuccess(result);
+    return result;
+  }
+
+  Future<ApiResult<void>> createDeposit(CreateBankDepositDto dto) async {
+    final result = await ref.read(bankingRepositoryProvider).createDeposit(dto);
+    _refreshOnSuccess(result);
+    return result;
+  }
+
+  Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) async {
+    final result = await ref.read(bankingRepositoryProvider).createCheck(dto);
+    _refreshOnSuccess(result);
+    return result;
+  }
+
+  void _refreshOnSuccess(ApiResult<void> result) {
     if (result.isSuccess) {
       ref.invalidate(bankAccountsProvider);
       ref.invalidate(bankRegisterProvider);
     }
-    return result;
   }
 }
 
