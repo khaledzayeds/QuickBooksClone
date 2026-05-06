@@ -55,7 +55,9 @@ public sealed class BankingController : ControllerBase
             return NotFound("Banking account does not exist.");
         }
 
-        var transactions = await _transactions.SearchAsync(new AccountingTransactionSearch(null, includeVoided, 1, 1000), cancellationToken);
+        var transactions = await _transactions.SearchAsync(
+            new AccountingTransactionSearch(null, IncludeVoided: includeVoided, PageSize: 1000),
+            cancellationToken);
         var runningBalance = 0m;
         var lines = new List<BankRegisterLineDto>();
 
