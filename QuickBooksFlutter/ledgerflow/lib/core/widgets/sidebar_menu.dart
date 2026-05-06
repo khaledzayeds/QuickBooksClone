@@ -203,6 +203,20 @@ class SidebarMenu extends ConsumerWidget {
                 ),
 
                 _ShortcutItem(
+                  icon: Icons.account_balance_outlined,
+                  label: 'Bank Register',
+                  path: AppRoutes.bankingRegister,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.swap_horiz_outlined,
+                  label: 'Bank Transfer',
+                  path: AppRoutes.bankingTransfers,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
                   icon: Icons.list_alt_outlined,
                   label: l10n.viewBalances,
                   path: AppRoutes.chartOfAccounts,
