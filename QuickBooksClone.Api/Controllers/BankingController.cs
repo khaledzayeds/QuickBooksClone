@@ -151,6 +151,144 @@ public sealed class BankingController : ControllerBase
         return CreatedAtAction(nameof(GetRegister), new { accountId = request.FromAccountId }, line);
     }
 
+    [HttpPost("deposits")]
+    [RequirePermission("Accounting.Manage")]
+    [ProducesResponseType(typeof(BankRegisterLineDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BankRegisterLineDto>> CreateDeposit(CreateBankDepositRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.DepositAccountId == Guid.Empty || request.OffsetAccountId == Guid.Empty)
+        {
+            return BadRequest("Deposit and offset accounts are required.");
+        }
+
+        if (request.DepositAccountId == request.OffsetAccountId)
+        {
+            return BadRequest("Deposit and offset accounts must be different.");
+        }
+
+        if (request.Amount <= 0)
+        {
+            return BadRequest("Deposit amount must be greater than zero.");
+        }
+
+        var depositAccount = await _accounts.GetByIdAsync(request.DepositAccountId, cancellationToken);
+        var offsetAccount = await _accounts.GetByIdAsync(request.OffsetAccountId, cancellationToken);
+        if (depositAccount is null || offsetAccount is null)
+        {
+            return BadRequest("Deposit account does not exist.");
+        }
+
+        if (!IsBankingAccount(depositAccount))
+        {
+            return BadRequest("Deposit account must be a bank/cash style account.");
+        }
+
+        if (!depositAccount.IsActive || !offsetAccount.IsActive)
+        {
+            return BadRequest("Inactive accounts cannot be used in a deposit.");
+        }
+
+        if (offsetAccount.AccountType is AccountType.AccountsReceivable or AccountType.AccountsPayable)
+        {
+            return BadRequest("Use customer/vendor documents instead of posting deposits directly to AR/AP.");
+        }
+
+        var memo = string.IsNullOrWhiteSpace(request.Memo) ? "Bank deposit" : request.Memo.Trim();
+        var description = string.IsNullOrWhiteSpace(request.ReceivedFrom) ? memo : $"{request.ReceivedFrom.Trim()} - {memo}";
+        var reference = $"DEP-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+        var transaction = new AccountingTransaction("BankDeposit", request.DepositDate, reference, "BankDeposit", null);
+        transaction.AddLine(new AccountingTransactionLine(request.DepositAccountId, description, request.Amount, 0m));
+        transaction.AddLine(new AccountingTransactionLine(request.OffsetAccountId, description, 0m, request.Amount));
+        transaction.ValidateBalanced();
+
+        await _transactions.AddAsync(transaction, cancellationToken);
+
+        var line = new BankRegisterLineDto(
+            transaction.Id,
+            transaction.TransactionDate,
+            transaction.TransactionType,
+            transaction.ReferenceNumber,
+            description,
+            request.Amount,
+            0m,
+            request.Amount,
+            0m,
+            transaction.SourceEntityType,
+            transaction.SourceEntityId);
+
+        return CreatedAtAction(nameof(GetRegister), new { accountId = request.DepositAccountId }, line);
+    }
+
+    [HttpPost("checks")]
+    [RequirePermission("Accounting.Manage")]
+    [ProducesResponseType(typeof(BankRegisterLineDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BankRegisterLineDto>> CreateCheck(CreateBankCheckRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.BankAccountId == Guid.Empty || request.ExpenseAccountId == Guid.Empty)
+        {
+            return BadRequest("Bank and expense/offset accounts are required.");
+        }
+
+        if (request.BankAccountId == request.ExpenseAccountId)
+        {
+            return BadRequest("Bank and offset accounts must be different.");
+        }
+
+        if (request.Amount <= 0)
+        {
+            return BadRequest("Check amount must be greater than zero.");
+        }
+
+        var bankAccount = await _accounts.GetByIdAsync(request.BankAccountId, cancellationToken);
+        var expenseAccount = await _accounts.GetByIdAsync(request.ExpenseAccountId, cancellationToken);
+        if (bankAccount is null || expenseAccount is null)
+        {
+            return BadRequest("Check account does not exist.");
+        }
+
+        if (!IsBankingAccount(bankAccount))
+        {
+            return BadRequest("Bank account must be a bank/cash style account.");
+        }
+
+        if (!bankAccount.IsActive || !expenseAccount.IsActive)
+        {
+            return BadRequest("Inactive accounts cannot be used in a check.");
+        }
+
+        if (expenseAccount.AccountType is AccountType.AccountsReceivable or AccountType.AccountsPayable)
+        {
+            return BadRequest("Use customer/vendor documents instead of posting checks directly to AR/AP.");
+        }
+
+        var memo = string.IsNullOrWhiteSpace(request.Memo) ? "Write check" : request.Memo.Trim();
+        var description = string.IsNullOrWhiteSpace(request.Payee) ? memo : $"{request.Payee.Trim()} - {memo}";
+        var reference = $"CHK-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+        var transaction = new AccountingTransaction("BankCheck", request.CheckDate, reference, "BankCheck", null);
+        transaction.AddLine(new AccountingTransactionLine(request.ExpenseAccountId, description, request.Amount, 0m));
+        transaction.AddLine(new AccountingTransactionLine(request.BankAccountId, description, 0m, request.Amount));
+        transaction.ValidateBalanced();
+
+        await _transactions.AddAsync(transaction, cancellationToken);
+
+        var line = new BankRegisterLineDto(
+            transaction.Id,
+            transaction.TransactionDate,
+            transaction.TransactionType,
+            transaction.ReferenceNumber,
+            description,
+            0m,
+            request.Amount,
+            -request.Amount,
+            0m,
+            transaction.SourceEntityType,
+            transaction.SourceEntityId);
+
+        return CreatedAtAction(nameof(GetRegister), new { accountId = request.BankAccountId }, line);
+    }
+
     private async Task<Dictionary<Guid, decimal>> GetAccountBalancesAsync(CancellationToken cancellationToken)
     {
         var result = await _transactions.SearchAsync(new AccountingTransactionSearch(null, IncludeVoided: false, PageSize: 1000), cancellationToken);
