@@ -16,6 +16,10 @@ dependencies:
   # State Management
   flutter_riverpod: ^3.3.1
 
+  # IDs / import-export
+  uuid: ^4.0.0
+  excel: ^4.0.3
+
   # Navigation
   go_router: ^17.2.2
 
@@ -41,10 +45,21 @@ dependencies:
 
   # Files
   file_picker: ^10.3.7
+  path_provider: ^2.1.0
+  permission_handler: ^11.3.0
+  share_plus: ^7.2.1
 
   # Printing / PDF
   pdf: ^3.11.3
   printing: ^5.14.2
+
+  # Search / scanning / media helpers
+  flutter_typeahead: ^4.8.0
+  image_picker: ^1.0.7
+  image: ^4.1.3
+  mobile_scanner: ^5.2.3
+  audioplayers: ^5.2.1
+  enough_convert: ^1.6.0
 
 dev_dependencies:
   flutter_test:
