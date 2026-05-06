@@ -52,7 +52,7 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= _sidebarBreakpoint;
+    final isWide = width >= ResponsiveScaffold._sidebarBreakpoint;
     _trackLocation(GoRouterState.of(context).uri.toString());
 
     if (isWide) {

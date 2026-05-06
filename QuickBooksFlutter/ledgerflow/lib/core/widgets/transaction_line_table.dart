@@ -369,7 +369,7 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final itemsAsync = ref.watch(itemsProvider);
     final l10n = AppLocalizations.of(context)!;
 
