@@ -217,6 +217,20 @@ class SidebarMenu extends ConsumerWidget {
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
+                  icon: Icons.south_west_outlined,
+                  label: 'Make Deposits',
+                  path: AppRoutes.bankingDeposits,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
+                  icon: Icons.edit_note_outlined,
+                  label: 'Write Checks',
+                  path: AppRoutes.bankingChecks,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
                   icon: Icons.list_alt_outlined,
                   label: l10n.viewBalances,
                   path: AppRoutes.chartOfAccounts,
