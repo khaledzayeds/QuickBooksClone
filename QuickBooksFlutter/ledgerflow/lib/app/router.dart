@@ -472,6 +472,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/accounting/journal-entries',
+            redirect: (context, state) => AppRoutes.journalEntries,
+          ),
+          GoRoute(
+            path: '/accounting/journal-entries/new',
+            redirect: (context, state) => AppRoutes.journalEntryNew,
+          ),
+          GoRoute(
+            path: '/accounting/journal-entries/:id',
+            redirect: (context, state) => AppRoutes.journalEntryDetails
+                .replaceFirst(':id', state.pathParameters['id']!),
+          ),
+          GoRoute(
             path: AppRoutes.journalEntries,
             builder: (context, state) => const JournalEntryListScreen(),
           ),

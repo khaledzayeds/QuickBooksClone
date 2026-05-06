@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show AccountType;
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -62,7 +63,7 @@ class JournalEntryFormScreen extends ConsumerWidget {
                 ? null
                 : () => context.canPop()
                       ? context.pop()
-                      : context.go('/accounting/journal-entries'),
+                      : context.go(AppRoutes.journalEntries),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -163,7 +164,7 @@ class JournalEntryFormScreen extends ConsumerWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.poCreatedSuccess)));
-        context.go('/accounting/journal-entries');
+        context.go(AppRoutes.journalEntries);
       },
       failure: (error) => _error(context, error.message),
     );
