@@ -14,6 +14,8 @@ import '../features/auth/providers/auth_provider.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/banking/screens/bank_register_screen.dart';
 import '../features/banking/screens/bank_transfer_screen.dart';
+import '../features/banking/screens/make_deposit_screen.dart';
+import '../features/banking/screens/write_check_screen.dart';
 import '../features/customer_credits/screens/customer_credit_details_screen.dart';
 import '../features/customer_credits/screens/customer_credit_form_screen.dart';
 import '../features/customer_credits/screens/customer_credit_list_screen.dart';
@@ -193,18 +195,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => ResponsiveScaffold(child: child),
         routes: [
-          GoRoute(
-            path: AppRoutes.dashboard,
-            builder: (context, state) => const DashboardScreen(),
-          ),
+          GoRoute(path: AppRoutes.dashboard, builder: (context, state) => const DashboardScreen()),
           GoRoute(path: AppRoutes.items, builder: (context, state) => const ItemListScreen()),
           GoRoute(path: AppRoutes.itemNew, builder: (context, state) => const ItemFormScreen()),
           GoRoute(path: AppRoutes.itemDetails, builder: (context, state) => ItemDetailsScreen(id: state.pathParameters['id']!)),
@@ -275,6 +271,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.transactionDetails, builder: (context, state) => TransactionDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.bankingRegister, builder: (context, state) => const BankRegisterScreen()),
           GoRoute(path: AppRoutes.bankingTransfers, builder: (context, state) => const BankTransferScreen()),
+          GoRoute(path: AppRoutes.bankingDeposits, builder: (context, state) => const MakeDepositScreen()),
+          GoRoute(path: AppRoutes.bankingChecks, builder: (context, state) => const WriteCheckScreen()),
           GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsHomeScreen()),
           GoRoute(path: AppRoutes.companySettings, builder: (context, state) => const CompanySettingsScreen()),
           GoRoute(path: AppRoutes.connectionSettings, builder: (context, state) => const ConnectionSettingsScreen()),
@@ -284,8 +282,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.printingSettings, builder: (context, state) => const PrintingSettingsScreen()),
           GoRoute(path: AppRoutes.usersPermissions, builder: (context, state) => const UsersPermissionsScreen()),
           GoRoute(path: AppRoutes.licenseSettings, builder: (context, state) => const LicenseSettingsScreen()),
-          _comingSoon(AppRoutes.bankingDeposits, 'Make Deposits'),
-          _comingSoon(AppRoutes.bankingChecks, 'Write Checks'),
           _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
           _comingSoonGated(AppRoutes.payroll, 'Payroll', LicenseFeature.payroll),
           _comingSoon(AppRoutes.timeTracking, 'Enter Time'),
