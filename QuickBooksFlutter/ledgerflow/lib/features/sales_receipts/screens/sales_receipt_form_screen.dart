@@ -293,11 +293,12 @@ class _HeaderCard extends ConsumerWidget {
                           prefixIcon: const Icon(Icons.person_outline),
                         ),
                         items: uniqueCustomers
-                            .map(
-                              (customer) => DropdownMenuItem(
-                                value: customer.id,
-                                child: Text(customer.displayName),
-                              ),
+                            .map<DropdownMenuItem<String>>(
+                              (CustomerModel customer) =>
+                                  DropdownMenuItem<String>(
+                                    value: customer.id,
+                                    child: Text(customer.displayName),
+                                  ),
                             )
                             .toList(),
                         onChanged: (id) {
@@ -348,13 +349,14 @@ class _HeaderCard extends ConsumerWidget {
                           prefixIcon: const Icon(Icons.account_balance),
                         ),
                         items: depositAccounts
-                            .map(
-                              (account) => DropdownMenuItem(
-                                value: account.id,
-                                child: Text(
-                                  '${account.code} - ${account.name}',
-                                ),
-                              ),
+                            .map<DropdownMenuItem<String>>(
+                              (AccountModel account) =>
+                                  DropdownMenuItem<String>(
+                                    value: account.id,
+                                    child: Text(
+                                      '${account.code} - ${account.name}',
+                                    ),
+                                  ),
                             )
                             .toList(),
                         onChanged: onDepositAccountChanged,
@@ -372,13 +374,19 @@ class _HeaderCard extends ConsumerWidget {
                       prefixIcon: const Icon(Icons.payments_outlined),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                      DropdownMenuItem(value: 'Check', child: Text('Check')),
-                      DropdownMenuItem(
+                      DropdownMenuItem<String>(
+                        value: 'Cash',
+                        child: Text('Cash'),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: 'Check',
+                        child: Text('Check'),
+                      ),
+                      DropdownMenuItem<String>(
                         value: 'BankTransfer',
                         child: Text('Bank Transfer'),
                       ),
-                      DropdownMenuItem(
+                      DropdownMenuItem<String>(
                         value: 'CreditCard',
                         child: Text('Credit Card'),
                       ),

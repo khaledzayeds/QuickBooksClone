@@ -19,7 +19,8 @@ class ChartOfAccountsScreen extends ConsumerStatefulWidget {
   const ChartOfAccountsScreen({super.key});
 
   @override
-  ConsumerState<ChartOfAccountsScreen> createState() => _ChartOfAccountsScreenState();
+  ConsumerState<ChartOfAccountsScreen> createState() =>
+      _ChartOfAccountsScreenState();
 }
 
 class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
@@ -41,8 +42,11 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
     final cs = theme.colorScheme;
 
     ref.listen(setupProvider, (previous, next) {
-      if (next.successMessage != null && previous?.successMessage != next.successMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.successMessage!)));
+      if (next.successMessage != null &&
+          previous?.successMessage != next.successMessage) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.successMessage!)));
         ref.read(accountsProvider.notifier).refresh();
       }
     });
@@ -57,9 +61,15 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
             icon: const Icon(Icons.refresh),
           ),
           TextButton.icon(
-            onPressed: setupState.submitting ? null : ref.read(setupProvider.notifier).seedDefaultAccounts,
+            onPressed: setupState.submitting
+                ? null
+                : ref.read(setupProvider.notifier).seedDefaultAccounts,
             icon: setupState.submitting
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.account_tree_outlined),
             label: const Text('Seed Defaults'),
           ),
@@ -83,8 +93,12 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
         data: (list) {
           final active = list.where((a) => a.isActive).length;
           final inactive = list.length - active;
-          final debitBalance = list.where((a) => a.isDebitNormal).fold<double>(0, (sum, a) => sum + a.balance);
-          final creditBalance = list.where((a) => !a.isDebitNormal).fold<double>(0, (sum, a) => sum + a.balance);
+          final debitBalance = list
+              .where((a) => a.isDebitNormal)
+              .fold<double>(0, (sum, a) => sum + a.balance);
+          final creditBalance = list
+              .where((a) => !a.isDebitNormal)
+              .fold<double>(0, (sum, a) => sum + a.balance);
 
           return Column(
             children: [
@@ -93,22 +107,49 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Financial foundation', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    Text(
+                      'Financial foundation',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       'Review account codes, account types, activity status, and posting balances before polishing invoices, purchases, and reports.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
                       children: [
-                        _SummaryChip(icon: Icons.account_tree_outlined, label: 'Accounts', value: list.length.toString()),
-                        _SummaryChip(icon: Icons.check_circle_outline, label: 'Active', value: active.toString()),
-                        _SummaryChip(icon: Icons.block_outlined, label: 'Inactive', value: inactive.toString()),
-                        _SummaryChip(icon: Icons.south_west_outlined, label: 'Debit-normal', value: '${debitBalance.toStringAsFixed(2)} EGP'),
-                        _SummaryChip(icon: Icons.north_east_outlined, label: 'Credit-normal', value: '${creditBalance.toStringAsFixed(2)} EGP'),
+                        _SummaryChip(
+                          icon: Icons.account_tree_outlined,
+                          label: 'Accounts',
+                          value: list.length.toString(),
+                        ),
+                        _SummaryChip(
+                          icon: Icons.check_circle_outline,
+                          label: 'Active',
+                          value: active.toString(),
+                        ),
+                        _SummaryChip(
+                          icon: Icons.block_outlined,
+                          label: 'Inactive',
+                          value: inactive.toString(),
+                        ),
+                        _SummaryChip(
+                          icon: Icons.south_west_outlined,
+                          label: 'Debit-normal',
+                          value: '${debitBalance.toStringAsFixed(2)} EGP',
+                        ),
+                        _SummaryChip(
+                          icon: Icons.north_east_outlined,
+                          label: 'Credit-normal',
+                          value: '${creditBalance.toStringAsFixed(2)} EGP',
+                        ),
                       ],
                     ),
                     if (setupState.defaultAccountsSeed != null) ...[
@@ -135,17 +176,36 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                         border: OutlineInputBorder(),
                         isDense: true,
                       ),
-                      onChanged: (v) => ref.read(accountsProvider.notifier).setSearch(v),
+                      onChanged: (v) =>
+                          ref.read(accountsProvider.notifier).setSearch(v),
                     );
                     final type = DropdownButtonFormField<int?>(
                       initialValue: _selectedType,
-                      decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder(), isDense: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Type',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('All types')),
-                        ...AccountType.values.map((t) => DropdownMenuItem(
-                              value: t.value,
-                              child: Text(AccountModel(id: '', code: '', name: '', accountType: t, balance: 0, isActive: true).accountTypeName),
-                            )),
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('All types'),
+                        ),
+                        ...AccountType.values.map(
+                          (t) => DropdownMenuItem<int?>(
+                            value: t.value,
+                            child: Text(
+                              AccountModel(
+                                id: '',
+                                code: '',
+                                name: '',
+                                accountType: t,
+                                balance: 0,
+                                isActive: true,
+                              ).accountTypeName,
+                            ),
+                          ),
+                        ),
                       ],
                       onChanged: (v) {
                         setState(() => _selectedType = v);
@@ -158,12 +218,21 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                       title: const Text('Include inactive'),
                       onChanged: (v) {
                         setState(() => _includeInactive = v);
-                        ref.read(accountsProvider.notifier).setIncludeInactive(v);
+                        ref
+                            .read(accountsProvider.notifier)
+                            .setIncludeInactive(v);
                       },
                     );
 
                     if (!wide) {
-                      return Column(children: [search, const SizedBox(height: 10), type, inactiveSwitch]);
+                      return Column(
+                        children: [
+                          search,
+                          const SizedBox(height: 10),
+                          type,
+                          inactiveSwitch,
+                        ],
+                      );
                     }
                     return Row(
                       children: [
@@ -183,11 +252,15 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                     ? EmptyStateWidget(
                         icon: Icons.account_tree_outlined,
                         message: 'No accounts found',
-                        description: 'Create a new account or seed the default chart of accounts.',
+                        description:
+                            'Create a new account or seed the default chart of accounts.',
                         actionLabel: 'New Account',
                         onAction: () => context.go(AppRoutes.accountNew),
                       )
-                    : _GroupedAccountsList(accounts: list, onToggleActive: _toggleActive),
+                    : _GroupedAccountsList(
+                        accounts: list,
+                        onToggleActive: _toggleActive,
+                      ),
               ),
             ],
           );
@@ -200,16 +273,24 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
     final confirmed = await showConfirmDialog(
       context: context,
       title: account.isActive ? 'Deactivate account' : 'Activate account',
-      message: account.isActive ? 'Deactivate "${account.name}"?' : 'Activate "${account.name}"?',
+      message: account.isActive
+          ? 'Deactivate "${account.name}"?'
+          : 'Activate "${account.name}"?',
     );
     if (confirmed != true || !mounted) return;
 
-    final result = await ref.read(accountsProvider.notifier).toggleActive(account.id, !account.isActive);
+    final result = await ref
+        .read(accountsProvider.notifier)
+        .toggleActive(account.id, !account.isActive);
 
     if (!mounted) return;
     result.when(
       success: (_) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(account.isActive ? 'Account deactivated' : 'Account activated')),
+        SnackBar(
+          content: Text(
+            account.isActive ? 'Account deactivated' : 'Account activated',
+          ),
+        ),
       ),
       failure: (e) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message), backgroundColor: Colors.red),
@@ -219,7 +300,10 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
 }
 
 class _GroupedAccountsList extends StatelessWidget {
-  const _GroupedAccountsList({required this.accounts, required this.onToggleActive});
+  const _GroupedAccountsList({
+    required this.accounts,
+    required this.onToggleActive,
+  });
 
   final List<AccountModel> accounts;
   final Future<void> Function(AccountModel account) onToggleActive;
@@ -238,24 +322,43 @@ class _GroupedAccountsList extends StatelessWidget {
       itemBuilder: (context, groupIndex) {
         final type = ordered[groupIndex];
         final items = grouped[type]!..sort((a, b) => a.code.compareTo(b.code));
-        final title = AccountModel(id: '', code: '', name: '', accountType: type, balance: 0, isActive: true).accountTypeName;
+        final title = AccountModel(
+          id: '',
+          code: '',
+          name: '',
+          accountType: type,
+          balance: 0,
+          isActive: true,
+        ).accountTypeName;
         final total = items.fold<double>(0, (sum, item) => sum + item.balance);
 
         return Card(
           margin: const EdgeInsets.only(bottom: 14),
           child: ExpansionTile(
             initiallyExpanded: true,
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-            subtitle: Text('${items.length} accounts • ${total.toStringAsFixed(2)} EGP'),
+            title: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              '${items.length} accounts • ${total.toStringAsFixed(2)} EGP',
+            ),
             children: items
-                .map((account) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      child: AccountCard(
-                        account: account,
-                        onTap: () => context.go(AppRoutes.accountEdit.replaceFirst(':id', account.id)),
-                        onToggleActive: () => onToggleActive(account),
+                .map(
+                  (account) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    child: AccountCard(
+                      account: account,
+                      onTap: () => context.go(
+                        AppRoutes.accountEdit.replaceFirst(':id', account.id),
                       ),
-                    ))
+                      onToggleActive: () => onToggleActive(account),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         );
@@ -265,7 +368,11 @@ class _GroupedAccountsList extends StatelessWidget {
 }
 
 class _SummaryChip extends StatelessWidget {
-  const _SummaryChip({required this.icon, required this.label, required this.value});
+  const _SummaryChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -303,7 +410,10 @@ class _SeedResultBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Icon(Icons.check_circle_outline, color: cs.onPrimaryContainer),

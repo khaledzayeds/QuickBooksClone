@@ -24,15 +24,23 @@ class JournalEntryLineState {
 class JournalEntryFormState {
   DateTime entryDate = DateTime.now();
   String memo = '';
-  List<JournalEntryLineState> lines = [JournalEntryLineState(), JournalEntryLineState()];
+  List<JournalEntryLineState> lines = [
+    JournalEntryLineState(),
+    JournalEntryLineState(),
+  ];
 
   double get totalDebit => lines.fold(0, (sum, line) => sum + line.debit);
   double get totalCredit => lines.fold(0, (sum, line) => sum + line.credit);
   bool get isBalanced => totalDebit > 0 && totalDebit == totalCredit;
 }
 
-final journalEntryFormProvider = StateProvider.autoDispose<JournalEntryFormState>((ref) => JournalEntryFormState());
-final journalEntrySavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final journalEntryFormProvider =
+    StateProvider.autoDispose<JournalEntryFormState>(
+      (ref) => JournalEntryFormState(),
+    );
+final journalEntrySavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 
 class JournalEntryFormScreen extends ConsumerWidget {
   const JournalEntryFormScreen({super.key});
@@ -50,7 +58,11 @@ class JournalEntryFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go('/accounting/journal-entries'),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go('/accounting/journal-entries'),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -75,17 +87,29 @@ class JournalEntryFormScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           _LinesCard(form: form),
           const SizedBox(height: 24),
-          Align(alignment: AlignmentDirectional.centerEnd, child: _TotalsCard(form: form)),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: _TotalsCard(form: form),
+          ),
         ],
       ),
     );
   }
 
-  Future<void> _save(BuildContext context, WidgetRef ref, {required int saveMode}) async {
+  Future<void> _save(
+    BuildContext context,
+    WidgetRef ref, {
+    required int saveMode,
+  }) async {
     final l10n = AppLocalizations.of(context)!;
     final form = ref.read(journalEntryFormProvider);
     final validLines = form.lines
-        .where((line) => line.accountId != null && line.accountId!.isNotEmpty && (line.debit > 0 || line.credit > 0))
+        .where(
+          (line) =>
+              line.accountId != null &&
+              line.accountId!.isNotEmpty &&
+              (line.debit > 0 || line.credit > 0),
+        )
         .toList();
 
     if (validLines.length < 2) {
@@ -100,8 +124,14 @@ class JournalEntryFormScreen extends ConsumerWidget {
       }
     }
 
-    final totalDebit = validLines.fold<double>(0, (sum, line) => sum + line.debit);
-    final totalCredit = validLines.fold<double>(0, (sum, line) => sum + line.credit);
+    final totalDebit = validLines.fold<double>(
+      0,
+      (sum, line) => sum + line.debit,
+    );
+    final totalCredit = validLines.fold<double>(
+      0,
+      (sum, line) => sum + line.credit,
+    );
     if (totalDebit <= 0 || totalCredit <= 0 || totalDebit != totalCredit) {
       _error(context, l10n.totalAmount);
       return;
@@ -130,7 +160,9 @@ class JournalEntryFormScreen extends ConsumerWidget {
     if (!context.mounted) return;
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.poCreatedSuccess)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.poCreatedSuccess)));
         context.go('/accounting/journal-entries');
       },
       failure: (error) => _error(context, error.message),
@@ -141,7 +173,9 @@ class JournalEntryFormScreen extends ConsumerWidget {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
 
@@ -165,7 +199,9 @@ class _HeaderCard extends ConsumerWidget {
                   child: AppTextField(
                     label: l10n.billDate,
                     readOnly: true,
-                    initialValue: JournalEntryFormScreen._dateOnly(form.entryDate),
+                    initialValue: JournalEntryFormScreen._dateOnly(
+                      form.entryDate,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -212,7 +248,13 @@ class _LinesCard extends ConsumerWidget {
               ],
             ),
             const Divider(),
-            ...form.lines.asMap().entries.map((entry) => _JournalLineRow(index: entry.key, line: entry.value, form: form)),
+            ...form.lines.asMap().entries.map(
+              (entry) => _JournalLineRow(
+                index: entry.key,
+                line: entry.value,
+                form: form,
+              ),
+            ),
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: TextButton.icon(
@@ -232,7 +274,11 @@ class _LinesCard extends ConsumerWidget {
 }
 
 class _JournalLineRow extends ConsumerWidget {
-  const _JournalLineRow({required this.index, required this.line, required this.form});
+  const _JournalLineRow({
+    required this.index,
+    required this.line,
+    required this.form,
+  });
 
   final int index;
   final JournalEntryLineState line;
@@ -252,7 +298,10 @@ class _JournalLineRow extends ConsumerWidget {
           .toList(),
       orElse: () => <AccountModel>[],
     );
-    final safeAccountId = accounts.any((account) => account.id == line.accountId) ? line.accountId : null;
+    final safeAccountId =
+        accounts.any((account) => account.id == line.accountId)
+        ? line.accountId
+        : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -264,9 +313,17 @@ class _JournalLineRow extends ConsumerWidget {
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: DropdownButtonFormField<String>(
                 initialValue: safeAccountId,
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
                 items: accounts
-                    .map((account) => DropdownMenuItem(value: account.id, child: Text('${account.code} - ${account.name}')))
+                    .map<DropdownMenuItem<String>>(
+                      (AccountModel account) => DropdownMenuItem<String>(
+                        value: account.id,
+                        child: Text('${account.code} - ${account.name}'),
+                      ),
+                    )
                     .toList(),
                 onChanged: (value) {
                   line.accountId = value;
@@ -296,8 +353,12 @@ class _JournalLineRow extends ConsumerWidget {
               child: AppTextField(
                 key: ValueKey('je-debit-$index-${line.debit}'),
                 label: '',
-                initialValue: line.debit == 0 ? '' : line.debit.toStringAsFixed(2),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                initialValue: line.debit == 0
+                    ? ''
+                    : line.debit.toStringAsFixed(2),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (value) {
                   line.debit = double.tryParse(value) ?? 0;
                   if (line.debit > 0) line.credit = 0;
@@ -312,8 +373,12 @@ class _JournalLineRow extends ConsumerWidget {
               child: AppTextField(
                 key: ValueKey('je-credit-$index-${line.credit}'),
                 label: '',
-                initialValue: line.credit == 0 ? '' : line.credit.toStringAsFixed(2),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                initialValue: line.credit == 0
+                    ? ''
+                    : line.credit.toStringAsFixed(2),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (value) {
                   line.credit = double.tryParse(value) ?? 0;
                   if (line.credit > 0) line.debit = 0;
@@ -357,16 +422,27 @@ class _TotalsCard extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              _row(l10n.totalAmount, '${form.totalDebit.toStringAsFixed(2)} ${l10n.egp}'),
+              _row(
+                l10n.totalAmount,
+                '${form.totalDebit.toStringAsFixed(2)} ${l10n.egp}',
+              ),
               const SizedBox(height: 8),
-              _row(l10n.totalAmount, '${form.totalCredit.toStringAsFixed(2)} ${l10n.egp}'),
+              _row(
+                l10n.totalAmount,
+                '${form.totalCredit.toStringAsFixed(2)} ${l10n.egp}',
+              ),
               const Divider(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(l10n.statusPosted, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    l10n.statusPosted,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   Icon(
-                    form.isBalanced ? Icons.check_circle_outline : Icons.error_outline,
+                    form.isBalanced
+                        ? Icons.check_circle_outline
+                        : Icons.error_outline,
                     color: form.isBalanced ? cs.primary : cs.error,
                   ),
                 ],
@@ -379,12 +455,12 @@ class _TotalsCard extends StatelessWidget {
   }
 
   Widget _row(String label, String value) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(label),
+      Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+    ],
+  );
 }
 
 void _update(WidgetRef ref, JournalEntryFormState old) {

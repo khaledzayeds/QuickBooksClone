@@ -226,8 +226,8 @@ class _BillCard extends ConsumerWidget {
                 prefixIcon: Icon(Icons.receipt_long_outlined),
               ),
               items: bills
-                  .map(
-                    (bill) => DropdownMenuItem(
+                  .map<DropdownMenuItem<String>>(
+                    (PurchaseBillModel bill) => DropdownMenuItem<String>(
                       value: bill.id,
                       child: Text(
                         '${bill.billNumber} - ${bill.vendorName} - ${bill.totalAmount.toStringAsFixed(2)}',

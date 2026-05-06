@@ -41,7 +41,9 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
 
   Future<void> _loadVendor() async {
     setState(() => _loadingVendor = true);
-    final result = await ref.read(vendorsRepositoryProvider).getVendor(widget.id!);
+    final result = await ref
+        .read(vendorsRepositoryProvider)
+        .getVendor(widget.id!);
     if (!mounted) return;
     result.when(
       success: (vendor) {
@@ -57,7 +59,9 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
       },
       failure: (error) {
         setState(() => _loadingVendor = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+        );
       },
     );
   }
@@ -82,7 +86,9 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
         title: Text(widget.isEdit ? 'Edit Vendor' : 'New Vendor'),
         actions: [
           TextButton.icon(
-            onPressed: _loading ? null : () => context.popOrGo(AppRoutes.vendors),
+            onPressed: _loading
+                ? null
+                : () => context.popOrGo(AppRoutes.vendors),
             icon: const Icon(Icons.close),
             label: const Text('Cancel'),
           ),
@@ -104,17 +110,34 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
                         children: [
                           Row(
                             children: [
-                              CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(Icons.store_outlined, color: cs.onPrimaryContainer)),
+                              CircleAvatar(
+                                backgroundColor: cs.primaryContainer,
+                                child: Icon(
+                                  Icons.store_outlined,
+                                  color: cs.onPrimaryContainer,
+                                ),
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(widget.isEdit ? 'Edit vendor profile' : 'Create vendor profile', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                                    Text(
+                                      widget.isEdit
+                                          ? 'Edit vendor profile'
+                                          : 'Create vendor profile',
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       'Vendor records drive purchase orders, bills, inventory receiving, vendor credits, and vendor payments.',
-                                      style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: cs.onSurfaceVariant,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -133,40 +156,92 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
                                 label: 'Display Name *',
                                 controller: _nameCtrl,
                                 hint: 'Vendor display name',
-                                validator: (value) => value == null || value.trim().isEmpty ? 'Display name is required' : null,
+                                validator: (value) =>
+                                    value == null || value.trim().isEmpty
+                                    ? 'Display name is required'
+                                    : null,
                               );
-                              final company = AppTextField(label: 'Company Name', controller: _companyCtrl, hint: 'Optional company name');
+                              final company = AppTextField(
+                                label: 'Company Name',
+                                controller: _companyCtrl,
+                                hint: 'Optional company name',
+                              );
                               final email = AppTextField(
                                 label: 'Email',
                                 controller: _emailCtrl,
                                 hint: 'vendor@example.com',
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (value) {
-                                  if (value == null || value.trim().isEmpty) return null;
-                                  if (!value.contains('@')) return 'Invalid email address';
+                                  if (value == null || value.trim().isEmpty)
+                                    return null;
+                                  if (!value.contains('@'))
+                                    return 'Invalid email address';
                                   return null;
                                 },
                               );
-                              final phone = AppTextField(label: 'Phone', controller: _phoneCtrl, hint: '01000000000', keyboardType: TextInputType.phone);
+                              final phone = AppTextField(
+                                label: 'Phone',
+                                controller: _phoneCtrl,
+                                hint: '01000000000',
+                                keyboardType: TextInputType.phone,
+                              );
 
-                              if (!two) return Column(children: [name, const SizedBox(height: 16), company, const SizedBox(height: 16), email, const SizedBox(height: 16), phone]);
-                              return Column(children: [
-                                Row(children: [Expanded(child: name), const SizedBox(width: 12), Expanded(child: company)]),
-                                const SizedBox(height: 16),
-                                Row(children: [Expanded(child: email), const SizedBox(width: 12), Expanded(child: phone)]),
-                              ]);
+                              if (!two)
+                                return Column(
+                                  children: [
+                                    name,
+                                    const SizedBox(height: 16),
+                                    company,
+                                    const SizedBox(height: 16),
+                                    email,
+                                    const SizedBox(height: 16),
+                                    phone,
+                                  ],
+                                );
+                              return Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(child: name),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: company),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      Expanded(child: email),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: phone),
+                                    ],
+                                  ),
+                                ],
+                              );
                             },
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             initialValue: _currency,
-                            decoration: const InputDecoration(labelText: 'Currency', border: OutlineInputBorder()),
+                            decoration: const InputDecoration(
+                              labelText: 'Currency',
+                              border: OutlineInputBorder(),
+                            ),
                             items: const [
-                              DropdownMenuItem(value: 'EGP', child: Text('Egyptian Pound (EGP)')),
-                              DropdownMenuItem(value: 'USD', child: Text('US Dollar (USD)')),
-                              DropdownMenuItem(value: 'SAR', child: Text('Saudi Riyal (SAR)')),
+                              DropdownMenuItem<String>(
+                                value: 'EGP',
+                                child: Text('Egyptian Pound (EGP)'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'USD',
+                                child: Text('US Dollar (USD)'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'SAR',
+                                child: Text('Saudi Riyal (SAR)'),
+                              ),
                             ],
-                            onChanged: (value) => setState(() => _currency = value!),
+                            onChanged: (value) =>
+                                setState(() => _currency = value!),
                           ),
                           if (!widget.isEdit) ...[
                             const SizedBox(height: 16),
@@ -174,22 +249,35 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
                               label: 'Opening Balance',
                               controller: _openBalCtrl,
                               hint: '0.00',
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               validator: (value) {
                                 final number = double.tryParse(value ?? '');
-                                if (number == null) return 'Enter a valid number';
-                                if (number < 0) return 'Opening balance cannot be negative';
+                                if (number == null)
+                                  return 'Enter a valid number';
+                                if (number < 0)
+                                  return 'Opening balance cannot be negative';
                                 return null;
                               },
                             ),
                             const SizedBox(height: 8),
                             _InfoBox(
                               icon: Icons.account_balance_outlined,
-                              text: 'If you already owe this vendor money, opening balance will create an opening payable posting automatically.',
+                              text:
+                                  'If you already owe this vendor money, opening balance will create an opening payable posting automatically.',
                             ),
                           ],
                           const SizedBox(height: 32),
-                          AppButton(label: widget.isEdit ? 'Save Changes' : 'Create Vendor', loading: _loading, expanded: true, onPressed: _submit),
+                          AppButton(
+                            label: widget.isEdit
+                                ? 'Save Changes'
+                                : 'Create Vendor',
+                            loading: _loading,
+                            expanded: true,
+                            onPressed: _submit,
+                          ),
                         ],
                       ),
                     ),
@@ -206,15 +294,19 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
 
     final body = <String, dynamic>{
       'displayName': _nameCtrl.text.trim(),
-      if (_companyCtrl.text.trim().isNotEmpty) 'companyName': _companyCtrl.text.trim(),
+      if (_companyCtrl.text.trim().isNotEmpty)
+        'companyName': _companyCtrl.text.trim(),
       if (_emailCtrl.text.trim().isNotEmpty) 'email': _emailCtrl.text.trim(),
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
       'currency': _currency,
-      if (!widget.isEdit) 'openingBalance': double.tryParse(_openBalCtrl.text) ?? 0,
+      if (!widget.isEdit)
+        'openingBalance': double.tryParse(_openBalCtrl.text) ?? 0,
     };
 
     final ApiResult<VendorModel> result = widget.isEdit
-        ? await ref.read(vendorsProvider.notifier).updateVendor(widget.id!, body)
+        ? await ref
+              .read(vendorsProvider.notifier)
+              .updateVendor(widget.id!, body)
         : await ref.read(vendorsProvider.notifier).createVendor(body);
 
     if (!mounted) return;
@@ -222,10 +314,20 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
 
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.isEdit ? 'Vendor updated successfully' : 'Vendor created successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isEdit
+                  ? 'Vendor updated successfully'
+                  : 'Vendor created successfully',
+            ),
+          ),
+        );
         context.popOrGo(AppRoutes.vendors);
       },
-      failure: (error) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message), backgroundColor: Colors.red)),
+      failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      ),
     );
   }
 }
@@ -239,12 +341,24 @@ class _VendorStatusBanner extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
-      child: Row(children: [
-        Icon(vendor.isActive ? Icons.check_circle_outline : Icons.block_outlined, color: vendor.isActive ? cs.primary : cs.error),
-        const SizedBox(width: 10),
-        Expanded(child: Text('Open payable: ${vendor.balance.toStringAsFixed(2)} ${vendor.currency} • Vendor credits: ${vendor.creditBalance.toStringAsFixed(2)} ${vendor.currency} • Status: ${vendor.isActive ? 'Active' : 'Inactive'}')),
-      ]),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            vendor.isActive ? Icons.check_circle_outline : Icons.block_outlined,
+            color: vendor.isActive ? cs.primary : cs.error,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Open payable: ${vendor.balance.toStringAsFixed(2)} ${vendor.currency} • Vendor credits: ${vendor.creditBalance.toStringAsFixed(2)} ${vendor.currency} • Status: ${vendor.isActive ? 'Active' : 'Inactive'}',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -260,8 +374,20 @@ class _InfoBox extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: cs.onSecondaryContainer), const SizedBox(width: 10), Expanded(child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)))]),
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: cs.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)),
+          ),
+        ],
+      ),
     );
   }
 }

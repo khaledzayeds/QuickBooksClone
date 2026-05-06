@@ -17,6 +17,7 @@ import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../../purchase_bills/data/models/purchase_bill_model.dart';
 import '../../purchase_bills/providers/purchase_bills_provider.dart';
+import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
 import '../data/models/vendor_credit_model.dart';
 import '../providers/vendor_credits_provider.dart';
@@ -311,7 +312,7 @@ class _CreditCard extends ConsumerWidget {
               items: vendorsAsync.maybeWhen(
                 data: (vendors) => vendors
                     .map<DropdownMenuItem<String>>(
-                      (vendor) => DropdownMenuItem(
+                      (VendorModel vendor) => DropdownMenuItem<String>(
                         value: vendor.id,
                         child: Text(
                           '${vendor.displayName} — Credit ${vendor.creditBalance.toStringAsFixed(2)}',
@@ -342,11 +343,11 @@ class _CreditCard extends ConsumerWidget {
                       ),
                     ),
                     items: [
-                      DropdownMenuItem(
+                      DropdownMenuItem<VendorCreditAction>(
                         value: VendorCreditAction.applyToBill,
                         child: Text(l10n.purchaseBill),
                       ),
-                      DropdownMenuItem(
+                      DropdownMenuItem<VendorCreditAction>(
                         value: VendorCreditAction.refundReceipt,
                         child: Text(l10n.recordDeposits),
                       ),
@@ -385,8 +386,8 @@ class _CreditCard extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.receipt_long_outlined),
                 ),
                 items: vendorBills
-                    .map(
-                      (bill) => DropdownMenuItem(
+                    .map<DropdownMenuItem<String>>(
+                      (PurchaseBillModel bill) => DropdownMenuItem<String>(
                         value: bill.id,
                         child: Text(
                           '${bill.billNumber} - ${bill.balanceDue.toStringAsFixed(2)} ${l10n.egp}',
@@ -415,8 +416,8 @@ class _CreditCard extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.account_balance_outlined),
                 ),
                 items: depositAccounts
-                    .map(
-                      (account) => DropdownMenuItem(
+                    .map<DropdownMenuItem<String>>(
+                      (AccountModel account) => DropdownMenuItem<String>(
                         value: account.id,
                         child: Text('${account.code} - ${account.name}'),
                       ),
@@ -434,19 +435,19 @@ class _CreditCard extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.payments_outlined),
                 ),
                 items: [
-                  DropdownMenuItem(
+                  DropdownMenuItem<PaymentMethod>(
                     value: PaymentMethod.cash,
                     child: Text(l10n.cash),
                   ),
-                  DropdownMenuItem(
+                  DropdownMenuItem<PaymentMethod>(
                     value: PaymentMethod.check,
                     child: Text(l10n.check),
                   ),
-                  DropdownMenuItem(
+                  DropdownMenuItem<PaymentMethod>(
                     value: PaymentMethod.bankTransfer,
                     child: Text(l10n.bankTransfer),
                   ),
-                  DropdownMenuItem(
+                  DropdownMenuItem<PaymentMethod>(
                     value: PaymentMethod.creditCard,
                     child: Text(l10n.creditCard),
                   ),

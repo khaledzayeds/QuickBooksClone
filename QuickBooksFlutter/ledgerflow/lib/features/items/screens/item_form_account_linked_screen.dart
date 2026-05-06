@@ -96,54 +96,123 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
             DropdownButtonFormField<ItemType>(
               initialValue: _itemType,
               decoration: const InputDecoration(labelText: 'نوع الصنف *'),
-              items: ItemType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))).toList(),
-              onChanged: widget.isEdit ? null : (v) => setState(() {
-                _itemType = v!;
-                _inventoryAssetAccountId = null;
-                _cogsAccountId = null;
-                _expenseAccountId = null;
-              }),
+              items: ItemType.values
+                  .map(
+                    (t) => DropdownMenuItem<ItemType>(
+                      value: t,
+                      child: Text(t.label),
+                    ),
+                  )
+                  .toList(),
+              onChanged: widget.isEdit
+                  ? null
+                  : (v) => setState(() {
+                      _itemType = v!;
+                      _inventoryAssetAccountId = null;
+                      _cogsAccountId = null;
+                      _expenseAccountId = null;
+                    }),
             ),
             const SizedBox(height: 16),
             AppTextField(
               label: 'اسم الصنف *',
               controller: _nameCtrl,
               hint: 'مثال: طابعة حرارية',
-              validator: (v) => v == null || v.isEmpty ? 'اسم الصنف مطلوب' : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'اسم الصنف مطلوب' : null,
             ),
             const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: AppTextField(label: 'كود الصنف (SKU)', controller: _skuCtrl, hint: 'INV-001')),
-              const SizedBox(width: 12),
-              Expanded(child: AppTextField(label: 'الباركود', controller: _barcodeCtrl, hint: '6221000000', keyboardType: TextInputType.number)),
-            ]),
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    label: 'كود الصنف (SKU)',
+                    controller: _skuCtrl,
+                    hint: 'INV-001',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextField(
+                    label: 'الباركود',
+                    controller: _barcodeCtrl,
+                    hint: '6221000000',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             ItemUnitSelector(
               initialValue: _unitCtrl.text.isEmpty ? null : _unitCtrl.text,
               onChanged: (v) => _unitCtrl.text = v ?? '',
             ),
             const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: AppTextField(label: 'سعر البيع *', controller: _salesPriceCtrl, hint: '0.00', keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: _nonNegativeNumberValidator)),
-              const SizedBox(width: 12),
-              Expanded(child: AppTextField(label: 'سعر الشراء *', controller: _purchasePriceCtrl, hint: '0.00', keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: _nonNegativeNumberValidator)),
-            ]),
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    label: 'سعر البيع *',
+                    controller: _salesPriceCtrl,
+                    hint: '0.00',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: _nonNegativeNumberValidator,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextField(
+                    label: 'سعر الشراء *',
+                    controller: _purchasePriceCtrl,
+                    hint: '0.00',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: _nonNegativeNumberValidator,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             if (!widget.isEdit && _itemType == ItemType.inventory) ...[
-              AppTextField(label: 'الكمية الافتتاحية', controller: _qtyCtrl, hint: '0', keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: _nonNegativeNumberValidator),
+              AppTextField(
+                label: 'الكمية الافتتاحية',
+                controller: _qtyCtrl,
+                hint: '0',
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: _nonNegativeNumberValidator,
+              ),
               const SizedBox(height: 8),
-              Text('* إذا كانت الكمية > 0 مع سعر شراء > 0، سيتم إنشاء قيد مخزون افتتاحي', style: Theme.of(context).textTheme.labelSmall),
+              Text(
+                '* إذا كانت الكمية > 0 مع سعر شراء > 0، سيتم إنشاء قيد مخزون افتتاحي',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
             ],
             const SizedBox(height: 24),
-            Text('الحسابات المرتبطة', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'الحسابات المرتبطة',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             accountsAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => Text(e.toString(), style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              error: (e, _) => Text(
+                e.toString(),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
               data: _buildAccountFields,
             ),
             const SizedBox(height: 32),
-            AppButton(label: widget.isEdit ? 'حفظ التعديلات' : 'إضافة الصنف', loading: _loading, expanded: true, onPressed: _submit),
+            AppButton(
+              label: widget.isEdit ? 'حفظ التعديلات' : 'إضافة الصنف',
+              loading: _loading,
+              expanded: true,
+              onPressed: _submit,
+            ),
           ],
         ),
       ),
@@ -152,24 +221,80 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
 
   Widget _buildAccountFields(List<AccountModel> accounts) {
     final active = accounts.where((a) => a.isActive).toList();
-    final income = active.where((a) => a.accountType == AccountType.income || a.accountType == AccountType.otherIncome).toList();
-    final asset = active.where((a) => a.accountType == AccountType.inventoryAsset || a.accountType == AccountType.otherCurrentAsset).toList();
-    final cogs = active.where((a) => a.accountType == AccountType.costOfGoodsSold).toList();
-    final expense = active.where((a) => a.accountType == AccountType.expense || a.accountType == AccountType.otherExpense).toList();
+    final income = active
+        .where(
+          (a) =>
+              a.accountType == AccountType.income ||
+              a.accountType == AccountType.otherIncome,
+        )
+        .toList();
+    final asset = active
+        .where(
+          (a) =>
+              a.accountType == AccountType.inventoryAsset ||
+              a.accountType == AccountType.otherCurrentAsset,
+        )
+        .toList();
+    final cogs = active
+        .where((a) => a.accountType == AccountType.costOfGoodsSold)
+        .toList();
+    final expense = active
+        .where(
+          (a) =>
+              a.accountType == AccountType.expense ||
+              a.accountType == AccountType.otherExpense,
+        )
+        .toList();
 
-    return Column(children: [
-      _AccountDropdown(label: 'حساب الإيراد *', value: _incomeAccountId, accounts: income, onChanged: (v) => setState(() => _incomeAccountId = v), validator: (v) => v == null || v.isEmpty ? 'حساب الإيراد مطلوب' : null),
-      const SizedBox(height: 16),
-      if (_itemType == ItemType.inventory) ...[
-        _AccountDropdown(label: 'حساب أصل المخزون *', value: _inventoryAssetAccountId, accounts: asset, onChanged: (v) => setState(() => _inventoryAssetAccountId = v), validator: (v) => v == null || v.isEmpty ? 'حساب أصل المخزون مطلوب' : null),
+    return Column(
+      children: [
+        _AccountDropdown(
+          label: 'حساب الإيراد *',
+          value: _incomeAccountId,
+          accounts: income,
+          onChanged: (v) => setState(() => _incomeAccountId = v),
+          validator: (v) =>
+              v == null || v.isEmpty ? 'حساب الإيراد مطلوب' : null,
+        ),
         const SizedBox(height: 16),
-        _AccountDropdown(label: 'حساب تكلفة المبيعات *', value: _cogsAccountId, accounts: cogs, onChanged: (v) => setState(() => _cogsAccountId = v), validator: (v) => v == null || v.isEmpty ? 'حساب تكلفة المبيعات مطلوب' : null),
-      ] else ...[
-        _AccountDropdown(label: _itemType == ItemType.service ? 'حساب المصروفات/التكلفة' : 'حساب تكلفة المبيعات', value: _itemType == ItemType.service ? _expenseAccountId : _cogsAccountId, accounts: _itemType == ItemType.service ? expense : cogs, onChanged: (v) => setState(() {
-          if (_itemType == ItemType.service) { _expenseAccountId = v; } else { _cogsAccountId = v; }
-        })),
+        if (_itemType == ItemType.inventory) ...[
+          _AccountDropdown(
+            label: 'حساب أصل المخزون *',
+            value: _inventoryAssetAccountId,
+            accounts: asset,
+            onChanged: (v) => setState(() => _inventoryAssetAccountId = v),
+            validator: (v) =>
+                v == null || v.isEmpty ? 'حساب أصل المخزون مطلوب' : null,
+          ),
+          const SizedBox(height: 16),
+          _AccountDropdown(
+            label: 'حساب تكلفة المبيعات *',
+            value: _cogsAccountId,
+            accounts: cogs,
+            onChanged: (v) => setState(() => _cogsAccountId = v),
+            validator: (v) =>
+                v == null || v.isEmpty ? 'حساب تكلفة المبيعات مطلوب' : null,
+          ),
+        ] else ...[
+          _AccountDropdown(
+            label: _itemType == ItemType.service
+                ? 'حساب المصروفات/التكلفة'
+                : 'حساب تكلفة المبيعات',
+            value: _itemType == ItemType.service
+                ? _expenseAccountId
+                : _cogsAccountId,
+            accounts: _itemType == ItemType.service ? expense : cogs,
+            onChanged: (v) => setState(() {
+              if (_itemType == ItemType.service) {
+                _expenseAccountId = v;
+              } else {
+                _cogsAccountId = v;
+              }
+            }),
+          ),
+        ],
       ],
-    ]);
+    );
   }
 
   String? _nonNegativeNumberValidator(String? v) {
@@ -190,11 +315,15 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
       if (_skuCtrl.text.isNotEmpty) 'sku': _skuCtrl.text.trim(),
       if (_barcodeCtrl.text.isNotEmpty) 'barcode': _barcodeCtrl.text.trim(),
       if (_unitCtrl.text.isNotEmpty) 'unit': _unitCtrl.text.trim(),
-      if (!widget.isEdit && _itemType == ItemType.inventory) 'quantityOnHand': double.tryParse(_qtyCtrl.text) ?? 0,
+      if (!widget.isEdit && _itemType == ItemType.inventory)
+        'quantityOnHand': double.tryParse(_qtyCtrl.text) ?? 0,
       if (_incomeAccountId != null) 'incomeAccountId': _incomeAccountId,
-      if (_inventoryAssetAccountId != null && _itemType == ItemType.inventory) 'inventoryAssetAccountId': _inventoryAssetAccountId,
-      if (_cogsAccountId != null && _itemType != ItemType.service) 'cogsAccountId': _cogsAccountId,
-      if (_expenseAccountId != null && _itemType == ItemType.service) 'expenseAccountId': _expenseAccountId,
+      if (_inventoryAssetAccountId != null && _itemType == ItemType.inventory)
+        'inventoryAssetAccountId': _inventoryAssetAccountId,
+      if (_cogsAccountId != null && _itemType != ItemType.service)
+        'cogsAccountId': _cogsAccountId,
+      if (_expenseAccountId != null && _itemType == ItemType.service)
+        'expenseAccountId': _expenseAccountId,
     };
     final ApiResult<ItemModel> result = widget.isEdit
         ? await ref.read(itemsProvider.notifier).updateItem(widget.id!, body)
@@ -203,16 +332,30 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
     setState(() => _loading = false);
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.isEdit ? 'تم تعديل الصنف بنجاح' : 'تم إضافة الصنف بنجاح')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isEdit ? 'تم تعديل الصنف بنجاح' : 'تم إضافة الصنف بنجاح',
+            ),
+          ),
+        );
         context.popOrGo(AppRoutes.items);
       },
-      failure: (e) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: Colors.red)),
+      failure: (e) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      ),
     );
   }
 }
 
 class _AccountDropdown extends StatelessWidget {
-  const _AccountDropdown({required this.label, required this.value, required this.accounts, required this.onChanged, this.validator});
+  const _AccountDropdown({
+    required this.label,
+    required this.value,
+    required this.accounts,
+    required this.onChanged,
+    this.validator,
+  });
   final String label;
   final String? value;
   final List<AccountModel> accounts;
@@ -224,8 +367,18 @@ class _AccountDropdown extends StatelessWidget {
     final safeValue = accounts.any((a) => a.id == value) ? value : null;
     return DropdownButtonFormField<String>(
       initialValue: safeValue,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
-      items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text('${a.code} - ${a.name}'))).toList(),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      items: accounts
+          .map(
+            (a) => DropdownMenuItem<String>(
+              value: a.id,
+              child: Text('${a.code} - ${a.name}'),
+            ),
+          )
+          .toList(),
       onChanged: onChanged,
       validator: validator,
     );

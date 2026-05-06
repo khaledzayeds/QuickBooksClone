@@ -40,7 +40,10 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
             icon: const Icon(Icons.refresh),
           ),
           _ActionsMenu(onComingSoon: _showComingSoon),
-          _NewItemMenu(onCreate: (type) => context.go('${AppRoutes.itemNew}?type=${type.value}')),
+          _NewItemMenu(
+            onCreate: (type) =>
+                context.go('${AppRoutes.itemNew}?type=${type.value}'),
+          ),
           const SizedBox(width: 12),
         ],
       ),
@@ -57,9 +60,16 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
           final active = list.where((i) => i.isActive).length;
           final inactive = list.length - active;
           final inventory = list.where((i) => i.isInventory).toList();
-          final stockValue = inventory.fold<double>(0, (sum, item) => sum + item.inventoryValue);
-          final missingPosting = list.where((i) => !i.hasRequiredPostingAccounts).length;
-          final lowOrZeroStock = inventory.where((i) => i.quantityOnHand <= 0).length;
+          final stockValue = inventory.fold<double>(
+            0,
+            (sum, item) => sum + item.inventoryValue,
+          );
+          final missingPosting = list
+              .where((i) => !i.hasRequiredPostingAccounts)
+              .length;
+          final lowOrZeroStock = inventory
+              .where((i) => i.quantityOnHand <= 0)
+              .length;
 
           return Column(
             children: [
@@ -68,23 +78,54 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Inventory Center', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    Text(
+                      'Inventory Center',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       'Manage inventory parts, non-inventory parts, services, and bundle/group items with QuickBooks-style posting behavior.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
                       children: [
-                        _SummaryChip(icon: Icons.inventory_2_outlined, label: 'Items', value: list.length.toString()),
-                        _SummaryChip(icon: Icons.check_circle_outline, label: 'Active', value: active.toString()),
-                        _SummaryChip(icon: Icons.block_outlined, label: 'Inactive', value: inactive.toString()),
-                        _SummaryChip(icon: Icons.warehouse_outlined, label: 'Stock value', value: '${stockValue.toStringAsFixed(2)} EGP'),
-                        _SummaryChip(icon: Icons.warning_amber_outlined, label: 'Missing accounts', value: missingPosting.toString()),
-                        _SummaryChip(icon: Icons.inventory_outlined, label: 'Zero/low stock', value: lowOrZeroStock.toString()),
+                        _SummaryChip(
+                          icon: Icons.inventory_2_outlined,
+                          label: 'Items',
+                          value: list.length.toString(),
+                        ),
+                        _SummaryChip(
+                          icon: Icons.check_circle_outline,
+                          label: 'Active',
+                          value: active.toString(),
+                        ),
+                        _SummaryChip(
+                          icon: Icons.block_outlined,
+                          label: 'Inactive',
+                          value: inactive.toString(),
+                        ),
+                        _SummaryChip(
+                          icon: Icons.warehouse_outlined,
+                          label: 'Stock value',
+                          value: '${stockValue.toStringAsFixed(2)} EGP',
+                        ),
+                        _SummaryChip(
+                          icon: Icons.warning_amber_outlined,
+                          label: 'Missing accounts',
+                          value: missingPosting.toString(),
+                        ),
+                        _SummaryChip(
+                          icon: Icons.inventory_outlined,
+                          label: 'Zero/low stock',
+                          value: lowOrZeroStock.toString(),
+                        ),
                       ],
                     ),
                   ],
@@ -95,13 +136,28 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final wide = constraints.maxWidth >= 900;
-                    final search = ItemSearchBar(onChanged: (v) => ref.read(itemsProvider.notifier).setSearch(v));
+                    final search = ItemSearchBar(
+                      onChanged: (v) =>
+                          ref.read(itemsProvider.notifier).setSearch(v),
+                    );
                     final type = DropdownButtonFormField<int?>(
                       initialValue: _selectedType,
-                      decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder(), isDense: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Type',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('All item types')),
-                        ...ItemType.values.map((t) => DropdownMenuItem(value: t.value, child: Text(t.label))),
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('All item types'),
+                        ),
+                        ...ItemType.values.map(
+                          (t) => DropdownMenuItem<int?>(
+                            value: t.value,
+                            child: Text(t.label),
+                          ),
+                        ),
                       ],
                       onChanged: (v) {
                         setState(() => _selectedType = v);
@@ -118,26 +174,49 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                       },
                     );
 
-                    if (!wide) return Column(children: [search, const SizedBox(height: 10), type, inactiveSwitch]);
-                    return Row(children: [Expanded(flex: 2, child: search), const SizedBox(width: 12), SizedBox(width: 280, child: type), const SizedBox(width: 12), SizedBox(width: 220, child: inactiveSwitch)]);
+                    if (!wide)
+                      return Column(
+                        children: [
+                          search,
+                          const SizedBox(height: 10),
+                          type,
+                          inactiveSwitch,
+                        ],
+                      );
+                    return Row(
+                      children: [
+                        Expanded(flex: 2, child: search),
+                        const SizedBox(width: 12),
+                        SizedBox(width: 280, child: type),
+                        const SizedBox(width: 12),
+                        SizedBox(width: 220, child: inactiveSwitch),
+                      ],
+                    );
                   },
                 ),
               ),
-              _TypeTabs(selectedType: _selectedType, onChanged: (type) {
-                setState(() => _selectedType = type?.value);
-                ref.read(itemsProvider.notifier).setTypeFilter(type?.value);
-              }),
+              _TypeTabs(
+                selectedType: _selectedType,
+                onChanged: (type) {
+                  setState(() => _selectedType = type?.value);
+                  ref.read(itemsProvider.notifier).setTypeFilter(type?.value);
+                },
+              ),
               const Divider(height: 1),
               Expanded(
                 child: list.isEmpty
                     ? EmptyStateWidget(
                         icon: Icons.inventory_2_outlined,
                         message: 'No items found',
-                        description: 'Create a new item or import a list from Excel later.',
+                        description:
+                            'Create a new item or import a list from Excel later.',
                         actionLabel: 'New Item',
                         onAction: () => context.go(AppRoutes.itemNew),
                       )
-                    : _GroupedItemList(items: list, onToggleActive: _toggleActive),
+                    : _GroupedItemList(
+                        items: list,
+                        onToggleActive: _toggleActive,
+                      ),
               ),
             ],
           );
@@ -147,23 +226,35 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
   }
 
   void _showComingSoon(String title) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$title is scheduled in the Items productivity backlog.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$title is scheduled in the Items productivity backlog.'),
+      ),
+    );
   }
 
   Future<void> _toggleActive(ItemModel item) async {
     final confirmed = await showConfirmDialog(
       context: context,
       title: item.isActive ? 'Make item inactive' : 'Make item active',
-      message: item.isActive ? 'Make "${item.name}" inactive?' : 'Make "${item.name}" active?',
+      message: item.isActive
+          ? 'Make "${item.name}" inactive?'
+          : 'Make "${item.name}" active?',
     );
     if (confirmed != true || !mounted) return;
 
-    final ApiResult<ItemModel> result = await ref.read(itemsProvider.notifier).toggleActive(item.id, !item.isActive);
+    final ApiResult<ItemModel> result = await ref
+        .read(itemsProvider.notifier)
+        .toggleActive(item.id, !item.isActive);
 
     if (!mounted) return;
     result.when(
       success: (_) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(item.isActive ? 'Item made inactive' : 'Item made active')),
+        SnackBar(
+          content: Text(
+            item.isActive ? 'Item made inactive' : 'Item made active',
+          ),
+        ),
       ),
       failure: (e) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message), backgroundColor: Colors.red),
@@ -190,26 +281,46 @@ class _GroupedItemList extends StatelessWidget {
       itemCount: ordered.length,
       itemBuilder: (context, groupIndex) {
         final type = ordered[groupIndex];
-        final groupItems = grouped[type]!..sort((a, b) => a.name.compareTo(b.name));
-        final groupValue = groupItems.fold<double>(0, (sum, item) => sum + item.inventoryValue);
-        final missing = groupItems.where((item) => !item.hasRequiredPostingAccounts).length;
+        final groupItems = grouped[type]!
+          ..sort((a, b) => a.name.compareTo(b.name));
+        final groupValue = groupItems.fold<double>(
+          0,
+          (sum, item) => sum + item.inventoryValue,
+        );
+        final missing = groupItems
+            .where((item) => !item.hasRequiredPostingAccounts)
+            .length;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 14),
           child: ExpansionTile(
             initiallyExpanded: true,
-            title: Text(type.label, style: const TextStyle(fontWeight: FontWeight.w900)),
-            subtitle: Text('${groupItems.length} items${groupValue > 0 ? ' • ${groupValue.toStringAsFixed(2)} EGP stock value' : ''}${missing > 0 ? ' • $missing missing account links' : ''}'),
+            title: Text(
+              type.label,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              '${groupItems.length} items${groupValue > 0 ? ' • ${groupValue.toStringAsFixed(2)} EGP stock value' : ''}${missing > 0 ? ' • $missing missing account links' : ''}',
+            ),
             children: groupItems
-                .map((item) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      child: ItemCard(
-                        item: item,
-                        onTap: () => context.go(AppRoutes.itemDetails.replaceFirst(':id', item.id)),
-                        onEdit: () => context.go(AppRoutes.itemEdit.replaceFirst(':id', item.id)),
-                        onToggleActive: () => onToggleActive(item),
+                .map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    child: ItemCard(
+                      item: item,
+                      onTap: () => context.go(
+                        AppRoutes.itemDetails.replaceFirst(':id', item.id),
                       ),
-                    ))
+                      onEdit: () => context.go(
+                        AppRoutes.itemEdit.replaceFirst(':id', item.id),
+                      ),
+                      onToggleActive: () => onToggleActive(item),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         );
@@ -233,12 +344,22 @@ class _TypeTabs extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
-            child: ChoiceChip(label: const Text('All'), selected: selectedType == null, onSelected: (_) => onChanged(null)),
+            child: ChoiceChip(
+              label: const Text('All'),
+              selected: selectedType == null,
+              onSelected: (_) => onChanged(null),
+            ),
           ),
-          ...ItemType.values.map((type) => Padding(
-                padding: const EdgeInsetsDirectional.only(end: 8),
-                child: ChoiceChip(label: Text(type.label), selected: selectedType == type.value, onSelected: (_) => onChanged(type)),
-              )),
+          ...ItemType.values.map(
+            (type) => Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: ChoiceChip(
+                label: Text(type.label),
+                selected: selectedType == type.value,
+                onSelected: (_) => onChanged(type),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -255,24 +376,36 @@ class _NewItemMenu extends StatelessWidget {
       tooltip: 'New Item',
       onSelected: onCreate,
       itemBuilder: (context) => ItemType.values
-          .map((type) => PopupMenuItem(
-                value: type,
-                child: Row(children: [Icon(_icon(type), size: 18), const SizedBox(width: 10), Text(type.label)]),
-              ))
+          .map(
+            (type) => PopupMenuItem(
+              value: type,
+              child: Row(
+                children: [
+                  Icon(_icon(type), size: 18),
+                  const SizedBox(width: 10),
+                  Text(type.label),
+                ],
+              ),
+            ),
+          )
           .toList(),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: FilledButton.icon(onPressed: null, icon: const Icon(Icons.add_box_outlined), label: const Text('New Item')),
+        child: FilledButton.icon(
+          onPressed: null,
+          icon: const Icon(Icons.add_box_outlined),
+          label: const Text('New Item'),
+        ),
       ),
     );
   }
 
   IconData _icon(ItemType type) => switch (type) {
-        ItemType.inventory => Icons.inventory_2_outlined,
-        ItemType.nonInventory => Icons.category_outlined,
-        ItemType.service => Icons.design_services_outlined,
-        ItemType.bundle => Icons.widgets_outlined,
-      };
+    ItemType.inventory => Icons.inventory_2_outlined,
+    ItemType.nonInventory => Icons.category_outlined,
+    ItemType.service => Icons.design_services_outlined,
+    ItemType.bundle => Icons.widgets_outlined,
+  };
 }
 
 class _ActionsMenu extends StatelessWidget {
@@ -285,15 +418,51 @@ class _ActionsMenu extends StatelessWidget {
       tooltip: 'Item actions',
       onSelected: onComingSoon,
       itemBuilder: (context) => const [
-        PopupMenuItem(value: 'Add/Edit Multiple Items', child: _MenuRow(icon: Icons.grid_on_outlined, label: 'Add/Edit Multiple Items')),
-        PopupMenuItem(value: 'Import Items from Excel/CSV', child: _MenuRow(icon: Icons.upload_file_outlined, label: 'Import Items from Excel/CSV')),
-        PopupMenuItem(value: 'Export Items to Excel/CSV', child: _MenuRow(icon: Icons.download_outlined, label: 'Export Items to Excel/CSV')),
-        PopupMenuItem(value: 'Download Import Template', child: _MenuRow(icon: Icons.description_outlined, label: 'Download Import Template')),
-        PopupMenuItem(value: 'Change Item Prices', child: _MenuRow(icon: Icons.price_change_outlined, label: 'Change Item Prices')),
+        PopupMenuItem(
+          value: 'Add/Edit Multiple Items',
+          child: _MenuRow(
+            icon: Icons.grid_on_outlined,
+            label: 'Add/Edit Multiple Items',
+          ),
+        ),
+        PopupMenuItem(
+          value: 'Import Items from Excel/CSV',
+          child: _MenuRow(
+            icon: Icons.upload_file_outlined,
+            label: 'Import Items from Excel/CSV',
+          ),
+        ),
+        PopupMenuItem(
+          value: 'Export Items to Excel/CSV',
+          child: _MenuRow(
+            icon: Icons.download_outlined,
+            label: 'Export Items to Excel/CSV',
+          ),
+        ),
+        PopupMenuItem(
+          value: 'Download Import Template',
+          child: _MenuRow(
+            icon: Icons.description_outlined,
+            label: 'Download Import Template',
+          ),
+        ),
+        PopupMenuItem(
+          value: 'Change Item Prices',
+          child: _MenuRow(
+            icon: Icons.price_change_outlined,
+            label: 'Change Item Prices',
+          ),
+        ),
       ],
       child: const Padding(
         padding: EdgeInsets.symmetric(horizontal: 8),
-        child: Row(children: [Icon(Icons.more_vert), SizedBox(width: 4), Text('Actions')]),
+        child: Row(
+          children: [
+            Icon(Icons.more_vert),
+            SizedBox(width: 4),
+            Text('Actions'),
+          ],
+        ),
       ),
     );
   }
@@ -306,12 +475,18 @@ class _MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [Icon(icon, size: 18), const SizedBox(width: 10), Text(label)]);
+    return Row(
+      children: [Icon(icon, size: 18), const SizedBox(width: 10), Text(label)],
+    );
   }
 }
 
 class _SummaryChip extends StatelessWidget {
-  const _SummaryChip({required this.icon, required this.label, required this.value});
+  const _SummaryChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -321,10 +496,18 @@ class _SummaryChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon, size: 18, color: cs.primary), const SizedBox(width: 8), Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w700)), Text(value)],
+        children: [
+          Icon(icon, size: 18, color: cs.primary),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(value),
+        ],
       ),
     );
   }

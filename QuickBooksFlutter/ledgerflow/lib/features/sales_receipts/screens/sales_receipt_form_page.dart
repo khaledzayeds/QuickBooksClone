@@ -28,7 +28,8 @@ class SalesReceiptFormPage extends ConsumerStatefulWidget {
   const SalesReceiptFormPage({super.key});
 
   @override
-  ConsumerState<SalesReceiptFormPage> createState() => _SalesReceiptFormPageState();
+  ConsumerState<SalesReceiptFormPage> createState() =>
+      _SalesReceiptFormPageState();
 }
 
 class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
@@ -76,28 +77,63 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   double get _subtotal => _lines.fold(0, (sum, line) => sum + line.amount);
 
   TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
-        subtotal: _preview?.subtotal ?? _subtotal,
-        discountTotal: _preview?.discountTotal ?? 0,
-        taxTotal: _preview?.taxTotal ?? 0,
-        total: _preview?.total ?? _subtotal,
-        paid: _preview?.paidAmount ?? _subtotal,
-        balanceDue: _preview?.balanceDue ?? 0,
-        currency: _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP',
-      );
+    subtotal: _preview?.subtotal ?? _subtotal,
+    discountTotal: _preview?.discountTotal ?? 0,
+    taxTotal: _preview?.taxTotal ?? 0,
+    total: _preview?.total ?? _subtotal,
+    paid: _preview?.paidAmount ?? _subtotal,
+    balanceDue: _preview?.balanceDue ?? 0,
+    currency:
+        _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP',
+  );
 
   List<TransactionContextMetric> get _contextMetrics {
-    final currency = _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP';
+    final currency =
+        _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP';
     return [
       if (_customerActivity != null) ...[
-        TransactionContextMetric(label: 'Open balance', value: '${_customerActivity!.openBalance.toStringAsFixed(2)} $currency', icon: Icons.receipt_long_outlined),
-        TransactionContextMetric(label: 'Credits', value: '${_customerActivity!.creditBalance.toStringAsFixed(2)} $currency', icon: Icons.credit_score_outlined),
+        TransactionContextMetric(
+          label: 'Open balance',
+          value:
+              '${_customerActivity!.openBalance.toStringAsFixed(2)} $currency',
+          icon: Icons.receipt_long_outlined,
+        ),
+        TransactionContextMetric(
+          label: 'Credits',
+          value:
+              '${_customerActivity!.creditBalance.toStringAsFixed(2)} $currency',
+          icon: Icons.credit_score_outlined,
+        ),
       ] else if (_selectedCustomer != null) ...[
-        TransactionContextMetric(label: 'Open balance', value: '${_selectedCustomer!.balance.toStringAsFixed(2)} $currency', icon: Icons.receipt_long_outlined),
-        TransactionContextMetric(label: 'Credits', value: '${_selectedCustomer!.creditBalance.toStringAsFixed(2)} $currency', icon: Icons.credit_score_outlined),
+        TransactionContextMetric(
+          label: 'Open balance',
+          value: '${_selectedCustomer!.balance.toStringAsFixed(2)} $currency',
+          icon: Icons.receipt_long_outlined,
+        ),
+        TransactionContextMetric(
+          label: 'Credits',
+          value:
+              '${_selectedCustomer!.creditBalance.toStringAsFixed(2)} $currency',
+          icon: Icons.credit_score_outlined,
+        ),
       ],
-      TransactionContextMetric(label: 'Receipt total', value: '${_totals.total.toStringAsFixed(2)} ${_totals.currency}', icon: Icons.point_of_sale_outlined),
-      if (_preview != null) TransactionContextMetric(label: 'Tax', value: '${_preview!.taxTotal.toStringAsFixed(2)} ${_totals.currency}', icon: Icons.percent_outlined),
-      if (_selectedDepositAccount != null) TransactionContextMetric(label: 'Deposit', value: _selectedDepositAccount!.name, icon: Icons.account_balance_outlined),
+      TransactionContextMetric(
+        label: 'Receipt total',
+        value: '${_totals.total.toStringAsFixed(2)} ${_totals.currency}',
+        icon: Icons.point_of_sale_outlined,
+      ),
+      if (_preview != null)
+        TransactionContextMetric(
+          label: 'Tax',
+          value: '${_preview!.taxTotal.toStringAsFixed(2)} ${_totals.currency}',
+          icon: Icons.percent_outlined,
+        ),
+      if (_selectedDepositAccount != null)
+        TransactionContextMetric(
+          label: 'Deposit',
+          value: _selectedDepositAccount!.name,
+          icon: Icons.account_balance_outlined,
+        ),
     ];
   }
 
@@ -105,9 +141,36 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     final activity = _customerActivity;
     if (activity == null) return const [];
     final rows = <TransactionContextActivity>[];
-    rows.addAll(activity.recentSalesReceipts.map((x) => TransactionContextActivity(title: 'Receipt ${x.number}', subtitle: _formatDate(x.date), amount: '${x.totalAmount.toStringAsFixed(2)} ${activity.currency}', status: 'Paid')));
-    rows.addAll(activity.recentInvoices.map((x) => TransactionContextActivity(title: 'Invoice ${x.number}', subtitle: _formatDate(x.date), amount: '${x.balanceDue.toStringAsFixed(2)} ${activity.currency}', status: 'Balance')));
-    rows.addAll(activity.recentPayments.map((x) => TransactionContextActivity(title: 'Payment ${x.number}', subtitle: '${_formatDate(x.paymentDate)} • ${x.paymentMethod}', amount: '${x.amount.toStringAsFixed(2)} ${activity.currency}', status: 'Payment')));
+    rows.addAll(
+      activity.recentSalesReceipts.map(
+        (x) => TransactionContextActivity(
+          title: 'Receipt ${x.number}',
+          subtitle: _formatDate(x.date),
+          amount: '${x.totalAmount.toStringAsFixed(2)} ${activity.currency}',
+          status: 'Paid',
+        ),
+      ),
+    );
+    rows.addAll(
+      activity.recentInvoices.map(
+        (x) => TransactionContextActivity(
+          title: 'Invoice ${x.number}',
+          subtitle: _formatDate(x.date),
+          amount: '${x.balanceDue.toStringAsFixed(2)} ${activity.currency}',
+          status: 'Balance',
+        ),
+      ),
+    );
+    rows.addAll(
+      activity.recentPayments.map(
+        (x) => TransactionContextActivity(
+          title: 'Payment ${x.number}',
+          subtitle: '${_formatDate(x.paymentDate)} • ${x.paymentMethod}',
+          amount: '${x.amount.toStringAsFixed(2)} ${activity.currency}',
+          status: 'Payment',
+        ),
+      ),
+    );
     return rows.take(8).toList();
   }
 
@@ -117,7 +180,8 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       ...?_customerActivity?.warnings,
       ...?_preview?.warnings,
     ];
-    if (_depositAccountId == null) warnings.add('Deposit account is not selected.');
+    if (_depositAccountId == null)
+      warnings.add('Deposit account is not selected.');
     if (warnings.isEmpty) return null;
     return warnings.take(4).join('\n');
   }
@@ -126,11 +190,15 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     _dateCtrl.text = _formatDate(_receiptDate);
   }
 
-  List<TransactionLineEntry> _validLines() => _lines.where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0).toList();
+  List<TransactionLineEntry> _validLines() => _lines
+      .where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0)
+      .toList();
 
   Future<void> _loadCustomerActivity(String customerId) async {
     setState(() => _loadingActivity = true);
-    final result = await ref.read(invoicesRepoProvider).getCustomerActivity(customerId, limit: 5);
+    final result = await ref
+        .read(invoicesRepoProvider)
+        .getCustomerActivity(customerId, limit: 5);
     if (!mounted) return;
     setState(() => _loadingActivity = false);
     result.when(
@@ -162,12 +230,16 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       depositAccountId: _depositAccountId!,
       paymentMethod: _paymentMethod,
       lines: validLines
-          .map((line) => PreviewSalesLineDto(
-                itemId: line.itemId!,
-                description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
-                quantity: line.qty,
-                unitPrice: line.rate,
-              ))
+          .map(
+            (line) => PreviewSalesLineDto(
+              itemId: line.itemId!,
+              description: line.descCtrl.text.trim().isEmpty
+                  ? line.itemName
+                  : line.descCtrl.text.trim(),
+              quantity: line.qty,
+              unitPrice: line.rate,
+            ),
+          )
           .toList(),
     );
     final result = await ref.read(salesReceiptsRepoProvider).preview(dto);
@@ -176,7 +248,9 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     result.when(
       success: (preview) {
         setState(() => _preview = preview);
-        _showInfo('Preview updated: ${preview.total.toStringAsFixed(2)} ${_totals.currency}');
+        _showInfo(
+          'Preview updated: ${preview.total.toStringAsFixed(2)} ${_totals.currency}',
+        );
       },
       failure: (error) => _showError(error.message),
     );
@@ -209,7 +283,9 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
           .map(
             (line) => CreateSalesReceiptLineDto(
               itemId: line.itemId!,
-              description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
+              description: line.descCtrl.text.trim().isEmpty
+                  ? line.itemName
+                  : line.descCtrl.text.trim(),
               quantity: line.qty,
               unitPrice: line.rate,
             ),
@@ -223,7 +299,9 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       result.when(
         success: (_) {
           ref.read(salesReceiptsStateProvider.notifier).refresh();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.salesReceiptCreatedSuccess)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.salesReceiptCreatedSuccess)),
+          );
           if (context.canPop()) {
             context.pop();
           } else {
@@ -237,12 +315,24 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     }
   }
 
-  void _showError(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error));
+  void _showError(String message) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Theme.of(context).colorScheme.error,
+    ),
+  );
 
-  void _showInfo(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  void _showInfo(String message) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _pickReceiptDate() async {
-    final picked = await showDatePicker(context: context, initialDate: _receiptDate, firstDate: DateTime(2020), lastDate: DateTime(2035));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _receiptDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
     if (picked == null) return;
     setState(() {
       _receiptDate = picked;
@@ -273,13 +363,20 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                     return ListTile(
                       leading: const Icon(Icons.person_outline),
                       title: Text(customer.displayName),
-                      subtitle: Text('Balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)}'),
+                      subtitle: Text(
+                        'Balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)}',
+                      ),
                       onTap: () => Navigator.of(context).pop(customer),
                     );
                   },
                 ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
 
@@ -296,7 +393,14 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   Future<void> _selectDepositAccount() async {
     final accountsAsync = ref.read(accountsProvider);
     final accounts = accountsAsync.maybeWhen(
-      data: (items) => items.where((account) => account.isActive && (account.accountType == AccountType.bank || account.accountType == AccountType.otherCurrentAsset)).toList(),
+      data: (items) => items
+          .where(
+            (account) =>
+                account.isActive &&
+                (account.accountType == AccountType.bank ||
+                    account.accountType == AccountType.otherCurrentAsset),
+          )
+          .toList(),
       orElse: () => const <AccountModel>[],
     );
 
@@ -322,7 +426,12 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                   },
                 ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
 
@@ -336,23 +445,23 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   }
 
   void _clearCustomer() => setState(() {
-        _selectedCustomer = null;
-        _customerActivity = null;
-        _preview = null;
-        _customerCtrl.clear();
-      });
+    _selectedCustomer = null;
+    _customerActivity = null;
+    _preview = null;
+    _customerCtrl.clear();
+  });
 
   void _clearDepositAccount() => setState(() {
-        _selectedDepositAccount = null;
-        _depositAccountId = null;
-        _depositAccountCtrl.clear();
-        _preview = null;
-      });
+    _selectedDepositAccount = null;
+    _depositAccountId = null;
+    _depositAccountCtrl.clear();
+    _preview = null;
+  });
 
   void _addLine() => setState(() {
-        _preview = null;
-        _lines.add(TransactionLineEntry());
-      });
+    _preview = null;
+    _lines.add(TransactionLineEntry());
+  });
 
   void _clearLines() {
     if (_lines.length == 1 && _lines.first.itemId == null) return;
@@ -383,19 +492,40 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
 
     return TransactionKeyboardShortcuts(
       onAddLine: _addLine,
-      onFocusBarcode: () => _showInfo('F4 barcode focus will be connected to the new grid focus node.'),
-      onPreviousQuantity: () => _showInfo('F5 previous quantity jump will be wired when editable transaction grid replaces the legacy table.'),
-      onLookup: () => _showInfo('F7 item lookup is scheduled for the transaction grid.'),
-      onToggleSidePanel: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
+      onFocusBarcode: () => _showInfo(
+        'F4 barcode focus will be connected to the new grid focus node.',
+      ),
+      onPreviousQuantity: () => _showInfo(
+        'F5 previous quantity jump will be wired when editable transaction grid replaces the legacy table.',
+      ),
+      onLookup: () =>
+          _showInfo('F7 item lookup is scheduled for the transaction grid.'),
+      onToggleSidePanel: () =>
+          setState(() => _sidePanelExpanded = !_sidePanelExpanded),
       onSave: _saving ? null : _save,
-      onPrint: () => _showInfo('Print preview will be connected to the print service.'),
+      onPrint: () =>
+          _showInfo('Print preview will be connected to the print service.'),
       onEscape: _cancel,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Sales Receipt — Full Accounting Mode'),
           actions: [
-            TextButton.icon(onPressed: _previewing ? null : _runPreview, icon: _previewing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.analytics_outlined), label: const Text('Preview')),
-            IconButton(onPressed: _pickReceiptDate, icon: const Icon(Icons.calendar_today_outlined), tooltip: 'Receipt date'),
+            TextButton.icon(
+              onPressed: _previewing ? null : _runPreview,
+              icon: _previewing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.analytics_outlined),
+              label: const Text('Preview'),
+            ),
+            IconButton(
+              onPressed: _pickReceiptDate,
+              icon: const Icon(Icons.calendar_today_outlined),
+              tooltip: 'Receipt date',
+            ),
             const SizedBox(width: 8),
           ],
         ),
@@ -408,45 +538,82 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TransactionHeaderPanel(kind: TransactionScreenKind.salesReceipt, status: TransactionDocumentStatus.draft, numberController: _numberCtrl, dateController: _dateCtrl, referenceController: _referenceCtrl),
+                    TransactionHeaderPanel(
+                      kind: TransactionScreenKind.salesReceipt,
+                      status: TransactionDocumentStatus.draft,
+                      numberController: _numberCtrl,
+                      dateController: _dateCtrl,
+                      referenceController: _referenceCtrl,
+                    ),
                     const SizedBox(height: 12),
                     TransactionPartySelector(
                       partyType: TransactionPartyType.customer,
                       label: l10n.customer,
                       controller: _customerCtrl,
                       selectedDisplayName: _selectedCustomer?.displayName,
-                      balanceText: _selectedCustomer == null ? null : 'Balance: ${(_customerActivity?.openBalance ?? _selectedCustomer!.balance).toStringAsFixed(2)} ${_customerActivity?.currency ?? _selectedCustomer!.currency}',
-                      creditText: _selectedCustomer == null ? null : 'Credits: ${(_customerActivity?.creditBalance ?? _selectedCustomer!.creditBalance).toStringAsFixed(2)} ${_customerActivity?.currency ?? _selectedCustomer!.currency}',
+                      balanceText: _selectedCustomer == null
+                          ? null
+                          : 'Balance: ${(_customerActivity?.openBalance ?? _selectedCustomer!.balance).toStringAsFixed(2)} ${_customerActivity?.currency ?? _selectedCustomer!.currency}',
+                      creditText: _selectedCustomer == null
+                          ? null
+                          : 'Credits: ${(_customerActivity?.creditBalance ?? _selectedCustomer!.creditBalance).toStringAsFixed(2)} ${_customerActivity?.currency ?? _selectedCustomer!.currency}',
                       onSearch: _selectCustomer,
                       onClear: _clearCustomer,
                     ),
                     const SizedBox(height: 12),
-                    _PaymentPanel(depositAccountController: _depositAccountCtrl, selectedDepositAccount: _selectedDepositAccount, paymentMethod: _paymentMethod, onSelectDepositAccount: _selectDepositAccount, onClearDepositAccount: _clearDepositAccount, onPaymentMethodChanged: (value) => setState(() {
-                          _paymentMethod = value;
-                          _paymentMethodCtrl.text = value;
-                          _preview = null;
-                        })),
+                    _PaymentPanel(
+                      depositAccountController: _depositAccountCtrl,
+                      selectedDepositAccount: _selectedDepositAccount,
+                      paymentMethod: _paymentMethod,
+                      onSelectDepositAccount: _selectDepositAccount,
+                      onClearDepositAccount: _clearDepositAccount,
+                      onPaymentMethodChanged: (value) => setState(() {
+                        _paymentMethod = value;
+                        _paymentMethodCtrl.text = value;
+                        _preview = null;
+                      }),
+                    ),
                     const SizedBox(height: 18),
                     Row(
                       children: [
-                        Text(l10n.items, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                        Text(
+                          l10n.items,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Chip(label: Text('${_lines.length} lines')),
                         if (_preview != null) ...[
                           const SizedBox(width: 8),
-                          const Chip(label: Text('Preview ready'), avatar: Icon(Icons.check_circle_outline, size: 18)),
+                          const Chip(
+                            label: Text('Preview ready'),
+                            avatar: Icon(Icons.check_circle_outline, size: 18),
+                          ),
                         ],
                         const Spacer(),
-                        TextButton.icon(onPressed: _addLine, icon: const Icon(Icons.add), label: const Text('Add line')),
+                        TextButton.icon(
+                          onPressed: _addLine,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add line'),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: cs.outlineVariant)),
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
                       clipBehavior: Clip.antiAlias,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: TransactionLineTable(lines: _lines, priceMode: TransactionLinePriceMode.sales, onChanged: () => setState(() => _preview = null)),
+                        child: TransactionLineTable(
+                          lines: _lines,
+                          priceMode: TransactionLinePriceMode.sales,
+                          onChanged: () => setState(() => _preview = null),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -457,24 +624,49 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
             ),
             TransactionContextSidePanel(
               expanded: _sidePanelExpanded,
-              onToggle: () => setState(() => _sidePanelExpanded = !_sidePanelExpanded),
+              onToggle: () =>
+                  setState(() => _sidePanelExpanded = !_sidePanelExpanded),
               title: _selectedCustomer?.displayName ?? 'Customer context',
-              subtitle: _loadingActivity ? 'Loading customer activity...' : (_selectedCustomer == null ? 'Select a customer to show balances and recent activity.' : 'Sales receipt customer snapshot'),
+              subtitle: _loadingActivity
+                  ? 'Loading customer activity...'
+                  : (_selectedCustomer == null
+                        ? 'Select a customer to show balances and recent activity.'
+                        : 'Sales receipt customer snapshot'),
               warning: _sideWarning,
-              notes: _preview == null ? 'Press Preview to calculate GL, inventory impact, tax, payment, and warnings before posting.' : 'Preview includes ${_preview!.ledgerImpacts.length} ledger impacts and ${_preview!.inventoryImpacts.length} inventory impacts.',
+              notes: _preview == null
+                  ? 'Press Preview to calculate GL, inventory impact, tax, payment, and warnings before posting.'
+                  : 'Preview includes ${_preview!.ledgerImpacts.length} ledger impacts and ${_preview!.inventoryImpacts.length} inventory impacts.',
               metrics: _contextMetrics,
               activities: _contextActivities,
             ),
           ],
         ),
-        bottomNavigationBar: TransactionActionBar(status: TransactionDocumentStatus.draft, loading: _saving, onSaveDraft: null, onSave: _save, onPost: _save, onClear: _clearLines, onVoid: null, onPrintAction: (action) => _showInfo('${action.name} is scheduled for print service wiring.')),
+        bottomNavigationBar: TransactionActionBar(
+          status: TransactionDocumentStatus.draft,
+          loading: _saving,
+          onSaveDraft: null,
+          onSave: _save,
+          onPost: _save,
+          onClear: _clearLines,
+          onVoid: null,
+          onPrintAction: (action) => _showInfo(
+            '${action.name} is scheduled for print service wiring.',
+          ),
+        ),
       ),
     );
   }
 }
 
 class _PaymentPanel extends StatelessWidget {
-  const _PaymentPanel({required this.depositAccountController, required this.selectedDepositAccount, required this.paymentMethod, required this.onSelectDepositAccount, required this.onClearDepositAccount, required this.onPaymentMethodChanged});
+  const _PaymentPanel({
+    required this.depositAccountController,
+    required this.selectedDepositAccount,
+    required this.paymentMethod,
+    required this.onSelectDepositAccount,
+    required this.onClearDepositAccount,
+    required this.onPaymentMethodChanged,
+  });
 
   final TextEditingController depositAccountController;
   final AccountModel? selectedDepositAccount;
@@ -492,7 +684,18 @@ class _PaymentPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [Icon(Icons.payments_outlined, color: cs.primary), const SizedBox(width: 8), const Expanded(child: Text('Payment details', style: TextStyle(fontWeight: FontWeight.w900)))]),
+            Row(
+              children: [
+                Icon(Icons.payments_outlined, color: cs.primary),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Payment details',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -504,7 +707,22 @@ class _PaymentPanel extends StatelessWidget {
                     labelText: 'Deposit account',
                     hintText: 'Select bank or current asset account',
                     prefixIcon: const Icon(Icons.account_balance_outlined),
-                    suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [if (selectedDepositAccount != null) IconButton(onPressed: onClearDepositAccount, icon: const Icon(Icons.clear), tooltip: 'Clear'), IconButton(onPressed: onSelectDepositAccount, icon: const Icon(Icons.search), tooltip: 'Select')]),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (selectedDepositAccount != null)
+                          IconButton(
+                            onPressed: onClearDepositAccount,
+                            icon: const Icon(Icons.clear),
+                            tooltip: 'Clear',
+                          ),
+                        IconButton(
+                          onPressed: onSelectDepositAccount,
+                          icon: const Icon(Icons.search),
+                          tooltip: 'Select',
+                        ),
+                      ],
+                    ),
                     border: const OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -512,20 +730,46 @@ class _PaymentPanel extends StatelessWidget {
                 );
                 final method = DropdownButtonFormField<String>(
                   initialValue: paymentMethod,
-                  decoration: const InputDecoration(labelText: 'Payment method', border: OutlineInputBorder(), prefixIcon: Icon(Icons.credit_card_outlined), isDense: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Payment method',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.credit_card_outlined),
+                    isDense: true,
+                  ),
                   items: const [
-                    DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                    DropdownMenuItem(value: 'Check', child: Text('Check')),
-                    DropdownMenuItem(value: 'BankTransfer', child: Text('Bank Transfer')),
-                    DropdownMenuItem(value: 'CreditCard', child: Text('Credit Card')),
+                    DropdownMenuItem<String>(
+                      value: 'Cash',
+                      child: Text('Cash'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'Check',
+                      child: Text('Check'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'BankTransfer',
+                      child: Text('Bank Transfer'),
+                    ),
+                    DropdownMenuItem<String>(
+                      value: 'CreditCard',
+                      child: Text('Credit Card'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value != null) onPaymentMethodChanged(value);
                   },
                 );
 
-                if (!wide) return Column(children: [deposit, const SizedBox(height: 12), method]);
-                return Row(children: [Expanded(child: deposit), const SizedBox(width: 12), Expanded(child: method)]);
+                if (!wide)
+                  return Column(
+                    children: [deposit, const SizedBox(height: 12), method],
+                  );
+                return Row(
+                  children: [
+                    Expanded(child: deposit),
+                    const SizedBox(width: 12),
+                    Expanded(child: method),
+                  ],
+                );
               },
             ),
           ],
@@ -535,4 +779,5 @@ class _PaymentPanel extends StatelessWidget {
   }
 }
 
-String _formatDate(DateTime date) => '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+String _formatDate(DateTime date) =>
+    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';

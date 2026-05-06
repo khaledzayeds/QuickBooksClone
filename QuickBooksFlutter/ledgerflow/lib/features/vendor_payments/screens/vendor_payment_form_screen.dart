@@ -22,10 +22,12 @@ class VendorPaymentFormScreen extends ConsumerStatefulWidget {
   final String? billId;
 
   @override
-  ConsumerState<VendorPaymentFormScreen> createState() => _VendorPaymentFormScreenState();
+  ConsumerState<VendorPaymentFormScreen> createState() =>
+      _VendorPaymentFormScreenState();
 }
 
-class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScreen> {
+class _VendorPaymentFormScreenState
+    extends ConsumerState<VendorPaymentFormScreen> {
   VendorModel? _selectedVendor;
   PurchaseBillModel? _initialBill;
   List<PurchaseBillModel> _openBills = [];
@@ -62,7 +64,9 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
 
     setState(() => _loadingInitialBill = true);
     try {
-      final result = await ref.read(purchaseBillsRepositoryProvider).getBill(billId);
+      final result = await ref
+          .read(purchaseBillsRepositoryProvider)
+          .getBill(billId);
       if (!mounted) return;
       result.when(
         success: (bill) async {
@@ -103,7 +107,10 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
     _fetchOpenBills(vendor.id);
   }
 
-  Future<void> _fetchOpenBills(String vendorId, {String? preselectBillId}) async {
+  Future<void> _fetchOpenBills(
+    String vendorId, {
+    String? preselectBillId,
+  }) async {
     setState(() => _loadingBills = true);
     try {
       final repo = ref.read(purchaseBillsRepositoryProvider);
@@ -119,10 +126,13 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
 
             _openBills = bills.where((b) => b.canPay).toList();
             for (final bill in _openBills) {
-              _amountControllers[bill.id] = TextEditingController(text: bill.balanceDue.toStringAsFixed(2));
+              _amountControllers[bill.id] = TextEditingController(
+                text: bill.balanceDue.toStringAsFixed(2),
+              );
             }
 
-            if (preselectBillId != null && _openBills.any((bill) => bill.id == preselectBillId)) {
+            if (preselectBillId != null &&
+                _openBills.any((bill) => bill.id == preselectBillId)) {
               _selectedBillIds.add(preselectBillId);
             }
           });
@@ -159,7 +169,9 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
         return;
       }
       if (amount > bill.balanceDue) {
-        _showError('${l10n.amountPaid} > ${bill.balanceDue.toStringAsFixed(2)}');
+        _showError(
+          '${l10n.amountPaid} > ${bill.balanceDue.toStringAsFixed(2)}',
+        );
         return;
       }
       amounts[id] = amount;
@@ -167,7 +179,9 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
 
     setState(() => _saving = true);
     try {
-      final result = await ref.read(vendorPaymentsProvider.notifier).createBatchPayment(
+      final result = await ref
+          .read(vendorPaymentsProvider.notifier)
+          .createBatchPayment(
             billIds: _selectedBillIds.toList(),
             amounts: amounts,
             paymentAccountId: _paymentAccountId!,
@@ -181,7 +195,9 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
           for (final id in _selectedBillIds) {
             ref.invalidate(purchaseBillDetailsProvider(id));
           }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
           if (context.canPop()) {
             context.pop();
           } else if (_selectedBillIds.length == 1) {
@@ -198,7 +214,9 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   @override
@@ -233,7 +251,9 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                                 Expanded(
                                   child: Text(
                                     'Paying ${_initialBill!.billNumber} — Due ${_initialBill!.balanceDue.toStringAsFixed(2)}',
-                                    style: const TextStyle(fontWeight: FontWeight.w800),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -255,7 +275,8 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                             child: _DatePickerField(
                               label: l10n.paymentDate,
                               value: _paymentDate,
-                              onChanged: (d) => setState(() => _paymentDate = d),
+                              onChanged: (d) =>
+                                  setState(() => _paymentDate = d),
                             ),
                           ),
                         ],
@@ -266,13 +287,20 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                           Expanded(
                             child: Consumer(
                               builder: (context, ref, _) {
-                                final accountsAsync = ref.watch(accountsProvider);
+                                final accountsAsync = ref.watch(
+                                  accountsProvider,
+                                );
                                 return accountsAsync.when(
-                                  loading: () => const LinearProgressIndicator(),
+                                  loading: () =>
+                                      const LinearProgressIndicator(),
                                   error: (e, _) => Text(e.toString()),
                                   data: (accounts) {
                                     final paymentAccounts = accounts
-                                        .where((a) => a.accountType.value == 1 || a.accountType.value == 7)
+                                        .where(
+                                          (a) =>
+                                              a.accountType.value == 1 ||
+                                              a.accountType.value == 7,
+                                        )
                                         .toList();
 
                                     return DropdownButtonFormField<String>(
@@ -280,12 +308,20 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                                       decoration: InputDecoration(
                                         labelText: l10n.paymentAccount,
                                         border: const OutlineInputBorder(),
-                                        prefixIcon: const Icon(Icons.account_balance),
+                                        prefixIcon: const Icon(
+                                          Icons.account_balance,
+                                        ),
                                       ),
                                       items: paymentAccounts
-                                          .map((a) => DropdownMenuItem(value: a.id, child: Text(a.name)))
+                                          .map(
+                                            (a) => DropdownMenuItem<String>(
+                                              value: a.id,
+                                              child: Text(a.name),
+                                            ),
+                                          )
                                           .toList(),
-                                      onChanged: (v) => setState(() => _paymentAccountId = v),
+                                      onChanged: (v) =>
+                                          setState(() => _paymentAccountId = v),
                                     );
                                   },
                                 );
@@ -300,10 +336,22 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                                 labelText: l10n.paymentMethod,
                                 border: const OutlineInputBorder(),
                               ),
-                              items: ['Cash', 'Check', 'Credit Card', 'Bank Transfer']
-                                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                                  .toList(),
-                              onChanged: (v) => setState(() => _paymentMethod = v!),
+                              items:
+                                  [
+                                        'Cash',
+                                        'Check',
+                                        'Credit Card',
+                                        'Bank Transfer',
+                                      ]
+                                      .map(
+                                        (m) => DropdownMenuItem<String>(
+                                          value: m,
+                                          child: Text(m),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _paymentMethod = v!),
                             ),
                           ),
                         ],
@@ -316,54 +364,72 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                   child: _loadingBills
                       ? const Center(child: CircularProgressIndicator())
                       : _openBills.isEmpty
-                          ? Center(
-                              child: Text(_selectedVendor == null ? l10n.selectVendorHint : l10n.noRecentTransactions),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.all(24),
-                              itemCount: _openBills.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 8),
-                              itemBuilder: (context, i) {
-                                final bill = _openBills[i];
-                                final isSelected = _selectedBillIds.contains(bill.id);
+                      ? Center(
+                          child: Text(
+                            _selectedVendor == null
+                                ? l10n.selectVendorHint
+                                : l10n.noRecentTransactions,
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(24),
+                          itemCount: _openBills.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (context, i) {
+                            final bill = _openBills[i];
+                            final isSelected = _selectedBillIds.contains(
+                              bill.id,
+                            );
 
-                                return Card(
-                                  elevation: isSelected ? 4 : 1,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(color: isSelected ? cs.primary : Colors.transparent, width: 2),
-                                  ),
-                                  child: CheckboxListTile(
-                                    value: isSelected,
-                                    onChanged: (v) {
-                                      setState(() {
-                                        if (v == true) {
-                                          _selectedBillIds.add(bill.id);
-                                        } else {
-                                          _selectedBillIds.remove(bill.id);
-                                        }
-                                      });
-                                    },
-                                    title: Text('${bill.billNumber} — ${bill.billDate.day}/${bill.billDate.month}/${bill.billDate.year}'),
-                                    subtitle: Text('${l10n.total}: ${bill.totalAmount.toStringAsFixed(2)} • ${l10n.amountDue}: ${bill.balanceDue.toStringAsFixed(2)}'),
-                                    secondary: SizedBox(
-                                      width: 150,
-                                      child: TextField(
-                                        controller: _amountControllers[bill.id],
-                                        enabled: isSelected,
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        textAlign: TextAlign.right,
-                                        decoration: InputDecoration(
-                                          labelText: l10n.amountPaid,
-                                          isDense: true,
-                                          suffixText: l10n.egp,
+                            return Card(
+                              elevation: isSelected ? 4 : 1,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? cs.primary
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                              child: CheckboxListTile(
+                                value: isSelected,
+                                onChanged: (v) {
+                                  setState(() {
+                                    if (v == true) {
+                                      _selectedBillIds.add(bill.id);
+                                    } else {
+                                      _selectedBillIds.remove(bill.id);
+                                    }
+                                  });
+                                },
+                                title: Text(
+                                  '${bill.billNumber} — ${bill.billDate.day}/${bill.billDate.month}/${bill.billDate.year}',
+                                ),
+                                subtitle: Text(
+                                  '${l10n.total}: ${bill.totalAmount.toStringAsFixed(2)} • ${l10n.amountDue}: ${bill.balanceDue.toStringAsFixed(2)}',
+                                ),
+                                secondary: SizedBox(
+                                  width: 150,
+                                  child: TextField(
+                                    controller: _amountControllers[bill.id],
+                                    enabled: isSelected,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
                                         ),
-                                      ),
+                                    textAlign: TextAlign.right,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.amountPaid,
+                                      isDense: true,
+                                      suffixText: l10n.egp,
                                     ),
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -373,7 +439,10 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: cs.outlineVariant))),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: cs.outlineVariant)),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -384,7 +453,10 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                 Text(l10n.totalPayment, style: theme.textTheme.labelSmall),
                 Text(
                   '${_calculateTotal().toStringAsFixed(2)} ${l10n.egp}',
-                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: cs.primary),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.primary,
+                  ),
                 ),
               ],
             ),
@@ -404,10 +476,16 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
                 ElevatedButton.icon(
                   onPressed: _saving ? null : _save,
                   icon: _saving
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.payments_outlined),
                   label: Text(l10n.payBills),
-                  style: ElevatedButton.styleFrom(minimumSize: const Size(140, 48)),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(140, 48),
+                  ),
                 ),
               ],
             ),
@@ -427,7 +505,11 @@ class _VendorPaymentFormScreenState extends ConsumerState<VendorPaymentFormScree
 }
 
 class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({required this.label, required this.value, required this.onChanged});
+  const _DatePickerField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
   final String label;
   final DateTime value;
   final ValueChanged<DateTime> onChanged;

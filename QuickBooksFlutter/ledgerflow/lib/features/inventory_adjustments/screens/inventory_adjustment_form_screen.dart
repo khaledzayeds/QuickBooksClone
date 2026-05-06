@@ -207,7 +207,7 @@ class _AdjustmentCard extends ConsumerWidget {
               ),
               items: inventoryItems
                   .map(
-                    (item) => DropdownMenuItem(
+                    (ItemModel item) => DropdownMenuItem<String>(
                       value: item.id,
                       child: Text(
                         '${item.name} • ${l10n.stock}: ${item.quantityOnHand.toStringAsFixed(2)}',
@@ -237,7 +237,7 @@ class _AdjustmentCard extends ConsumerWidget {
               ),
               items: adjustmentAccounts
                   .map(
-                    (account) => DropdownMenuItem(
+                    (AccountModel account) => DropdownMenuItem<String>(
                       value: account.id,
                       child: Text('${account.code} - ${account.name}'),
                     ),

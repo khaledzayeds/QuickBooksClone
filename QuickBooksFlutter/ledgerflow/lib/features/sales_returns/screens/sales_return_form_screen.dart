@@ -39,8 +39,12 @@ class SalesReturnFormState {
   double get total => lines.fold(0, (sum, line) => sum + line.total);
 }
 
-final salesReturnFormProvider = StateProvider.autoDispose<SalesReturnFormState>((ref) => SalesReturnFormState());
-final salesReturnSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final salesReturnFormProvider = StateProvider.autoDispose<SalesReturnFormState>(
+  (ref) => SalesReturnFormState(),
+);
+final salesReturnSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 
 class SalesReturnFormScreen extends ConsumerWidget {
   const SalesReturnFormScreen({super.key});
@@ -56,14 +60,22 @@ class SalesReturnFormScreen extends ConsumerWidget {
         title: const Text('مرتجع بيع جديد'),
         actions: [
           TextButton(
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go(AppRoutes.salesReturns),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.salesReturns),
             child: const Text('إلغاء'),
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: saving ? null : () => _save(context, ref),
             icon: saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: const Text('حفظ المرتجع'),
           ),
@@ -77,7 +89,10 @@ class SalesReturnFormScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           _LinesCard(form: form),
           const SizedBox(height: 24),
-          Align(alignment: AlignmentDirectional.centerEnd, child: _TotalCard(total: form.total)),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: _TotalCard(total: form.total),
+          ),
         ],
       ),
     );
@@ -126,7 +141,9 @@ class SalesReturnFormScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ مرتجع البيع وترحيله بنجاح')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ مرتجع البيع وترحيله بنجاح')),
+        );
         context.go(AppRoutes.salesReturns);
       },
       failure: (error) => _error(context, error.message),
@@ -137,7 +154,9 @@ class SalesReturnFormScreen extends ConsumerWidget {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
 
@@ -150,10 +169,14 @@ class _InvoiceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final invoices = invoicesAsync.maybeWhen(
-      data: (data) => data.where((invoice) => !invoice.isVoid && invoice.lines.isNotEmpty).toList(),
+      data: (data) => data
+          .where((invoice) => !invoice.isVoid && invoice.lines.isNotEmpty)
+          .toList(),
       orElse: () => <InvoiceModel>[],
     );
-    final selected = invoices.where((invoice) => invoice.id == form.invoiceId).firstOrNull;
+    final selected = invoices
+        .where((invoice) => invoice.id == form.invoiceId)
+        .firstOrNull;
 
     return Card(
       child: Padding(
@@ -168,15 +191,19 @@ class _InvoiceCard extends ConsumerWidget {
                 prefixIcon: Icon(Icons.receipt_long_outlined),
               ),
               items: invoices
-                  .map(
-                    (invoice) => DropdownMenuItem(
+                  .map<DropdownMenuItem<String>>(
+                    (InvoiceModel invoice) => DropdownMenuItem<String>(
                       value: invoice.id,
-                      child: Text('${invoice.invoiceNumber} - ${invoice.customerName ?? ''} - ${invoice.totalAmount.toStringAsFixed(2)}'),
+                      child: Text(
+                        '${invoice.invoiceNumber} - ${invoice.customerName ?? ''} - ${invoice.totalAmount.toStringAsFixed(2)}',
+                      ),
                     ),
                   )
                   .toList(),
               onChanged: (value) {
-                final invoice = invoices.where((item) => item.id == value).firstOrNull;
+                final invoice = invoices
+                    .where((item) => item.id == value)
+                    .firstOrNull;
                 final newState = SalesReturnFormState()
                   ..invoiceId = value
                   ..returnDate = form.returnDate
@@ -184,7 +211,9 @@ class _InvoiceCard extends ConsumerWidget {
                       .map(
                         (line) => SalesReturnLineState(
                           invoiceLineId: line.id,
-                          description: line.description.isEmpty ? line.itemId : line.description,
+                          description: line.description.isEmpty
+                              ? line.itemId
+                              : line.description,
                           originalQuantity: line.quantity,
                           unitPrice: line.unitPrice,
                           discountPercent: line.discountPercent,
@@ -241,7 +270,10 @@ class _LinesCard extends ConsumerWidget {
               ],
             ),
             const Divider(),
-            ...form.lines.asMap().entries.map((entry) => _LineRow(index: entry.key, line: entry.value, form: form)),
+            ...form.lines.asMap().entries.map(
+              (entry) =>
+                  _LineRow(index: entry.key, line: entry.value, form: form),
+            ),
           ],
         ),
       ),
@@ -268,9 +300,16 @@ class _LineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: TextFormField(
-                initialValue: line.quantity == 0 ? '' : line.quantity.toString(),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                initialValue: line.quantity == 0
+                    ? ''
+                    : line.quantity.toString(),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
                 onChanged: (value) {
                   form.lines[index].quantity = double.tryParse(value) ?? 0;
                   _update(ref, form);
@@ -300,8 +339,16 @@ class _TotalCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('إجمالي المرتجع', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(total.toStringAsFixed(2), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+              const Text(
+                'إجمالي المرتجع',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                total.toStringAsFixed(2),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ),
             ],
           ),
         ),

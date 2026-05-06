@@ -40,7 +40,9 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
 
   Future<void> _loadCustomer() async {
     setState(() => _loadingCustomer = true);
-    final result = await ref.read(customersRepositoryProvider).getCustomer(widget.id!);
+    final result = await ref
+        .read(customersRepositoryProvider)
+        .getCustomer(widget.id!);
     if (!mounted) return;
     result.when(
       success: (customer) {
@@ -56,7 +58,9 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       },
       failure: (error) {
         setState(() => _loadingCustomer = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+        );
       },
     );
   }
@@ -81,7 +85,9 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
         title: Text(widget.isEdit ? 'Edit Customer' : 'New Customer'),
         actions: [
           TextButton.icon(
-            onPressed: _loading ? null : () => context.popOrGo(AppRoutes.customers),
+            onPressed: _loading
+                ? null
+                : () => context.popOrGo(AppRoutes.customers),
             icon: const Icon(Icons.close),
             label: const Text('Cancel'),
           ),
@@ -103,17 +109,34 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                         children: [
                           Row(
                             children: [
-                              CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(Icons.person_outline, color: cs.onPrimaryContainer)),
+                              CircleAvatar(
+                                backgroundColor: cs.primaryContainer,
+                                child: Icon(
+                                  Icons.person_outline,
+                                  color: cs.onPrimaryContainer,
+                                ),
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(widget.isEdit ? 'Edit customer profile' : 'Create customer profile', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                                    Text(
+                                      widget.isEdit
+                                          ? 'Edit customer profile'
+                                          : 'Create customer profile',
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       'Customer records drive invoices, payments, customer credits, statements, and sales reports.',
-                                      style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: cs.onSurfaceVariant,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -132,30 +155,66 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                                 label: 'Display Name *',
                                 controller: _nameCtrl,
                                 hint: 'Customer display name',
-                                validator: (value) => value == null || value.trim().isEmpty ? 'Display name is required' : null,
+                                validator: (value) =>
+                                    value == null || value.trim().isEmpty
+                                    ? 'Display name is required'
+                                    : null,
                               );
-                              final company = AppTextField(label: 'Company Name', controller: _companyCtrl, hint: 'Optional company name');
+                              final company = AppTextField(
+                                label: 'Company Name',
+                                controller: _companyCtrl,
+                                hint: 'Optional company name',
+                              );
                               final email = AppTextField(
                                 label: 'Email',
                                 controller: _emailCtrl,
                                 hint: 'customer@example.com',
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (value) {
-                                  if (value == null || value.trim().isEmpty) return null;
-                                  if (!value.contains('@')) return 'Invalid email address';
+                                  if (value == null || value.trim().isEmpty)
+                                    return null;
+                                  if (!value.contains('@'))
+                                    return 'Invalid email address';
                                   return null;
                                 },
                               );
-                              final phone = AppTextField(label: 'Phone', controller: _phoneCtrl, hint: '01000000000', keyboardType: TextInputType.phone);
+                              final phone = AppTextField(
+                                label: 'Phone',
+                                controller: _phoneCtrl,
+                                hint: '01000000000',
+                                keyboardType: TextInputType.phone,
+                              );
 
                               if (!two) {
-                                return Column(children: [name, const SizedBox(height: 16), company, const SizedBox(height: 16), email, const SizedBox(height: 16), phone]);
+                                return Column(
+                                  children: [
+                                    name,
+                                    const SizedBox(height: 16),
+                                    company,
+                                    const SizedBox(height: 16),
+                                    email,
+                                    const SizedBox(height: 16),
+                                    phone,
+                                  ],
+                                );
                               }
                               return Column(
                                 children: [
-                                  Row(children: [Expanded(child: name), const SizedBox(width: 12), Expanded(child: company)]),
+                                  Row(
+                                    children: [
+                                      Expanded(child: name),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: company),
+                                    ],
+                                  ),
                                   const SizedBox(height: 16),
-                                  Row(children: [Expanded(child: email), const SizedBox(width: 12), Expanded(child: phone)]),
+                                  Row(
+                                    children: [
+                                      Expanded(child: email),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: phone),
+                                    ],
+                                  ),
                                 ],
                               );
                             },
@@ -163,13 +222,26 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             initialValue: _currency,
-                            decoration: const InputDecoration(labelText: 'Currency', border: OutlineInputBorder()),
+                            decoration: const InputDecoration(
+                              labelText: 'Currency',
+                              border: OutlineInputBorder(),
+                            ),
                             items: const [
-                              DropdownMenuItem(value: 'EGP', child: Text('Egyptian Pound (EGP)')),
-                              DropdownMenuItem(value: 'USD', child: Text('US Dollar (USD)')),
-                              DropdownMenuItem(value: 'SAR', child: Text('Saudi Riyal (SAR)')),
+                              DropdownMenuItem<String>(
+                                value: 'EGP',
+                                child: Text('Egyptian Pound (EGP)'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'USD',
+                                child: Text('US Dollar (USD)'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'SAR',
+                                child: Text('Saudi Riyal (SAR)'),
+                              ),
                             ],
-                            onChanged: (value) => setState(() => _currency = value!),
+                            onChanged: (value) =>
+                                setState(() => _currency = value!),
                           ),
                           if (!widget.isEdit) ...[
                             const SizedBox(height: 16),
@@ -177,23 +249,31 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                               label: 'Opening Balance',
                               controller: _openBalCtrl,
                               hint: '0.00',
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               validator: (value) {
                                 final number = double.tryParse(value ?? '');
-                                if (number == null) return 'Enter a valid number';
-                                if (number < 0) return 'Opening balance cannot be negative';
+                                if (number == null)
+                                  return 'Enter a valid number';
+                                if (number < 0)
+                                  return 'Opening balance cannot be negative';
                                 return null;
                               },
                             ),
                             const SizedBox(height: 8),
                             _InfoBox(
                               icon: Icons.account_balance_outlined,
-                              text: 'If this customer already owes money, opening balance will create an opening receivable posting automatically.',
+                              text:
+                                  'If this customer already owes money, opening balance will create an opening receivable posting automatically.',
                             ),
                           ],
                           const SizedBox(height: 32),
                           AppButton(
-                            label: widget.isEdit ? 'Save Changes' : 'Create Customer',
+                            label: widget.isEdit
+                                ? 'Save Changes'
+                                : 'Create Customer',
                             loading: _loading,
                             expanded: true,
                             onPressed: _submit,
@@ -214,15 +294,19 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
 
     final body = <String, dynamic>{
       'displayName': _nameCtrl.text.trim(),
-      if (_companyCtrl.text.trim().isNotEmpty) 'companyName': _companyCtrl.text.trim(),
+      if (_companyCtrl.text.trim().isNotEmpty)
+        'companyName': _companyCtrl.text.trim(),
       if (_emailCtrl.text.trim().isNotEmpty) 'email': _emailCtrl.text.trim(),
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
       'currency': _currency,
-      if (!widget.isEdit) 'openingBalance': double.tryParse(_openBalCtrl.text) ?? 0,
+      if (!widget.isEdit)
+        'openingBalance': double.tryParse(_openBalCtrl.text) ?? 0,
     };
 
     final result = widget.isEdit
-        ? await ref.read(customersProvider.notifier).updateCustomer(widget.id!, body)
+        ? await ref
+              .read(customersProvider.notifier)
+              .updateCustomer(widget.id!, body)
         : await ref.read(customersProvider.notifier).createCustomer(body);
 
     if (!mounted) return;
@@ -230,10 +314,20 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
 
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.isEdit ? 'Customer updated successfully' : 'Customer created successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isEdit
+                  ? 'Customer updated successfully'
+                  : 'Customer created successfully',
+            ),
+          ),
+        );
         context.popOrGo(AppRoutes.customers);
       },
-      failure: (error) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message), backgroundColor: Colors.red)),
+      failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      ),
     );
   }
 }
@@ -247,12 +341,26 @@ class _CustomerStatusBanner extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
-      child: Row(children: [
-        Icon(customer.isActive ? Icons.check_circle_outline : Icons.block_outlined, color: customer.isActive ? cs.primary : cs.error),
-        const SizedBox(width: 10),
-        Expanded(child: Text('Open balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)} ${customer.currency} • Status: ${customer.isActive ? 'Active' : 'Inactive'}')),
-      ]),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            customer.isActive
+                ? Icons.check_circle_outline
+                : Icons.block_outlined,
+            color: customer.isActive ? cs.primary : cs.error,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Open balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)} ${customer.currency} • Status: ${customer.isActive ? 'Active' : 'Inactive'}',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -268,8 +376,20 @@ class _InfoBox extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: cs.onSecondaryContainer), const SizedBox(width: 10), Expanded(child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)))]),
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: cs.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)),
+          ),
+        ],
+      ),
     );
   }
 }

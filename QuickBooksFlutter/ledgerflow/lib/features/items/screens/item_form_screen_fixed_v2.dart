@@ -100,7 +100,12 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
               initialValue: _itemType,
               decoration: const InputDecoration(labelText: 'نوع الصنف *'),
               items: ItemType.values
-                  .map((type) => DropdownMenuItem(value: type, child: Text(type.label)))
+                  .map(
+                    (type) => DropdownMenuItem<ItemType>(
+                      value: type,
+                      child: Text(type.label),
+                    ),
+                  )
                   .toList(),
               onChanged: widget.isEdit
                   ? null
@@ -118,12 +123,19 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
               label: 'اسم الصنف *',
               controller: _nameCtrl,
               hint: 'مثال: طابعة حرارية',
-              validator: (value) => value == null || value.isEmpty ? 'اسم الصنف مطلوب' : null,
+              validator: (value) =>
+                  value == null || value.isEmpty ? 'اسم الصنف مطلوب' : null,
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: AppTextField(label: 'كود الصنف (SKU)', controller: _skuCtrl, hint: 'INV-001')),
+                Expanded(
+                  child: AppTextField(
+                    label: 'كود الصنف (SKU)',
+                    controller: _skuCtrl,
+                    hint: 'INV-001',
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: AppTextField(
@@ -148,7 +160,9 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                     label: 'سعر البيع *',
                     controller: _salesPriceCtrl,
                     hint: '0.00',
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: _nonNegativeNumberValidator,
                   ),
                 ),
@@ -158,7 +172,9 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                     label: 'سعر الشراء *',
                     controller: _purchasePriceCtrl,
                     hint: '0.00',
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     validator: _nonNegativeNumberValidator,
                   ),
                 ),
@@ -170,23 +186,33 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                 label: 'الكمية الافتتاحية',
                 controller: _qtyCtrl,
                 hint: '0',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 validator: _nonNegativeNumberValidator,
               ),
               const SizedBox(height: 8),
               Text(
                 '* إذا كانت الكمية > 0 مع سعر شراء > 0، سيتم إنشاء قيد مخزون افتتاحي',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                ),
               ),
             ],
             const SizedBox(height: 24),
-            Text('الحسابات المرتبطة', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'الحسابات المرتبطة',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             accountsAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (error, _) => Text(error.toString(), style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              error: (error, _) => Text(
+                error.toString(),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
               data: _buildAccountFields,
             ),
             const SizedBox(height: 32),
@@ -203,16 +229,32 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
   }
 
   Widget _buildAccountFields(List<AccountModel> accounts) {
-    final activeAccounts = accounts.where((account) => account.isActive).toList();
+    final activeAccounts = accounts
+        .where((account) => account.isActive)
+        .toList();
     final incomeAccounts = activeAccounts
-        .where((account) => account.accountType == AccountType.income || account.accountType == AccountType.otherIncome)
+        .where(
+          (account) =>
+              account.accountType == AccountType.income ||
+              account.accountType == AccountType.otherIncome,
+        )
         .toList();
     final inventoryAssetAccounts = activeAccounts
-        .where((account) => account.accountType == AccountType.inventoryAsset || account.accountType == AccountType.otherCurrentAsset)
+        .where(
+          (account) =>
+              account.accountType == AccountType.inventoryAsset ||
+              account.accountType == AccountType.otherCurrentAsset,
+        )
         .toList();
-    final cogsAccounts = activeAccounts.where((account) => account.accountType == AccountType.costOfGoodsSold).toList();
+    final cogsAccounts = activeAccounts
+        .where((account) => account.accountType == AccountType.costOfGoodsSold)
+        .toList();
     final expenseAccounts = activeAccounts
-        .where((account) => account.accountType == AccountType.expense || account.accountType == AccountType.otherExpense)
+        .where(
+          (account) =>
+              account.accountType == AccountType.expense ||
+              account.accountType == AccountType.otherExpense,
+        )
         .toList();
 
     return Column(
@@ -222,7 +264,8 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
           value: _incomeAccountId,
           accounts: incomeAccounts,
           onChanged: (value) => setState(() => _incomeAccountId = value),
-          validator: (value) => value == null || value.isEmpty ? 'حساب الإيراد مطلوب' : null,
+          validator: (value) =>
+              value == null || value.isEmpty ? 'حساب الإيراد مطلوب' : null,
         ),
         const SizedBox(height: 16),
         if (_itemType == ItemType.inventory) ...[
@@ -230,8 +273,11 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
             label: 'حساب أصل المخزون *',
             value: _inventoryAssetAccountId,
             accounts: inventoryAssetAccounts,
-            onChanged: (value) => setState(() => _inventoryAssetAccountId = value),
-            validator: (value) => value == null || value.isEmpty ? 'حساب أصل المخزون مطلوب' : null,
+            onChanged: (value) =>
+                setState(() => _inventoryAssetAccountId = value),
+            validator: (value) => value == null || value.isEmpty
+                ? 'حساب أصل المخزون مطلوب'
+                : null,
           ),
           const SizedBox(height: 16),
           _AccountDropdown(
@@ -239,13 +285,21 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
             value: _cogsAccountId,
             accounts: cogsAccounts,
             onChanged: (value) => setState(() => _cogsAccountId = value),
-            validator: (value) => value == null || value.isEmpty ? 'حساب تكلفة المبيعات مطلوب' : null,
+            validator: (value) => value == null || value.isEmpty
+                ? 'حساب تكلفة المبيعات مطلوب'
+                : null,
           ),
         ] else ...[
           _AccountDropdown(
-            label: _itemType == ItemType.service ? 'حساب المصروفات/التكلفة' : 'حساب تكلفة المبيعات',
-            value: _itemType == ItemType.service ? _expenseAccountId : _cogsAccountId,
-            accounts: _itemType == ItemType.service ? expenseAccounts : cogsAccounts,
+            label: _itemType == ItemType.service
+                ? 'حساب المصروفات/التكلفة'
+                : 'حساب تكلفة المبيعات',
+            value: _itemType == ItemType.service
+                ? _expenseAccountId
+                : _cogsAccountId,
+            accounts: _itemType == ItemType.service
+                ? expenseAccounts
+                : cogsAccounts,
             onChanged: (value) => setState(() {
               if (_itemType == ItemType.service) {
                 _expenseAccountId = value;
@@ -283,8 +337,10 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
       if (_incomeAccountId != null) 'incomeAccountId': _incomeAccountId,
       if (_inventoryAssetAccountId != null && _itemType == ItemType.inventory)
         'inventoryAssetAccountId': _inventoryAssetAccountId,
-      if (_cogsAccountId != null && _itemType != ItemType.service) 'cogsAccountId': _cogsAccountId,
-      if (_expenseAccountId != null && _itemType == ItemType.service) 'expenseAccountId': _expenseAccountId,
+      if (_cogsAccountId != null && _itemType != ItemType.service)
+        'cogsAccountId': _cogsAccountId,
+      if (_expenseAccountId != null && _itemType == ItemType.service)
+        'expenseAccountId': _expenseAccountId,
     };
 
     final ApiResult<ItemModel> result = widget.isEdit
@@ -297,7 +353,11 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
     result.when(
       success: (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.isEdit ? 'تم تعديل الصنف بنجاح' : 'تم إضافة الصنف بنجاح')),
+          SnackBar(
+            content: Text(
+              widget.isEdit ? 'تم تعديل الصنف بنجاح' : 'تم إضافة الصنف بنجاح',
+            ),
+          ),
         );
         context.popOrGo(AppRoutes.items);
       },
@@ -325,14 +385,19 @@ class _AccountDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeValue = accounts.any((account) => account.id == value) ? value : null;
+    final safeValue = accounts.any((account) => account.id == value)
+        ? value
+        : null;
 
     return DropdownButtonFormField<String>(
       initialValue: safeValue,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
       items: accounts
-          .map(
-            (account) => DropdownMenuItem(
+          .map<DropdownMenuItem<String>>(
+            (AccountModel account) => DropdownMenuItem<String>(
               value: account.id,
               child: Text('${account.code} - ${account.name}'),
             ),

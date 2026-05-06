@@ -100,7 +100,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
               initialValue: _itemType,
               decoration: const InputDecoration(labelText: 'نوع الصنف *'),
               items: ItemType.values
-                  .map((type) => DropdownMenuItem(value: type, child: Text(type.label)))
+                  .map((type) => DropdownMenuItem<ItemType>(value: type, child: Text(type.label)))
                   .toList(),
               onChanged: widget.isEdit
                   ? null
@@ -337,7 +337,7 @@ class _AccountDropdown extends StatelessWidget {
       ),
       items: accounts
           .map(
-            (account) => DropdownMenuItem(
+            (account) => DropdownMenuItem<String>(
               value: account.id,
               child: Text('${account.code} - ${account.name}'),
             ),

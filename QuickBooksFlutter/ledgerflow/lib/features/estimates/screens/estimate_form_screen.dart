@@ -8,7 +8,9 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
+import '../../items/data/models/item_model.dart';
 import '../../items/providers/items_provider.dart';
 import '../data/models/estimate_model.dart';
 import '../providers/estimates_provider.dart';
@@ -31,7 +33,9 @@ class EstimateFormState {
   double get subtotal => lines.fold(0, (sum, line) => sum + line.total);
 }
 
-final estimateFormProvider = StateProvider.autoDispose<EstimateFormState>((ref) => EstimateFormState());
+final estimateFormProvider = StateProvider.autoDispose<EstimateFormState>(
+  (ref) => EstimateFormState(),
+);
 final estimateSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
 
 class EstimateFormScreen extends ConsumerWidget {
@@ -50,7 +54,11 @@ class EstimateFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go('/sales/estimates'),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go('/sales/estimates'),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -68,7 +76,10 @@ class EstimateFormScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           _LinesCard(form: form),
           const SizedBox(height: 24),
-          Align(alignment: AlignmentDirectional.centerEnd, child: _TotalsCard(total: form.subtotal)),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: _TotalsCard(total: form.subtotal),
+          ),
         ],
       ),
     );
@@ -83,7 +94,14 @@ class EstimateFormScreen extends ConsumerWidget {
       return;
     }
 
-    final validLines = form.lines.where((line) => line.itemId != null && line.itemId!.isNotEmpty && line.quantity > 0).toList();
+    final validLines = form.lines
+        .where(
+          (line) =>
+              line.itemId != null &&
+              line.itemId!.isNotEmpty &&
+              line.quantity > 0,
+        )
+        .toList();
     if (validLines.isEmpty) {
       _error(context, l10n.selectAtLeastOneLine);
       return;
@@ -113,7 +131,9 @@ class EstimateFormScreen extends ConsumerWidget {
     if (!context.mounted) return;
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.poCreatedSuccess)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.poCreatedSuccess)));
         context.go('/sales/estimates');
       },
       failure: (error) => _error(context, error.message),
@@ -124,7 +144,9 @@ class EstimateFormScreen extends ConsumerWidget {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
 
@@ -152,7 +174,12 @@ class _HeaderCard extends ConsumerWidget {
               ),
               items: customersAsync.maybeWhen(
                 data: (customers) => customers
-                    .map<DropdownMenuItem<String>>((customer) => DropdownMenuItem(value: customer.id, child: Text(customer.displayName)))
+                    .map<DropdownMenuItem<String>>(
+                      (CustomerModel customer) => DropdownMenuItem<String>(
+                        value: customer.id,
+                        child: Text(customer.displayName),
+                      ),
+                    )
                     .toList(),
                 orElse: () => const <DropdownMenuItem<String>>[],
               ),
@@ -165,7 +192,9 @@ class _HeaderCard extends ConsumerWidget {
                   child: AppTextField(
                     label: l10n.billDate,
                     readOnly: true,
-                    initialValue: EstimateFormScreen._dateOnly(form.estimateDate),
+                    initialValue: EstimateFormScreen._dateOnly(
+                      form.estimateDate,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -173,7 +202,9 @@ class _HeaderCard extends ConsumerWidget {
                   child: AppTextField(
                     label: l10n.dueDate,
                     readOnly: true,
-                    initialValue: EstimateFormScreen._dateOnly(form.expirationDate),
+                    initialValue: EstimateFormScreen._dateOnly(
+                      form.expirationDate,
+                    ),
                   ),
                 ),
               ],
@@ -209,7 +240,13 @@ class _LinesCard extends ConsumerWidget {
               ],
             ),
             const Divider(),
-            ...form.lines.asMap().entries.map((entry) => _EstimateLineRow(index: entry.key, line: entry.value, form: form)),
+            ...form.lines.asMap().entries.map(
+              (entry) => _EstimateLineRow(
+                index: entry.key,
+                line: entry.value,
+                form: form,
+              ),
+            ),
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: TextButton.icon(
@@ -229,7 +266,11 @@ class _LinesCard extends ConsumerWidget {
 }
 
 class _EstimateLineRow extends ConsumerWidget {
-  const _EstimateLineRow({required this.index, required this.line, required this.form});
+  const _EstimateLineRow({
+    required this.index,
+    required this.line,
+    required this.form,
+  });
 
   final int index;
   final EstimateLineState line;
@@ -249,16 +290,26 @@ class _EstimateLineRow extends ConsumerWidget {
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: DropdownButtonFormField<String>(
                 initialValue: line.itemId,
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
                 items: itemsAsync.maybeWhen(
                   data: (items) => items
                       .where((item) => item.isActive)
-                      .map((item) => DropdownMenuItem(value: item.id, child: Text(item.name)))
+                      .map<DropdownMenuItem<String>>(
+                        (ItemModel item) => DropdownMenuItem<String>(
+                          value: item.id,
+                          child: Text(item.name),
+                        ),
+                      )
                       .toList(),
                   orElse: () => const <DropdownMenuItem<String>>[],
                 ),
                 onChanged: (value) {
-                  final item = (itemsAsync.value ?? []).where((item) => item.id == value).firstOrNull;
+                  final item = (itemsAsync.value ?? [])
+                      .where((item) => item.id == value)
+                      .firstOrNull;
                   line.itemId = value;
                   line.description = item?.name ?? '';
                   line.unitPrice = item?.salesPrice ?? line.unitPrice;
@@ -274,7 +325,9 @@ class _EstimateLineRow extends ConsumerWidget {
                 key: ValueKey('qty-$index-${line.quantity}'),
                 label: '',
                 initialValue: line.quantity.toString(),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (value) {
                   line.quantity = double.tryParse(value) ?? 0;
                   _update(ref, form);
@@ -288,8 +341,12 @@ class _EstimateLineRow extends ConsumerWidget {
               child: AppTextField(
                 key: ValueKey('price-$index-${line.unitPrice}'),
                 label: '',
-                initialValue: line.unitPrice == 0 ? '' : line.unitPrice.toStringAsFixed(2),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                initialValue: line.unitPrice == 0
+                    ? ''
+                    : line.unitPrice.toStringAsFixed(2),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (value) {
                   line.unitPrice = double.tryParse(value) ?? 0;
                   _update(ref, form);
@@ -297,7 +354,12 @@ class _EstimateLineRow extends ConsumerWidget {
               ),
             ),
           ),
-          Expanded(child: Text(line.total.toStringAsFixed(2), textAlign: TextAlign.end)),
+          Expanded(
+            child: Text(
+              line.total.toStringAsFixed(2),
+              textAlign: TextAlign.end,
+            ),
+          ),
           SizedBox(
             width: 40,
             child: IconButton(
@@ -332,10 +394,15 @@ class _TotalsCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(l10n.total, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                l10n.total,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text(
                 '${total.toStringAsFixed(2)} ${l10n.egp}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ],
           ),

@@ -36,7 +36,11 @@ class PrintingSettingsScreen extends ConsumerWidget {
           TextButton.icon(
             onPressed: state.saving ? null : notifier.save,
             icon: state.saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: const Text('Save'),
           ),
@@ -48,11 +52,18 @@ class PrintingSettingsScreen extends ConsumerWidget {
           : ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                Text('Document Printing', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                Text(
+                  'Document Printing',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Configure professional A4 invoices and thermal receipts. These settings will be consumed by the PDF/printing services when document templates are wired.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
                 if (state.errorMessage != null) ...[
                   const SizedBox(height: 16),
@@ -84,7 +95,9 @@ class PrintingSettingsScreen extends ConsumerWidget {
                     );
 
                     if (!wide) {
-                      return Column(children: [left, const SizedBox(height: 16), right]);
+                      return Column(
+                        children: [left, const SizedBox(height: 16), right],
+                      );
                     }
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,7 +115,11 @@ class PrintingSettingsScreen extends ConsumerWidget {
                   child: FilledButton.icon(
                     onPressed: state.saving ? null : notifier.save,
                     icon: state.saving
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.save_outlined),
                     label: const Text('Save Printing Settings'),
                   ),
@@ -126,10 +143,21 @@ class _ModeCard extends StatelessWidget {
       children: [
         DropdownButtonFormField<PrintMode>(
           initialValue: state.settings.printMode,
-          decoration: const InputDecoration(labelText: 'Enabled Print Formats', border: OutlineInputBorder()),
-          items: PrintMode.values.map((mode) => DropdownMenuItem(value: mode, child: Text(mode.label))).toList(),
+          decoration: const InputDecoration(
+            labelText: 'Enabled Print Formats',
+            border: OutlineInputBorder(),
+          ),
+          items: PrintMode.values
+              .map(
+                (mode) => DropdownMenuItem<PrintMode>(
+                  value: mode,
+                  child: Text(mode.label),
+                ),
+              )
+              .toList(),
           onChanged: (value) {
-            if (value != null) notifier.update((current) => current.copyWith(printMode: value));
+            if (value != null)
+              notifier.update((current) => current.copyWith(printMode: value));
           },
         ),
         const SizedBox(height: 12),
@@ -137,14 +165,18 @@ class _ModeCard extends StatelessWidget {
           label: 'A4 Printer Name',
           value: state.settings.a4PrinterName ?? '',
           icon: Icons.description_outlined,
-          onChanged: (value) => notifier.update((current) => current.copyWith(a4PrinterName: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(a4PrinterName: value),
+          ),
         ),
         const SizedBox(height: 12),
         _TextField(
           label: 'Thermal Printer Name',
           value: state.settings.thermalPrinterName ?? '',
           icon: Icons.receipt_long_outlined,
-          onChanged: (value) => notifier.update((current) => current.copyWith(thermalPrinterName: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(thermalPrinterName: value),
+          ),
         ),
       ],
     );
@@ -164,10 +196,23 @@ class _A4Card extends StatelessWidget {
       children: [
         DropdownButtonFormField<A4TemplateStyle>(
           initialValue: state.settings.a4TemplateStyle,
-          decoration: const InputDecoration(labelText: 'A4 Template Style', border: OutlineInputBorder()),
-          items: A4TemplateStyle.values.map((style) => DropdownMenuItem(value: style, child: Text(style.label))).toList(),
+          decoration: const InputDecoration(
+            labelText: 'A4 Template Style',
+            border: OutlineInputBorder(),
+          ),
+          items: A4TemplateStyle.values
+              .map(
+                (style) => DropdownMenuItem<A4TemplateStyle>(
+                  value: style,
+                  child: Text(style.label),
+                ),
+              )
+              .toList(),
           onChanged: (value) {
-            if (value != null) notifier.update((current) => current.copyWith(a4TemplateStyle: value));
+            if (value != null)
+              notifier.update(
+                (current) => current.copyWith(a4TemplateStyle: value),
+              );
           },
         ),
         const SizedBox(height: 12),
@@ -176,7 +221,9 @@ class _A4Card extends StatelessWidget {
           value: state.settings.invoiceFooterMessage ?? '',
           icon: Icons.notes_outlined,
           maxLines: 2,
-          onChanged: (value) => notifier.update((current) => current.copyWith(invoiceFooterMessage: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(invoiceFooterMessage: value),
+          ),
         ),
       ],
     );
@@ -196,10 +243,23 @@ class _ThermalCard extends StatelessWidget {
       children: [
         DropdownButtonFormField<ThermalWidth>(
           initialValue: state.settings.thermalWidth,
-          decoration: const InputDecoration(labelText: 'Thermal Paper Width', border: OutlineInputBorder()),
-          items: ThermalWidth.values.map((width) => DropdownMenuItem(value: width, child: Text(width.label))).toList(),
+          decoration: const InputDecoration(
+            labelText: 'Thermal Paper Width',
+            border: OutlineInputBorder(),
+          ),
+          items: ThermalWidth.values
+              .map(
+                (width) => DropdownMenuItem<ThermalWidth>(
+                  value: width,
+                  child: Text(width.label),
+                ),
+              )
+              .toList(),
           onChanged: (value) {
-            if (value != null) notifier.update((current) => current.copyWith(thermalWidth: value));
+            if (value != null)
+              notifier.update(
+                (current) => current.copyWith(thermalWidth: value),
+              );
           },
         ),
         const SizedBox(height: 12),
@@ -208,7 +268,9 @@ class _ThermalCard extends StatelessWidget {
           value: state.settings.receiptFooterMessage ?? '',
           icon: Icons.notes_outlined,
           maxLines: 2,
-          onChanged: (value) => notifier.update((current) => current.copyWith(receiptFooterMessage: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(receiptFooterMessage: value),
+          ),
         ),
       ],
     );
@@ -230,10 +292,14 @@ class _BrandingCard extends StatelessWidget {
       );
       final path = result?.files.single.path;
       if (path == null || path.trim().isEmpty) return;
-      notifier.update((current) => current.copyWith(logoPath: path, showLogo: true));
+      notifier.update(
+        (current) => current.copyWith(logoPath: path, showLogo: true),
+      );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logo picker failed: $error')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Logo picker failed: $error')));
       }
     }
   }
@@ -248,7 +314,8 @@ class _BrandingCard extends StatelessWidget {
           label: 'Logo Path',
           value: state.settings.logoPath ?? '',
           icon: Icons.folder_open_outlined,
-          onChanged: (value) => notifier.update((current) => current.copyWith(logoPath: value)),
+          onChanged: (value) =>
+              notifier.update((current) => current.copyWith(logoPath: value)),
         ),
         const SizedBox(height: 8),
         Row(
@@ -262,7 +329,10 @@ class _BrandingCard extends StatelessWidget {
             TextButton.icon(
               onPressed: (state.settings.logoPath ?? '').isEmpty
                   ? null
-                  : () => notifier.update((current) => current.copyWith(logoPath: '', showLogo: false)),
+                  : () => notifier.update(
+                      (current) =>
+                          current.copyWith(logoPath: '', showLogo: false),
+                    ),
               icon: const Icon(Icons.clear_outlined),
               label: const Text('Clear'),
             ),
@@ -271,21 +341,27 @@ class _BrandingCard extends StatelessWidget {
         const SizedBox(height: 12),
         _SwitchRow(
           title: 'Show Logo',
-          subtitle: 'Display company logo on A4 invoices and thermal receipts when possible.',
+          subtitle:
+              'Display company logo on A4 invoices and thermal receipts when possible.',
           value: state.settings.showLogo,
-          onChanged: (value) => notifier.update((current) => current.copyWith(showLogo: value)),
+          onChanged: (value) =>
+              notifier.update((current) => current.copyWith(showLogo: value)),
         ),
         _SwitchRow(
           title: 'Show Company Address',
           subtitle: 'Print company address under the header.',
           value: state.settings.showCompanyAddress,
-          onChanged: (value) => notifier.update((current) => current.copyWith(showCompanyAddress: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(showCompanyAddress: value),
+          ),
         ),
         _SwitchRow(
           title: 'Use Arabic Fonts',
           subtitle: 'Use Arabic-friendly fonts for RTL text in generated PDFs.',
           value: state.settings.useArabicFonts,
-          onChanged: (value) => notifier.update((current) => current.copyWith(useArabicFonts: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(useArabicFonts: value),
+          ),
         ),
       ],
     );
@@ -307,37 +383,48 @@ class _OptionsCard extends StatelessWidget {
           title: 'Show QR Code',
           subtitle: 'Reserve QR area for invoices/receipts.',
           value: state.settings.showQrCode,
-          onChanged: (value) => notifier.update((current) => current.copyWith(showQrCode: value)),
+          onChanged: (value) =>
+              notifier.update((current) => current.copyWith(showQrCode: value)),
         ),
         _SwitchRow(
           title: 'Show Tax Summary',
           subtitle: 'Print tax breakdown when taxes are enabled.',
           value: state.settings.showTaxSummary,
-          onChanged: (value) => notifier.update((current) => current.copyWith(showTaxSummary: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(showTaxSummary: value),
+          ),
         ),
         _SwitchRow(
           title: 'Show Customer Balance',
           subtitle: 'Show previous/current balance on customer documents.',
           value: state.settings.showCustomerBalance,
-          onChanged: (value) => notifier.update((current) => current.copyWith(showCustomerBalance: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(showCustomerBalance: value),
+          ),
         ),
         _SwitchRow(
           title: 'Show Item SKU',
           subtitle: 'Print SKU/code beside item names.',
           value: state.settings.showItemSku,
-          onChanged: (value) => notifier.update((current) => current.copyWith(showItemSku: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(showItemSku: value),
+          ),
         ),
         _SwitchRow(
           title: 'Preview Before Print',
           subtitle: 'Open preview before sending to the printer.',
           value: state.settings.printPreviewBeforePrint,
-          onChanged: (value) => notifier.update((current) => current.copyWith(printPreviewBeforePrint: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(printPreviewBeforePrint: value),
+          ),
         ),
         _SwitchRow(
           title: 'Auto Print After Save',
           subtitle: 'Send print job immediately after saving a transaction.',
           value: state.settings.autoPrintAfterSave,
-          onChanged: (value) => notifier.update((current) => current.copyWith(autoPrintAfterSave: value)),
+          onChanged: (value) => notifier.update(
+            (current) => current.copyWith(autoPrintAfterSave: value),
+          ),
         ),
       ],
     );
@@ -361,18 +448,42 @@ class _PreviewCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(Icons.preview_outlined, color: cs.onPrimaryContainer)),
+                CircleAvatar(
+                  backgroundColor: cs.primaryContainer,
+                  child: Icon(
+                    Icons.preview_outlined,
+                    color: cs.onPrimaryContainer,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Text('Preview Summary', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                Text(
+                  'Preview Summary',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             _PreviewLine(label: 'Formats', value: settings.printMode.label),
-            _PreviewLine(label: 'A4 style', value: settings.a4TemplateStyle.label),
-            _PreviewLine(label: 'Thermal width', value: settings.thermalWidth.label),
-            _PreviewLine(label: 'Logo', value: settings.showLogo ? 'Visible' : 'Hidden'),
-            if ((settings.logoPath ?? '').isNotEmpty) _PreviewLine(label: 'Logo path', value: settings.logoPath!),
-            _PreviewLine(label: 'QR', value: settings.showQrCode ? 'Visible' : 'Hidden'),
+            _PreviewLine(
+              label: 'A4 style',
+              value: settings.a4TemplateStyle.label,
+            ),
+            _PreviewLine(
+              label: 'Thermal width',
+              value: settings.thermalWidth.label,
+            ),
+            _PreviewLine(
+              label: 'Logo',
+              value: settings.showLogo ? 'Visible' : 'Hidden',
+            ),
+            if ((settings.logoPath ?? '').isNotEmpty)
+              _PreviewLine(label: 'Logo path', value: settings.logoPath!),
+            _PreviewLine(
+              label: 'QR',
+              value: settings.showQrCode ? 'Visible' : 'Hidden',
+            ),
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -384,11 +495,18 @@ class _PreviewCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Template wiring note', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    'Template wiring note',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     'Print preview and PDF renderers now read these settings, including print mode, logo, fonts, thermal width, footer, tax, and balance options.',
-                    style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -401,7 +519,11 @@ class _PreviewCard extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.icon, required this.title, required this.children});
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.children,
+  });
   final IconData icon;
   final String title;
   final List<Widget> children;
@@ -418,9 +540,17 @@ class _SectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(icon, color: cs.onPrimaryContainer)),
+                CircleAvatar(
+                  backgroundColor: cs.primaryContainer,
+                  child: Icon(icon, color: cs.onPrimaryContainer),
+                ),
                 const SizedBox(width: 12),
-                Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -433,7 +563,13 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _TextField extends StatelessWidget {
-  const _TextField({required this.label, required this.value, required this.icon, required this.onChanged, this.maxLines = 1});
+  const _TextField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onChanged,
+    this.maxLines = 1,
+  });
   final String label;
   final String value;
   final IconData icon;
@@ -445,14 +581,23 @@ class _TextField extends StatelessWidget {
     return TextFormField(
       initialValue: value,
       maxLines: maxLines,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), prefixIcon: Icon(icon)),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        prefixIcon: Icon(icon),
+      ),
       onChanged: onChanged,
     );
   }
 }
 
 class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({required this.title, required this.subtitle, required this.value, required this.onChanged});
+  const _SwitchRow({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
   final String title;
   final String subtitle;
   final bool value;
@@ -482,7 +627,15 @@ class _PreviewLine extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          SizedBox(width: 120, child: Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
           Expanded(child: Text(value, overflow: TextOverflow.ellipsis)),
         ],
       ),
@@ -499,12 +652,17 @@ class _ErrorBanner extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: cs.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Icon(Icons.error_outline, color: cs.onErrorContainer),
           const SizedBox(width: 12),
-          Expanded(child: Text(message, style: TextStyle(color: cs.onErrorContainer))),
+          Expanded(
+            child: Text(message, style: TextStyle(color: cs.onErrorContainer)),
+          ),
         ],
       ),
     );

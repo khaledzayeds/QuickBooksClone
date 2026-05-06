@@ -23,7 +23,9 @@ class PaymentFormState {
   double amount = 0;
 }
 
-final paymentFormProvider = StateProvider.autoDispose<PaymentFormState>((ref) => PaymentFormState());
+final paymentFormProvider = StateProvider.autoDispose<PaymentFormState>(
+  (ref) => PaymentFormState(),
+);
 final paymentSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
 
 class PaymentFormScreen extends ConsumerWidget {
@@ -43,7 +45,11 @@ class PaymentFormScreen extends ConsumerWidget {
           AppButton(
             label: 'إلغاء',
             variant: AppButtonVariant.secondary,
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go('/sales/payments'),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go('/sales/payments'),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -100,7 +106,9 @@ class PaymentFormScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تسجيل التحصيل بنجاح')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تسجيل التحصيل بنجاح')));
         context.go('/sales/payments');
       },
       failure: (error) => _error(context, error.message),
@@ -108,7 +116,9 @@ class PaymentFormScreen extends ConsumerWidget {
   }
 
   static void _error(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   static String _dateOnly(DateTime date) =>
@@ -130,19 +140,34 @@ class _HeaderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final openInvoices = invoicesAsync.maybeWhen(
       data: (invoices) => invoices
-          .where((invoice) => invoice.isCreditInvoice && !invoice.isVoid && invoice.balanceDue > 0)
+          .where(
+            (invoice) =>
+                invoice.isCreditInvoice &&
+                !invoice.isVoid &&
+                invoice.balanceDue > 0,
+          )
           .toList(),
       orElse: () => <InvoiceModel>[],
     );
     final depositAccounts = accountsAsync.maybeWhen(
       data: (accounts) => accounts
-          .where((account) => account.isActive && (account.accountType == AccountType.bank || account.accountType == AccountType.otherCurrentAsset))
+          .where(
+            (account) =>
+                account.isActive &&
+                (account.accountType == AccountType.bank ||
+                    account.accountType == AccountType.otherCurrentAsset),
+          )
           .toList(),
       orElse: () => <AccountModel>[],
     );
-    final selectedInvoice = openInvoices.where((invoice) => invoice.id == form.invoiceId).firstOrNull;
+    final selectedInvoice = openInvoices
+        .where((invoice) => invoice.id == form.invoiceId)
+        .firstOrNull;
     final safeInvoiceId = selectedInvoice?.id;
-    final safeDepositId = depositAccounts.any((account) => account.id == form.depositAccountId) ? form.depositAccountId : null;
+    final safeDepositId =
+        depositAccounts.any((account) => account.id == form.depositAccountId)
+        ? form.depositAccountId
+        : null;
 
     return Card(
       child: Padding(
@@ -157,18 +182,25 @@ class _HeaderCard extends ConsumerWidget {
                 prefixIcon: Icon(Icons.receipt_long_outlined),
               ),
               items: openInvoices
-                  .map(
-                    (invoice) => DropdownMenuItem(
+                  .map<DropdownMenuItem<String>>(
+                    (InvoiceModel invoice) => DropdownMenuItem<String>(
                       value: invoice.id,
-                      child: Text('${invoice.invoiceNumber} - ${invoice.customerName ?? ''} - متبقي ${invoice.balanceDue.toStringAsFixed(2)}'),
+                      child: Text(
+                        '${invoice.invoiceNumber} - ${invoice.customerName ?? ''} - متبقي ${invoice.balanceDue.toStringAsFixed(2)}',
+                      ),
                     ),
                   )
                   .toList(),
               onChanged: (value) {
-                final selected = openInvoices.where((invoice) => invoice.id == value).firstOrNull;
-                _update(ref, form
-                  ..invoiceId = value
-                  ..amount = selected?.balanceDue ?? form.amount);
+                final selected = openInvoices
+                    .where((invoice) => invoice.id == value)
+                    .firstOrNull;
+                _update(
+                  ref,
+                  form
+                    ..invoiceId = value
+                    ..amount = selected?.balanceDue ?? form.amount,
+                );
               },
             ),
             const SizedBox(height: 16),
@@ -183,9 +215,15 @@ class _HeaderCard extends ConsumerWidget {
                       prefixIcon: Icon(Icons.account_balance),
                     ),
                     items: depositAccounts
-                        .map((account) => DropdownMenuItem(value: account.id, child: Text('${account.code} - ${account.name}')))
+                        .map<DropdownMenuItem<String>>(
+                          (AccountModel account) => DropdownMenuItem<String>(
+                            value: account.id,
+                            child: Text('${account.code} - ${account.name}'),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (value) => _update(ref, form..depositAccountId = value),
+                    onChanged: (value) =>
+                        _update(ref, form..depositAccountId = value),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -198,13 +236,26 @@ class _HeaderCard extends ConsumerWidget {
                       prefixIcon: Icon(Icons.payments_outlined),
                     ),
                     items: const [
-                      DropdownMenuItem(value: PaymentMethod.cash, child: Text('كاش')),
-                      DropdownMenuItem(value: PaymentMethod.check, child: Text('شيك')),
-                      DropdownMenuItem(value: PaymentMethod.bankTransfer, child: Text('تحويل بنكي')),
-                      DropdownMenuItem(value: PaymentMethod.creditCard, child: Text('بطاقة')),
+                      DropdownMenuItem<PaymentMethod>(
+                        value: PaymentMethod.cash,
+                        child: Text('كاش'),
+                      ),
+                      DropdownMenuItem<PaymentMethod>(
+                        value: PaymentMethod.check,
+                        child: Text('شيك'),
+                      ),
+                      DropdownMenuItem<PaymentMethod>(
+                        value: PaymentMethod.bankTransfer,
+                        child: Text('تحويل بنكي'),
+                      ),
+                      DropdownMenuItem<PaymentMethod>(
+                        value: PaymentMethod.creditCard,
+                        child: Text('بطاقة'),
+                      ),
                     ],
                     onChanged: (value) {
-                      if (value != null) _update(ref, form..paymentMethod = value);
+                      if (value != null)
+                        _update(ref, form..paymentMethod = value);
                     },
                   ),
                 ),
@@ -225,8 +276,12 @@ class _HeaderCard extends ConsumerWidget {
                   child: AppTextField(
                     key: ValueKey('amount-${form.invoiceId}-${form.amount}'),
                     label: 'المبلغ *',
-                    initialValue: form.amount == 0 ? '' : form.amount.toStringAsFixed(2),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    initialValue: form.amount == 0
+                        ? ''
+                        : form.amount.toStringAsFixed(2),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     onChanged: (value) {
                       form.amount = double.tryParse(value) ?? 0;
                       _update(ref, form);
@@ -250,7 +305,9 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final invoice = invoicesAsync.value?.where((i) => i.id == form.invoiceId).firstOrNull;
+    final invoice = invoicesAsync.value
+        ?.where((i) => i.id == form.invoiceId)
+        .firstOrNull;
 
     return Card(
       child: Padding(
@@ -260,13 +317,27 @@ class _InfoCard extends StatelessWidget {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('تفاصيل الفاتورة', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  Text(
+                    'تفاصيل الفاتورة',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   _Row(label: 'العميل', value: invoice.customerName ?? '-'),
                   _Row(label: 'رقم الفاتورة', value: invoice.invoiceNumber),
-                  _Row(label: 'إجمالي الفاتورة', value: invoice.totalAmount.toStringAsFixed(2)),
-                  _Row(label: 'المدفوع سابقًا', value: invoice.paidAmount.toStringAsFixed(2)),
-                  _Row(label: 'المتبقي', value: invoice.balanceDue.toStringAsFixed(2)),
+                  _Row(
+                    label: 'إجمالي الفاتورة',
+                    value: invoice.totalAmount.toStringAsFixed(2),
+                  ),
+                  _Row(
+                    label: 'المدفوع سابقًا',
+                    value: invoice.paidAmount.toStringAsFixed(2),
+                  ),
+                  _Row(
+                    label: 'المتبقي',
+                    value: invoice.balanceDue.toStringAsFixed(2),
+                  ),
                 ],
               ),
       ),
@@ -281,12 +352,15 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [Text(label), Text(value, style: const TextStyle(fontWeight: FontWeight.w700))],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+      ],
+    ),
+  );
 }
 
 void _update(WidgetRef ref, PaymentFormState old) {

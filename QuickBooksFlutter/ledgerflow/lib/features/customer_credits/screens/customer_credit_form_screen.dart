@@ -7,11 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
-import '../../../core/constants/api_enums.dart' show AccountType, CustomerCreditAction, PaymentMethod;
+import '../../../core/constants/api_enums.dart'
+    show AccountType, CustomerCreditAction, PaymentMethod;
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../invoices/data/models/invoice_model.dart';
 import '../../invoices/providers/invoices_provider.dart';
@@ -28,8 +30,13 @@ class CustomerCreditFormState {
   PaymentMethod paymentMethod = PaymentMethod.cash;
 }
 
-final customerCreditFormProvider = StateProvider.autoDispose<CustomerCreditFormState>((ref) => CustomerCreditFormState());
-final customerCreditSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final customerCreditFormProvider =
+    StateProvider.autoDispose<CustomerCreditFormState>(
+      (ref) => CustomerCreditFormState(),
+    );
+final customerCreditSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 
 class CustomerCreditFormScreen extends ConsumerWidget {
   const CustomerCreditFormScreen({super.key});
@@ -50,7 +57,11 @@ class CustomerCreditFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: saving ? null : () => context.canPop() ? context.pop() : context.go(AppRoutes.customerCredits),
+            onPressed: saving
+                ? null
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.customerCredits),
           ),
           const SizedBox(width: 12),
           AppButton(
@@ -87,11 +98,13 @@ class CustomerCreditFormScreen extends ConsumerWidget {
       _error(context, l10n.enterPositiveAmount);
       return;
     }
-    if (form.action == CustomerCreditAction.applyToInvoice && (form.invoiceId == null || form.invoiceId!.isEmpty)) {
+    if (form.action == CustomerCreditAction.applyToInvoice &&
+        (form.invoiceId == null || form.invoiceId!.isEmpty)) {
       _error(context, l10n.selectInvoiceFirst);
       return;
     }
-    if (form.action == CustomerCreditAction.refundReceipt && (form.refundAccountId == null || form.refundAccountId!.isEmpty)) {
+    if (form.action == CustomerCreditAction.refundReceipt &&
+        (form.refundAccountId == null || form.refundAccountId!.isEmpty)) {
       _error(context, l10n.selectPaymentAccountFirst);
       return;
     }
@@ -101,9 +114,15 @@ class CustomerCreditFormScreen extends ConsumerWidget {
       activityDate: form.activityDate,
       amount: form.amount,
       action: form.action,
-      invoiceId: form.action == CustomerCreditAction.applyToInvoice ? form.invoiceId : null,
-      refundAccountId: form.action == CustomerCreditAction.refundReceipt ? form.refundAccountId : null,
-      paymentMethod: form.action == CustomerCreditAction.refundReceipt ? form.paymentMethod : null,
+      invoiceId: form.action == CustomerCreditAction.applyToInvoice
+          ? form.invoiceId
+          : null,
+      refundAccountId: form.action == CustomerCreditAction.refundReceipt
+          ? form.refundAccountId
+          : null,
+      paymentMethod: form.action == CustomerCreditAction.refundReceipt
+          ? form.paymentMethod
+          : null,
     );
 
     ref.read(customerCreditSavingProvider.notifier).state = true;
@@ -114,7 +133,9 @@ class CustomerCreditFormScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
         context.go(AppRoutes.customerCredits);
       },
       failure: (error) => _error(context, error.message),
@@ -125,7 +146,9 @@ class CustomerCreditFormScreen extends ConsumerWidget {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
 
@@ -148,7 +171,11 @@ class _CreditCard extends ConsumerWidget {
 
     final customerInvoices = invoicesAsync.maybeWhen(
       data: (invoices) => invoices
-          .where((invoice) => form.customerId == null || invoice.customerId == form.customerId)
+          .where(
+            (invoice) =>
+                form.customerId == null ||
+                invoice.customerId == form.customerId,
+          )
           .where((invoice) => !invoice.isVoid && invoice.balanceDue > 0)
           .toList(),
       orElse: () => <InvoiceModel>[],
@@ -167,8 +194,14 @@ class _CreditCard extends ConsumerWidget {
       orElse: () => <AccountModel>[],
     );
 
-    final safeInvoiceId = customerInvoices.any((invoice) => invoice.id == form.invoiceId) ? form.invoiceId : null;
-    final safeAccountId = refundAccounts.any((account) => account.id == form.refundAccountId) ? form.refundAccountId : null;
+    final safeInvoiceId =
+        customerInvoices.any((invoice) => invoice.id == form.invoiceId)
+        ? form.invoiceId
+        : null;
+    final safeAccountId =
+        refundAccounts.any((account) => account.id == form.refundAccountId)
+        ? form.refundAccountId
+        : null;
 
     return Card(
       child: Padding(
@@ -184,7 +217,12 @@ class _CreditCard extends ConsumerWidget {
               ),
               items: customersAsync.maybeWhen(
                 data: (customers) => customers
-                    .map<DropdownMenuItem<String>>((customer) => DropdownMenuItem(value: customer.id, child: Text(customer.displayName)))
+                    .map<DropdownMenuItem<String>>(
+                      (CustomerModel customer) => DropdownMenuItem<String>(
+                        value: customer.id,
+                        child: Text(customer.displayName),
+                      ),
+                    )
                     .toList(),
                 orElse: () => const <DropdownMenuItem<String>>[],
               ),
@@ -204,11 +242,19 @@ class _CreditCard extends ConsumerWidget {
                     decoration: InputDecoration(
                       labelText: l10n.creditBalance,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
+                      prefixIcon: const Icon(
+                        Icons.account_balance_wallet_outlined,
+                      ),
                     ),
                     items: [
-                      DropdownMenuItem(value: CustomerCreditAction.applyToInvoice, child: Text(l10n.invoice)),
-                      DropdownMenuItem(value: CustomerCreditAction.refundReceipt, child: Text(l10n.recordDeposits)),
+                      DropdownMenuItem<CustomerCreditAction>(
+                        value: CustomerCreditAction.applyToInvoice,
+                        child: Text(l10n.invoice),
+                      ),
+                      DropdownMenuItem<CustomerCreditAction>(
+                        value: CustomerCreditAction.refundReceipt,
+                        child: Text(l10n.recordDeposits),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value == null) return;
@@ -227,7 +273,9 @@ class _CreditCard extends ConsumerWidget {
                   child: AppTextField(
                     label: l10n.paymentDate,
                     readOnly: true,
-                    initialValue: CustomerCreditFormScreen._dateOnly(form.activityDate),
+                    initialValue: CustomerCreditFormScreen._dateOnly(
+                      form.activityDate,
+                    ),
                   ),
                 ),
               ],
@@ -242,15 +290,19 @@ class _CreditCard extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.receipt_long_outlined),
                 ),
                 items: customerInvoices
-                    .map(
-                      (invoice) => DropdownMenuItem(
+                    .map<DropdownMenuItem<String>>(
+                      (InvoiceModel invoice) => DropdownMenuItem<String>(
                         value: invoice.id,
-                        child: Text('${invoice.invoiceNumber} - ${invoice.balanceDue.toStringAsFixed(2)} ${l10n.egp}'),
+                        child: Text(
+                          '${invoice.invoiceNumber} - ${invoice.balanceDue.toStringAsFixed(2)} ${l10n.egp}',
+                        ),
                       ),
                     )
                     .toList(),
                 onChanged: (value) {
-                  final invoice = customerInvoices.where((i) => i.id == value).firstOrNull;
+                  final invoice = customerInvoices
+                      .where((i) => i.id == value)
+                      .firstOrNull;
                   _update(
                     ref,
                     form
@@ -268,9 +320,15 @@ class _CreditCard extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.account_balance_outlined),
                 ),
                 items: refundAccounts
-                    .map((account) => DropdownMenuItem(value: account.id, child: Text('${account.code} - ${account.name}')))
+                    .map<DropdownMenuItem<String>>(
+                      (AccountModel account) => DropdownMenuItem<String>(
+                        value: account.id,
+                        child: Text('${account.code} - ${account.name}'),
+                      ),
+                    )
                     .toList(),
-                onChanged: (value) => _update(ref, form..refundAccountId = value),
+                onChanged: (value) =>
+                    _update(ref, form..refundAccountId = value),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<PaymentMethod>(
@@ -281,10 +339,22 @@ class _CreditCard extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.payments_outlined),
                 ),
                 items: [
-                  DropdownMenuItem(value: PaymentMethod.cash, child: Text(l10n.cash)),
-                  DropdownMenuItem(value: PaymentMethod.check, child: Text(l10n.check)),
-                  DropdownMenuItem(value: PaymentMethod.bankTransfer, child: Text(l10n.bankTransfer)),
-                  DropdownMenuItem(value: PaymentMethod.creditCard, child: Text(l10n.creditCard)),
+                  DropdownMenuItem<PaymentMethod>(
+                    value: PaymentMethod.cash,
+                    child: Text(l10n.cash),
+                  ),
+                  DropdownMenuItem<PaymentMethod>(
+                    value: PaymentMethod.check,
+                    child: Text(l10n.check),
+                  ),
+                  DropdownMenuItem<PaymentMethod>(
+                    value: PaymentMethod.bankTransfer,
+                    child: Text(l10n.bankTransfer),
+                  ),
+                  DropdownMenuItem<PaymentMethod>(
+                    value: PaymentMethod.creditCard,
+                    child: Text(l10n.creditCard),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) _update(ref, form..paymentMethod = value);
@@ -293,10 +363,16 @@ class _CreditCard extends ConsumerWidget {
             ],
             const SizedBox(height: 16),
             AppTextField(
-              key: ValueKey('customer-credit-amount-${form.invoiceId}-${form.amount}'),
+              key: ValueKey(
+                'customer-credit-amount-${form.invoiceId}-${form.amount}',
+              ),
               label: '${l10n.amount} *',
-              initialValue: form.amount == 0 ? '' : form.amount.toStringAsFixed(2),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              initialValue: form.amount == 0
+                  ? ''
+                  : form.amount.toStringAsFixed(2),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               onChanged: (value) {
                 form.amount = double.tryParse(value) ?? 0;
                 _update(ref, form);
@@ -310,7 +386,9 @@ class _CreditCard extends ConsumerWidget {
 }
 
 void _update(WidgetRef ref, CustomerCreditFormState old) {
-  ref.read(customerCreditFormProvider.notifier).state = CustomerCreditFormState()
+  ref
+      .read(customerCreditFormProvider.notifier)
+      .state = CustomerCreditFormState()
     ..customerId = old.customerId
     ..invoiceId = old.invoiceId
     ..refundAccountId = old.refundAccountId
