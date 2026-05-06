@@ -18,4 +18,6 @@ class BankingRepository {
   Future<ApiResult<void>> createDeposit(CreateBankDepositDto dto) => _remote.createDeposit(dto);
 
   Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) => _remote.createCheck(dto);
+
+  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(BankReconcilePreviewDto dto) => _remote.previewReconcile(dto);
 }
