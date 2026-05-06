@@ -29,26 +29,44 @@ class TransactionHeaderPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Card(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
+                  radius: 17,
                   backgroundColor: cs.primaryContainer,
-                  child: Icon(Icons.description_outlined, color: cs.onPrimaryContainer),
+                  child: Icon(
+                    Icons.description_outlined,
+                    color: cs.onPrimaryContainer,
+                    size: 18,
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(kind.label, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 2),
-                      Text('Full accounting transaction screen', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                      Text(
+                        kind.label,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        'Accounting transaction',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -59,28 +77,60 @@ class TransactionHeaderPanel extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 900;
                 final fields = <Widget>[
-                  _HeaderField(label: 'Number', controller: numberController, icon: Icons.tag_outlined),
-                  _HeaderField(label: 'Date', controller: dateController, icon: Icons.calendar_today_outlined),
-                  if (dueDateController != null) _HeaderField(label: 'Due Date', controller: dueDateController!, icon: Icons.event_available_outlined),
-                  if (termsController != null) _HeaderField(label: 'Terms', controller: termsController!, icon: Icons.rule_outlined),
-                  if (referenceController != null) _HeaderField(label: 'Reference', controller: referenceController!, icon: Icons.numbers_outlined),
+                  _HeaderField(
+                    label: 'Number',
+                    controller: numberController,
+                    icon: Icons.tag_outlined,
+                  ),
+                  _HeaderField(
+                    label: 'Date',
+                    controller: dateController,
+                    icon: Icons.calendar_today_outlined,
+                  ),
+                  if (dueDateController != null)
+                    _HeaderField(
+                      label: 'Due Date',
+                      controller: dueDateController!,
+                      icon: Icons.event_available_outlined,
+                    ),
+                  if (termsController != null)
+                    _HeaderField(
+                      label: 'Terms',
+                      controller: termsController!,
+                      icon: Icons.rule_outlined,
+                    ),
+                  if (referenceController != null)
+                    _HeaderField(
+                      label: 'Reference',
+                      controller: referenceController!,
+                      icon: Icons.numbers_outlined,
+                    ),
                 ];
 
                 if (!wide) {
                   return Column(
-                    children: fields.map((field) => Padding(padding: const EdgeInsets.only(bottom: 10), child: field)).toList(),
+                    children: fields
+                        .map(
+                          (field) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: field,
+                          ),
+                        )
+                        .toList(),
                   );
                 }
 
                 return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: fields.map((field) => SizedBox(width: 190, child: field)).toList(),
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: fields
+                      .map((field) => SizedBox(width: 170, child: field))
+                      .toList(),
                 );
               },
             ),
@@ -92,7 +142,11 @@ class TransactionHeaderPanel extends StatelessWidget {
 }
 
 class _HeaderField extends StatelessWidget {
-  const _HeaderField({required this.label, required this.controller, required this.icon});
+  const _HeaderField({
+    required this.label,
+    required this.controller,
+    required this.icon,
+  });
 
   final String label;
   final TextEditingController controller;
@@ -106,6 +160,7 @@ class _HeaderField extends StatelessWidget {
         labelText: label,
         prefixIcon: Icon(icon, size: 18),
         border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         isDense: true,
       ),
     );

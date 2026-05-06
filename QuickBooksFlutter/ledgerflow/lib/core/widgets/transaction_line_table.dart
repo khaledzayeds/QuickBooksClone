@@ -4,15 +4,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 import '../../features/items/data/models/item_model.dart';
 import '../../features/items/providers/items_provider.dart';
 import '../../features/purchase_orders/data/models/order_line_entry.dart';
 
-enum TransactionLinePriceMode {
-  purchase,
-  sales,
-}
+enum TransactionLinePriceMode { purchase, sales }
 
 class TransactionLineTable extends ConsumerStatefulWidget {
   const TransactionLineTable({
@@ -27,7 +25,8 @@ class TransactionLineTable extends ConsumerStatefulWidget {
   final TransactionLinePriceMode priceMode;
 
   @override
-  ConsumerState<TransactionLineTable> createState() => _TransactionLineTableState();
+  ConsumerState<TransactionLineTable> createState() =>
+      _TransactionLineTableState();
 }
 
 class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
@@ -92,35 +91,47 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
     final cs = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    const double colAction = 40;
+    const double colAction = 34;
     const double colItem = 280;
     const double colDesc = 300;
-    const double colQty = 80;
-    const double colRate = 120;
+    const double colQty = 74;
+    const double colRate = 110;
     const double colTotal = 120;
-    const double totalWidth = colAction + colItem + colDesc + colQty + colRate + colTotal + 2;
+    const double totalWidth =
+        colAction + colItem + colDesc + colQty + colRate + colTotal + 2;
 
     return Container(
       width: totalWidth,
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border.all(color: cs.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             color: cs.surfaceContainerHigh,
-            height: 40,
+            height: 30,
             child: Row(
               children: [
                 const SizedBox(width: colAction),
                 _HeaderCell(l10n.itemService.toUpperCase(), colItem),
                 _HeaderCell(l10n.description.toUpperCase(), colDesc),
-                _HeaderCell(l10n.qty.toUpperCase(), colQty, align: TextAlign.center),
-                _HeaderCell(l10n.rate.toUpperCase(), colRate, align: TextAlign.right),
-                _HeaderCell(l10n.amount.toUpperCase(), colTotal, align: TextAlign.right),
+                _HeaderCell(
+                  l10n.qty.toUpperCase(),
+                  colQty,
+                  align: TextAlign.center,
+                ),
+                _HeaderCell(
+                  l10n.rate.toUpperCase(),
+                  colRate,
+                  align: TextAlign.right,
+                ),
+                _HeaderCell(
+                  l10n.amount.toUpperCase(),
+                  colTotal,
+                  align: TextAlign.right,
+                ),
               ],
             ),
           ),
@@ -129,16 +140,29 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
             final line = entry.value;
 
             return Container(
-              height: 48,
+              height: 36,
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
+                color: i.isEven
+                    ? cs.surface
+                    : cs.surfaceContainerHighest.withValues(alpha: 0.42),
+                border: Border(
+                  bottom: BorderSide(
+                    color: cs.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                ),
               ),
               child: Row(
                 children: [
                   SizedBox(
                     width: colAction,
                     child: IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
                       onPressed: () => _removeLine(i),
                     ),
                   ),
@@ -166,7 +190,9 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                       align: TextAlign.center,
                       onChanged: () {
                         line.qty = double.tryParse(line.qtyCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+                        WidgetsBinding.instance.addPostFrameCallback(
+                          (_) => widget.onChanged(),
+                        );
                         setState(() {});
                       },
                     ),
@@ -179,7 +205,9 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                       align: TextAlign.right,
                       onChanged: () {
                         line.rate = double.tryParse(line.rateCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+                        WidgetsBinding.instance.addPostFrameCallback(
+                          (_) => widget.onChanged(),
+                        );
                         setState(() {});
                       },
                     ),
@@ -200,13 +228,13 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
             );
           }),
           Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               children: [
                 TextButton.icon(
                   onPressed: _addLine,
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: const Icon(Icons.add, size: 16),
                   label: Text(l10n.addLine),
                 ),
                 const Spacer(),
@@ -218,15 +246,23 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
     );
   }
 
-  Widget _HeaderCell(String label, double width, {TextAlign align = TextAlign.left}) {
+  Widget _HeaderCell(
+    String label,
+    double width, {
+    TextAlign align = TextAlign.left,
+  }) {
     return SizedBox(
       width: width,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Text(
           label,
           textAlign: align,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: Colors.blueGrey),
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: Colors.blueGrey,
+          ),
         ),
       ),
     );
@@ -253,22 +289,27 @@ class _InlineTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       textAlign: align,
-      keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : null,
+      keyboardType: numeric
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : null,
       textInputAction: TextInputAction.next,
       onChanged: (_) => onChanged?.call(),
-      style: const TextStyle(fontSize: 13),
+      style: const TextStyle(fontSize: 12),
       decoration: InputDecoration(
         hintText: hint,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
         border: InputBorder.none,
-        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.blue, width: 1),
+          borderRadius: BorderRadius.zero,
+        ),
       ),
     );
   }
 }
 
-class _InlineItemPicker extends ConsumerWidget {
+class _InlineItemPicker extends ConsumerStatefulWidget {
   const _InlineItemPicker({
     super.key,
     required this.initialValue,
@@ -280,11 +321,51 @@ class _InlineItemPicker extends ConsumerWidget {
   final Function(ItemModel) onPicked;
   final TransactionLinePriceMode priceMode;
 
+  @override
+  ConsumerState<_InlineItemPicker> createState() => _InlineItemPickerState();
+}
+
+class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineItemPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_focusNode.hasFocus && widget.initialValue != _controller.text) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
   double _displayRate(ItemModel item) {
-    return switch (priceMode) {
+    return switch (widget.priceMode) {
       TransactionLinePriceMode.purchase => item.purchasePrice,
       TransactionLinePriceMode.sales => item.salesPrice,
     };
+  }
+
+  Iterable<ItemModel> _matches(List<ItemModel> items, String pattern) {
+    final text = pattern.toLowerCase().trim();
+    if (text.isEmpty) return const Iterable<ItemModel>.empty();
+    return items.where(
+      (item) =>
+          item.name.toLowerCase().contains(text) ||
+          (item.sku?.toLowerCase().contains(text) ?? false),
+    );
   }
 
   @override
@@ -293,77 +374,74 @@ class _InlineItemPicker extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return itemsAsync.when(
-      loading: () => const Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))),
-      error: (e, _) => const Icon(Icons.error_outline, color: Colors.red, size: 16),
-      data: (items) => RawAutocomplete<ItemModel>(
-        initialValue: TextEditingValue(text: initialValue),
-        optionsBuilder: (TextEditingValue textEditingValue) {
-          if (textEditingValue.text.isEmpty) return const Iterable<ItemModel>.empty();
-          final text = textEditingValue.text.toLowerCase();
-          return items.where((item) =>
-              item.name.toLowerCase().contains(text) ||
-              (item.sku?.toLowerCase().contains(text) ?? false));
-        },
-        displayStringForOption: (item) => item.name,
-        onSelected: onPicked,
-        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-          return TextField(
-            controller: controller,
-            focusNode: focusNode,
-            textInputAction: TextInputAction.next,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            onSubmitted: (_) {
-              final text = controller.text.toLowerCase().trim();
-              if (text.isEmpty) return;
+      loading: () => const Center(
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (e, _) =>
+          const Icon(Icons.error_outline, color: Colors.red, size: 16),
+      data: (items) => TypeAheadField<ItemModel>(
+        textFieldConfiguration: TextFieldConfiguration(
+          controller: _controller,
+          focusNode: _focusNode,
+          textInputAction: TextInputAction.next,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          onSubmitted: (value) {
+            final exact = _matches(items, value)
+                .where(
+                  (item) =>
+                      item.name.toLowerCase() == value.toLowerCase().trim() ||
+                      item.sku?.toLowerCase() == value.toLowerCase().trim(),
+                )
+                .toList();
+            if (exact.isNotEmpty) {
+              widget.onPicked(exact.first);
+              return;
+            }
 
-              final exact = items.where((i) =>
-                (i.sku?.toLowerCase() == text) ||
-                (i.name.toLowerCase() == text)
-              ).toList();
-
-              if (exact.isNotEmpty) {
-                onPicked(exact.first);
-              } else {
-                final partial = items.where((i) => i.name.toLowerCase().contains(text)).toList();
-                if (partial.isNotEmpty) onPicked(partial.first);
-              }
-            },
-            decoration: InputDecoration(
-              hintText: l10n.selectItem,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              border: InputBorder.none,
-              focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
-              suffixIcon: const Icon(Icons.search, size: 14, color: Colors.grey),
+            final partial = _matches(items, value).toList();
+            if (partial.isNotEmpty) widget.onPicked(partial.first);
+          },
+          decoration: InputDecoration(
+            hintText: l10n.selectItem,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 9,
+            ),
+            border: InputBorder.none,
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue, width: 1),
+              borderRadius: BorderRadius.zero,
+            ),
+            suffixIcon: const Icon(Icons.search, size: 14, color: Colors.grey),
+          ),
+        ),
+        suggestionsCallback: (pattern) => _matches(items, pattern).toList(),
+        itemBuilder: (context, item) {
+          return ListTile(
+            dense: true,
+            title: Text(
+              item.name,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              '${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}',
             ),
           );
         },
-        optionsViewBuilder: (context, onSelected, options) {
-          return Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              elevation: 4,
-              child: Container(
-                width: 280,
-                constraints: const BoxConstraints(maxHeight: 300),
-                child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  itemBuilder: (context, index) {
-                    final item = options.elementAt(index);
-                    return ListTile(
-                      dense: true,
-                      title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text('${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}'),
-                      onTap: () => onSelected(item),
-                    );
-                  },
-                ),
-              ),
-            ),
-          );
+        onSuggestionSelected: (item) {
+          _controller.text = item.name;
+          widget.onPicked(item);
         },
+        noItemsFoundBuilder: (_) => const SizedBox.shrink(),
+        suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+          elevation: 4,
+          constraints: BoxConstraints(maxHeight: 300),
+        ),
       ),
     );
   }
