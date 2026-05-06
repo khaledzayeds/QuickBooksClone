@@ -274,7 +274,6 @@ class _HeaderCard extends ConsumerWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: AppTextField(
-                    key: ValueKey('amount-${form.invoiceId}-${form.amount}'),
                     label: 'المبلغ *',
                     initialValue: form.amount == 0
                         ? ''

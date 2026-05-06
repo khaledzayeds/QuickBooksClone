@@ -337,7 +337,6 @@ class _JournalLineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
-                key: ValueKey('je-desc-$index-${line.accountId}'),
                 label: '',
                 initialValue: line.description,
                 onChanged: (value) {
@@ -351,7 +350,6 @@ class _JournalLineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
-                key: ValueKey('je-debit-$index-${line.debit}'),
                 label: '',
                 initialValue: line.debit == 0
                     ? ''
@@ -371,7 +369,6 @@ class _JournalLineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
-                key: ValueKey('je-credit-$index-${line.credit}'),
                 label: '',
                 initialValue: line.credit == 0
                     ? ''

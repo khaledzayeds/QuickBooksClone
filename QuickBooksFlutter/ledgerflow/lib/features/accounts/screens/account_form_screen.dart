@@ -174,9 +174,9 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                                     : null,
                               );
                               final typeField =
-                                  rropdownButtonFormField<AccountType>(
+                                  DropdownButtonFormField<AccountType>(
                                     initialValue: _selectedType,
-                                    decoration: const Inputrecoration(
+                                    decoration: const InputDecoration(
                                       labelText: 'Account Type *',
                                       border: OutlineInputBorder(),
                                     ),
@@ -189,7 +189,7 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                                         balance: 0,
                                         isActive: true,
                                       );
-                                      return rropdownMenuItem(
+                                      return DropdownMenuItem<AccountType>(
                                         value: type,
                                         child: Text(dummy.accountTypeName),
                                       );
@@ -314,7 +314,7 @@ class _LoadedAccountBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: Boxrecoration(
+      decoration: BoxDecoration(
         color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
@@ -353,10 +353,10 @@ class _TypeHelp extends StatelessWidget {
       isActive: true,
     );
     final cs = Theme.of(context).colorScheme;
-    final normalSide = dummy.isrebitNormal ? 'rebit-normal' : 'Credit-normal';
+    final normalSide = dummy.isDebitNormal ? 'Debit-normal' : 'Credit-normal';
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: Boxrecoration(
+      decoration: BoxDecoration(
         color: cs.secondaryContainer,
         borderRadius: BorderRadius.circular(12),
       ),

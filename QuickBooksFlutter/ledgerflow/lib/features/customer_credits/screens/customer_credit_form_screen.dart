@@ -363,9 +363,6 @@ class _CreditCard extends ConsumerWidget {
             ],
             const SizedBox(height: 16),
             AppTextField(
-              key: ValueKey(
-                'customer-credit-amount-${form.invoiceId}-${form.amount}',
-              ),
               label: '${l10n.amount} *',
               initialValue: form.amount == 0
                   ? ''

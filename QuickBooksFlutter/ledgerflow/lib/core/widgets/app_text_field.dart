@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class AppTextField extends StatelessWidget {
+class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
     required this.label,
@@ -44,44 +44,102 @@ class AppTextField extends StatelessWidget {
   final bool autofocus;
 
   @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  late final FocusNode _focusNode;
+  TextEditingController? _internalController;
+
+  TextEditingController get _controller =>
+      widget.controller ?? _internalController!;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    if (widget.controller == null) {
+      _internalController = TextEditingController(
+        text: widget.initialValue ?? '',
+      );
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      _internalController?.dispose();
+      _internalController = widget.controller == null
+          ? TextEditingController(text: widget.initialValue ?? '')
+          : null;
+      return;
+    }
+
+    if (widget.controller == null && !_focusNode.hasFocus) {
+      final nextText = widget.initialValue ?? '';
+      if (_controller.text != nextText) {
+        _controller.value = TextEditingValue(
+          text: nextText,
+          selection: TextSelection.collapsed(offset: nextText.length),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _internalController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label.isNotEmpty) ...[
+        if (widget.label.isNotEmpty) ...[
           Text(
-            label,
+            widget.label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 6),
         ],
         TextFormField(
-          initialValue: initialValue,
-          controller: controller,
-          obscureText: obscureText,
-          readOnly: readOnly,
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          onChanged: onChanged,
-          onTap: onTap,
-          validator: validator,
-          textInputAction: textInputAction,
-          autofocus: autofocus,
+          controller: _controller,
+          focusNode: _focusNode,
+          obscureText: widget.obscureText,
+          readOnly: widget.readOnly,
+          maxLines: widget.maxLines,
+          keyboardType: widget.keyboardType,
+          inputFormatters: widget.inputFormatters,
+          onChanged: widget.onChanged,
+          onTap: widget.onTap,
+          validator: widget.validator,
+          textInputAction: widget.textInputAction,
+          autofocus: widget.autofocus,
           style: Theme.of(context).textTheme.bodyMedium,
           decoration: InputDecoration(
-            hintText: hint,
-            errorText: errorText,
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 20) : null,
-            suffixIcon: suffixIcon,
+            hintText: widget.hint,
+            errorText: widget.errorText,
+            prefixIcon: widget.prefixIcon != null
+                ? Icon(widget.prefixIcon, size: 20)
+                : null,
+            suffixIcon: widget.suffixIcon,
             filled: true,
-            fillColor: readOnly 
-                ? Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5) 
+            fillColor: widget.readOnly
+                ? Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
                 : Theme.of(context).colorScheme.surface,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
           ),
         ),
       ],

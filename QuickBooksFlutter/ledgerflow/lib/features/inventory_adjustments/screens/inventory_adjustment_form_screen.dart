@@ -261,7 +261,6 @@ class _AdjustmentCard extends ConsumerWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: AppTextField(
-                    key: ValueKey('qty-${form.itemId}-${form.quantityChange}'),
                     label: '${l10n.qty} *',
                     initialValue: form.quantityChange == 0
                         ? ''
@@ -283,7 +282,6 @@ class _AdjustmentCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: AppTextField(
-                    key: ValueKey('unitCost-${form.itemId}-${form.unitCost}'),
                     label: '${l10n.unitCost} *',
                     initialValue: form.unitCost == 0
                         ? ''

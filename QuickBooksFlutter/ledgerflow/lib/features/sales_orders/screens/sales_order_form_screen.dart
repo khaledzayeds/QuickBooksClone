@@ -324,7 +324,6 @@ class _SalesOrderLineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
-                key: ValueKey('so-qty-$index-${line.quantity}'),
                 label: '',
                 initialValue: line.quantity.toString(),
                 keyboardType: const TextInputType.numberWithOptions(
@@ -341,7 +340,6 @@ class _SalesOrderLineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
-                key: ValueKey('so-price-$index-${line.unitPrice}'),
                 label: '',
                 initialValue: line.unitPrice == 0
                     ? ''
