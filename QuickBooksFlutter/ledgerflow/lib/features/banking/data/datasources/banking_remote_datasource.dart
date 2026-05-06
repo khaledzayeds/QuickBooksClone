@@ -44,4 +44,22 @@ class BankingRemoteDatasource {
       return Failure(parseError(error));
     }
   }
+
+  Future<ApiResult<void>> createDeposit(CreateBankDepositDto dto) async {
+    try {
+      await _client.post<Map<String, dynamic>>('/api/banking/deposits', data: dto.toJson());
+      return const Success(null);
+    } on DioException catch (error) {
+      return Failure(parseError(error));
+    }
+  }
+
+  Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) async {
+    try {
+      await _client.post<Map<String, dynamic>>('/api/banking/checks', data: dto.toJson());
+      return const Success(null);
+    } on DioException catch (error) {
+      return Failure(parseError(error));
+    }
+  }
 }
