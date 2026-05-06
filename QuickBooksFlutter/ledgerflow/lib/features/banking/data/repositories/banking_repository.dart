@@ -14,4 +14,8 @@ class BankingRepository {
   Future<ApiResult<BankRegisterResponseModel>> getRegister(String accountId) => _remote.getRegister(accountId);
 
   Future<ApiResult<void>> createTransfer(CreateBankTransferDto dto) => _remote.createTransfer(dto);
+
+  Future<ApiResult<void>> createDeposit(CreateBankDepositDto dto) => _remote.createDeposit(dto);
+
+  Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) => _remote.createCheck(dto);
 }
