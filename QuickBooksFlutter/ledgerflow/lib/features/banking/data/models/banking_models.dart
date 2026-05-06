@@ -119,6 +119,60 @@ class CreateBankTransferDto {
         'amount': amount,
         if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim(),
       };
-
-  static String _dateOnly(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
+
+class CreateBankDepositDto {
+  const CreateBankDepositDto({
+    required this.depositAccountId,
+    required this.offsetAccountId,
+    required this.depositDate,
+    required this.amount,
+    this.receivedFrom,
+    this.memo,
+  });
+
+  final String depositAccountId;
+  final String offsetAccountId;
+  final DateTime depositDate;
+  final double amount;
+  final String? receivedFrom;
+  final String? memo;
+
+  Map<String, dynamic> toJson() => {
+        'depositAccountId': depositAccountId,
+        'offsetAccountId': offsetAccountId,
+        'depositDate': _dateOnly(depositDate),
+        'amount': amount,
+        if (receivedFrom != null && receivedFrom!.trim().isNotEmpty) 'receivedFrom': receivedFrom!.trim(),
+        if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim(),
+      };
+}
+
+class CreateBankCheckDto {
+  const CreateBankCheckDto({
+    required this.bankAccountId,
+    required this.expenseAccountId,
+    required this.checkDate,
+    required this.amount,
+    this.payee,
+    this.memo,
+  });
+
+  final String bankAccountId;
+  final String expenseAccountId;
+  final DateTime checkDate;
+  final double amount;
+  final String? payee;
+  final String? memo;
+
+  Map<String, dynamic> toJson() => {
+        'bankAccountId': bankAccountId,
+        'expenseAccountId': expenseAccountId,
+        'checkDate': _dateOnly(checkDate),
+        'amount': amount,
+        if (payee != null && payee!.trim().isNotEmpty) 'payee': payee!.trim(),
+        if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim(),
+      };
+}
+
+String _dateOnly(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
