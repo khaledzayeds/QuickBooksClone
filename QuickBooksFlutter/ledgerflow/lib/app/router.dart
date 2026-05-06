@@ -12,6 +12,7 @@ import '../features/accounts/screens/account_form_screen.dart';
 import '../features/accounts/screens/chart_of_accounts_screen.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/auth/screens/login_screen.dart';
+import '../features/banking/screens/bank_reconcile_screen.dart';
 import '../features/banking/screens/bank_register_screen.dart';
 import '../features/banking/screens/bank_transfer_screen.dart';
 import '../features/banking/screens/make_deposit_screen.dart';
@@ -273,6 +274,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.bankingTransfers, builder: (context, state) => const BankTransferScreen()),
           GoRoute(path: AppRoutes.bankingDeposits, builder: (context, state) => const MakeDepositScreen()),
           GoRoute(path: AppRoutes.bankingChecks, builder: (context, state) => const WriteCheckScreen()),
+          GoRoute(path: AppRoutes.bankingReconcile, builder: (context, state) => const BankReconcileScreen()),
           GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsHomeScreen()),
           GoRoute(path: AppRoutes.companySettings, builder: (context, state) => const CompanySettingsScreen()),
           GoRoute(path: AppRoutes.connectionSettings, builder: (context, state) => const ConnectionSettingsScreen()),
@@ -282,7 +284,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.printingSettings, builder: (context, state) => const PrintingSettingsScreen()),
           GoRoute(path: AppRoutes.usersPermissions, builder: (context, state) => const UsersPermissionsScreen()),
           GoRoute(path: AppRoutes.licenseSettings, builder: (context, state) => const LicenseSettingsScreen()),
-          _comingSoon(AppRoutes.bankingReconcile, 'Reconcile'),
           _comingSoonGated(AppRoutes.payroll, 'Payroll', LicenseFeature.payroll),
           _comingSoon(AppRoutes.timeTracking, 'Enter Time'),
           _comingSoon(AppRoutes.calendar, 'Calendar'),
