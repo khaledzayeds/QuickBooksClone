@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../data/models/banking_models.dart';
 import '../providers/banking_provider.dart';
@@ -51,7 +52,9 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
     }
 
     ref.read(bankTransferSavingProvider.notifier).state = true;
-    final result = await ref.read(bankingActionsProvider).createTransfer(
+    final result = await ref
+        .read(bankingActionsProvider)
+        .createTransfer(
           CreateBankTransferDto(
             fromAccountId: _fromAccountId!,
             toAccountId: _toAccountId!,
@@ -65,10 +68,14 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
     if (!mounted) return;
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bank transfer saved.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Bank transfer saved.')));
         ref.read(selectedBankAccountIdProvider.notifier).state = _fromAccountId;
         if (context.canPop()) {
           context.pop();
+        } else {
+          context.go(AppRoutes.bankingRegister);
         }
       },
       failure: (error) => _error(error.message),
@@ -76,7 +83,12 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
   }
 
   void _error(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
   }
 
   @override
@@ -99,7 +111,9 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (accounts) {
-          final activeAccounts = accounts.where((account) => account.isActive).toList();
+          final activeAccounts = accounts
+              .where((account) => account.isActive)
+              .toList();
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
@@ -109,7 +123,12 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Transfer Funds', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                      Text(
+                        'Transfer Funds',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       const SizedBox(height: 20),
                       Row(
                         children: [
@@ -118,7 +137,8 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                               label: 'Transfer From',
                               value: _fromAccountId,
                               accounts: activeAccounts,
-                              onChanged: (value) => setState(() => _fromAccountId = value),
+                              onChanged: (value) =>
+                                  setState(() => _fromAccountId = value),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -127,7 +147,8 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                               label: 'Transfer To',
                               value: _toAccountId,
                               accounts: activeAccounts,
-                              onChanged: (value) => setState(() => _toAccountId = value),
+                              onChanged: (value) =>
+                                  setState(() => _toAccountId = value),
                             ),
                           ),
                         ],
@@ -138,7 +159,8 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                           Expanded(
                             child: _DatePickerField(
                               value: _transferDate,
-                              onChanged: (date) => setState(() => _transferDate = date),
+                              onChanged: (date) =>
+                                  setState(() => _transferDate = date),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -146,8 +168,15 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                             child: AppTextField(
                               label: 'Amount',
                               controller: _amountCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9.]'),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -171,20 +200,32 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             OutlinedButton(
-              onPressed: saving ? null : () => context.canPop() ? context.pop() : null,
+              onPressed: saving
+                  ? null
+                  : () => context.canPop()
+                        ? context.pop()
+                        : context.go(AppRoutes.bankingRegister),
               child: const Text('Cancel'),
             ),
             const SizedBox(width: 12),
             FilledButton.icon(
               onPressed: saving ? null : _save,
               icon: saving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Icon(Icons.swap_horiz),
               label: const Text('Save Transfer'),
             ),
@@ -210,7 +251,9 @@ class _AccountDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeValue = accounts.any((account) => account.id == value) ? value : null;
+    final safeValue = accounts.any((account) => account.id == value)
+        ? value
+        : null;
     return DropdownButtonFormField<String>(
       initialValue: safeValue,
       decoration: InputDecoration(
@@ -222,7 +265,9 @@ class _AccountDropdown extends StatelessWidget {
           .map(
             (account) => DropdownMenuItem<String>(
               value: account.id,
-              child: Text('${account.displayName} — ${account.balance.toStringAsFixed(2)}'),
+              child: Text(
+                '${account.displayName} — ${account.balance.toStringAsFixed(2)}',
+              ),
             ),
           )
           .toList(),
