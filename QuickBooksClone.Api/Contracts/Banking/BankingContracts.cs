@@ -36,3 +36,19 @@ public sealed record CreateBankTransferRequest(
     DateOnly TransferDate,
     decimal Amount,
     string? Memo);
+
+public sealed record CreateBankDepositRequest(
+    Guid DepositAccountId,
+    Guid OffsetAccountId,
+    DateOnly DepositDate,
+    decimal Amount,
+    string? ReceivedFrom,
+    string? Memo);
+
+public sealed record CreateBankCheckRequest(
+    Guid BankAccountId,
+    Guid ExpenseAccountId,
+    DateOnly CheckDate,
+    decimal Amount,
+    string? Payee,
+    string? Memo);
