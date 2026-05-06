@@ -231,6 +231,13 @@ class SidebarMenu extends ConsumerWidget {
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
+                  icon: Icons.fact_check_outlined,
+                  label: 'Reconcile',
+                  path: AppRoutes.bankingReconcile,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
                   icon: Icons.list_alt_outlined,
                   label: l10n.viewBalances,
                   path: AppRoutes.chartOfAccounts,
