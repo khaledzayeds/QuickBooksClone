@@ -1,6 +1,7 @@
 // banking_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_result.dart';
@@ -16,41 +17,58 @@ final bankingRepositoryProvider = Provider<BankingRepository>(
   (ref) => BankingRepository(ref.watch(bankingDatasourceProvider)),
 );
 
-final bankAccountsProvider = FutureProvider<List<BankAccountModel>>((ref) async {
+final bankAccountsProvider = FutureProvider<List<BankAccountModel>>((
+  ref,
+) async {
   final result = await ref.read(bankingRepositoryProvider).getAccounts();
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
 final selectedBankAccountIdProvider = StateProvider<String?>((ref) => null);
 
-final bankRegisterProvider = FutureProvider.autoDispose<BankRegisterResponseModel>((ref) async {
-  final accountId = ref.watch(selectedBankAccountIdProvider);
-  if (accountId == null || accountId.isEmpty) {
-    return const BankRegisterResponseModel(
-      accountId: '',
-      accountName: '',
-      openingBalance: 0,
-      endingBalance: 0,
-      items: [],
-    );
-  }
+final bankRegisterProvider =
+    FutureProvider.autoDispose<BankRegisterResponseModel>((ref) async {
+      final accountId = ref.watch(selectedBankAccountIdProvider);
+      if (accountId == null || accountId.isEmpty) {
+        return const BankRegisterResponseModel(
+          accountId: '',
+          accountName: '',
+          openingBalance: 0,
+          endingBalance: 0,
+          items: [],
+        );
+      }
 
-  final result = await ref.read(bankingRepositoryProvider).getRegister(accountId);
-  return result.when(success: (data) => data, failure: (error) => throw error);
-});
+      final result = await ref
+          .read(bankingRepositoryProvider)
+          .getRegister(accountId);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });
 
-final bankTransferSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
-final bankDepositSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final bankTransferSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
+final bankDepositSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
 final bankCheckSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
-final bankReconcilePreviewSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
-final bankReconcilePreviewProvider = StateProvider.autoDispose<BankReconcilePreviewModel?>((ref) => null);
+final bankReconcilePreviewSavingProvider = StateProvider.autoDispose<bool>(
+  (ref) => false,
+);
+final bankReconcilePreviewProvider =
+    StateProvider.autoDispose<BankReconcilePreviewModel?>((ref) => null);
 
 class BankingActions {
   BankingActions(this.ref);
   final Ref ref;
 
   Future<ApiResult<void>> createTransfer(CreateBankTransferDto dto) async {
-    final result = await ref.read(bankingRepositoryProvider).createTransfer(dto);
+    final result = await ref
+        .read(bankingRepositoryProvider)
+        .createTransfer(dto);
     _refreshOnSuccess(result);
     return result;
   }
@@ -67,11 +85,17 @@ class BankingActions {
     return result;
   }
 
-  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(BankReconcilePreviewDto dto) async {
-    final result = await ref.read(bankingRepositoryProvider).previewReconcile(dto);
+  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(
+    BankReconcilePreviewDto dto,
+  ) async {
+    final result = await ref
+        .read(bankingRepositoryProvider)
+        .previewReconcile(dto);
     result.when(
-      success: (preview) => ref.read(bankReconcilePreviewProvider.notifier).state = preview,
-      failure: (_) => ref.read(bankReconcilePreviewProvider.notifier).state = null,
+      success: (preview) =>
+          ref.read(bankReconcilePreviewProvider.notifier).state = preview,
+      failure: (_) =>
+          ref.read(bankReconcilePreviewProvider.notifier).state = null,
     );
     return result;
   }
@@ -84,4 +108,6 @@ class BankingActions {
   }
 }
 
-final bankingActionsProvider = Provider<BankingActions>((ref) => BankingActions(ref));
+final bankingActionsProvider = Provider<BankingActions>(
+  (ref) => BankingActions(ref),
+);
