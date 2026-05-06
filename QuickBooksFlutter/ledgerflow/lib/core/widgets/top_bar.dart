@@ -1,12 +1,10 @@
-// top_bar.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
-import '../localization/locale_provider.dart';
-import '../../features/auth/providers/auth_provider.dart';
+
 import '../../app/router.dart';
+import '../../features/auth/providers/auth_provider.dart';
+import '../localization/locale_provider.dart';
 
 class TopBar extends ConsumerWidget implements PreferredSizeWidget {
   const TopBar({super.key});
@@ -16,94 +14,69 @@ class TopBar extends ConsumerWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final locale = ref.watch(localeProvider);
     final isArabic = locale.languageCode == 'ar';
-    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authProvider).value;
     final initials = (user?.displayName.isNotEmpty == true)
         ? user!.displayName.substring(0, 1).toUpperCase()
         : 'U';
 
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      height: preferredSize.height,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        border: Border(bottom: BorderSide(color: theme.dividerColor, width: 1)),
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
-          // Search Bar Placeholder
-          Expanded(
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: l10n.search,
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 0,
-                      horizontal: 16,
-                    ),
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.3),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
+          Text(
+            'LedgerFlow',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: theme.colorScheme.primary,
             ),
           ),
-
-          // Actions
+          const Spacer(),
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.notifications_outlined, size: 18),
             onPressed: () {},
           ),
-          const SizedBox(width: 8),
-
-          // Language Toggle
           TextButton.icon(
             onPressed: () => ref.read(localeProvider.notifier).toggleLocale(),
-            icon: const Icon(Icons.language, size: 18),
+            icon: const Icon(Icons.language, size: 16),
             label: Text(isArabic ? 'English' : 'عربي'),
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.onSurface,
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
             ),
           ),
-          const SizedBox(width: 8),
-
-          // ── User Menu ──────────────────────────────
           PopupMenuButton<String>(
-            offset: const Offset(0, 48),
+            offset: Offset(0, preferredSize.height),
             tooltip: user?.displayName ?? '',
             child: Row(
               children: [
                 CircleAvatar(
                   backgroundColor: theme.colorScheme.primary,
-                  radius: 18,
+                  radius: 14,
                   child: Text(
                     initials,
                     style: const TextStyle(
                       color: Colors.white,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 5),
                 if (user != null)
                   Text(
                     user.displayName,
-                    style: theme.textTheme.bodyMedium?.copyWith(
+                    style: theme.textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                const SizedBox(width: 4),
-                const Icon(Icons.arrow_drop_down, size: 20),
-                const SizedBox(width: 8),
+                const Icon(Icons.arrow_drop_down, size: 18),
               ],
             ),
             itemBuilder: (_) => [
@@ -128,10 +101,7 @@ class TopBar extends ConsumerWidget implements PreferredSizeWidget {
                 value: 'logout',
                 child: ListTile(
                   leading: Icon(Icons.logout, color: Colors.red),
-                  title: Text(
-                    'تسجيل الخروج | Logout',
-                    style: TextStyle(color: Colors.red),
-                  ),
+                  title: Text('Logout', style: TextStyle(color: Colors.red)),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -149,5 +119,5 @@ class TopBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
+  Size get preferredSize => const Size.fromHeight(38);
 }

@@ -1,7 +1,8 @@
 // sales_receipt_form_page.dart
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
@@ -14,12 +15,7 @@ import '../../customers/providers/customers_provider.dart';
 import '../../invoices/data/models/sales_preview_contracts.dart';
 import '../../invoices/providers/invoices_state.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
-import '../../transactions/widgets/transaction_action_bar.dart';
-import '../../transactions/widgets/transaction_context_side_panel.dart';
-import '../../transactions/widgets/transaction_header_panel.dart';
-import '../../transactions/widgets/transaction_keyboard_shortcuts.dart';
 import '../../transactions/widgets/transaction_models.dart';
-import '../../transactions/widgets/transaction_party_selector.dart';
 import '../../transactions/widgets/transaction_totals_footer.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
@@ -33,6 +29,7 @@ class SalesReceiptFormPage extends ConsumerStatefulWidget {
 }
 
 class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
+  // Customer
   CustomerModel? _selectedCustomer;
   CustomerSalesActivityModel? _customerActivity;
   SalesPostingPreviewModel? _preview;
@@ -43,7 +40,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   bool _saving = false;
   bool _previewing = false;
   bool _loadingActivity = false;
-  bool _sidePanelExpanded = true;
+  Timer? _previewDebounce;
 
   final _numberCtrl = TextEditingController(text: 'AUTO');
   final _dateCtrl = TextEditingController();
@@ -71,6 +68,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     for (final line in _lines) {
       line.dispose();
     }
+    _previewDebounce?.cancel();
     super.dispose();
   }
 
@@ -87,103 +85,49 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
         _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP',
   );
 
-  List<TransactionContextMetric> get _contextMetrics {
+  // Compact side panel metrics (only 3)
+  List<TransactionContextMetric> get _sideMetrics {
     final currency =
         _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP';
     return [
-      if (_customerActivity != null) ...[
+      if (_selectedCustomer != null)
         TransactionContextMetric(
-          label: 'Open balance',
-          value:
-              '${_customerActivity!.openBalance.toStringAsFixed(2)} $currency',
-          icon: Icons.receipt_long_outlined,
+          label: 'Balance',
+          value: (_customerActivity?.openBalance ?? _selectedCustomer!.balance)
+              .toStringAsFixed(2),
+          icon: Icons.account_balance_wallet_outlined,
         ),
-        TransactionContextMetric(
-          label: 'Credits',
-          value:
-              '${_customerActivity!.creditBalance.toStringAsFixed(2)} $currency',
-          icon: Icons.credit_score_outlined,
-        ),
-      ] else if (_selectedCustomer != null) ...[
-        TransactionContextMetric(
-          label: 'Open balance',
-          value: '${_selectedCustomer!.balance.toStringAsFixed(2)} $currency',
-          icon: Icons.receipt_long_outlined,
-        ),
+      if (_selectedCustomer != null)
         TransactionContextMetric(
           label: 'Credits',
           value:
-              '${_selectedCustomer!.creditBalance.toStringAsFixed(2)} $currency',
+              (_customerActivity?.creditBalance ??
+                      _selectedCustomer!.creditBalance)
+                  .toStringAsFixed(2),
           icon: Icons.credit_score_outlined,
         ),
-      ],
       TransactionContextMetric(
-        label: 'Receipt total',
-        value: '${_totals.total.toStringAsFixed(2)} ${_totals.currency}',
-        icon: Icons.point_of_sale_outlined,
+        label: 'Receipt Total',
+        value: '${_totals.total.toStringAsFixed(2)} $currency',
+        icon: Icons.receipt_long_outlined,
       ),
       if (_preview != null)
         TransactionContextMetric(
           label: 'Tax',
-          value: '${_preview!.taxTotal.toStringAsFixed(2)} ${_totals.currency}',
+          value: '${_preview!.taxTotal.toStringAsFixed(2)} $currency',
           icon: Icons.percent_outlined,
-        ),
-      if (_selectedDepositAccount != null)
-        TransactionContextMetric(
-          label: 'Deposit',
-          value: _selectedDepositAccount!.name,
-          icon: Icons.account_balance_outlined,
         ),
     ];
   }
 
-  List<TransactionContextActivity> get _contextActivities {
-    final activity = _customerActivity;
-    if (activity == null) return const [];
-    final rows = <TransactionContextActivity>[];
-    rows.addAll(
-      activity.recentSalesReceipts.map(
-        (x) => TransactionContextActivity(
-          title: 'Receipt ${x.number}',
-          subtitle: _formatDate(x.date),
-          amount: '${x.totalAmount.toStringAsFixed(2)} ${activity.currency}',
-          status: 'Paid',
-        ),
-      ),
-    );
-    rows.addAll(
-      activity.recentInvoices.map(
-        (x) => TransactionContextActivity(
-          title: 'Invoice ${x.number}',
-          subtitle: _formatDate(x.date),
-          amount: '${x.balanceDue.toStringAsFixed(2)} ${activity.currency}',
-          status: 'Balance',
-        ),
-      ),
-    );
-    rows.addAll(
-      activity.recentPayments.map(
-        (x) => TransactionContextActivity(
-          title: 'Payment ${x.number}',
-          subtitle: '${_formatDate(x.paymentDate)} • ${x.paymentMethod}',
-          amount: '${x.amount.toStringAsFixed(2)} ${activity.currency}',
-          status: 'Payment',
-        ),
-      ),
-    );
-    return rows.take(8).toList();
-  }
-
   String? get _sideWarning {
-    if (_selectedCustomer == null) return 'No customer selected yet.';
+    if (_selectedCustomer == null) return 'Select customer';
     final warnings = <String>[
       ...?_customerActivity?.warnings,
       ...?_preview?.warnings,
     ];
-    if (_depositAccountId == null)
-      warnings.add('Deposit account is not selected.');
-    if (warnings.isEmpty) return null;
-    return warnings.take(4).join('\n');
+    if (_depositAccountId == null) warnings.add('No deposit account');
+    return warnings.isEmpty ? null : warnings.join('\n');
   }
 
   void _syncDateController() {
@@ -208,28 +152,17 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   }
 
   Future<void> _runPreview() async {
-    final l10n = AppLocalizations.of(context)!;
-    if (_selectedCustomer == null) {
-      _showError(l10n.selectCustomer);
+    if (_selectedCustomer == null ||
+        _depositAccountId == null ||
+        _validLines().isEmpty)
       return;
-    }
-    if (_depositAccountId == null || _depositAccountId!.isEmpty) {
-      _showError(l10n.selectDepositAccount);
-      return;
-    }
-    final validLines = _validLines();
-    if (validLines.isEmpty) {
-      _showError(l10n.minOneQty);
-      return;
-    }
-
     setState(() => _previewing = true);
     final dto = PreviewSalesReceiptDto(
       customerId: _selectedCustomer!.id,
       receiptDate: _receiptDate,
       depositAccountId: _depositAccountId!,
       paymentMethod: _paymentMethod,
-      lines: validLines
+      lines: _validLines()
           .map(
             (line) => PreviewSalesLineDto(
               itemId: line.itemId!,
@@ -246,19 +179,20 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     if (!mounted) return;
     setState(() => _previewing = false);
     result.when(
-      success: (preview) {
-        setState(() => _preview = preview);
-        _showInfo(
-          'Preview updated: ${preview.total.toStringAsFixed(2)} ${_totals.currency}',
-        );
-      },
+      success: (preview) => setState(() => _preview = preview),
       failure: (error) => _showError(error.message),
     );
   }
 
-  Future<void> _save() async {
-    final l10n = AppLocalizations.of(context)!;
+  void _schedulePreview() {
+    _previewDebounce?.cancel();
+    _previewDebounce = Timer(const Duration(milliseconds: 600), () {
+      _runPreview();
+    });
+  }
 
+  Future<void> _save({bool closeAfterSave = true}) async {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedCustomer == null) {
       _showError(l10n.selectCustomer);
       return;
@@ -267,13 +201,11 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _showError(l10n.selectDepositAccount);
       return;
     }
-
     final validLines = _validLines();
     if (validLines.isEmpty) {
       _showError(l10n.minOneQty);
       return;
     }
-
     final dto = CreateSalesReceiptDto(
       customerId: _selectedCustomer!.id,
       receiptDate: _receiptDate,
@@ -292,7 +224,6 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
           )
           .toList(),
     );
-
     setState(() => _saving = true);
     try {
       final result = await ref.read(salesReceiptsRepoProvider).create(dto);
@@ -302,10 +233,16 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.salesReceiptCreatedSuccess)),
           );
-          if (context.canPop()) {
-            context.pop();
+          if (closeAfterSave) {
+            if (context.canPop())
+              context.pop();
+            else
+              context.go('/sales/receipts');
           } else {
-            context.go('/sales/receipts');
+            // clear form for new
+            setState(() {
+              _clearForm();
+            });
           }
         },
         failure: (error) => _showError(error.message),
@@ -313,6 +250,23 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _clearForm() {
+    _selectedCustomer = null;
+    _customerActivity = null;
+    _preview = null;
+    _selectedDepositAccount = null;
+    _depositAccountId = null;
+    _receiptDate = DateTime.now();
+    _paymentMethod = 'Cash';
+    _customerCtrl.clear();
+    _depositAccountCtrl.clear();
+    _paymentMethodCtrl.text = 'Cash';
+    for (final l in _lines) l.dispose();
+    _lines
+      ..clear()
+      ..add(TransactionLineEntry());
   }
 
   void _showError(String message) => ScaffoldMessenger.of(context).showSnackBar(
@@ -338,6 +292,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _receiptDate = picked;
       _preview = null;
       _syncDateController();
+      _schedulePreview();
     });
   }
 
@@ -379,7 +334,6 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
         ],
       ),
     );
-
     if (selected == null) return;
     setState(() {
       _selectedCustomer = selected;
@@ -387,7 +341,8 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _preview = null;
       _customerCtrl.text = selected.displayName;
     });
-    await _loadCustomerActivity(selected.id);
+    _loadCustomerActivity(selected.id);
+    _schedulePreview();
   }
 
   Future<void> _selectDepositAccount() async {
@@ -403,7 +358,6 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
           .toList(),
       orElse: () => const <AccountModel>[],
     );
-
     final selected = await showDialog<AccountModel>(
       context: context,
       builder: (context) => AlertDialog(
@@ -434,7 +388,6 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
         ],
       ),
     );
-
     if (selected == null) return;
     setState(() {
       _selectedDepositAccount = selected;
@@ -442,33 +395,60 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _depositAccountCtrl.text = '${selected.code} - ${selected.name}';
       _preview = null;
     });
+    _schedulePreview();
   }
 
-  void _clearCustomer() => setState(() {
-    _selectedCustomer = null;
-    _customerActivity = null;
-    _preview = null;
-    _customerCtrl.clear();
-  });
+  void _clearCustomer() {
+    setState(() {
+      _selectedCustomer = null;
+      _customerActivity = null;
+      _preview = null;
+      _customerCtrl.clear();
+    });
+  }
 
-  void _clearDepositAccount() => setState(() {
-    _selectedDepositAccount = null;
-    _depositAccountId = null;
-    _depositAccountCtrl.clear();
-    _preview = null;
-  });
+  void _clearDepositAccount() {
+    setState(() {
+      _selectedDepositAccount = null;
+      _depositAccountId = null;
+      _depositAccountCtrl.clear();
+      _preview = null;
+    });
+  }
 
-  void _addLine() => setState(() {
-    _preview = null;
-    _lines.add(TransactionLineEntry());
-  });
+  void _selectCustomerDirect(CustomerModel customer) {
+    setState(() {
+      _selectedCustomer = customer;
+      _customerActivity = null;
+      _preview = null;
+      _customerCtrl.text = customer.displayName;
+    });
+    _loadCustomerActivity(customer.id);
+    _schedulePreview();
+  }
+
+  void _selectDepositAccountDirect(AccountModel account) {
+    setState(() {
+      _selectedDepositAccount = account;
+      _depositAccountId = account.id;
+      _depositAccountCtrl.text = '${account.code} - ${account.name}';
+      _preview = null;
+    });
+    _schedulePreview();
+  }
+
+  void _addLine() {
+    setState(() {
+      _preview = null;
+      _lines.add(TransactionLineEntry());
+    });
+    _schedulePreview();
+  }
 
   void _clearLines() {
     if (_lines.length == 1 && _lines.first.itemId == null) return;
     setState(() {
-      for (final line in _lines) {
-        line.dispose();
-      }
+      for (final line in _lines) line.dispose();
       _lines
         ..clear()
         ..add(TransactionLineEntry());
@@ -476,12 +456,73 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     });
   }
 
+  void _onTableChanged() {
+    setState(() => _preview = null);
+    _schedulePreview();
+  }
+
+  Future<void> _showCustomerContextDialog() async {
+    if (_selectedCustomer == null) return;
+    final activity = _customerActivity;
+    // يمكن عرض قائمة الأنشطة هنا
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_selectedCustomer!.displayName),
+        content: SizedBox(
+          width: 400,
+          child: activity == null
+              ? const Text('Loading...')
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ...activity.recentSalesReceipts.map(
+                      (x) => ListTile(
+                        title: Text('Receipt ${x.number}'),
+                        subtitle: Text(_formatDate(x.date)),
+                        trailing: Text(
+                          '${x.totalAmount.toStringAsFixed(2)} ${activity.currency}',
+                        ),
+                      ),
+                    ),
+                    ...activity.recentInvoices.map(
+                      (x) => ListTile(
+                        title: Text('Invoice ${x.number}'),
+                        subtitle: Text(_formatDate(x.date)),
+                        trailing: Text(
+                          '${x.balanceDue.toStringAsFixed(2)} ${activity.currency}',
+                        ),
+                      ),
+                    ),
+                    ...activity.recentPayments.map(
+                      (x) => ListTile(
+                        title: Text('Payment ${x.number}'),
+                        subtitle: Text(
+                          '${_formatDate(x.paymentDate)} • ${x.paymentMethod}',
+                        ),
+                        trailing: Text(
+                          '${x.amount.toStringAsFixed(2)} ${activity.currency}',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _cancel() {
-    if (context.canPop()) {
+    if (context.canPop())
       context.pop();
-    } else {
+    else
       context.go('/sales/receipts');
-    }
   }
 
   @override
@@ -489,91 +530,353 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final customers = ref
+        .watch(customersProvider)
+        .maybeWhen(
+          data: (items) =>
+              items.where((customer) => customer.isActive).toList(),
+          orElse: () => const <CustomerModel>[],
+        );
+    final depositAccounts = ref
+        .watch(accountsProvider)
+        .maybeWhen(
+          data: (items) => items
+              .where(
+                (account) =>
+                    account.isActive &&
+                    (account.accountType == AccountType.bank ||
+                        account.accountType == AccountType.otherCurrentAsset),
+              )
+              .toList(),
+          orElse: () => const <AccountModel>[],
+        );
 
-    return TransactionKeyboardShortcuts(
-      onAddLine: _addLine,
-      onFocusBarcode: () => _showInfo(
-        'F4 barcode focus will be connected to the new grid focus node.',
-      ),
-      onPreviousQuantity: () => _showInfo(
-        'F5 previous quantity jump will be wired when editable transaction grid replaces the legacy table.',
-      ),
-      onLookup: () =>
-          _showInfo('F7 item lookup is scheduled for the transaction grid.'),
-      onToggleSidePanel: () =>
-          setState(() => _sidePanelExpanded = !_sidePanelExpanded),
-      onSave: _saving ? null : _save,
-      onPrint: () =>
-          _showInfo('Print preview will be connected to the print service.'),
-      onEscape: _cancel,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Sales Receipt — Full Accounting Mode'),
-          actions: [
-            TextButton.icon(
-              onPressed: _previewing ? null : _runPreview,
-              icon: _previewing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.analytics_outlined),
-              label: const Text('Preview'),
-            ),
-            IconButton(
-              onPressed: _pickReceiptDate,
-              icon: const Icon(Icons.calendar_today_outlined),
-              tooltip: 'Receipt date',
-            ),
-            const SizedBox(width: 8),
-          ],
+          toolbarHeight: 42, // ارتفاع صغير جداً
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          elevation: 0,
+          automaticallyImplyLeading: false, // من غير سهم رجوع (هيبقى X)
+          titleSpacing: 8,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: _saving ? null : () => _save(closeAfterSave: true),
+                icon: _saving
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save, size: 18),
+                label: const Text(
+                  'Save & Close',
+                  style: TextStyle(fontSize: 13),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 4),
+              TextButton.icon(
+                onPressed: _saving ? null : () => _save(closeAfterSave: false),
+                icon: const Icon(Icons.save_outlined, size: 18),
+                label: const Text('Save & New', style: TextStyle(fontSize: 13)),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: _cancel,
+                icon: const Icon(Icons.close, size: 20),
+                tooltip: 'Close',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
         ),
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TransactionHeaderPanel(
-                      kind: TransactionScreenKind.salesReceipt,
-                      status: TransactionDocumentStatus.draft,
-                      numberController: _numberCtrl,
-                      dateController: _dateCtrl,
-                      referenceController: _referenceCtrl,
+                    // ---- Unified Header Card ----
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Row 1: Receipt #, Date, Reference
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final wide = constraints.maxWidth > 500;
+                                return wide
+                                    ? Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 2,
+                                            child: TextField(
+                                              controller: _numberCtrl,
+                                              readOnly: true,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Receipt #',
+                                                isDense: true,
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 2,
+                                            child: TextField(
+                                              controller: _dateCtrl,
+                                              readOnly: true,
+                                              onTap: _pickReceiptDate,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Date',
+                                                isDense: true,
+                                                border: OutlineInputBorder(),
+                                                suffixIcon: Icon(
+                                                  Icons.calendar_today_outlined,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 3,
+                                            child: TextField(
+                                              controller: _referenceCtrl,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Reference',
+                                                isDense: true,
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Column(
+                                        children: [
+                                          TextField(
+                                            controller: _numberCtrl,
+                                            readOnly: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Receipt #',
+                                              isDense: true,
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          TextField(
+                                            controller: _dateCtrl,
+                                            readOnly: true,
+                                            onTap: _pickReceiptDate,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Date',
+                                              isDense: true,
+                                              border: OutlineInputBorder(),
+                                              suffixIcon: Icon(
+                                                Icons.calendar_today_outlined,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          TextField(
+                                            controller: _referenceCtrl,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Reference',
+                                              isDense: true,
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            // Row 2: Customer
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _CustomerTypeAheadField(
+                                    controller: _customerCtrl,
+                                    customers: customers,
+                                    label: l10n.customer,
+                                    selectedCustomer: _selectedCustomer,
+                                    onSelected: _selectCustomerDirect,
+                                    onClear: _clearCustomer,
+                                    onDetails: _showCustomerContextDialog,
+                                  ),
+                                ),
+                                if (_selectedCustomer != null) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: cs.primaryContainer,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      'Balance: ${(_customerActivity?.openBalance ?? _selectedCustomer!.balance).toStringAsFixed(2)} ${_selectedCustomer!.currency}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            // Row 3: Deposit & Payment Method
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final wide = constraints.maxWidth > 500;
+                                return wide
+                                    ? Row(
+                                        children: [
+                                          Expanded(
+                                            child: _DepositAccountTypeAheadField(
+                                              controller: _depositAccountCtrl,
+                                              accounts: depositAccounts,
+                                              selectedAccount:
+                                                  _selectedDepositAccount,
+                                              onSelected:
+                                                  _selectDepositAccountDirect,
+                                              onClear: _clearDepositAccount,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child:
+                                                DropdownButtonFormField<String>(
+                                                  value: _paymentMethod,
+                                                  isDense: true,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        labelText:
+                                                            'Payment Method',
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                      ),
+                                                  items: const [
+                                                    DropdownMenuItem(
+                                                      value: 'Cash',
+                                                      child: Text('Cash'),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: 'Check',
+                                                      child: Text('Check'),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: 'BankTransfer',
+                                                      child: Text(
+                                                        'Bank Transfer',
+                                                      ),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: 'CreditCard',
+                                                      child: Text(
+                                                        'Credit Card',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    if (value != null) {
+                                                      setState(() {
+                                                        _paymentMethod = value;
+                                                        _preview = null;
+                                                      });
+                                                      _schedulePreview();
+                                                    }
+                                                  },
+                                                ),
+                                          ),
+                                        ],
+                                      )
+                                    : Column(
+                                        children: [
+                                          _DepositAccountTypeAheadField(
+                                            controller: _depositAccountCtrl,
+                                            accounts: depositAccounts,
+                                            selectedAccount:
+                                                _selectedDepositAccount,
+                                            onSelected:
+                                                _selectDepositAccountDirect,
+                                            onClear: _clearDepositAccount,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          DropdownButtonFormField<String>(
+                                            value: _paymentMethod,
+                                            isDense: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Payment Method',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            items: const [
+                                              DropdownMenuItem(
+                                                value: 'Cash',
+                                                child: Text('Cash'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 'Check',
+                                                child: Text('Check'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 'BankTransfer',
+                                                child: Text('Bank Transfer'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 'CreditCard',
+                                                child: Text('Credit Card'),
+                                              ),
+                                            ],
+                                            onChanged: (value) {
+                                              if (value != null) {
+                                                setState(() {
+                                                  _paymentMethod = value;
+                                                  _preview = null;
+                                                });
+                                                _schedulePreview();
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    TransactionPartySelector(
-                      partyType: TransactionPartyType.customer,
-                      label: l10n.customer,
-                      controller: _customerCtrl,
-                      selectedDisplayName: _selectedCustomer?.displayName,
-                      balanceText: _selectedCustomer == null
-                          ? null
-                          : 'Balance: ${(_customerActivity?.openBalance ?? _selectedCustomer!.balance).toStringAsFixed(2)} ${_customerActivity?.currency ?? _selectedCustomer!.currency}',
-                      creditText: _selectedCustomer == null
-                          ? null
-                          : 'Credits: ${(_customerActivity?.creditBalance ?? _selectedCustomer!.creditBalance).toStringAsFixed(2)} ${_customerActivity?.currency ?? _selectedCustomer!.currency}',
-                      onSearch: _selectCustomer,
-                      onClear: _clearCustomer,
-                    ),
-                    const SizedBox(height: 12),
-                    _PaymentPanel(
-                      depositAccountController: _depositAccountCtrl,
-                      selectedDepositAccount: _selectedDepositAccount,
-                      paymentMethod: _paymentMethod,
-                      onSelectDepositAccount: _selectDepositAccount,
-                      onClearDepositAccount: _clearDepositAccount,
-                      onPaymentMethodChanged: (value) => setState(() {
-                        _paymentMethod = value;
-                        _paymentMethodCtrl.text = value;
-                        _preview = null;
-                      }),
-                    ),
-                    const SizedBox(height: 18),
+                    // Items Header + Add Line
                     Row(
                       children: [
                         Text(
@@ -586,9 +889,13 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                         Chip(label: Text('${_lines.length} lines')),
                         if (_preview != null) ...[
                           const SizedBox(width: 8),
-                          const Chip(
-                            label: Text('Preview ready'),
-                            avatar: Icon(Icons.check_circle_outline, size: 18),
+                          Chip(
+                            label: const Text('Preview ready'),
+                            avatar: Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                              color: cs.primary,
+                            ),
                           ),
                         ],
                         const Spacer(),
@@ -600,180 +907,329 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: cs.outlineVariant),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: TransactionLineTable(
-                          lines: _lines,
-                          priceMode: TransactionLinePriceMode.sales,
-                          onChanged: () => setState(() => _preview = null),
-                        ),
+                    // Scrollable Items Table + Totals
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: cs.surface,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: cs.outlineVariant),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: TransactionLineTable(
+                                    lines: _lines,
+                                    priceMode: TransactionLinePriceMode.sales,
+                                    onChanged: _onTableChanged,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 36, // ارتفاع صغير مضغوط
+                            child: TransactionTotalsFooter(totals: _totals),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TransactionTotalsFooter(totals: _totals),
                   ],
                 ),
               ),
             ),
-            TransactionContextSidePanel(
-              expanded: _sidePanelExpanded,
-              onToggle: () =>
-                  setState(() => _sidePanelExpanded = !_sidePanelExpanded),
-              title: _selectedCustomer?.displayName ?? 'Customer context',
-              subtitle: _loadingActivity
-                  ? 'Loading customer activity...'
-                  : (_selectedCustomer == null
-                        ? 'Select a customer to show balances and recent activity.'
-                        : 'Sales receipt customer snapshot'),
-              warning: _sideWarning,
-              notes: _preview == null
-                  ? 'Press Preview to calculate GL, inventory impact, tax, payment, and warnings before posting.'
-                  : 'Preview includes ${_preview!.ledgerImpacts.length} ledger impacts and ${_preview!.inventoryImpacts.length} inventory impacts.',
-              metrics: _contextMetrics,
-              activities: _contextActivities,
+            // ------- Compact Side Panel (300px) -------
+            SizedBox(
+              width: 300,
+              child: Material(
+                elevation: 1,
+                color: cs.surfaceVariant.withOpacity(0.3),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _selectedCustomer?.displayName ?? 'Customer',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Divider(),
+                      if (_loadingActivity)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else ...[
+                        // Metrics
+                        ...(_sideMetrics.map(
+                          (m) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                Icon(m.icon, size: 20, color: cs.primary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  m.label,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  m.value,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )),
+                        const SizedBox(height: 10),
+                        if (_sideWarning != null)
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: cs.errorContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 18,
+                                  color: cs.error,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _sideWarning!,
+                                    style: TextStyle(
+                                      color: cs.onErrorContainer,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _showCustomerContextDialog,
+                          icon: const Icon(Icons.history),
+                          label: const Text('Activity'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-        bottomNavigationBar: TransactionActionBar(
-          status: TransactionDocumentStatus.draft,
-          loading: _saving,
-          onSaveDraft: null,
-          onSave: _save,
-          onPost: _save,
-          onClear: _clearLines,
-          onVoid: null,
-          onPrintAction: (action) => _showInfo(
-            '${action.name} is scheduled for print service wiring.',
-          ),
         ),
       ),
     );
   }
 }
 
-class _PaymentPanel extends StatelessWidget {
-  const _PaymentPanel({
-    required this.depositAccountController,
-    required this.selectedDepositAccount,
-    required this.paymentMethod,
-    required this.onSelectDepositAccount,
-    required this.onClearDepositAccount,
-    required this.onPaymentMethodChanged,
+class _CustomerTypeAheadField extends StatelessWidget {
+  const _CustomerTypeAheadField({
+    required this.controller,
+    required this.customers,
+    required this.label,
+    required this.selectedCustomer,
+    required this.onSelected,
+    required this.onClear,
+    required this.onDetails,
   });
 
-  final TextEditingController depositAccountController;
-  final AccountModel? selectedDepositAccount;
-  final String paymentMethod;
-  final VoidCallback onSelectDepositAccount;
-  final VoidCallback onClearDepositAccount;
-  final ValueChanged<String> onPaymentMethodChanged;
+  final TextEditingController controller;
+  final List<CustomerModel> customers;
+  final String label;
+  final CustomerModel? selectedCustomer;
+  final ValueChanged<CustomerModel> onSelected;
+  final VoidCallback onClear;
+  final VoidCallback onDetails;
+
+  List<CustomerModel> _matches(String pattern) {
+    final text = pattern.trim().toLowerCase();
+    if (text.isEmpty) return customers.take(8).toList();
+    return customers
+        .where(
+          (customer) =>
+              customer.displayName.toLowerCase().contains(text) ||
+              (customer.companyName?.toLowerCase().contains(text) ?? false) ||
+              (customer.phone?.toLowerCase().contains(text) ?? false) ||
+              (customer.email?.toLowerCase().contains(text) ?? false),
+        )
+        .take(12)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.payments_outlined, color: cs.primary),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Payment details',
-                    style: TextStyle(fontWeight: FontWeight.w900),
-                  ),
+    return TypeAheadField<CustomerModel>(
+      textFieldConfiguration: TextFieldConfiguration(
+        controller: controller,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          labelText: label,
+          isDense: true,
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 9,
+          ),
+          prefixIcon: const Icon(Icons.person_outline, size: 18),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selectedCustomer != null)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: onClear,
+                  tooltip: 'Clear',
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 760;
-                final deposit = TextField(
-                  controller: depositAccountController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Deposit account',
-                    hintText: 'Select bank or current asset account',
-                    prefixIcon: const Icon(Icons.account_balance_outlined),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (selectedDepositAccount != null)
-                          IconButton(
-                            onPressed: onClearDepositAccount,
-                            icon: const Icon(Icons.clear),
-                            tooltip: 'Clear',
-                          ),
-                        IconButton(
-                          onPressed: onSelectDepositAccount,
-                          icon: const Icon(Icons.search),
-                          tooltip: 'Select',
-                        ),
-                      ],
-                    ),
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onTap: onSelectDepositAccount,
-                );
-                final method = DropdownButtonFormField<String>(
-                  initialValue: paymentMethod,
-                  decoration: const InputDecoration(
-                    labelText: 'Payment method',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.credit_card_outlined),
-                    isDense: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem<String>(
-                      value: 'Cash',
-                      child: Text('Cash'),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'Check',
-                      child: Text('Check'),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'BankTransfer',
-                      child: Text('Bank Transfer'),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'CreditCard',
-                      child: Text('Credit Card'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) onPaymentMethodChanged(value);
-                  },
-                );
-
-                if (!wide)
-                  return Column(
-                    children: [deposit, const SizedBox(height: 12), method],
-                  );
-                return Row(
-                  children: [
-                    Expanded(child: deposit),
-                    const SizedBox(width: 12),
-                    Expanded(child: method),
-                  ],
-                );
-              },
-            ),
-          ],
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.info_outline, size: 18),
+                onPressed: selectedCustomer == null ? null : onDetails,
+                tooltip: 'Customer details',
+              ),
+            ],
+          ),
         ),
+      ),
+      suggestionsCallback: _matches,
+      itemBuilder: (context, customer) {
+        return ListTile(
+          dense: true,
+          leading: CircleAvatar(
+            radius: 14,
+            child: Text(
+              customer.initials,
+              style: const TextStyle(fontSize: 11),
+            ),
+          ),
+          title: Text(
+            customer.displayName,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            '${customer.primaryContact} | Balance ${customer.balance.toStringAsFixed(2)} ${customer.currency}',
+          ),
+          trailing: customer.creditBalance == 0
+              ? null
+              : Text(customer.creditBalance.toStringAsFixed(2)),
+        );
+      },
+      onSuggestionSelected: (customer) {
+        controller.text = customer.displayName;
+        onSelected(customer);
+      },
+      noItemsFoundBuilder: (_) => const Padding(
+        padding: EdgeInsets.all(10),
+        child: Text('No matching customers'),
+      ),
+      suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+        elevation: 4,
+        constraints: BoxConstraints(maxHeight: 300),
+      ),
+    );
+  }
+}
+
+class _DepositAccountTypeAheadField extends StatelessWidget {
+  const _DepositAccountTypeAheadField({
+    required this.controller,
+    required this.accounts,
+    required this.selectedAccount,
+    required this.onSelected,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final List<AccountModel> accounts;
+  final AccountModel? selectedAccount;
+  final ValueChanged<AccountModel> onSelected;
+  final VoidCallback onClear;
+
+  List<AccountModel> _matches(String pattern) {
+    final text = pattern.trim().toLowerCase();
+    if (text.isEmpty) return accounts.take(8).toList();
+    return accounts
+        .where(
+          (account) =>
+              account.code.toLowerCase().contains(text) ||
+              account.name.toLowerCase().contains(text) ||
+              account.accountTypeName.toLowerCase().contains(text),
+        )
+        .take(12)
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TypeAheadField<AccountModel>(
+      textFieldConfiguration: TextFieldConfiguration(
+        controller: controller,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          labelText: 'Deposit Account',
+          isDense: true,
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 9,
+          ),
+          prefixIcon: const Icon(Icons.account_balance_outlined, size: 18),
+          suffixIcon: selectedAccount == null
+              ? null
+              : IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: onClear,
+                  tooltip: 'Clear',
+                ),
+        ),
+      ),
+      suggestionsCallback: _matches,
+      itemBuilder: (context, account) {
+        return ListTile(
+          dense: true,
+          leading: const Icon(Icons.account_balance_outlined, size: 18),
+          title: Text(
+            '${account.code} - ${account.name}',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            '${account.accountTypeName} | ${account.balance.toStringAsFixed(2)}',
+          ),
+        );
+      },
+      onSuggestionSelected: (account) {
+        controller.text = '${account.code} - ${account.name}';
+        onSelected(account);
+      },
+      noItemsFoundBuilder: (_) => const Padding(
+        padding: EdgeInsets.all(10),
+        child: Text('No matching deposit accounts'),
+      ),
+      suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+        elevation: 4,
+        constraints: BoxConstraints(maxHeight: 300),
       ),
     );
   }
