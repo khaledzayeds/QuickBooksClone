@@ -52,3 +52,18 @@ public sealed record CreateBankCheckRequest(
     decimal Amount,
     string? Payee,
     string? Memo);
+
+public sealed record BankReconcilePreviewRequest(
+    Guid AccountId,
+    DateOnly StatementDate,
+    decimal StatementEndingBalance);
+
+public sealed record BankReconcilePreviewResponse(
+    Guid AccountId,
+    string AccountName,
+    DateOnly StatementDate,
+    decimal BookBalance,
+    decimal StatementEndingBalance,
+    decimal Difference,
+    bool IsBalanced,
+    IReadOnlyList<BankRegisterLineDto> RegisterLines);
