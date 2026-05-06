@@ -62,4 +62,16 @@ class BankingRemoteDatasource {
       return Failure(parseError(error));
     }
   }
+
+  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(BankReconcilePreviewDto dto) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/banking/reconcile/preview',
+        data: dto.toJson(),
+      );
+      return Success(BankReconcilePreviewModel.fromJson(response.data!));
+    } on DioException catch (error) {
+      return Failure(parseError(error));
+    }
+  }
 }
