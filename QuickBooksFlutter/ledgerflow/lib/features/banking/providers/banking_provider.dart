@@ -42,6 +42,8 @@ final bankRegisterProvider = FutureProvider.autoDispose<BankRegisterResponseMode
 final bankTransferSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
 final bankDepositSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
 final bankCheckSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final bankReconcilePreviewSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
+final bankReconcilePreviewProvider = StateProvider.autoDispose<BankReconcilePreviewModel?>((ref) => null);
 
 class BankingActions {
   BankingActions(this.ref);
@@ -62,6 +64,15 @@ class BankingActions {
   Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) async {
     final result = await ref.read(bankingRepositoryProvider).createCheck(dto);
     _refreshOnSuccess(result);
+    return result;
+  }
+
+  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(BankReconcilePreviewDto dto) async {
+    final result = await ref.read(bankingRepositoryProvider).previewReconcile(dto);
+    result.when(
+      success: (preview) => ref.read(bankReconcilePreviewProvider.notifier).state = preview,
+      failure: (_) => ref.read(bankReconcilePreviewProvider.notifier).state = null,
+    );
     return result;
   }
 
