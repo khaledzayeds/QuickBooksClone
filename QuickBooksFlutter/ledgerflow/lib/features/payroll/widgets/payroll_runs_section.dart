@@ -144,69 +144,196 @@ class _PayrollRunTile extends ConsumerWidget {
 
     return Card(
       elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  backgroundColor: color.withValues(alpha: 0.12),
-                  child: Icon(Icons.payments_outlined, color: color),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showRunDetailsDialog(context, run.id),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: color.withValues(alpha: 0.12),
+                    child: Icon(Icons.payments_outlined, color: color),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(run.runNumber, style: const TextStyle(fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 4),
+                        Text('${_date(run.periodStart)} to ${_date(run.periodEnd)} • Pay ${_date(run.payDate)}'),
+                        const SizedBox(height: 4),
+                        Text('${run.paySchedule} • ${run.employeeCount} employee(s)'),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(run.runNumber, style: const TextStyle(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 4),
-                      Text('${_date(run.periodStart)} to ${_date(run.periodEnd)} • Pay ${_date(run.payDate)}'),
-                      const SizedBox(height: 4),
-                      Text('${run.paySchedule} • ${run.employeeCount} employee(s)'),
+                      _StatusChip(status: run.status),
+                      const SizedBox(height: 8),
+                      Text('${run.currency} ${run.totalNetPay.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900)),
+                      Text('Gross ${run.totalGrossPay.toStringAsFixed(2)}'),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _StatusChip(status: run.status),
-                    const SizedBox(height: 8),
-                    Text('${run.currency} ${run.totalNetPay.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900)),
-                    Text('Gross ${run.totalGrossPay.toStringAsFixed(2)}'),
-                  ],
-                ),
-              ],
-            ),
-            const Divider(height: 22),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: run.status == 'Draft' ? () => _run(context, () => commands.approve(run.id)) : null,
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Approve'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: run.status == 'Approved' ? () => _run(context, () => commands.post(run.id)) : null,
-                  icon: const Icon(Icons.post_add_outlined),
-                  label: const Text('Post'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: run.status == 'Draft' || run.status == 'Approved' ? () => _run(context, () => commands.voidRun(run.id)) : null,
-                  icon: const Icon(Icons.block_outlined),
-                  label: const Text('Void'),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+              const Divider(height: 22),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _showRunDetailsDialog(context, run.id),
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: const Text('Details'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: run.status == 'Draft' ? () => _run(context, () => commands.approve(run.id)) : null,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Approve'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: run.status == 'Approved' ? () => _run(context, () => commands.post(run.id)) : null,
+                    icon: const Icon(Icons.post_add_outlined),
+                    label: const Text('Post'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: run.status == 'Draft' || run.status == 'Approved' ? () => _run(context, () => commands.voidRun(run.id)) : null,
+                    icon: const Icon(Icons.block_outlined),
+                    label: const Text('Void'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _PayrollRunDetailsDialog extends ConsumerWidget {
+  const _PayrollRunDetailsDialog({required this.runId});
+
+  final String runId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detailsAsync = ref.watch(payrollRunDetailsProvider(runId));
+    return AlertDialog(
+      title: const Text('Payroll Run Details'),
+      content: SizedBox(
+        width: 900,
+        child: detailsAsync.when(
+          loading: () => const SizedBox(height: 180, child: Center(child: CircularProgressIndicator())),
+          error: (error, _) => _InlineError(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(payrollRunDetailsProvider(runId)),
+          ),
+          data: (details) => _PayrollRunDetailsView(details: details),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+      ],
+    );
+  }
+}
+
+class _PayrollRunDetailsView extends StatelessWidget {
+  const _PayrollRunDetailsView({required this.details});
+
+  final PayrollRunDetails details;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _InfoChip(label: 'Run', value: details.runNumber),
+              _InfoChip(label: 'Status', value: details.status),
+              _InfoChip(label: 'Period', value: '${_date(details.periodStart)} → ${_date(details.periodEnd)}'),
+              _InfoChip(label: 'Pay Date', value: _date(details.payDate)),
+              _InfoChip(label: 'Tax Rate', value: '${(details.taxWithholdingRate * 100).toStringAsFixed(2)}%'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 720 ? 4 : 2;
+              return GridView.count(
+                crossAxisCount: columns,
+                childAspectRatio: 2.3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                children: [
+                  _RunMetric('Employees', details.employeeCount.toString(), Icons.people_outline, Colors.blue),
+                  _RunMetric('Gross', '${details.currency} ${details.totalGrossPay.toStringAsFixed(2)}', Icons.trending_up_outlined, Colors.green),
+                  _RunMetric('Deductions', '${details.currency} ${details.totalDeductions.toStringAsFixed(2)}', Icons.remove_circle_outline, Colors.orange),
+                  _RunMetric('Net Pay', '${details.currency} ${details.totalNetPay.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, Colors.deepPurple),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Text('Employee Lines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('Employee')),
+                DataColumn(label: Text('Regular')),
+                DataColumn(label: Text('OT')),
+                DataColumn(label: Text('Rate')),
+                DataColumn(label: Text('Gross')),
+                DataColumn(label: Text('Deductions')),
+                DataColumn(label: Text('Net')),
+              ],
+              rows: details.lines
+                  .map(
+                    (line) => DataRow(
+                      cells: [
+                        DataCell(Text('${line.employeeNumber} - ${line.employeeName}')),
+                        DataCell(Text(line.regularHours.toStringAsFixed(2))),
+                        DataCell(Text(line.overtimeHours.toStringAsFixed(2))),
+                        DataCell(Text(line.hourlyRate.toStringAsFixed(2))),
+                        DataCell(Text(line.grossPay.toStringAsFixed(2))),
+                        DataCell(Text(line.deductions.toStringAsFixed(2))),
+                        DataCell(Text(line.netPay.toStringAsFixed(2))),
+                      ],
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Chip(label: Text('$label: $value'));
 }
 
 class _StatusChip extends StatelessWidget {
@@ -354,6 +481,13 @@ class _DatePickerTile extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _showRunDetailsDialog(BuildContext context, String runId) async {
+  await showDialog<void>(
+    context: context,
+    builder: (_) => _PayrollRunDetailsDialog(runId: runId),
+  );
 }
 
 Future<void> _run(BuildContext context, Future<void> Function() action) async {
