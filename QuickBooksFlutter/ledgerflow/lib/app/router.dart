@@ -17,6 +17,7 @@ import '../features/banking/screens/bank_register_screen.dart';
 import '../features/banking/screens/bank_transfer_screen.dart';
 import '../features/banking/screens/make_deposit_screen.dart';
 import '../features/banking/screens/write_check_screen.dart';
+import '../features/cash_flow/screens/cash_flow_hub_screen.dart';
 import '../features/customer_credits/screens/customer_credit_details_screen.dart';
 import '../features/customer_credits/screens/customer_credit_form_screen.dart';
 import '../features/customer_credits/screens/customer_credit_list_screen.dart';
@@ -602,7 +603,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           _comingSoon(AppRoutes.timeTracking, 'Enter Time'),
           _comingSoon(AppRoutes.calendar, 'Calendar'),
           _comingSoon(AppRoutes.snapshots, 'Snapshots'),
-          _comingSoon(AppRoutes.cashFlowHub, 'Cash Flow Hub'),
+          GoRoute(
+            path: AppRoutes.cashFlowHub,
+            builder: (context, state) => const CashFlowHubScreen(),
+          ),
           _comingSoon(AppRoutes.myCompany, 'My Company'),
           _comingSoon(AppRoutes.openWindows, 'Open Windows'),
         ],

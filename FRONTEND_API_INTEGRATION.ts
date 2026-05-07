@@ -33,6 +33,7 @@ export const API_ENDPOINTS = {
   "Banking.GetBankAccounts": { method: "GET", path: "/api/banking/accounts", auth: "Accounting.View" },
   "Banking.GetRegister": { method: "GET", path: "/api/banking/register", auth: "Accounting.View" },
   "BankReconciliation.Preview": { method: "POST", path: "/api/banking/reconcile/preview", auth: "Accounting.Manage" },
+  "CashFlowHubReport.GetCashFlowHub": { method: "GET", path: "/api/reports/cash-flow-hub", auth: "Reports.View" },
   "CustomerCredits.Create": { method: "POST", path: "/api/customer-credits", auth: "Sales.Return.Manage" },
   "CustomerCredits.Get": { method: "GET", path: "/api/customer-credits/{id:guid}", auth: "Sales.Return.Manage" },
   "CustomerCredits.Post": { method: "POST", path: "/api/customer-credits/{id:guid}/post", auth: "Sales.Return.Manage" },
