@@ -119,7 +119,7 @@ public sealed class CashFlowHubReportController : ControllerBase
             BuildAlerts(cashBalance, netCashAfterOpenItems, overdueIncoming, overdueOutgoing, openInvoiceCount, openBillCount)));
     }
 
-    private static string ResolveCurrency(dynamic receivables, dynamic payables)
+    private static string ResolveCurrency(AccountsReceivableAgingReport receivables, AccountsPayableAgingReport payables)
     {
         var arCurrency = receivables.Items.Count == 0 ? string.Empty : receivables.Items[0].Currency;
         if (!string.IsNullOrWhiteSpace(arCurrency))
