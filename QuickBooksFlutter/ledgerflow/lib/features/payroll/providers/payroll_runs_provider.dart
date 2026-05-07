@@ -97,6 +97,7 @@ class PayrollRunSummary {
     required this.paySchedule,
     required this.currency,
     required this.status,
+    required this.journalEntryId,
     required this.employeeCount,
     required this.totalGrossPay,
     required this.totalDeductions,
@@ -111,6 +112,7 @@ class PayrollRunSummary {
   final String paySchedule;
   final String currency;
   final String status;
+  final String? journalEntryId;
   final int employeeCount;
   final double totalGrossPay;
   final double totalDeductions;
@@ -125,6 +127,7 @@ class PayrollRunSummary {
         paySchedule: JsonUtils.asString(json['paySchedule']),
         currency: JsonUtils.asString(json['currency']),
         status: JsonUtils.asString(json['status']),
+        journalEntryId: JsonUtils.asNullableString(json['journalEntryId']),
         employeeCount: JsonUtils.asInt(json['employeeCount']),
         totalGrossPay: JsonUtils.asDouble(json['totalGrossPay']),
         totalDeductions: JsonUtils.asDouble(json['totalDeductions']),
@@ -142,6 +145,7 @@ class PayrollRunDetails {
     required this.paySchedule,
     required this.currency,
     required this.status,
+    required this.journalEntryId,
     required this.regularHoursPerEmployee,
     required this.overtimeHoursPerEmployee,
     required this.taxWithholdingRate,
@@ -160,6 +164,7 @@ class PayrollRunDetails {
   final String paySchedule;
   final String currency;
   final String status;
+  final String? journalEntryId;
   final double regularHoursPerEmployee;
   final double overtimeHoursPerEmployee;
   final double taxWithholdingRate;
@@ -178,6 +183,7 @@ class PayrollRunDetails {
         paySchedule: JsonUtils.asString(json['paySchedule']),
         currency: JsonUtils.asString(json['currency']),
         status: JsonUtils.asString(json['status']),
+        journalEntryId: JsonUtils.asNullableString(json['journalEntryId']),
         regularHoursPerEmployee: JsonUtils.asDouble(json['regularHoursPerEmployee']),
         overtimeHoursPerEmployee: JsonUtils.asDouble(json['overtimeHoursPerEmployee']),
         taxWithholdingRate: JsonUtils.asDouble(json['taxWithholdingRate']),
