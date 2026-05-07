@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/snapshots/screens/snapshots_screen.dart';
 import '../../features/workspace/screens/open_windows_screen.dart';
 
 class ComingSoonScreen extends StatelessWidget {
@@ -17,6 +18,10 @@ class ComingSoonScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     if (title == 'Open Windows') {
       return const OpenWindowsScreen();
+    }
+
+    if (title == 'Snapshots') {
+      return const SnapshotsScreen();
     }
 
     final theme = Theme.of(context);
