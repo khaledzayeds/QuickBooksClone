@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/workspace/screens/open_windows_screen.dart';
+
 class ComingSoonScreen extends StatelessWidget {
   const ComingSoonScreen({
     super.key,
@@ -13,6 +15,10 @@ class ComingSoonScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (title == 'Open Windows') {
+      return const OpenWindowsScreen();
+    }
+
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
