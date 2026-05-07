@@ -607,7 +607,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.cashFlowHub,
             builder: (context, state) => const CashFlowHubScreen(),
           ),
-          _comingSoon(AppRoutes.myCompany, 'My Company'),
+          GoRoute(
+            path: AppRoutes.myCompany,
+            builder: (context, state) => const CompanySettingsScreen(),
+          ),
           _comingSoon(AppRoutes.openWindows, 'Open Windows'),
         ],
       ),
