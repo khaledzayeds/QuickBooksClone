@@ -116,7 +116,7 @@ class SidebarMenu extends ConsumerWidget {
                 _ShortcutItem(
                   icon: Icons.business_outlined,
                   label: l10n.myCompany,
-                  path: AppRoutes.myCompany,
+                  path: AppRoutes.companySettings,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
