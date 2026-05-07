@@ -11,6 +11,7 @@ public static class PermissionCatalog
         new("Accounting.View", "Accounting", "View accounting", "View chart of accounts and transactions."),
         new("Accounting.Manage", "Accounting", "Manage accounting", "Create and manage accounts, journal entries, and adjustments."),
         new("TimeTracking.Manage", "Time Tracking", "Manage time entries", "Create, update, approve, invoice, and void time entries."),
+        new("Payroll.Manage", "Payroll", "Manage payroll", "Configure payroll setup, employees, earnings, deductions, and payroll runs."),
         new("Customers.Manage", "Customers", "Manage customers", "View, create, and update customer records."),
         new("Vendors.Manage", "Vendors", "Manage vendors", "View, create, and update vendor records."),
         new("Sales.Estimate.Manage", "Sales", "Manage estimates", "Create, edit, accept, decline, and cancel estimates."),
@@ -67,6 +68,7 @@ public static class PermissionCatalog
                 permission.StartsWith("Reports.", StringComparison.Ordinal) ||
                 permission.StartsWith("Audit.", StringComparison.Ordinal) ||
                 permission.StartsWith("TimeTracking.", StringComparison.Ordinal) ||
+                permission.StartsWith("Payroll.", StringComparison.Ordinal) ||
                 permission.StartsWith("Customers.", StringComparison.Ordinal) ||
                 permission.StartsWith("Vendors.", StringComparison.Ordinal) ||
                 permission.StartsWith("Sales.", StringComparison.Ordinal) ||
