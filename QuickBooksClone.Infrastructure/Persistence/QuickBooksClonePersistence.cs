@@ -45,10 +45,13 @@ public static class QuickBooksClonePersistence
     public static async Task ApplyQuickBooksDatabaseMigrationsAsync(this IServiceProvider services)
     {
         using var scope = services.CreateScope();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var seedDemoData = bool.TryParse(configuration["Database:SeedDemoData"], out var configuredSeedDemoData) &&
+            configuredSeedDemoData;
         var dbContext = scope.ServiceProvider.GetRequiredService<QuickBooksCloneDbContext>();
         await AdoptExistingSqliteSchemaAsync(dbContext);
         await dbContext.Database.MigrateAsync();
-        await SeedDefaultsAsync(dbContext);
+        await SeedDefaultsAsync(dbContext, seedDemoData);
     }
 
     private static async Task AdoptExistingSqliteSchemaAsync(QuickBooksCloneDbContext dbContext)
@@ -117,7 +120,7 @@ public static class QuickBooksClonePersistence
         await command.ExecuteNonQueryAsync();
     }
 
-    private static async Task SeedDefaultsAsync(QuickBooksCloneDbContext dbContext)
+    private static async Task SeedDefaultsAsync(QuickBooksCloneDbContext dbContext, bool seedDemoData)
     {
         var cashAccountId = Guid.Parse("10000000-0000-0000-0000-000000000001");
         var arAccountId = Guid.Parse("10000000-0000-0000-0000-000000000002");
@@ -167,7 +170,7 @@ public static class QuickBooksClonePersistence
                 new TaxCode("VAT14-P", "VAT 14% Purchase", TaxCodeScope.Purchase, 14, purchaseTaxReceivableAccountId, "Default purchase VAT code.") { Id = purchaseVat14Id });
         }
 
-        if (!await dbContext.Customers.AnyAsync())
+        if (seedDemoData && !await dbContext.Customers.AnyAsync())
         {
             dbContext.Customers.AddRange(
                 new Customer("Ahmed Mohamed", "Solution SA", "ahmed@solution.sa", "+966 123 50 4567", "EGP", 0),
@@ -175,14 +178,14 @@ public static class QuickBooksClonePersistence
                 new Customer("Khaled Mansour", "Mansour Stores", "k.mansour@shop.sa", "+966 565 990 1010", "EGP", 0));
         }
 
-        if (!await dbContext.Vendors.AnyAsync())
+        if (seedDemoData && !await dbContext.Vendors.AnyAsync())
         {
             dbContext.Vendors.AddRange(
                 new Vendor("Cairo Office Supplies", "Cairo Office Supplies LLC", "orders@cairo-office.example", "+20 100 111 2222", "EGP", 0),
                 new Vendor("Delta Hardware", "Delta Hardware Co.", "sales@delta-hardware.example", "+20 100 333 4444", "EGP", 0));
         }
 
-        if (!await dbContext.Items.AnyAsync())
+        if (seedDemoData && !await dbContext.Items.AnyAsync())
         {
             dbContext.Items.AddRange(
                 new Item("Consulting Hour", ItemType.Service, "SERV-001", null, 750, 0, 0, "hour", incomeAccountId, null, null, expenseAccountId),
@@ -190,7 +193,7 @@ public static class QuickBooksClonePersistence
                 new Item("Setup Fee", ItemType.NonInventory, "FEE-SETUP", null, 1500, 0, 0, "each", incomeAccountId, null, null, expenseAccountId));
         }
 
-        if (!await dbContext.CompanySettings.AnyAsync())
+        if (seedDemoData && !await dbContext.CompanySettings.AnyAsync())
         {
             dbContext.CompanySettings.Add(new CompanySettings(
                 companyName: "QuickBooksClone Demo Company",
@@ -214,12 +217,12 @@ public static class QuickBooksClonePersistence
                 defaultPurchaseTaxReceivableAccountId: purchaseTaxReceivableAccountId));
         }
 
-        await SeedSecurityAsync(dbContext);
+        await SeedSecurityAsync(dbContext, seedDemoData);
 
         await dbContext.SaveChangesAsync();
     }
 
-    private static async Task SeedSecurityAsync(QuickBooksCloneDbContext dbContext)
+    private static async Task SeedSecurityAsync(QuickBooksCloneDbContext dbContext, bool seedDemoData)
     {
         var roles = new[]
         {
@@ -251,7 +254,7 @@ public static class QuickBooksClonePersistence
 
         await dbContext.SaveChangesAsync();
 
-        if (!await dbContext.SecurityUsers.AnyAsync())
+        if (seedDemoData && !await dbContext.SecurityUsers.AnyAsync())
         {
             var adminRole = await dbContext.SecurityRoles.FirstOrDefaultAsync(role => role.RoleKey == "ADMIN");
             var admin = new SecurityUser(

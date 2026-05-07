@@ -146,6 +146,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("DesktopClient");
 
 app.UseRouting();
+app.UseMiddleware<ApiExceptionHandlingMiddleware>();
 app.UseMiddleware<LicenseFeatureMiddleware>();
 app.UseMiddleware<PermissionAuthorizationMiddleware>();
 app.UseMiddleware<TransactionalWriteMiddleware>();

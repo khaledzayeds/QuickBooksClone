@@ -5,11 +5,11 @@ enum ConnectionProfileType {
   custom;
 
   String get label => switch (this) {
-        ConnectionProfileType.local => 'Local',
-        ConnectionProfileType.lan => 'LAN',
-        ConnectionProfileType.hosted => 'Hosted',
-        ConnectionProfileType.custom => 'Custom',
-      };
+    ConnectionProfileType.local => 'Local',
+    ConnectionProfileType.lan => 'LAN',
+    ConnectionProfileType.hosted => 'Hosted',
+    ConnectionProfileType.custom => 'Custom',
+  };
 
   static ConnectionProfileType fromName(String? value) {
     return ConnectionProfileType.values.firstWhere(
@@ -34,8 +34,8 @@ class ConnectionSettingsModel {
   final String? hostedUrl;
   final String? customUrl;
 
-  static const defaultLocalUrl = 'http://localhost:5000';
-  static const defaultLanHost = '192.168.1.100:5000';
+  static const defaultLocalUrl = 'http://localhost:5014';
+  static const defaultLanHost = '192.168.1.100:5014';
   static const defaultHostedUrl = 'https://your-server.com';
 
   factory ConnectionSettingsModel.defaults() {
@@ -67,7 +67,9 @@ class ConnectionSettingsModel {
     final resolved = switch (profileType) {
       ConnectionProfileType.local => defaultLocalUrl,
       ConnectionProfileType.lan => _normalizeLanHost(lanHost ?? defaultLanHost),
-      ConnectionProfileType.hosted => _normalizeUrl(hostedUrl ?? defaultHostedUrl),
+      ConnectionProfileType.hosted => _normalizeUrl(
+        hostedUrl ?? defaultHostedUrl,
+      ),
       ConnectionProfileType.custom => _normalizeUrl(customUrl ?? baseUrl),
     };
 
@@ -75,43 +77,50 @@ class ConnectionSettingsModel {
   }
 
   Map<String, String> toStorage() => {
-        'profileType': profileType.name,
-        'baseUrl': baseUrl,
-        'lanHost': lanHost ?? '',
-        'hostedUrl': hostedUrl ?? '',
-        'customUrl': customUrl ?? '',
-      };
+    'profileType': profileType.name,
+    'baseUrl': baseUrl,
+    'lanHost': lanHost ?? '',
+    'hostedUrl': hostedUrl ?? '',
+    'customUrl': customUrl ?? '',
+  };
 
   factory ConnectionSettingsModel.fromStorage(Map<String, String?> values) {
     final profileType = ConnectionProfileType.fromName(values['profileType']);
     final model = ConnectionSettingsModel(
       profileType: profileType,
-      baseUrl: values['baseUrl']?.isNotEmpty == true ? values['baseUrl']! : defaultLocalUrl,
-      lanHost: values['lanHost']?.isNotEmpty == true ? values['lanHost'] : defaultLanHost,
-      hostedUrl: values['hostedUrl']?.isNotEmpty == true ? values['hostedUrl'] : defaultHostedUrl,
-      customUrl: values['customUrl']?.isNotEmpty == true ? values['customUrl'] : null,
+      baseUrl: values['baseUrl']?.isNotEmpty == true
+          ? values['baseUrl']!
+          : defaultLocalUrl,
+      lanHost: values['lanHost']?.isNotEmpty == true
+          ? values['lanHost']
+          : defaultLanHost,
+      hostedUrl: values['hostedUrl']?.isNotEmpty == true
+          ? values['hostedUrl']
+          : defaultHostedUrl,
+      customUrl: values['customUrl']?.isNotEmpty == true
+          ? values['customUrl']
+          : null,
     );
     return model.resolveBaseUrl();
   }
 
   static String _normalizeLanHost(String value) {
     final trimmed = value.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
+      return trimmed;
     return 'http://$trimmed';
   }
 
   static String _normalizeUrl(String value) {
     final trimmed = value.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
+      return trimmed;
     return 'http://$trimmed';
   }
 }
 
 class ConnectionTestResult {
-  const ConnectionTestResult({
-    required this.success,
-    required this.message,
-  });
+  const ConnectionTestResult({required this.success, required this.message});
 
   final bool success;
   final String message;

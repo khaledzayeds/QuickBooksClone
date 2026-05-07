@@ -10,10 +10,12 @@ class ConnectionSettingsScreen extends ConsumerStatefulWidget {
   const ConnectionSettingsScreen({super.key});
 
   @override
-  ConsumerState<ConnectionSettingsScreen> createState() => _ConnectionSettingsScreenState();
+  ConsumerState<ConnectionSettingsScreen> createState() =>
+      _ConnectionSettingsScreenState();
 }
 
-class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScreen> {
+class _ConnectionSettingsScreenState
+    extends ConsumerState<ConnectionSettingsScreen> {
   late final TextEditingController _lanHostController;
   late final TextEditingController _hostedUrlController;
   late final TextEditingController _customUrlController;
@@ -22,9 +24,15 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
   void initState() {
     super.initState();
     final settings = ref.read(connectionSettingsProvider).settings;
-    _lanHostController = TextEditingController(text: settings.lanHost ?? ConnectionSettingsModel.defaultLanHost);
-    _hostedUrlController = TextEditingController(text: settings.hostedUrl ?? ConnectionSettingsModel.defaultHostedUrl);
-    _customUrlController = TextEditingController(text: settings.customUrl ?? settings.baseUrl);
+    _lanHostController = TextEditingController(
+      text: settings.lanHost ?? ConnectionSettingsModel.defaultLanHost,
+    );
+    _hostedUrlController = TextEditingController(
+      text: settings.hostedUrl ?? ConnectionSettingsModel.defaultHostedUrl,
+    );
+    _customUrlController = TextEditingController(
+      text: settings.customUrl ?? settings.baseUrl,
+    );
   }
 
   @override
@@ -47,13 +55,16 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
     ref.listen(connectionSettingsProvider, (previous, next) {
       final prevSettings = previous?.settings;
       final nextSettings = next.settings;
-      if (prevSettings?.lanHost != nextSettings.lanHost && _lanHostController.text != (nextSettings.lanHost ?? '')) {
+      if (prevSettings?.lanHost != nextSettings.lanHost &&
+          _lanHostController.text != (nextSettings.lanHost ?? '')) {
         _lanHostController.text = nextSettings.lanHost ?? '';
       }
-      if (prevSettings?.hostedUrl != nextSettings.hostedUrl && _hostedUrlController.text != (nextSettings.hostedUrl ?? '')) {
+      if (prevSettings?.hostedUrl != nextSettings.hostedUrl &&
+          _hostedUrlController.text != (nextSettings.hostedUrl ?? '')) {
         _hostedUrlController.text = nextSettings.hostedUrl ?? '';
       }
-      if (prevSettings?.customUrl != nextSettings.customUrl && _customUrlController.text != (nextSettings.customUrl ?? '')) {
+      if (prevSettings?.customUrl != nextSettings.customUrl &&
+          _customUrlController.text != (nextSettings.customUrl ?? '')) {
         _customUrlController.text = nextSettings.customUrl ?? '';
       }
     });
@@ -65,7 +76,11 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
           TextButton.icon(
             onPressed: state.saving ? null : () => notifier.save(),
             icon: state.saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.save_outlined),
             label: const Text('Save'),
           ),
@@ -77,12 +92,16 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
         children: [
           Text(
             'API Connection',
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Choose where LedgerFlow should connect. Available profiles are controlled by the current license edition: ${license.edition.label}.',
-            style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 24),
           if (state.loading || licenseState.loading)
@@ -91,7 +110,11 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
                 padding: EdgeInsets.all(24),
                 child: Row(
                   children: [
-                    SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                     SizedBox(width: 16),
                     Text('Loading connection settings...'),
                   ],
@@ -107,26 +130,34 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Connection Profile', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    Text(
+                      'Connection Profile',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
-                      children: ConnectionProfileType.values
-                          .map(
-                            (type) {
-                              final enabled = _isProfileAllowed(type, license);
-                              return ChoiceChip(
-                                label: Text(enabled ? type.label : '${type.label} 🔒'),
-                                selected: state.settings.profileType == type,
-                                onSelected: enabled ? (_) => notifier.setProfileType(type) : null,
-                              );
-                            },
-                          )
-                          .toList(),
+                      children: ConnectionProfileType.values.map((type) {
+                        final enabled = _isProfileAllowed(type, license);
+                        return ChoiceChip(
+                          label: Text(
+                            enabled ? type.label : '${type.label} 🔒',
+                          ),
+                          selected: state.settings.profileType == type,
+                          onSelected: enabled
+                              ? (_) => notifier.setProfileType(type)
+                              : null,
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 12),
-                    _ProfileLockNotice(profileType: state.settings.profileType, license: license),
+                    _ProfileLockNotice(
+                      profileType: state.settings.profileType,
+                      license: license,
+                    ),
                     const SizedBox(height: 20),
                     _ProfileFields(
                       profileType: state.settings.profileType,
@@ -150,25 +181,42 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Connection Test', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    Text(
+                      'Connection Test',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'Tests the selected endpoint by calling /api/settings/runtime.',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
                         FilledButton.icon(
-                          onPressed: state.testing ? null : () => notifier.test(),
+                          onPressed: state.testing
+                              ? null
+                              : () => notifier.test(),
                           icon: state.testing
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : const Icon(Icons.network_check_outlined),
                           label: const Text('Test Connection'),
                         ),
                         const SizedBox(width: 12),
                         OutlinedButton.icon(
-                          onPressed: state.loading ? null : () => notifier.load(),
+                          onPressed: state.loading
+                              ? null
+                              : () => notifier.load(),
                           icon: const Icon(Icons.refresh),
                           label: const Text('Reload'),
                         ),
@@ -192,12 +240,18 @@ class _ConnectionSettingsScreenState extends ConsumerState<ConnectionSettingsScr
     );
   }
 
-  static bool _isProfileAllowed(ConnectionProfileType type, LicenseSettingsModel license) {
+  static bool _isProfileAllowed(
+    ConnectionProfileType type,
+    LicenseSettingsModel license,
+  ) {
     return switch (type) {
       ConnectionProfileType.local => license.allows(LicenseFeature.localMode),
       ConnectionProfileType.lan => license.allows(LicenseFeature.lanMode),
       ConnectionProfileType.hosted => license.allows(LicenseFeature.hostedMode),
-      ConnectionProfileType.custom => license.allows(LicenseFeature.localMode) || license.allows(LicenseFeature.lanMode) || license.allows(LicenseFeature.hostedMode),
+      ConnectionProfileType.custom =>
+        license.allows(LicenseFeature.localMode) ||
+            license.allows(LicenseFeature.lanMode) ||
+            license.allows(LicenseFeature.hostedMode),
     };
   }
 }
@@ -217,7 +271,10 @@ class _LicenseConnectionBanner extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Icon(Icons.verified_user_outlined, color: cs.onSecondaryContainer),
@@ -243,9 +300,18 @@ class _ProfileLockNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reason = switch (profileType) {
-      ConnectionProfileType.local => license.allows(LicenseFeature.localMode) ? null : license.denialReason(LicenseFeature.localMode),
-      ConnectionProfileType.lan => license.allows(LicenseFeature.lanMode) ? null : license.denialReason(LicenseFeature.lanMode),
-      ConnectionProfileType.hosted => license.allows(LicenseFeature.hostedMode) ? null : license.denialReason(LicenseFeature.hostedMode),
+      ConnectionProfileType.local =>
+        license.allows(LicenseFeature.localMode)
+            ? null
+            : license.denialReason(LicenseFeature.localMode),
+      ConnectionProfileType.lan =>
+        license.allows(LicenseFeature.lanMode)
+            ? null
+            : license.denialReason(LicenseFeature.lanMode),
+      ConnectionProfileType.hosted =>
+        license.allows(LicenseFeature.hostedMode)
+            ? null
+            : license.denialReason(LicenseFeature.hostedMode),
       ConnectionProfileType.custom => null,
     };
 
@@ -254,12 +320,17 @@ class _ProfileLockNotice extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: cs.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Icon(Icons.lock_outline, color: cs.onErrorContainer),
           const SizedBox(width: 12),
-          Expanded(child: Text(reason, style: TextStyle(color: cs.onErrorContainer))),
+          Expanded(
+            child: Text(reason, style: TextStyle(color: cs.onErrorContainer)),
+          ),
         ],
       ),
     );
@@ -289,40 +360,42 @@ class _ProfileFields extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (profileType) {
       ConnectionProfileType.local => const _InfoBox(
-          icon: Icons.computer_outlined,
-          title: 'Local API',
-          message: 'The app connects to http://localhost:5000. Use this when the API runs on the same machine.',
-        ),
+        icon: Icons.computer_outlined,
+        title: 'Local API',
+        message:
+            'The app connects to http://localhost:5014. Use this when the API runs on the same machine.',
+      ),
       ConnectionProfileType.lan => TextField(
-          controller: lanHostController,
-          decoration: const InputDecoration(
-            labelText: 'LAN Host',
-            helperText: 'Example: 192.168.1.20:5000 or http://192.168.1.20:5000',
-            prefixIcon: Icon(Icons.router_outlined),
-            border: OutlineInputBorder(),
-          ),
-          onChanged: onLanChanged,
+        controller: lanHostController,
+        decoration: const InputDecoration(
+          labelText: 'LAN Host',
+          helperText: 'Example: 192.168.1.20:5000 or http://192.168.1.20:5000',
+          prefixIcon: Icon(Icons.router_outlined),
+          border: OutlineInputBorder(),
         ),
+        onChanged: onLanChanged,
+      ),
       ConnectionProfileType.hosted => TextField(
-          controller: hostedUrlController,
-          decoration: const InputDecoration(
-            labelText: 'Hosted URL',
-            helperText: 'Example: https://api.yourdomain.com',
-            prefixIcon: Icon(Icons.cloud_outlined),
-            border: OutlineInputBorder(),
-          ),
-          onChanged: onHostedChanged,
+        controller: hostedUrlController,
+        decoration: const InputDecoration(
+          labelText: 'Hosted URL',
+          helperText: 'Example: https://api.yourdomain.com',
+          prefixIcon: Icon(Icons.cloud_outlined),
+          border: OutlineInputBorder(),
         ),
+        onChanged: onHostedChanged,
+      ),
       ConnectionProfileType.custom => TextField(
-          controller: customUrlController,
-          decoration: const InputDecoration(
-            labelText: 'Custom Base URL',
-            helperText: 'Use for testing tunnels, custom ports, or special deployments.',
-            prefixIcon: Icon(Icons.tune_outlined),
-            border: OutlineInputBorder(),
-          ),
-          onChanged: onCustomChanged,
+        controller: customUrlController,
+        decoration: const InputDecoration(
+          labelText: 'Custom Base URL',
+          helperText:
+              'Use for testing tunnels, custom ports, or special deployments.',
+          prefixIcon: Icon(Icons.tune_outlined),
+          border: OutlineInputBorder(),
         ),
+        onChanged: onCustomChanged,
+      ),
     };
   }
 }
@@ -350,7 +423,12 @@ class _CurrentEndpointCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Current Base URL', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  Text(
+                    'Current Base URL',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   SelectableText(baseUrl),
                 ],
@@ -364,7 +442,11 @@ class _CurrentEndpointCard extends StatelessWidget {
 }
 
 class _InfoBox extends StatelessWidget {
-  const _InfoBox({required this.icon, required this.title, required this.message});
+  const _InfoBox({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
   final IconData icon;
   final String title;
   final String message;
@@ -386,7 +468,10 @@ class _InfoBox extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(height: 4),
                 Text(message),
               ],
@@ -413,13 +498,19 @@ class _ResultBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(result.success ? Icons.check_circle_outline : Icons.error_outline,
-              color: result.success ? cs.onPrimaryContainer : cs.onErrorContainer),
+          Icon(
+            result.success ? Icons.check_circle_outline : Icons.error_outline,
+            color: result.success ? cs.onPrimaryContainer : cs.onErrorContainer,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               result.message,
-              style: TextStyle(color: result.success ? cs.onPrimaryContainer : cs.onErrorContainer),
+              style: TextStyle(
+                color: result.success
+                    ? cs.onPrimaryContainer
+                    : cs.onErrorContainer,
+              ),
             ),
           ),
         ],
@@ -445,7 +536,9 @@ class _ErrorBanner extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, color: cs.onErrorContainer),
           const SizedBox(width: 12),
-          Expanded(child: Text(message, style: TextStyle(color: cs.onErrorContainer))),
+          Expanded(
+            child: Text(message, style: TextStyle(color: cs.onErrorContainer)),
+          ),
         ],
       ),
     );

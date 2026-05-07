@@ -25,6 +25,16 @@ class AuthRemoteDatasource {
     }
   }
 
+  /// GET /api/auth/me
+  Future<ApiResult<AuthUser>> me() async {
+    try {
+      final r = await _client.get<Map<String, dynamic>>('/api/auth/me');
+      return Success(AuthUser.fromLoginResponse(r.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
   /// POST /api/auth/logout
   Future<ApiResult<void>> logout() async {
     try {
