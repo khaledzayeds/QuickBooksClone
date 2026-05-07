@@ -141,6 +141,7 @@ class _PayrollRunTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final commands = ref.read(payrollRunCommandsProvider);
     final color = _statusColor(context, run.status);
+    final journalEntryId = run.journalEntryId;
 
     return Card(
       elevation: 0,
@@ -169,6 +170,10 @@ class _PayrollRunTile extends ConsumerWidget {
                         Text('${_date(run.periodStart)} to ${_date(run.periodEnd)} • Pay ${_date(run.payDate)}'),
                         const SizedBox(height: 4),
                         Text('${run.paySchedule} • ${run.employeeCount} employee(s)'),
+                        if (journalEntryId != null && journalEntryId.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text('Journal Entry: $journalEntryId'),
+                        ],
                       ],
                     ),
                   ),
@@ -253,6 +258,8 @@ class _PayrollRunDetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final journalEntryId = details.journalEntryId;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,6 +273,8 @@ class _PayrollRunDetailsView extends StatelessWidget {
               _InfoChip(label: 'Period', value: '${_date(details.periodStart)} → ${_date(details.periodEnd)}'),
               _InfoChip(label: 'Pay Date', value: _date(details.payDate)),
               _InfoChip(label: 'Tax Rate', value: '${(details.taxWithholdingRate * 100).toStringAsFixed(2)}%'),
+              if (journalEntryId != null && journalEntryId.isNotEmpty)
+                _InfoChip(label: 'Journal Entry', value: journalEntryId),
             ],
           ),
           const SizedBox(height: 16),
