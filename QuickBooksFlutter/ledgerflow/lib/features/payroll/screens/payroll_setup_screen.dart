@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/payroll_setup_provider.dart';
+import '../widgets/payroll_runs_section.dart';
 
 class PayrollSetupScreen extends ConsumerWidget {
   const PayrollSetupScreen({super.key});
@@ -57,7 +58,7 @@ class _PayrollSetupBody extends ConsumerWidget {
                   Text('Payroll Setup', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Text(
-                    'Configure payroll before payroll runs. Calculations and posting will be handled by backend payroll runs.',
+                    'Configure payroll before payroll runs. Calculations and posting are handled by backend payroll runs.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -92,6 +93,8 @@ class _PayrollSetupBody extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 24),
+        PayrollRunsSection(setup: setup),
+        const SizedBox(height: 16),
         _Panel(
           title: 'Employees',
           actionLabel: 'Add Employee',
