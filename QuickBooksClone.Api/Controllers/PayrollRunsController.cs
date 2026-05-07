@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Api.Contracts.Payroll;
 using QuickBooksClone.Api.Security;
+using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Common;
+using QuickBooksClone.Core.JournalEntries;
 using QuickBooksClone.Infrastructure.Persistence;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -14,10 +17,23 @@ public sealed class PayrollRunsController : ControllerBase
 {
     private const string DefaultCompanyId = "11111111-1111-1111-1111-111111111111";
     private readonly QuickBooksCloneDbContext _db;
+    private readonly IAccountRepository _accounts;
+    private readonly IJournalEntryRepository _journalEntries;
+    private readonly IJournalEntryPostingService _journalPostingService;
+    private readonly IDocumentNumberService _documentNumbers;
 
-    public PayrollRunsController(QuickBooksCloneDbContext db)
+    public PayrollRunsController(
+        QuickBooksCloneDbContext db,
+        IAccountRepository accounts,
+        IJournalEntryRepository journalEntries,
+        IJournalEntryPostingService journalPostingService,
+        IDocumentNumberService documentNumbers)
     {
         _db = db;
+        _accounts = accounts;
+        _journalEntries = journalEntries;
+        _journalPostingService = journalPostingService;
+        _documentNumbers = documentNumbers;
     }
 
     [HttpGet]
@@ -74,8 +90,8 @@ public sealed class PayrollRunsController : ControllerBase
 
         await ExecuteNonQueryAsync(
             """
-            INSERT INTO payroll_runs (Id, CompanyId, RunNumber, PeriodStart, PeriodEnd, PayDate, PaySchedule, Currency, Status, RegularHoursPerEmployee, OvertimeHoursPerEmployee, TaxWithholdingRate, CreatedAt, UpdatedAt)
-            VALUES (@Id, @CompanyId, @RunNumber, @PeriodStart, @PeriodEnd, @PayDate, @PaySchedule, @Currency, 'Draft', @RegularHoursPerEmployee, @OvertimeHoursPerEmployee, @TaxWithholdingRate, @CreatedAt, NULL)
+            INSERT INTO payroll_runs (Id, CompanyId, RunNumber, PeriodStart, PeriodEnd, PayDate, PaySchedule, Currency, Status, RegularHoursPerEmployee, OvertimeHoursPerEmployee, TaxWithholdingRate, CreatedAt, UpdatedAt, JournalEntryId)
+            VALUES (@Id, @CompanyId, @RunNumber, @PeriodStart, @PeriodEnd, @PayDate, @PaySchedule, @Currency, 'Draft', @RegularHoursPerEmployee, @OvertimeHoursPerEmployee, @TaxWithholdingRate, @CreatedAt, NULL, NULL)
             """,
             new Dictionary<string, object?>
             {
@@ -129,8 +145,94 @@ public sealed class PayrollRunsController : ControllerBase
 
     [HttpPost("{id:guid}/post")]
     [ProducesResponseType(typeof(PayrollRunDetailsDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PayrollRunDetailsDto>> Post(Guid id, CancellationToken cancellationToken = default) =>
-        await ChangeStatus(id, ["Approved"], "Posted", cancellationToken);
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PayrollRunDetailsDto>> Post(Guid id, CancellationToken cancellationToken = default)
+    {
+        await EnsureTablesAsync(cancellationToken);
+        var details = await GetRunDetailsAsync(id, cancellationToken);
+        if (details is null) return NotFound();
+        if (!string.Equals(details.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest($"Payroll run cannot be posted from {details.Status} status.");
+        }
+
+        if (details.TotalGrossPay <= 0)
+        {
+            return BadRequest("Payroll run has no gross pay to post.");
+        }
+
+        var existingJournalId = await ExecuteScalarAsync(
+            "SELECT JournalEntryId FROM payroll_runs WHERE Id = @Id",
+            new Dictionary<string, object?> { ["Id"] = id },
+            cancellationToken);
+        if (existingJournalId is Guid)
+        {
+            return BadRequest("Payroll run is already linked to a journal entry.");
+        }
+
+        var payrollExpense = await ResolveAccountAsync(AccountType.Expense, ["payroll", "wage", "salary", "compensation"], cancellationToken);
+        if (payrollExpense is null)
+        {
+            return BadRequest("Cannot post payroll because no active Expense account is available for payroll expense.");
+        }
+
+        var payrollLiability = await ResolveAccountAsync(AccountType.OtherCurrentLiability, ["payroll", "wage", "salary", "withholding", "tax", "liability", "payable"], cancellationToken);
+        if (payrollLiability is null)
+        {
+            return BadRequest("Cannot post payroll because no active Other Current Liability account is available for payroll payable/withholding.");
+        }
+
+        var journalLines = new List<JournalEntryLine>
+        {
+            new(
+                payrollExpense.Id,
+                $"Payroll gross pay for {details.RunNumber}",
+                details.TotalGrossPay,
+                0),
+            new(
+                payrollLiability.Id,
+                $"Payroll net payable for {details.RunNumber}",
+                0,
+                details.TotalNetPay)
+        };
+
+        if (details.TotalDeductions > 0)
+        {
+            journalLines.Add(new JournalEntryLine(
+                payrollLiability.Id,
+                $"Payroll deductions payable for {details.RunNumber}",
+                0,
+                details.TotalDeductions));
+        }
+
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.JournalEntry, cancellationToken);
+        var journalEntry = new JournalEntry(
+            details.PayDate,
+            $"Payroll run {details.RunNumber} for {details.PeriodStart:yyyy-MM-dd} to {details.PeriodEnd:yyyy-MM-dd}",
+            journalLines,
+            allocation.DocumentNo);
+        journalEntry.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
+
+        await _journalEntries.AddAsync(journalEntry, cancellationToken);
+        var postingResult = await _journalPostingService.PostAsync(journalEntry.Id, cancellationToken);
+        if (!postingResult.Succeeded)
+        {
+            return BadRequest(postingResult.ErrorMessage);
+        }
+
+        await ExecuteNonQueryAsync(
+            "UPDATE payroll_runs SET Status = 'Posted', JournalEntryId = @JournalEntryId, UpdatedAt = @UpdatedAt WHERE Id = @Id",
+            new Dictionary<string, object?>
+            {
+                ["Id"] = id,
+                ["JournalEntryId"] = journalEntry.Id,
+                ["UpdatedAt"] = DateTimeOffset.UtcNow,
+            },
+            cancellationToken);
+
+        return Ok((await GetRunDetailsAsync(id, cancellationToken))!);
+    }
 
     [HttpPatch("{id:guid}/void")]
     [ProducesResponseType(typeof(PayrollRunDetailsDto), StatusCodes.Status200OK)]
@@ -171,11 +273,17 @@ public sealed class PayrollRunsController : ControllerBase
                     RegularHoursPerEmployee decimal(18,2) NOT NULL,
                     OvertimeHoursPerEmployee decimal(18,2) NOT NULL,
                     TaxWithholdingRate decimal(18,4) NOT NULL,
+                    JournalEntryId uniqueidentifier NULL,
                     CreatedAt datetimeoffset NOT NULL,
                     UpdatedAt datetimeoffset NULL
                 );
                 CREATE UNIQUE INDEX IX_payroll_runs_RunNumber ON payroll_runs (RunNumber);
                 CREATE INDEX IX_payroll_runs_Period ON payroll_runs (PeriodStart, PeriodEnd);
+            END
+
+            IF OBJECT_ID(N'payroll_runs', N'U') IS NOT NULL AND COL_LENGTH('payroll_runs', 'JournalEntryId') IS NULL
+            BEGIN
+                ALTER TABLE payroll_runs ADD JournalEntryId uniqueidentifier NULL;
             END
 
             IF OBJECT_ID(N'payroll_run_lines', N'U') IS NULL
@@ -306,6 +414,20 @@ public sealed class PayrollRunsController : ControllerBase
             lines,
             run.CreatedAt,
             run.UpdatedAt);
+    }
+
+    private async Task<Account?> ResolveAccountAsync(AccountType accountType, IReadOnlyCollection<string> preferredTerms, CancellationToken cancellationToken)
+    {
+        var accounts = await _accounts.SearchAsync(new AccountSearch(null, accountType, false, 1, 500), cancellationToken);
+        var activeAccounts = accounts.Items.Where(account => account.IsActive).ToList();
+        if (activeAccounts.Count == 0) return null;
+
+        var preferred = activeAccounts.FirstOrDefault(account =>
+            preferredTerms.Any(term =>
+                account.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                account.Code.Contains(term, StringComparison.OrdinalIgnoreCase)));
+
+        return preferred ?? activeAccounts.First();
     }
 
     private async Task<string> NextRunNumberAsync(CancellationToken cancellationToken)
