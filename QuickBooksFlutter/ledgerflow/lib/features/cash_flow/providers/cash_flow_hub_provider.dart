@@ -1,175 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api/api_result.dart';
-import '../../../core/constants/api_enums.dart';
-import '../../reports/data/models/report_models.dart';
-import '../../reports/providers/reports_provider.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/utils/json_utils.dart';
 
 final cashFlowHubProvider = FutureProvider.autoDispose<CashFlowHubSnapshot>((ref) async {
-  final reports = ref.read(reportsRepositoryProvider);
-  final today = DateTime.now();
-  final fromDate = DateTime(today.year, 1, 1);
-
-  final trialBalanceResult = await reports.getTrialBalance(
-    asOfDate: today,
-    includeZeroBalances: true,
-  );
-  final balanceSheetResult = await reports.getBalanceSheet(
-    asOfDate: today,
-    includeZeroBalances: true,
-  );
-  final profitAndLossResult = await reports.getProfitAndLoss(
-    fromDate: fromDate,
-    toDate: today,
-    includeZeroBalances: true,
-  );
-  final receivablesResult = await reports.getAccountsReceivableAging(
-    asOfDate: today,
-  );
-  final payablesResult = await reports.getAccountsPayableAging(
-    asOfDate: today,
-  );
-
-  final trialBalance = _unwrap(trialBalanceResult);
-  final balanceSheet = _unwrap(balanceSheetResult);
-  final profitAndLoss = _unwrap(profitAndLossResult);
-  final receivables = _unwrap(receivablesResult);
-  final payables = _unwrap(payablesResult);
-
-  final cashBalance = trialBalance.items
-      .where((row) => row.accountType == AccountType.bank)
-      .fold<double>(0, (sum, row) => sum + row.closingDebit - row.closingCredit);
-
-  final currentIncoming = receivables.current;
-  final overdueIncoming = receivables.days1To30 +
-      receivables.days31To60 +
-      receivables.days61To90 +
-      receivables.over90;
-  final currentOutgoing = payables.current;
-  final overdueOutgoing = payables.days1To30 +
-      payables.days31To60 +
-      payables.days61To90 +
-      payables.over90;
-  final netAfterOpenItems = cashBalance + receivables.total - payables.total;
-  final openInvoiceCount = receivables.items.fold<int>(0, (sum, row) => sum + row.openCount);
-  final openBillCount = payables.items.fold<int>(0, (sum, row) => sum + row.openCount);
-
-  return CashFlowHubSnapshot(
-    asOfDate: today,
-    fromDate: fromDate,
-    toDate: today,
-    currency: _resolveCurrency(receivables, payables),
-    cashBalance: cashBalance,
-    totalAssets: balanceSheet.totalAssets,
-    totalLiabilities: balanceSheet.totalLiabilities,
-    totalEquity: balanceSheet.totalEquity,
-    expectedIncoming: receivables.total,
-    overdueIncoming: overdueIncoming,
-    expectedOutgoing: payables.total,
-    overdueOutgoing: overdueOutgoing,
-    netCashAfterOpenItems: netAfterOpenItems,
-    totalIncome: profitAndLoss.totalIncome,
-    totalExpenses: profitAndLoss.totalExpenses + profitAndLoss.totalCostOfGoodsSold,
-    netProfit: profitAndLoss.netProfit,
-    openInvoiceCount: openInvoiceCount,
-    openBillCount: openBillCount,
-    incomingBuckets: [
-      CashFlowBucket('Current', receivables.current),
-      CashFlowBucket('1-30', receivables.days1To30),
-      CashFlowBucket('31-60', receivables.days31To60),
-      CashFlowBucket('61-90', receivables.days61To90),
-      CashFlowBucket('90+', receivables.over90),
-    ],
-    outgoingBuckets: [
-      CashFlowBucket('Current', payables.current),
-      CashFlowBucket('1-30', payables.days1To30),
-      CashFlowBucket('31-60', payables.days31To60),
-      CashFlowBucket('61-90', payables.days61To90),
-      CashFlowBucket('90+', payables.over90),
-    ],
-    forecastPoints: [
-      CashFlowForecastPoint('Now', cashBalance),
-      CashFlowForecastPoint('Current', cashBalance + currentIncoming - currentOutgoing),
-      CashFlowForecastPoint('30d', cashBalance + currentIncoming + receivables.days1To30 - currentOutgoing - payables.days1To30),
-      CashFlowForecastPoint('60d', cashBalance + currentIncoming + receivables.days1To30 + receivables.days31To60 - currentOutgoing - payables.days1To30 - payables.days31To60),
-      CashFlowForecastPoint('90d+', netAfterOpenItems),
-    ],
-    alerts: _buildAlerts(
-      cashBalance: cashBalance,
-      netAfterOpenItems: netAfterOpenItems,
-      overdueIncoming: overdueIncoming,
-      overdueOutgoing: overdueOutgoing,
-      openInvoiceCount: openInvoiceCount,
-      openBillCount: openBillCount,
-    ),
-  );
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/reports/cash-flow-hub');
+  return CashFlowHubSnapshot.fromJson(response.data!);
 });
-
-T _unwrap<T>(ApiResult<T> result) => result.when(
-      success: (data) => data,
-      failure: (error) => throw error,
-    );
-
-String _resolveCurrency(AgingReportModel receivables, AgingReportModel payables) {
-  final arCurrency = receivables.items.isEmpty ? '' : receivables.items.first.currency;
-  if (arCurrency.trim().isNotEmpty) return arCurrency;
-  final apCurrency = payables.items.isEmpty ? '' : payables.items.first.currency;
-  if (apCurrency.trim().isNotEmpty) return apCurrency;
-  return 'EGP';
-}
-
-List<CashFlowAlert> _buildAlerts({
-  required double cashBalance,
-  required double netAfterOpenItems,
-  required double overdueIncoming,
-  required double overdueOutgoing,
-  required int openInvoiceCount,
-  required int openBillCount,
-}) {
-  final alerts = <CashFlowAlert>[];
-
-  if (cashBalance < 0) {
-    alerts.add(const CashFlowAlert(
-      severity: CashFlowAlertSeverity.critical,
-      title: 'Negative cash position',
-      message: 'Bank and cash accounts are below zero. Review deposits, checks, and bank transactions.',
-    ));
-  }
-
-  if (netAfterOpenItems < 0) {
-    alerts.add(const CashFlowAlert(
-      severity: CashFlowAlertSeverity.warning,
-      title: 'Projected cash pressure',
-      message: 'Open receivables minus open payables leaves a negative projected cash position.',
-    ));
-  }
-
-  if (overdueIncoming > 0) {
-    alerts.add(CashFlowAlert(
-      severity: CashFlowAlertSeverity.info,
-      title: 'Overdue customer balances',
-      message: '$openInvoiceCount open invoice(s) include overdue receivables that can improve cash once collected.',
-    ));
-  }
-
-  if (overdueOutgoing > 0) {
-    alerts.add(CashFlowAlert(
-      severity: CashFlowAlertSeverity.info,
-      title: 'Vendor bills need attention',
-      message: '$openBillCount open bill(s) include overdue payables. Prioritize payment planning.',
-    ));
-  }
-
-  if (alerts.isEmpty) {
-    alerts.add(const CashFlowAlert(
-      severity: CashFlowAlertSeverity.success,
-      title: 'Cash flow looks stable',
-      message: 'No overdue cash-flow pressure was detected from current receivables and payables reports.',
-    ));
-  }
-
-  return alerts;
-}
 
 class CashFlowHubSnapshot {
   const CashFlowHubSnapshot({
@@ -219,18 +56,65 @@ class CashFlowHubSnapshot {
   final List<CashFlowBucket> outgoingBuckets;
   final List<CashFlowForecastPoint> forecastPoints;
   final List<CashFlowAlert> alerts;
+
+  factory CashFlowHubSnapshot.fromJson(Map<String, dynamic> json) => CashFlowHubSnapshot(
+        asOfDate: _parseDate(json['asOfDate']),
+        fromDate: _parseDate(json['fromDate']),
+        toDate: _parseDate(json['toDate']),
+        currency: JsonUtils.asString(json['currency'], defaultValue: 'EGP'),
+        cashBalance: JsonUtils.asDouble(json['cashBalance']),
+        totalAssets: JsonUtils.asDouble(json['totalAssets']),
+        totalLiabilities: JsonUtils.asDouble(json['totalLiabilities']),
+        totalEquity: JsonUtils.asDouble(json['totalEquity']),
+        expectedIncoming: JsonUtils.asDouble(json['expectedIncoming']),
+        overdueIncoming: JsonUtils.asDouble(json['overdueIncoming']),
+        expectedOutgoing: JsonUtils.asDouble(json['expectedOutgoing']),
+        overdueOutgoing: JsonUtils.asDouble(json['overdueOutgoing']),
+        netCashAfterOpenItems: JsonUtils.asDouble(json['netCashAfterOpenItems']),
+        totalIncome: JsonUtils.asDouble(json['totalIncome']),
+        totalExpenses: JsonUtils.asDouble(json['totalExpenses']),
+        netProfit: JsonUtils.asDouble(json['netProfit']),
+        openInvoiceCount: JsonUtils.asInt(json['openInvoiceCount']),
+        openBillCount: JsonUtils.asInt(json['openBillCount']),
+        incomingBuckets: JsonUtils.asList(
+          json['incomingBuckets'],
+          (row) => CashFlowBucket.fromJson(row),
+        ),
+        outgoingBuckets: JsonUtils.asList(
+          json['outgoingBuckets'],
+          (row) => CashFlowBucket.fromJson(row),
+        ),
+        forecastPoints: JsonUtils.asList(
+          json['forecastPoints'],
+          (row) => CashFlowForecastPoint.fromJson(row),
+        ),
+        alerts: JsonUtils.asList(
+          json['alerts'],
+          (row) => CashFlowAlert.fromJson(row),
+        ),
+      );
 }
 
 class CashFlowBucket {
   const CashFlowBucket(this.label, this.amount);
   final String label;
   final double amount;
+
+  factory CashFlowBucket.fromJson(Map<String, dynamic> json) => CashFlowBucket(
+        JsonUtils.asString(json['label']),
+        JsonUtils.asDouble(json['amount']),
+      );
 }
 
 class CashFlowForecastPoint {
   const CashFlowForecastPoint(this.label, this.amount);
   final String label;
   final double amount;
+
+  factory CashFlowForecastPoint.fromJson(Map<String, dynamic> json) => CashFlowForecastPoint(
+        JsonUtils.asString(json['label']),
+        JsonUtils.asDouble(json['amount']),
+      );
 }
 
 enum CashFlowAlertSeverity { success, info, warning, critical }
@@ -245,4 +129,19 @@ class CashFlowAlert {
   final CashFlowAlertSeverity severity;
   final String title;
   final String message;
+
+  factory CashFlowAlert.fromJson(Map<String, dynamic> json) => CashFlowAlert(
+        severity: _severity(JsonUtils.asString(json['severity'])),
+        title: JsonUtils.asString(json['title']),
+        message: JsonUtils.asString(json['message']),
+      );
 }
+
+CashFlowAlertSeverity _severity(String value) => switch (value.toLowerCase()) {
+      'success' => CashFlowAlertSeverity.success,
+      'warning' => CashFlowAlertSeverity.warning,
+      'critical' => CashFlowAlertSeverity.critical,
+      _ => CashFlowAlertSeverity.info,
+    };
+
+DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
