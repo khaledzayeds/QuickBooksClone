@@ -26,8 +26,8 @@ class TopMenuBar extends StatelessWidget {
           _MenuButton(
             label: 'File',
             items: const {
-              'New Company': AppRoutes.myCompany,
-              'Open Company': AppRoutes.myCompany,
+              'New Company': AppRoutes.companySettings,
+              'Open Company': AppRoutes.companySettings,
               'Exit': AppRoutes.login,
             },
           ),
@@ -43,7 +43,7 @@ class TopMenuBar extends StatelessWidget {
           _MenuButton(
             label: 'Company',
             items: const {
-              'My Company': AppRoutes.myCompany,
+              'My Company': AppRoutes.companySettings,
               'Inventory Adjustments': AppRoutes.inventoryAdjustments,
               'Journal Entries': AppRoutes.journalEntries,
               'Enter Time': AppRoutes.timeTracking,
@@ -95,7 +95,7 @@ class TopMenuBar extends StatelessWidget {
           ),
           _MenuButton(
             label: 'Help',
-            items: const {'About LedgerFlow': AppRoutes.myCompany},
+            items: const {'About LedgerFlow': AppRoutes.companySettings},
           ),
           const Spacer(),
           Padding(
