@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/cash_flow/screens/cash_flow_hub_screen.dart';
+import '../../features/settings/screens/company_settings_screen.dart';
+
 class ComingSoonScreen extends StatelessWidget {
   const ComingSoonScreen({
     super.key,
@@ -13,6 +16,14 @@ class ComingSoonScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (title == 'Cash Flow Hub') {
+      return const CashFlowHubScreen();
+    }
+
+    if (title == 'My Company') {
+      return const CompanySettingsScreen();
+    }
+
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
