@@ -162,11 +162,7 @@ public sealed class PayrollRunsController : ControllerBase
             return BadRequest("Payroll run has no gross pay to post.");
         }
 
-        var existingJournalId = await ExecuteScalarAsync(
-            "SELECT JournalEntryId FROM payroll_runs WHERE Id = @Id",
-            new Dictionary<string, object?> { ["Id"] = id },
-            cancellationToken);
-        if (existingJournalId is Guid)
+        if (details.JournalEntryId is not null)
         {
             return BadRequest("Payroll run is already linked to a journal entry.");
         }
@@ -185,25 +181,13 @@ public sealed class PayrollRunsController : ControllerBase
 
         var journalLines = new List<JournalEntryLine>
         {
-            new(
-                payrollExpense.Id,
-                $"Payroll gross pay for {details.RunNumber}",
-                details.TotalGrossPay,
-                0),
-            new(
-                payrollLiability.Id,
-                $"Payroll net payable for {details.RunNumber}",
-                0,
-                details.TotalNetPay)
+            new(payrollExpense.Id, $"Payroll gross pay for {details.RunNumber}", details.TotalGrossPay, 0),
+            new(payrollLiability.Id, $"Payroll net payable for {details.RunNumber}", 0, details.TotalNetPay)
         };
 
         if (details.TotalDeductions > 0)
         {
-            journalLines.Add(new JournalEntryLine(
-                payrollLiability.Id,
-                $"Payroll deductions payable for {details.RunNumber}",
-                0,
-                details.TotalDeductions));
+            journalLines.Add(new JournalEntryLine(payrollLiability.Id, $"Payroll deductions payable for {details.RunNumber}", 0, details.TotalDeductions));
         }
 
         var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.JournalEntry, cancellationToken);
@@ -325,7 +309,7 @@ public sealed class PayrollRunsController : ControllerBase
     private async Task<IReadOnlyList<PayrollRunSummaryDto>> GetRunSummariesAsync(CancellationToken cancellationToken) =>
         await QueryAsync(
             """
-            SELECT r.Id, r.RunNumber, r.PeriodStart, r.PeriodEnd, r.PayDate, r.PaySchedule, r.Currency, r.Status,
+            SELECT r.Id, r.RunNumber, r.PeriodStart, r.PeriodEnd, r.PayDate, r.PaySchedule, r.Currency, r.Status, r.JournalEntryId,
                    COUNT(l.Id) EmployeeCount,
                    COALESCE(SUM(l.GrossPay), 0) TotalGrossPay,
                    COALESCE(SUM(l.Deductions), 0) TotalDeductions,
@@ -333,7 +317,7 @@ public sealed class PayrollRunsController : ControllerBase
                    r.CreatedAt, r.UpdatedAt
             FROM payroll_runs r
             LEFT JOIN payroll_run_lines l ON l.PayrollRunId = r.Id
-            GROUP BY r.Id, r.RunNumber, r.PeriodStart, r.PeriodEnd, r.PayDate, r.PaySchedule, r.Currency, r.Status, r.CreatedAt, r.UpdatedAt
+            GROUP BY r.Id, r.RunNumber, r.PeriodStart, r.PeriodEnd, r.PayDate, r.PaySchedule, r.Currency, r.Status, r.JournalEntryId, r.CreatedAt, r.UpdatedAt
             ORDER BY r.CreatedAt DESC
             """,
             new Dictionary<string, object?>(),
@@ -346,19 +330,20 @@ public sealed class PayrollRunsController : ControllerBase
                 reader.GetString(5),
                 reader.GetString(6),
                 reader.GetString(7),
-                reader.GetInt32(8),
-                reader.GetDecimal(9),
+                reader.IsDBNull(8) ? null : reader.GetGuid(8),
+                reader.GetInt32(9),
                 reader.GetDecimal(10),
                 reader.GetDecimal(11),
-                reader.GetFieldValue<DateTimeOffset>(12),
-                reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13)),
+                reader.GetDecimal(12),
+                reader.GetFieldValue<DateTimeOffset>(13),
+                reader.IsDBNull(14) ? null : reader.GetFieldValue<DateTimeOffset>(14)),
             cancellationToken);
 
     private async Task<PayrollRunDetailsDto?> GetRunDetailsAsync(Guid id, CancellationToken cancellationToken)
     {
         var runRows = await QueryAsync(
             """
-            SELECT Id, RunNumber, PeriodStart, PeriodEnd, PayDate, PaySchedule, Currency, Status, RegularHoursPerEmployee, OvertimeHoursPerEmployee, TaxWithholdingRate, CreatedAt, UpdatedAt
+            SELECT Id, RunNumber, PeriodStart, PeriodEnd, PayDate, PaySchedule, Currency, Status, JournalEntryId, RegularHoursPerEmployee, OvertimeHoursPerEmployee, TaxWithholdingRate, CreatedAt, UpdatedAt
             FROM payroll_runs
             WHERE Id = @Id
             """,
@@ -373,11 +358,12 @@ public sealed class PayrollRunsController : ControllerBase
                 PaySchedule = reader.GetString(5),
                 Currency = reader.GetString(6),
                 Status = reader.GetString(7),
-                RegularHours = reader.GetDecimal(8),
-                OvertimeHours = reader.GetDecimal(9),
-                TaxRate = reader.GetDecimal(10),
-                CreatedAt = reader.GetFieldValue<DateTimeOffset>(11),
-                UpdatedAt = reader.IsDBNull(12) ? null : reader.GetFieldValue<DateTimeOffset>(12),
+                JournalEntryId = reader.IsDBNull(8) ? null : (Guid?)reader.GetGuid(8),
+                RegularHours = reader.GetDecimal(9),
+                OvertimeHours = reader.GetDecimal(10),
+                TaxRate = reader.GetDecimal(11),
+                CreatedAt = reader.GetFieldValue<DateTimeOffset>(12),
+                UpdatedAt = reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
             },
             cancellationToken);
 
@@ -404,6 +390,7 @@ public sealed class PayrollRunsController : ControllerBase
             run.PaySchedule,
             run.Currency,
             run.Status,
+            run.JournalEntryId,
             run.RegularHours,
             run.OvertimeHours,
             run.TaxRate,
