@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../providers/open_windows_provider.dart';
 import 'sidebar_menu.dart';
 import 'top_bar.dart';
 import 'top_menu_bar.dart';
 
-class ResponsiveScaffold extends StatefulWidget {
+class ResponsiveScaffold extends ConsumerStatefulWidget {
   const ResponsiveScaffold({super.key, required this.child});
   final Widget child;
 
   static const _sidebarBreakpoint = 800.0;
 
   @override
-  State<ResponsiveScaffold> createState() => _ResponsiveScaffoldState();
+  ConsumerState<ResponsiveScaffold> createState() => _ResponsiveScaffoldState();
 }
 
-class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
+class _ResponsiveScaffoldState extends ConsumerState<ResponsiveScaffold> {
   final _backStack = <String>[];
   final _forwardStack = <String>[];
   String? _currentLocation;
@@ -31,6 +33,11 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
 
     _currentLocation = location;
     _navigatingHistory = false;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(openWindowsProvider.notifier).open(location);
+    });
   }
 
   void _goBack() {
@@ -59,7 +66,7 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
       return Scaffold(
         body: Column(
           children: [
-            const TopMenuBar(), // QuickBooks Desktop Top Menu
+            const TopMenuBar(),
             Expanded(
               child: Row(
                 children: [
@@ -87,7 +94,6 @@ class _ResponsiveScaffoldState extends State<ResponsiveScaffold> {
       );
     }
 
-    // Mobile: drawer
     return Scaffold(
       appBar: AppBar(title: const Text('LedgerFlow')),
       drawer: const Drawer(child: SidebarMenu()),
@@ -125,7 +131,7 @@ class _WorkspaceNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final label = location == '/' ? 'Home' : location.replaceFirst('/', '');
+    final label = routeTitle(location);
 
     return Container(
       height: 34,
