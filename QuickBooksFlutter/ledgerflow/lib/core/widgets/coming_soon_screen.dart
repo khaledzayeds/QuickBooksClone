@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/calendar/screens/calendar_screen.dart';
+import '../../features/payroll/screens/payroll_setup_screen.dart';
 import '../../features/snapshots/screens/snapshots_screen.dart';
 import '../../features/time_tracking/screens/enter_time_screen.dart';
 import '../../features/workspace/screens/open_windows_screen.dart';
@@ -18,6 +19,10 @@ class ComingSoonScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (title == 'Payroll') {
+      return const PayrollSetupScreen();
+    }
+
     if (title == 'Enter Time') {
       return const EnterTimeScreen();
     }
