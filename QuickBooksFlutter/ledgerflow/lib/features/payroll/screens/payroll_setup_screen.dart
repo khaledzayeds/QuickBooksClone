@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_enums.dart' show AccountType;
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../providers/payroll_runs_provider.dart';
 import '../providers/payroll_setup_provider.dart';
 import '../widgets/payroll_runs_section.dart';
 
@@ -23,6 +24,7 @@ class PayrollSetupScreen extends ConsumerWidget {
             onPressed: () {
               ref.invalidate(payrollSetupProvider);
               ref.invalidate(payrollAccountSettingsProvider);
+              ref.invalidate(payrollSummaryReportProvider);
             },
             icon: const Icon(Icons.refresh),
           ),
@@ -64,7 +66,7 @@ class _PayrollSetupBody extends ConsumerWidget {
                   Text('Payroll Setup', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Text(
-                    'Configure payroll before payroll runs. Calculations and posting are handled by backend payroll runs.',
+                    'Configure payroll before payroll runs. Calculations, reports, and posting are handled by the backend.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -100,6 +102,8 @@ class _PayrollSetupBody extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
         const _PayrollAccountsPanel(),
+        const SizedBox(height: 24),
+        const _PayrollSummaryReportPanel(),
         const SizedBox(height: 24),
         PayrollRunsSection(setup: setup),
         const SizedBox(height: 16),
@@ -204,6 +208,168 @@ class _PayrollAccountsPanel extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _PayrollSummaryReportPanel extends ConsumerWidget {
+  const _PayrollSummaryReportPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reportAsync = ref.watch(payrollSummaryReportProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: reportAsync.when(
+          loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+          error: (error, _) => _InlineError(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(payrollSummaryReportProvider),
+          ),
+          data: (report) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(child: Icon(Icons.summarize_outlined)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Payroll Summary Report', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Backend-generated payroll totals. The frontend only displays report values from /api/payroll/reports/summary.',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => ref.invalidate(payrollSummaryReportProvider),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh'),
+                  ),
+                ],
+              ),
+              const Divider(height: 26),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 960 ? 4 : constraints.maxWidth >= 620 ? 2 : 1;
+                  return GridView.count(
+                    crossAxisCount: columns,
+                    childAspectRatio: columns == 1 ? 3.8 : 2.4,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    children: [
+                      _ReportTile('Runs', report.runCount.toString(), Icons.payments_outlined),
+                      _ReportTile('Employees', report.employeeCount.toString(), Icons.people_outline),
+                      _ReportTile('Gross Pay', report.totalGrossPay.toStringAsFixed(2), Icons.trending_up_outlined),
+                      _ReportTile('Net Pay', report.totalNetPay.toStringAsFixed(2), Icons.account_balance_wallet_outlined),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              if (report.byStatus.isNotEmpty) ...[
+                Text('By Status', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Status')),
+                      DataColumn(label: Text('Runs')),
+                      DataColumn(label: Text('Gross')),
+                      DataColumn(label: Text('Deductions')),
+                      DataColumn(label: Text('Net')),
+                    ],
+                    rows: report.byStatus
+                        .map(
+                          (row) => DataRow(cells: [
+                            DataCell(Text(row.status)),
+                            DataCell(Text(row.runCount.toString())),
+                            DataCell(Text(row.grossPay.toStringAsFixed(2))),
+                            DataCell(Text(row.deductions.toStringAsFixed(2))),
+                            DataCell(Text(row.netPay.toStringAsFixed(2))),
+                          ]),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
+              if (report.runs.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('Recent Runs', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Run')),
+                      DataColumn(label: Text('Pay Date')),
+                      DataColumn(label: Text('Status')),
+                      DataColumn(label: Text('Employees')),
+                      DataColumn(label: Text('Gross')),
+                      DataColumn(label: Text('Deductions')),
+                      DataColumn(label: Text('Net')),
+                    ],
+                    rows: report.runs.take(8)
+                        .map(
+                          (run) => DataRow(cells: [
+                            DataCell(Text(run.runNumber)),
+                            DataCell(Text(_date(run.payDate))),
+                            DataCell(Text(run.status)),
+                            DataCell(Text(run.employeeCount.toString())),
+                            DataCell(Text(run.grossPay.toStringAsFixed(2))),
+                            DataCell(Text(run.deductions.toStringAsFixed(2))),
+                            DataCell(Text(run.netPay.toStringAsFixed(2))),
+                          ]),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportTile extends StatelessWidget {
+  const _ReportTile(this.title, this.value, this.icon);
+  final String title;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              CircleAvatar(child: Icon(icon)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 4),
+                    Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _AccountSettingChip extends StatelessWidget {
@@ -603,3 +769,4 @@ Future<void> _showFormSheet(BuildContext context, {required String title, requir
 }
 
 String? _required(String? value) => value == null || value.trim().isEmpty ? 'Required' : null;
+String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
