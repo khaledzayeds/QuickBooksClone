@@ -54,7 +54,7 @@ class _PurchaseOrderFormScreenState extends ConsumerState<PurchaseOrderFormScree
     super.dispose();
   }
 
-  double get _total => _lines.fold(0, (s, l) => s + l.amount);
+  double get _draftTotal => _lines.fold(0, (s, l) => s + l.amount);
 
   Future<void> _loadExistingOrder() async {
     final id = widget.id;
@@ -351,9 +351,11 @@ class _PurchaseOrderFormScreenState extends ConsumerState<PurchaseOrderFormScree
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(color: Colors.blue.shade900, borderRadius: BorderRadius.circular(12)),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(l10n.totalAmount.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                    const Text('DRAFT TOTAL', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
                     const SizedBox(height: 8),
-                    Text('${_total.toStringAsFixed(2)} ${l10n.egp}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+                    Text('${_draftTotal.toStringAsFixed(2)} ${l10n.egp}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 8),
+                    const Text('Official totals are recalculated by the backend after save.', textAlign: TextAlign.end, style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ),
