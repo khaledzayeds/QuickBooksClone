@@ -17,6 +17,8 @@ import '../providers/payments_provider.dart';
 class PaymentFormScreen extends ConsumerStatefulWidget {
   const PaymentFormScreen({super.key});
 
+  static String _dateOnly(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
   @override
   ConsumerState<PaymentFormScreen> createState() => _PaymentFormScreenState();
 }

@@ -22,6 +22,8 @@ import '../providers/customer_credits_provider.dart';
 class CustomerCreditFormScreen extends ConsumerStatefulWidget {
   const CustomerCreditFormScreen({super.key});
 
+  static String _dateOnly(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
   @override
   ConsumerState<CustomerCreditFormScreen> createState() => _CustomerCreditFormScreenState();
 }

@@ -505,7 +505,7 @@ Future<void> _showEntrySheet(BuildContext context, WidgetRef ref) async {
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, setState) {
         final lookupsAsync = ref.watch(timeEntryLookupsProvider);
-        final lookups = lookupsAsync.valueOrNull;
+        final lookups = lookupsAsync.value;
         final customers = lookups?.customers ?? const <TimeEntryCustomerLookup>[];
         final serviceItems = lookups?.serviceItems ?? const <TimeEntryServiceItemLookup>[];
         final safeCustomerId = customers.any((customer) => customer.id == customerId) ? customerId : null;
