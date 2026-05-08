@@ -65,7 +65,7 @@ class _EnterTimeBody extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Track billable and non-billable work from the backend time entries API.',
+                    'Backend workflow: Open → Approved → Billable → Invoiced. Frontend only displays and submits time entry actions.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
@@ -155,6 +155,9 @@ class _TimeEntryCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final color = _statusColor(context, entry.status);
     final commands = ref.read(timeEntriesCommandsProvider);
+    final invoiceId = entry.invoiceId;
+    final canMarkBillable = entry.status == TimeEntryStatus.approved && entry.isBillable;
+    final canMarkInvoiced = entry.status == TimeEntryStatus.approved || entry.status == TimeEntryStatus.billable;
 
     return Card(
       child: Padding(
@@ -184,6 +187,10 @@ class _TimeEntryCard extends ConsumerWidget {
                           if ((entry.serviceItemName ?? '').isNotEmpty) entry.serviceItemName!,
                         ].join(' • ')),
                       ],
+                      if (invoiceId != null && invoiceId.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text('Invoice link: $invoiceId', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      ],
                       if ((entry.notes ?? '').isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(entry.notes!),
@@ -201,7 +208,7 @@ class _TimeEntryCard extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Chip(
                       visualDensity: VisualDensity.compact,
-                      label: Text(entry.isBillable ? 'Billable' : 'Non-billable'),
+                      label: Text(entry.isBillable ? 'Billable time' : 'Non-billable'),
                     ),
                   ],
                 ),
@@ -218,7 +225,12 @@ class _TimeEntryCard extends ConsumerWidget {
                   label: const Text('Approve'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: entry.status == TimeEntryStatus.approved ? () => _run(context, () => commands.markInvoiced(entry.id)) : null,
+                  onPressed: canMarkBillable ? () => _run(context, () => commands.markBillable(entry.id)) : null,
+                  icon: const Icon(Icons.attach_money_outlined),
+                  label: const Text('Mark Billable'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: canMarkInvoiced ? () => _showMarkInvoicedSheet(context, ref, entry) : null,
                   icon: const Icon(Icons.receipt_long_outlined),
                   label: const Text('Mark Invoiced'),
                 ),
@@ -249,6 +261,7 @@ class _StatusChip extends StatelessWidget {
     final label = switch (status) {
       TimeEntryStatus.open => 'Open',
       TimeEntryStatus.approved => 'Approved',
+      TimeEntryStatus.billable => 'Billable',
       TimeEntryStatus.invoiced => 'Invoiced',
       TimeEntryStatus.voided => 'Void',
     };
@@ -404,6 +417,10 @@ Future<void> _showEntrySheet(BuildContext context, WidgetRef ref) async {
                     value: isBillable,
                     onChanged: (value) => setState(() => isBillable = value),
                   ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Customer and service item are optional at draft entry time, but backend requires them before moving billable time to Billable/Invoiced.',
+                  ),
                   const SizedBox(height: 18),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -453,6 +470,77 @@ Future<void> _showEntrySheet(BuildContext context, WidgetRef ref) async {
   notesController.dispose();
 }
 
+Future<void> _showMarkInvoicedSheet(BuildContext context, WidgetRef ref, TimeEntry entry) async {
+  final invoiceController = TextEditingController(text: entry.invoiceId ?? '');
+  var saving = false;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (context, setState) => Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Mark Time Entry Invoiced', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 12),
+            Text('${entry.activity} • ${entry.hours.toStringAsFixed(2)} h'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: invoiceController,
+              decoration: const InputDecoration(
+                labelText: 'Invoice ID (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('If an invoice ID is provided, the backend validates that the invoice exists before linking it.'),
+            const SizedBox(height: 18),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: saving ? null : () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          setState(() => saving = true);
+                          try {
+                            final invoiceId = invoiceController.text.trim();
+                            await ref.read(timeEntriesCommandsProvider).markInvoiced(
+                                  entry.id,
+                                  invoiceId: invoiceId.isEmpty ? null : invoiceId,
+                                );
+                            if (context.mounted) Navigator.of(context).pop();
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+                            }
+                            setState(() => saving = false);
+                          }
+                        },
+                  icon: saving ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.receipt_long_outlined),
+                  label: const Text('Mark Invoiced'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  invoiceController.dispose();
+}
+
 Future<void> _run(BuildContext context, Future<void> Function() action) async {
   try {
     await action();
@@ -466,6 +554,7 @@ Future<void> _run(BuildContext context, Future<void> Function() action) async {
 Color _statusColor(BuildContext context, TimeEntryStatus status) => switch (status) {
       TimeEntryStatus.open => Colors.blue,
       TimeEntryStatus.approved => Colors.green,
+      TimeEntryStatus.billable => Colors.teal,
       TimeEntryStatus.invoiced => Colors.deepPurple,
       TimeEntryStatus.voided => Theme.of(context).colorScheme.error,
     };
