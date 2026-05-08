@@ -259,7 +259,7 @@ class _CreditCard extends StatelessWidget {
   final double amount;
   final VendorCreditAction action;
   final PaymentMethod paymentMethod;
-  final AsyncValue vendorsAsync;
+  final AsyncValue<List<VendorModel>> vendorsAsync;
   final AsyncValue<List<PurchaseBillModel>> billsAsync;
   final AsyncValue<List<AccountModel>> accountsAsync;
   final ValueChanged<String?> onVendorChanged;
@@ -272,6 +272,12 @@ class _CreditCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    final vendors = vendorsAsync.maybeWhen(
+      data: (items) => items,
+      orElse: () => <VendorModel>[],
+    );
+    final safeVendorId = vendors.any((vendor) => vendor.id == vendorId) ? vendorId : null;
 
     final vendorBills = billsAsync.maybeWhen(
       data: (bills) => bills
@@ -303,23 +309,20 @@ class _CreditCard extends StatelessWidget {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              initialValue: vendorId,
+              initialValue: safeVendorId,
               decoration: InputDecoration(
                 labelText: '${l10n.vendor} *',
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.storefront_outlined),
               ),
-              items: vendorsAsync.maybeWhen(
-                data: (vendors) => vendors
-                    .map<DropdownMenuItem<String>>(
-                      (VendorModel vendor) => DropdownMenuItem<String>(
-                        value: vendor.id,
-                        child: Text('${vendor.displayName} — Credit ${vendor.creditBalance.toStringAsFixed(2)}'),
-                      ),
-                    )
-                    .toList(),
-                orElse: () => const <DropdownMenuItem<String>>[],
-              ),
+              items: vendors
+                  .map<DropdownMenuItem<String>>(
+                    (vendor) => DropdownMenuItem<String>(
+                      value: vendor.id,
+                      child: Text('${vendor.displayName} — Credit ${vendor.creditBalance.toStringAsFixed(2)}'),
+                    ),
+                  )
+                  .toList(),
               onChanged: onVendorChanged,
             ),
             const SizedBox(height: 16),
