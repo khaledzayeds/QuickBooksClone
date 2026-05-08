@@ -13,6 +13,11 @@ final payrollRunDetailsProvider = FutureProvider.autoDispose.family<PayrollRunDe
   return PayrollRunDetails.fromJson(response.data!);
 });
 
+final payrollRunJournalLinksProvider = FutureProvider.autoDispose.family<PayrollRunJournalLinks, String>((ref, id) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/runs/$id/journal-links');
+  return PayrollRunJournalLinks.fromJson(response.data!);
+});
+
 final payrollRunCommandsProvider = Provider<PayrollRunCommands>((ref) => PayrollRunCommands(ref));
 
 class PayrollRunCommands {
@@ -48,18 +53,21 @@ class PayrollRunCommands {
     await ApiClient.instance.post<Map<String, dynamic>>('/api/payroll/runs/$id/approve');
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
+    ref.invalidate(payrollRunJournalLinksProvider(id));
   }
 
   Future<void> post(String id) async {
     await ApiClient.instance.post<Map<String, dynamic>>('/api/payroll/runs/$id/post');
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
+    ref.invalidate(payrollRunJournalLinksProvider(id));
   }
 
   Future<void> voidRun(String id) async {
     await ApiClient.instance.patch<Map<String, dynamic>>('/api/payroll/runs/$id/void');
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
+    ref.invalidate(payrollRunJournalLinksProvider(id));
   }
 }
 
@@ -192,6 +200,30 @@ class PayrollRunDetails {
         totalDeductions: JsonUtils.asDouble(json['totalDeductions']),
         totalNetPay: JsonUtils.asDouble(json['totalNetPay']),
         lines: JsonUtils.asList(json['lines'], (row) => PayrollRunLine.fromJson(row)),
+      );
+}
+
+class PayrollRunJournalLinks {
+  const PayrollRunJournalLinks({
+    required this.runId,
+    required this.journalEntryId,
+    required this.reversalJournalEntryId,
+    required this.hasOriginalJournal,
+    required this.hasReversalJournal,
+  });
+
+  final String runId;
+  final String? journalEntryId;
+  final String? reversalJournalEntryId;
+  final bool hasOriginalJournal;
+  final bool hasReversalJournal;
+
+  factory PayrollRunJournalLinks.fromJson(Map<String, dynamic> json) => PayrollRunJournalLinks(
+        runId: JsonUtils.asString(json['runId']),
+        journalEntryId: JsonUtils.asNullableString(json['journalEntryId']),
+        reversalJournalEntryId: JsonUtils.asNullableString(json['reversalJournalEntryId']),
+        hasOriginalJournal: JsonUtils.asBool(json['hasOriginalJournal']),
+        hasReversalJournal: JsonUtils.asBool(json['hasReversalJournal']),
       );
 }
 
