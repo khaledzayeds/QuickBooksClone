@@ -1,6 +1,6 @@
 // top_menu_bar.dart
 // Desktop-style menu bar for LedgerFlow (QuickBooks Desktop Aesthetic)
-// Now with functional navigation and explicit coming-soon placeholders.
+// Functional navigation for implemented company, sales, purchasing, banking, and report screens.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
