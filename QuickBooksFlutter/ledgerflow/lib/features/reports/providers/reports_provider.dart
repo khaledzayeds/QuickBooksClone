@@ -26,37 +26,44 @@ final reportsDateRangeProvider = StateProvider<ReportDateRange>((ref) {
 });
 
 final trialBalanceReportProvider = FutureProvider.autoDispose<TrialBalanceReportModel>((ref) async {
-  final result = await ref.read(reportsRepositoryProvider).getTrialBalance();
+  final range = ref.watch(reportsDateRangeProvider);
+  final result = await ref.read(reportsRepositoryProvider).getTrialBalance(asOfDate: range.toDate);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
 final balanceSheetReportProvider = FutureProvider.autoDispose<FinancialStatementReportModel>((ref) async {
-  final result = await ref.read(reportsRepositoryProvider).getBalanceSheet();
+  final range = ref.watch(reportsDateRangeProvider);
+  final result = await ref.read(reportsRepositoryProvider).getBalanceSheet(asOfDate: range.toDate);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
 final profitAndLossReportProvider = FutureProvider.autoDispose<ProfitAndLossReportModel>((ref) async {
-  final result = await ref.read(reportsRepositoryProvider).getProfitAndLoss();
+  final range = ref.watch(reportsDateRangeProvider);
+  final result = await ref.read(reportsRepositoryProvider).getProfitAndLoss(fromDate: range.fromDate, toDate: range.toDate);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
 final accountsReceivableAgingReportProvider = FutureProvider.autoDispose<AgingReportModel>((ref) async {
-  final result = await ref.read(reportsRepositoryProvider).getAccountsReceivableAging();
+  final range = ref.watch(reportsDateRangeProvider);
+  final result = await ref.read(reportsRepositoryProvider).getAccountsReceivableAging(asOfDate: range.toDate);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
 final accountsPayableAgingReportProvider = FutureProvider.autoDispose<AgingReportModel>((ref) async {
-  final result = await ref.read(reportsRepositoryProvider).getAccountsPayableAging();
+  final range = ref.watch(reportsDateRangeProvider);
+  final result = await ref.read(reportsRepositoryProvider).getAccountsPayableAging(asOfDate: range.toDate);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
 final inventoryValuationReportProvider = FutureProvider.autoDispose<InventoryValuationReportModel>((ref) async {
-  final result = await ref.read(reportsRepositoryProvider).getInventoryValuation();
+  final range = ref.watch(reportsDateRangeProvider);
+  final result = await ref.read(reportsRepositoryProvider).getInventoryValuation(fromDate: range.fromDate, toDate: range.toDate);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
 final taxSummaryReportProvider = FutureProvider.autoDispose<TaxSummaryReportModel>((ref) async {
-  final result = await ref.read(reportsRepositoryProvider).getTaxSummary();
+  final range = ref.watch(reportsDateRangeProvider);
+  final result = await ref.read(reportsRepositoryProvider).getTaxSummary(fromDate: range.fromDate, toDate: range.toDate);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
