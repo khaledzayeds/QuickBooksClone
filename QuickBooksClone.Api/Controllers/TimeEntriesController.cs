@@ -101,8 +101,8 @@ public sealed class TimeEntriesController : ControllerBase
             var entry = new TimeEntry(request.WorkDate, request.PersonName, request.Hours, request.Activity, request.Notes, request.CustomerId, request.ServiceItemId, request.IsBillable);
             await ExecuteNonQueryAsync(
                 """
-                INSERT INTO time_entries (Id, CompanyId, WorkDate, PersonName, Hours, Activity, Notes, CustomerId, ServiceItemId, IsBillable, Status, CreatedAt, UpdatedAt)
-                VALUES (@Id, @CompanyId, @WorkDate, @PersonName, @Hours, @Activity, @Notes, @CustomerId, @ServiceItemId, @IsBillable, @Status, @CreatedAt, @UpdatedAt)
+                INSERT INTO time_entries (Id, CompanyId, WorkDate, PersonName, Hours, Activity, Notes, CustomerId, ServiceItemId, InvoiceId, IsBillable, Status, CreatedAt, UpdatedAt)
+                VALUES (@Id, @CompanyId, @WorkDate, @PersonName, @Hours, @Activity, @Notes, @CustomerId, @ServiceItemId, NULL, @IsBillable, @Status, @CreatedAt, @UpdatedAt)
                 """,
                 ToParameters(entry),
                 cancellationToken);
@@ -236,6 +236,7 @@ public sealed class TimeEntriesController : ControllerBase
                     Notes nvarchar(1000) NULL,
                     CustomerId uniqueidentifier NULL,
                     ServiceItemId uniqueidentifier NULL,
+                    InvoiceId uniqueidentifier NULL,
                     IsBillable bit NOT NULL,
                     Status int NOT NULL,
                     CreatedAt datetimeoffset NOT NULL,
@@ -245,6 +246,13 @@ public sealed class TimeEntriesController : ControllerBase
                 CREATE INDEX IX_time_entries_Status ON time_entries (Status);
                 CREATE INDEX IX_time_entries_CustomerId ON time_entries (CustomerId);
                 CREATE INDEX IX_time_entries_ServiceItemId ON time_entries (ServiceItemId);
+                CREATE INDEX IX_time_entries_InvoiceId ON time_entries (InvoiceId);
+            END
+
+            IF OBJECT_ID(N'time_entries', N'U') IS NOT NULL AND COL_LENGTH('time_entries', 'InvoiceId') IS NULL
+            BEGIN
+                ALTER TABLE time_entries ADD InvoiceId uniqueidentifier NULL;
+                CREATE INDEX IX_time_entries_InvoiceId ON time_entries (InvoiceId);
             END
             """,
             new Dictionary<string, object?>(),
@@ -270,9 +278,11 @@ public sealed class TimeEntriesController : ControllerBase
     {
         var customerIds = entries.Where(entry => entry.CustomerId is not null).Select(entry => entry.CustomerId!.Value).Distinct().ToList();
         var itemIds = entries.Where(entry => entry.ServiceItemId is not null).Select(entry => entry.ServiceItemId!.Value).Distinct().ToList();
+        var entryIds = entries.Select(entry => entry.Id).Distinct().ToList();
 
         var customers = await _db.Customers.AsNoTracking().Where(customer => customerIds.Contains(customer.Id)).ToDictionaryAsync(customer => customer.Id, customer => customer.DisplayName, cancellationToken);
         var items = await _db.Items.AsNoTracking().Where(item => itemIds.Contains(item.Id)).ToDictionaryAsync(item => item.Id, item => item.Name, cancellationToken);
+        var invoiceIds = await GetInvoiceIdsAsync(entryIds, cancellationToken);
 
         return entries.Select(entry => new TimeEntryDto(
             entry.Id,
@@ -285,10 +295,33 @@ public sealed class TimeEntriesController : ControllerBase
             entry.CustomerId is not null && customers.TryGetValue(entry.CustomerId.Value, out var customerName) ? customerName : null,
             entry.ServiceItemId,
             entry.ServiceItemId is not null && items.TryGetValue(entry.ServiceItemId.Value, out var itemName) ? itemName : null,
+            invoiceIds.TryGetValue(entry.Id, out var invoiceId) ? invoiceId : null,
             entry.IsBillable,
             entry.Status,
             entry.CreatedAt,
             entry.UpdatedAt)).ToList();
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, Guid?>> GetInvoiceIdsAsync(IReadOnlyList<Guid> entryIds, CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, Guid?>();
+        if (entryIds.Count == 0) return result;
+
+        var parameterNames = entryIds.Select((_, index) => $"@EntryId{index}").ToArray();
+        var parameters = entryIds.Select((id, index) => new KeyValuePair<string, object?>($"EntryId{index}", id)).ToDictionary(pair => pair.Key, pair => pair.Value);
+        var sql = $"SELECT Id, InvoiceId FROM time_entries WHERE Id IN ({string.Join(", ", parameterNames)})";
+
+        await using var command = _db.Database.GetDbConnection().CreateCommand();
+        command.CommandText = sql;
+        AddParameters(command, parameters);
+        if (command.Connection!.State != ConnectionState.Open) await command.Connection.OpenAsync(cancellationToken);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result[reader.GetGuid(0)] = reader.IsDBNull(1) ? null : reader.GetGuid(1);
+        }
+
+        return result;
     }
 
     private static Dictionary<string, object?> ToParameters(TimeEntry entry) => new()
