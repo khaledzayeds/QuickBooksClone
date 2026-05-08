@@ -477,6 +477,8 @@ class _ReceiveInventoryFormScreenState
                     else
                       _buildEditableReceiveLines(context),
                     const SizedBox(height: 16),
+                    _ReceiveDraftTotalsCard(lines: _manualLines),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _notesCtrl,
                       maxLines: 3,
@@ -627,6 +629,7 @@ class _ReceiveInventoryFormScreenState
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
+                          onChanged: (_) => setState(() {}),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -641,6 +644,16 @@ class _ReceiveInventoryFormScreenState
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 130,
+                        child: Text(
+                          line.draftAmount.toStringAsFixed(2),
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
                     ],
@@ -704,6 +717,50 @@ class _VendorCard extends StatelessWidget {
   }
 }
 
+class _ReceiveDraftTotalsCard extends StatelessWidget {
+  const _ReceiveDraftTotalsCard({required this.lines});
+
+  final List<_ManualReceiveLine> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = lines.fold<double>(0, (sum, line) => sum + line.draftAmount);
+    final cs = Theme.of(context).colorScheme;
+
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Card(
+        child: SizedBox(
+          width: 380,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Draft receipt value', style: TextStyle(fontWeight: FontWeight.w800)),
+                    Text(
+                      total.toStringAsFixed(2),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: cs.primary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Official inventory value, PO receiving impact, and posting amounts are recalculated by the backend after save.',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _QtyChip extends StatelessWidget {
   const _QtyChip({required this.label, required this.value, this.color});
   final String label;
@@ -745,6 +802,10 @@ class _ManualReceiveLine {
   final descriptionCtrl = TextEditingController();
   final qtyCtrl = TextEditingController(text: '1');
   final costCtrl = TextEditingController();
+
+  double get quantity => double.tryParse(qtyCtrl.text.trim()) ?? 0;
+  double get unitCost => double.tryParse(costCtrl.text.trim()) ?? 0;
+  double get draftAmount => quantity * unitCost;
 
   bool get isBlank =>
       itemId == null &&
