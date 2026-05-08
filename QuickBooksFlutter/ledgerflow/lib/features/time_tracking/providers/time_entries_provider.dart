@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/json_utils.dart';
+import '../../invoices/providers/invoices_provider.dart';
 
 final timeEntriesProvider = FutureProvider.autoDispose<TimeEntryList>((ref) async {
   final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries');
@@ -67,6 +68,28 @@ class TimeEntriesCommands {
       data: {'invoiceId': invoiceId},
     );
     _invalidateTime(ref);
+  }
+
+  Future<CreateInvoiceFromTimeResult> createInvoiceFromTime({
+    required String customerId,
+    required DateTime invoiceDate,
+    required DateTime dueDate,
+    required List<String> timeEntryIds,
+    required bool postInvoice,
+  }) async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/time-entries/create-invoice',
+      data: {
+        'customerId': customerId,
+        'invoiceDate': _dateOnly(invoiceDate),
+        'dueDate': _dateOnly(dueDate),
+        'timeEntryIds': timeEntryIds,
+        'postInvoice': postInvoice,
+      },
+    );
+    _invalidateTime(ref);
+    ref.invalidate(invoicesProvider);
+    return CreateInvoiceFromTimeResult.fromJson(response.data!);
   }
 
   Future<void> voidEntry(String id) async {
@@ -339,6 +362,36 @@ class BillableTimeQueueItem {
         serviceItemId: JsonUtils.asString(json['serviceItemId']),
         serviceItemName: JsonUtils.asString(json['serviceItemName']),
         status: _status(json['status']),
+      );
+}
+
+class CreateInvoiceFromTimeResult {
+  const CreateInvoiceFromTimeResult({
+    required this.invoiceId,
+    required this.invoiceNumber,
+    required this.customerId,
+    required this.timeEntryCount,
+    required this.totalHours,
+    required this.invoiceTotal,
+    required this.posted,
+  });
+
+  final String invoiceId;
+  final String invoiceNumber;
+  final String customerId;
+  final int timeEntryCount;
+  final double totalHours;
+  final double invoiceTotal;
+  final bool posted;
+
+  factory CreateInvoiceFromTimeResult.fromJson(Map<String, dynamic> json) => CreateInvoiceFromTimeResult(
+        invoiceId: JsonUtils.asString(json['invoiceId']),
+        invoiceNumber: JsonUtils.asString(json['invoiceNumber']),
+        customerId: JsonUtils.asString(json['customerId']),
+        timeEntryCount: JsonUtils.asInt(json['timeEntryCount']),
+        totalHours: JsonUtils.asDouble(json['totalHours']),
+        invoiceTotal: JsonUtils.asDouble(json['invoiceTotal']),
+        posted: JsonUtils.asBool(json['posted']),
       );
 }
 
