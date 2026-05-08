@@ -90,8 +90,8 @@ public sealed class PayrollRunsController : ControllerBase
 
         await ExecuteNonQueryAsync(
             """
-            INSERT INTO payroll_runs (Id, CompanyId, RunNumber, PeriodStart, PeriodEnd, PayDate, PaySchedule, Currency, Status, RegularHoursPerEmployee, OvertimeHoursPerEmployee, TaxWithholdingRate, CreatedAt, UpdatedAt, JournalEntryId)
-            VALUES (@Id, @CompanyId, @RunNumber, @PeriodStart, @PeriodEnd, @PayDate, @PaySchedule, @Currency, 'Draft', @RegularHoursPerEmployee, @OvertimeHoursPerEmployee, @TaxWithholdingRate, @CreatedAt, NULL, NULL)
+            INSERT INTO payroll_runs (Id, CompanyId, RunNumber, PeriodStart, PeriodEnd, PayDate, PaySchedule, Currency, Status, RegularHoursPerEmployee, OvertimeHoursPerEmployee, TaxWithholdingRate, CreatedAt, UpdatedAt, JournalEntryId, ReversalJournalEntryId)
+            VALUES (@Id, @CompanyId, @RunNumber, @PeriodStart, @PeriodEnd, @PayDate, @PaySchedule, @Currency, 'Draft', @RegularHoursPerEmployee, @OvertimeHoursPerEmployee, @TaxWithholdingRate, @CreatedAt, NULL, NULL, NULL)
             """,
             new Dictionary<string, object?>
             {
@@ -214,8 +214,82 @@ public sealed class PayrollRunsController : ControllerBase
 
     [HttpPatch("{id:guid}/void")]
     [ProducesResponseType(typeof(PayrollRunDetailsDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PayrollRunDetailsDto>> Void(Guid id, CancellationToken cancellationToken = default) =>
-        await ChangeStatus(id, ["Draft", "Approved"], "Void", cancellationToken);
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PayrollRunDetailsDto>> Void(Guid id, CancellationToken cancellationToken = default)
+    {
+        await EnsureTablesAsync(cancellationToken);
+        var details = await GetRunDetailsAsync(id, cancellationToken);
+        if (details is null) return NotFound();
+
+        if (string.Equals(details.Status, "Posted", StringComparison.OrdinalIgnoreCase))
+        {
+            return await VoidPostedRun(id, details, cancellationToken);
+        }
+
+        return await ChangeStatus(id, ["Draft", "Approved"], "Void", cancellationToken);
+    }
+
+    private async Task<ActionResult<PayrollRunDetailsDto>> VoidPostedRun(Guid id, PayrollRunDetailsDto details, CancellationToken cancellationToken)
+    {
+        if (details.JournalEntryId is null)
+        {
+            return BadRequest("Posted payroll run is missing its original journal entry link.");
+        }
+
+        var existingReversalId = await ExecuteScalarAsync(
+            "SELECT ReversalJournalEntryId FROM payroll_runs WHERE Id = @Id",
+            new Dictionary<string, object?> { ["Id"] = id },
+            cancellationToken);
+        if (existingReversalId is not null && existingReversalId is not DBNull)
+        {
+            return BadRequest("Payroll run already has a reversal journal entry.");
+        }
+
+        var accountsResult = await GetConfiguredPayrollAccountsAsync(cancellationToken);
+        if (accountsResult.ErrorMessage is not null) return BadRequest(accountsResult.ErrorMessage);
+        var payrollExpense = accountsResult.PayrollExpense!;
+        var payrollPayable = accountsResult.PayrollPayable!;
+        var payrollTaxPayable = accountsResult.PayrollTaxPayable!;
+
+        var reversalLines = new List<JournalEntryLine>
+        {
+            new(payrollPayable.Id, $"Reverse payroll net payable for {details.RunNumber}", details.TotalNetPay, 0),
+            new(payrollExpense.Id, $"Reverse payroll gross expense for {details.RunNumber}", 0, details.TotalGrossPay)
+        };
+
+        if (details.TotalDeductions > 0)
+        {
+            reversalLines.Insert(1, new JournalEntryLine(payrollTaxPayable.Id, $"Reverse payroll deductions payable for {details.RunNumber}", details.TotalDeductions, 0));
+        }
+
+        var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.JournalEntry, cancellationToken);
+        var reversalEntry = new JournalEntry(
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            $"Payroll reversal for {details.RunNumber}; reverses journal {details.JournalEntryId}",
+            reversalLines,
+            allocation.DocumentNo);
+        reversalEntry.SetSyncIdentity(allocation.DeviceId, allocation.DocumentNo);
+
+        await _journalEntries.AddAsync(reversalEntry, cancellationToken);
+        var postingResult = await _journalPostingService.PostAsync(reversalEntry.Id, cancellationToken);
+        if (!postingResult.Succeeded)
+        {
+            return BadRequest(postingResult.ErrorMessage);
+        }
+
+        await ExecuteNonQueryAsync(
+            "UPDATE payroll_runs SET Status = 'Void', ReversalJournalEntryId = @ReversalJournalEntryId, UpdatedAt = @UpdatedAt WHERE Id = @Id",
+            new Dictionary<string, object?>
+            {
+                ["Id"] = id,
+                ["ReversalJournalEntryId"] = reversalEntry.Id,
+                ["UpdatedAt"] = DateTimeOffset.UtcNow,
+            },
+            cancellationToken);
+
+        return Ok((await GetRunDetailsAsync(id, cancellationToken))!);
+    }
 
     private async Task<ActionResult<PayrollRunDetailsDto>> ChangeStatus(Guid id, IReadOnlyCollection<string> allowedStatuses, string nextStatus, CancellationToken cancellationToken)
     {
@@ -252,6 +326,7 @@ public sealed class PayrollRunsController : ControllerBase
                     OvertimeHoursPerEmployee decimal(18,2) NOT NULL,
                     TaxWithholdingRate decimal(18,4) NOT NULL,
                     JournalEntryId uniqueidentifier NULL,
+                    ReversalJournalEntryId uniqueidentifier NULL,
                     CreatedAt datetimeoffset NOT NULL,
                     UpdatedAt datetimeoffset NULL
                 );
@@ -262,6 +337,11 @@ public sealed class PayrollRunsController : ControllerBase
             IF OBJECT_ID(N'payroll_runs', N'U') IS NOT NULL AND COL_LENGTH('payroll_runs', 'JournalEntryId') IS NULL
             BEGIN
                 ALTER TABLE payroll_runs ADD JournalEntryId uniqueidentifier NULL;
+            END
+
+            IF OBJECT_ID(N'payroll_runs', N'U') IS NOT NULL AND COL_LENGTH('payroll_runs', 'ReversalJournalEntryId') IS NULL
+            BEGIN
+                ALTER TABLE payroll_runs ADD ReversalJournalEntryId uniqueidentifier NULL;
             END
 
             IF OBJECT_ID(N'payroll_run_lines', N'U') IS NULL
