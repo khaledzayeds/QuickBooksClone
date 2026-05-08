@@ -61,3 +61,13 @@ final timeTrackingReportHubProvider = FutureProvider.autoDispose<TimeEntrySummar
   final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries/reports/summary');
   return TimeEntrySummaryReport.fromJson(response.data!);
 });
+
+final salesSummaryReportProvider = FutureProvider.autoDispose<SalesSummaryReportModel>((ref) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/reports/sales-summary');
+  return SalesSummaryReportModel.fromJson(response.data!);
+});
+
+final purchasesSummaryReportProvider = FutureProvider.autoDispose<PurchasesSummaryReportModel>((ref) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/reports/purchases-summary');
+  return PurchasesSummaryReportModel.fromJson(response.data!);
+});
