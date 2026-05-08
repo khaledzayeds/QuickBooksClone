@@ -424,6 +424,7 @@ class _VendorPaymentFormScreenState
                                       isDense: true,
                                       suffixText: l10n.egp,
                                     ),
+                                    onChanged: (_) => setState(() {}),
                                   ),
                                 ),
                               ),
@@ -446,19 +447,26 @@ class _VendorPaymentFormScreenState
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l10n.totalPayment, style: theme.textTheme.labelSmall),
-                Text(
-                  '${_calculateTotal().toStringAsFixed(2)} ${l10n.egp}',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: cs.primary,
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Draft total payment', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text(
+                    '${_calculateTotal().toStringAsFixed(2)} ${l10n.egp}',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: cs.primary,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Official bill balances, vendor balance, and accounting impact are recalculated by the backend after save.',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
             Row(
               children: [
