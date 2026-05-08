@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuickBooksClone.Api.Contracts.TimeTracking;
 using QuickBooksClone.Api.Security;
+using QuickBooksClone.Core.Items;
 using QuickBooksClone.Infrastructure.Persistence;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -31,7 +32,7 @@ public sealed class TimeEntryLookupsController : ControllerBase
 
         var serviceItems = await _db.Items
             .AsNoTracking()
-            .Where(item => item.IsActive)
+            .Where(item => item.IsActive && item.ItemType == ItemType.Service)
             .OrderBy(item => item.Name)
             .Select(item => new TimeEntryServiceItemLookupDto(item.Id, item.Name))
             .ToListAsync(cancellationToken);
