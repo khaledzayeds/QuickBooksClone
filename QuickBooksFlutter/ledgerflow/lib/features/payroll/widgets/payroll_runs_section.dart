@@ -145,6 +145,7 @@ class _PayrollRunTile extends ConsumerWidget {
     final color = _statusColor(context, run.status);
     final journalEntryId = run.journalEntryId;
     final hasJournalEntry = journalEntryId != null && journalEntryId.isNotEmpty;
+    final canVoid = run.status == 'Draft' || run.status == 'Approved' || run.status == 'Posted';
 
     return Card(
       elevation: 0,
@@ -217,9 +218,9 @@ class _PayrollRunTile extends ConsumerWidget {
                     label: const Text('Open Journal'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: run.status == 'Draft' || run.status == 'Approved' ? () => _run(context, () => commands.voidRun(run.id)) : null,
+                    onPressed: canVoid ? () => _run(context, () => commands.voidRun(run.id)) : null,
                     icon: const Icon(Icons.block_outlined),
-                    label: const Text('Void'),
+                    label: Text(run.status == 'Posted' ? 'Void + Reverse' : 'Void'),
                   ),
                 ],
               ),
@@ -259,13 +260,14 @@ class _PayrollRunDetailsDialog extends ConsumerWidget {
   }
 }
 
-class _PayrollRunDetailsView extends StatelessWidget {
+class _PayrollRunDetailsView extends ConsumerWidget {
   const _PayrollRunDetailsView({required this.details});
 
   final PayrollRunDetails details;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final journalLinksAsync = ref.watch(payrollRunJournalLinksProvider(details.id));
     final journalEntryId = details.journalEntryId;
     final hasJournalEntry = journalEntryId != null && journalEntryId.isNotEmpty;
 
@@ -288,6 +290,19 @@ class _PayrollRunDetailsView extends StatelessWidget {
                   label: Text('Open Journal: $journalEntryId'),
                   onPressed: () => _openJournalEntry(context, journalEntryId, closeDialog: true),
                 ),
+              journalLinksAsync.maybeWhen(
+                data: (links) {
+                  final reversalId = links.reversalJournalEntryId;
+                  if (reversalId == null || reversalId.isEmpty) return const SizedBox.shrink();
+                  return ActionChip(
+                    avatar: const Icon(Icons.undo_outlined, size: 18),
+                    label: Text('Open Reversal: $reversalId'),
+                    onPressed: () => _openJournalEntry(context, reversalId, closeDialog: true),
+                  );
+                },
+                loading: () => const Chip(label: Text('Loading journal links...')),
+                orElse: () => const SizedBox.shrink(),
+              ),
             ],
           ),
           const SizedBox(height: 16),
