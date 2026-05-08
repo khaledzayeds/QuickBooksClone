@@ -13,6 +13,7 @@ public sealed record TimeEntryDto(
     string? CustomerName,
     Guid? ServiceItemId,
     string? ServiceItemName,
+    Guid? InvoiceId,
     bool IsBillable,
     TimeEntryStatus Status,
     DateTimeOffset CreatedAt,
@@ -46,3 +47,5 @@ public sealed record UpdateTimeEntryRequest(
     Guid? CustomerId,
     Guid? ServiceItemId,
     bool IsBillable);
+
+public sealed record MarkTimeEntryInvoicedRequest(Guid? InvoiceId);
