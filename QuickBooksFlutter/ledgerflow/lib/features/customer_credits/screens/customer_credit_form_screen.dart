@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
@@ -20,32 +19,26 @@ import '../../invoices/providers/invoices_provider.dart';
 import '../data/models/customer_credit_model.dart';
 import '../providers/customer_credits_provider.dart';
 
-class CustomerCreditFormState {
-  String? customerId;
-  String? invoiceId;
-  String? refundAccountId;
-  DateTime activityDate = DateTime.now();
-  double amount = 0;
-  CustomerCreditAction action = CustomerCreditAction.applyToInvoice;
-  PaymentMethod paymentMethod = PaymentMethod.cash;
-}
-
-final customerCreditFormProvider =
-    StateProvider.autoDispose<CustomerCreditFormState>(
-      (ref) => CustomerCreditFormState(),
-    );
-final customerCreditSavingProvider = StateProvider.autoDispose<bool>(
-  (ref) => false,
-);
-
-class CustomerCreditFormScreen extends ConsumerWidget {
+class CustomerCreditFormScreen extends ConsumerStatefulWidget {
   const CustomerCreditFormScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CustomerCreditFormScreen> createState() => _CustomerCreditFormScreenState();
+}
+
+class _CustomerCreditFormScreenState extends ConsumerState<CustomerCreditFormScreen> {
+  String? _customerId;
+  String? _invoiceId;
+  String? _refundAccountId;
+  DateTime _activityDate = DateTime.now();
+  double _amount = 0;
+  CustomerCreditAction _action = CustomerCreditAction.applyToInvoice;
+  PaymentMethod _paymentMethod = PaymentMethod.cash;
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final form = ref.watch(customerCreditFormProvider);
-    final saving = ref.watch(customerCreditSavingProvider);
     final customersAsync = ref.watch(customersProvider);
     final invoicesAsync = ref.watch(invoicesProvider);
     final accountsAsync = ref.watch(accountsProvider);
@@ -57,17 +50,15 @@ class CustomerCreditFormScreen extends ConsumerWidget {
           AppButton(
             label: l10n.cancel,
             variant: AppButtonVariant.secondary,
-            onPressed: saving
+            onPressed: _saving
                 ? null
-                : () => context.canPop()
-                      ? context.pop()
-                      : context.go(AppRoutes.customerCredits),
+                : () => context.canPop() ? context.pop() : context.go(AppRoutes.customerCredits),
           ),
           const SizedBox(width: 12),
           AppButton(
             label: l10n.save,
-            loading: saving,
-            onPressed: saving ? null : () => _save(context, ref),
+            loading: _saving,
+            onPressed: _saving ? null : _save,
           ),
           const SizedBox(width: 12),
         ],
@@ -76,66 +67,82 @@ class CustomerCreditFormScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(24),
         children: [
           _CreditCard(
-            form: form,
+            customerId: _customerId,
+            invoiceId: _invoiceId,
+            refundAccountId: _refundAccountId,
+            activityDate: _activityDate,
+            amount: _amount,
+            action: _action,
+            paymentMethod: _paymentMethod,
             customersAsync: customersAsync,
             invoicesAsync: invoicesAsync,
             accountsAsync: accountsAsync,
+            onCustomerChanged: (value) => setState(() {
+              _customerId = value;
+              _invoiceId = null;
+            }),
+            onActionChanged: (value) => setState(() {
+              _action = value;
+              _invoiceId = null;
+              _refundAccountId = null;
+            }),
+            onInvoiceChanged: (invoice) => setState(() {
+              _invoiceId = invoice?.id;
+              _amount = invoice?.balanceDue ?? _amount;
+            }),
+            onRefundAccountChanged: (value) => setState(() => _refundAccountId = value),
+            onPaymentMethodChanged: (value) => setState(() => _paymentMethod = value),
+            onAmountChanged: (value) => setState(() => _amount = value),
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: _DraftCreditAmountCard(amount: _amount),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _save(BuildContext context, WidgetRef ref) async {
+  Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
-    final form = ref.read(customerCreditFormProvider);
 
-    if (form.customerId == null || form.customerId!.isEmpty) {
+    if (_customerId == null || _customerId!.isEmpty) {
       _error(context, l10n.selectCustomerFirst);
       return;
     }
-    if (form.amount <= 0) {
+    if (_amount <= 0) {
       _error(context, l10n.enterPositiveAmount);
       return;
     }
-    if (form.action == CustomerCreditAction.applyToInvoice &&
-        (form.invoiceId == null || form.invoiceId!.isEmpty)) {
+    if (_action == CustomerCreditAction.applyToInvoice && (_invoiceId == null || _invoiceId!.isEmpty)) {
       _error(context, l10n.selectInvoiceFirst);
       return;
     }
-    if (form.action == CustomerCreditAction.refundReceipt &&
-        (form.refundAccountId == null || form.refundAccountId!.isEmpty)) {
+    if (_action == CustomerCreditAction.refundReceipt && (_refundAccountId == null || _refundAccountId!.isEmpty)) {
       _error(context, l10n.selectPaymentAccountFirst);
       return;
     }
 
     final dto = CreateCustomerCreditDto(
-      customerId: form.customerId!,
-      activityDate: form.activityDate,
-      amount: form.amount,
-      action: form.action,
-      invoiceId: form.action == CustomerCreditAction.applyToInvoice
-          ? form.invoiceId
-          : null,
-      refundAccountId: form.action == CustomerCreditAction.refundReceipt
-          ? form.refundAccountId
-          : null,
-      paymentMethod: form.action == CustomerCreditAction.refundReceipt
-          ? form.paymentMethod
-          : null,
+      customerId: _customerId!,
+      activityDate: _activityDate,
+      amount: _amount,
+      action: _action,
+      invoiceId: _action == CustomerCreditAction.applyToInvoice ? _invoiceId : null,
+      refundAccountId: _action == CustomerCreditAction.refundReceipt ? _refundAccountId : null,
+      paymentMethod: _action == CustomerCreditAction.refundReceipt ? _paymentMethod : null,
     );
 
-    ref.read(customerCreditSavingProvider.notifier).state = true;
+    setState(() => _saving = true);
     final result = await ref.read(customerCreditsProvider.notifier).create(dto);
-    ref.read(customerCreditSavingProvider.notifier).state = false;
+    if (!mounted) return;
+    setState(() => _saving = false);
 
-    if (!context.mounted) return;
     result.when(
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
         context.go(AppRoutes.customerCredits);
       },
       failure: (error) => _error(context, error.message),
@@ -152,30 +159,50 @@ class CustomerCreditFormScreen extends ConsumerWidget {
   }
 }
 
-class _CreditCard extends ConsumerWidget {
+class _CreditCard extends StatelessWidget {
   const _CreditCard({
-    required this.form,
+    required this.customerId,
+    required this.invoiceId,
+    required this.refundAccountId,
+    required this.activityDate,
+    required this.amount,
+    required this.action,
+    required this.paymentMethod,
     required this.customersAsync,
     required this.invoicesAsync,
     required this.accountsAsync,
+    required this.onCustomerChanged,
+    required this.onActionChanged,
+    required this.onInvoiceChanged,
+    required this.onRefundAccountChanged,
+    required this.onPaymentMethodChanged,
+    required this.onAmountChanged,
   });
 
-  final CustomerCreditFormState form;
+  final String? customerId;
+  final String? invoiceId;
+  final String? refundAccountId;
+  final DateTime activityDate;
+  final double amount;
+  final CustomerCreditAction action;
+  final PaymentMethod paymentMethod;
   final AsyncValue customersAsync;
   final AsyncValue<List<InvoiceModel>> invoicesAsync;
   final AsyncValue<List<AccountModel>> accountsAsync;
+  final ValueChanged<String?> onCustomerChanged;
+  final ValueChanged<CustomerCreditAction> onActionChanged;
+  final ValueChanged<InvoiceModel?> onInvoiceChanged;
+  final ValueChanged<String?> onRefundAccountChanged;
+  final ValueChanged<PaymentMethod> onPaymentMethodChanged;
+  final ValueChanged<double> onAmountChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     final customerInvoices = invoicesAsync.maybeWhen(
       data: (invoices) => invoices
-          .where(
-            (invoice) =>
-                form.customerId == null ||
-                invoice.customerId == form.customerId,
-          )
+          .where((invoice) => customerId == null || invoice.customerId == customerId)
           .where((invoice) => !invoice.isVoid && invoice.balanceDue > 0)
           .toList(),
       orElse: () => <InvoiceModel>[],
@@ -194,14 +221,8 @@ class _CreditCard extends ConsumerWidget {
       orElse: () => <AccountModel>[],
     );
 
-    final safeInvoiceId =
-        customerInvoices.any((invoice) => invoice.id == form.invoiceId)
-        ? form.invoiceId
-        : null;
-    final safeAccountId =
-        refundAccounts.any((account) => account.id == form.refundAccountId)
-        ? form.refundAccountId
-        : null;
+    final safeInvoiceId = customerInvoices.any((invoice) => invoice.id == invoiceId) ? invoiceId : null;
+    final safeAccountId = refundAccounts.any((account) => account.id == refundAccountId) ? refundAccountId : null;
 
     return Card(
       child: Padding(
@@ -209,7 +230,7 @@ class _CreditCard extends ConsumerWidget {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              initialValue: form.customerId,
+              initialValue: customerId,
               decoration: InputDecoration(
                 labelText: '${l10n.customer} *',
                 border: const OutlineInputBorder(),
@@ -226,25 +247,18 @@ class _CreditCard extends ConsumerWidget {
                     .toList(),
                 orElse: () => const <DropdownMenuItem<String>>[],
               ),
-              onChanged: (value) => _update(
-                ref,
-                form
-                  ..customerId = value
-                  ..invoiceId = null,
-              ),
+              onChanged: onCustomerChanged,
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<CustomerCreditAction>(
-                    initialValue: form.action,
+                    initialValue: action,
                     decoration: InputDecoration(
                       labelText: l10n.creditBalance,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(
-                        Icons.account_balance_wallet_outlined,
-                      ),
+                      prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
                     ),
                     items: [
                       DropdownMenuItem<CustomerCreditAction>(
@@ -257,14 +271,7 @@ class _CreditCard extends ConsumerWidget {
                       ),
                     ],
                     onChanged: (value) {
-                      if (value == null) return;
-                      _update(
-                        ref,
-                        form
-                          ..action = value
-                          ..invoiceId = null
-                          ..refundAccountId = null,
-                      );
+                      if (value != null) onActionChanged(value);
                     },
                   ),
                 ),
@@ -273,15 +280,13 @@ class _CreditCard extends ConsumerWidget {
                   child: AppTextField(
                     label: l10n.paymentDate,
                     readOnly: true,
-                    initialValue: CustomerCreditFormScreen._dateOnly(
-                      form.activityDate,
-                    ),
+                    initialValue: CustomerCreditFormScreen._dateOnly(activityDate),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            if (form.action == CustomerCreditAction.applyToInvoice)
+            if (action == CustomerCreditAction.applyToInvoice)
               DropdownButtonFormField<String>(
                 initialValue: safeInvoiceId,
                 decoration: InputDecoration(
@@ -293,22 +298,13 @@ class _CreditCard extends ConsumerWidget {
                     .map<DropdownMenuItem<String>>(
                       (InvoiceModel invoice) => DropdownMenuItem<String>(
                         value: invoice.id,
-                        child: Text(
-                          '${invoice.invoiceNumber} - ${invoice.balanceDue.toStringAsFixed(2)} ${l10n.egp}',
-                        ),
+                        child: Text('${invoice.invoiceNumber} - ${invoice.balanceDue.toStringAsFixed(2)} ${l10n.egp}'),
                       ),
                     )
                     .toList(),
                 onChanged: (value) {
-                  final invoice = customerInvoices
-                      .where((i) => i.id == value)
-                      .firstOrNull;
-                  _update(
-                    ref,
-                    form
-                      ..invoiceId = value
-                      ..amount = invoice?.balanceDue ?? form.amount,
-                  );
+                  final invoice = customerInvoices.where((i) => i.id == value).firstOrNull;
+                  onInvoiceChanged(invoice);
                 },
               )
             else ...[
@@ -327,53 +323,33 @@ class _CreditCard extends ConsumerWidget {
                       ),
                     )
                     .toList(),
-                onChanged: (value) =>
-                    _update(ref, form..refundAccountId = value),
+                onChanged: onRefundAccountChanged,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<PaymentMethod>(
-                initialValue: form.paymentMethod,
+                initialValue: paymentMethod,
                 decoration: InputDecoration(
                   labelText: l10n.paymentMethod,
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.payments_outlined),
                 ),
                 items: [
-                  DropdownMenuItem<PaymentMethod>(
-                    value: PaymentMethod.cash,
-                    child: Text(l10n.cash),
-                  ),
-                  DropdownMenuItem<PaymentMethod>(
-                    value: PaymentMethod.check,
-                    child: Text(l10n.check),
-                  ),
-                  DropdownMenuItem<PaymentMethod>(
-                    value: PaymentMethod.bankTransfer,
-                    child: Text(l10n.bankTransfer),
-                  ),
-                  DropdownMenuItem<PaymentMethod>(
-                    value: PaymentMethod.creditCard,
-                    child: Text(l10n.creditCard),
-                  ),
+                  DropdownMenuItem<PaymentMethod>(value: PaymentMethod.cash, child: Text(l10n.cash)),
+                  DropdownMenuItem<PaymentMethod>(value: PaymentMethod.check, child: Text(l10n.check)),
+                  DropdownMenuItem<PaymentMethod>(value: PaymentMethod.bankTransfer, child: Text(l10n.bankTransfer)),
+                  DropdownMenuItem<PaymentMethod>(value: PaymentMethod.creditCard, child: Text(l10n.creditCard)),
                 ],
                 onChanged: (value) {
-                  if (value != null) _update(ref, form..paymentMethod = value);
+                  if (value != null) onPaymentMethodChanged(value);
                 },
               ),
             ],
             const SizedBox(height: 16),
             AppTextField(
               label: '${l10n.amount} *',
-              initialValue: form.amount == 0
-                  ? ''
-                  : form.amount.toStringAsFixed(2),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              onChanged: (value) {
-                form.amount = double.tryParse(value) ?? 0;
-                _update(ref, form);
-              },
+              initialValue: amount == 0 ? '' : amount.toStringAsFixed(2),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (value) => onAmountChanged(double.tryParse(value) ?? 0),
             ),
           ],
         ),
@@ -382,15 +358,42 @@ class _CreditCard extends ConsumerWidget {
   }
 }
 
-void _update(WidgetRef ref, CustomerCreditFormState old) {
-  ref
-      .read(customerCreditFormProvider.notifier)
-      .state = CustomerCreditFormState()
-    ..customerId = old.customerId
-    ..invoiceId = old.invoiceId
-    ..refundAccountId = old.refundAccountId
-    ..activityDate = old.activityDate
-    ..amount = old.amount
-    ..action = old.action
-    ..paymentMethod = old.paymentMethod;
+class _DraftCreditAmountCard extends StatelessWidget {
+  const _DraftCreditAmountCard({required this.amount});
+
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: SizedBox(
+        width: 360,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Draft credit amount', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '${amount.toStringAsFixed(2)} ${l10n.egp}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: cs.primary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Official customer balance, invoice application, refund, and accounting impact are recalculated by the backend after save.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
