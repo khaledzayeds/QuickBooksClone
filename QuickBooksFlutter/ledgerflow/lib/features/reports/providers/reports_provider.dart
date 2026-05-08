@@ -17,6 +17,14 @@ final reportsRepositoryProvider = Provider<ReportsRepository>(
   (ref) => ReportsRepository(ref.watch(reportsDatasourceProvider)),
 );
 
+final reportsDateRangeProvider = StateProvider<ReportDateRange>((ref) {
+  final today = DateTime.now();
+  return ReportDateRange(
+    fromDate: DateTime(today.year, today.month, 1),
+    toDate: today,
+  );
+});
+
 final trialBalanceReportProvider = FutureProvider.autoDispose<TrialBalanceReportModel>((ref) async {
   final result = await ref.read(reportsRepositoryProvider).getTrialBalance();
   return result.when(success: (data) => data, failure: (error) => throw error);
@@ -53,21 +61,56 @@ final taxSummaryReportProvider = FutureProvider.autoDispose<TaxSummaryReportMode
 });
 
 final payrollReportHubProvider = FutureProvider.autoDispose<PayrollSummaryReport>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/reports/summary');
+  final range = ref.watch(reportsDateRangeProvider);
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/payroll/reports/summary',
+    queryParameters: range.queryParameters,
+  );
   return PayrollSummaryReport.fromJson(response.data!);
 });
 
 final timeTrackingReportHubProvider = FutureProvider.autoDispose<TimeEntrySummaryReport>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries/reports/summary');
+  final range = ref.watch(reportsDateRangeProvider);
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/time-entries/reports/summary',
+    queryParameters: range.queryParameters,
+  );
   return TimeEntrySummaryReport.fromJson(response.data!);
 });
 
 final salesSummaryReportProvider = FutureProvider.autoDispose<SalesSummaryReportModel>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/reports/sales-summary');
+  final range = ref.watch(reportsDateRangeProvider);
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/reports/sales-summary',
+    queryParameters: range.queryParameters,
+  );
   return SalesSummaryReportModel.fromJson(response.data!);
 });
 
 final purchasesSummaryReportProvider = FutureProvider.autoDispose<PurchasesSummaryReportModel>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/reports/purchases-summary');
+  final range = ref.watch(reportsDateRangeProvider);
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/reports/purchases-summary',
+    queryParameters: range.queryParameters,
+  );
   return PurchasesSummaryReportModel.fromJson(response.data!);
 });
+
+class ReportDateRange {
+  const ReportDateRange({required this.fromDate, required this.toDate});
+
+  final DateTime fromDate;
+  final DateTime toDate;
+
+  Map<String, dynamic> get queryParameters => {
+        'fromDate': _dateOnly(fromDate),
+        'toDate': _dateOnly(toDate),
+      };
+
+  ReportDateRange copyWith({DateTime? fromDate, DateTime? toDate}) => ReportDateRange(
+        fromDate: fromDate ?? this.fromDate,
+        toDate: toDate ?? this.toDate,
+      );
+}
+
+String _dateOnly(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
