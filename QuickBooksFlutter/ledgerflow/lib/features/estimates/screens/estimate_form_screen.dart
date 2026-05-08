@@ -19,6 +19,8 @@ class EstimateLineState {
   String description = '';
   double quantity = 1;
   double unitPrice = 0;
+
+  double get draftAmount => quantity * unitPrice;
 }
 
 class EstimateFormScreen extends ConsumerStatefulWidget {
@@ -34,6 +36,8 @@ class _EstimateFormScreenState extends ConsumerState<EstimateFormScreen> {
   DateTime _expirationDate = DateTime.now().add(const Duration(days: 30));
   final List<EstimateLineState> _lines = [EstimateLineState()];
   bool _saving = false;
+
+  double get _draftSubtotal => _lines.fold(0, (sum, line) => sum + line.draftAmount);
 
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
@@ -141,9 +145,9 @@ class _EstimateFormScreenState extends ConsumerState<EstimateFormScreen> {
             onUpdateLine: _updateLine,
           ),
           const SizedBox(height: 24),
-          const Align(
+          Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: _BackendTotalsCard(),
+            child: _DraftTotalsCard(total: _draftSubtotal),
           ),
         ],
       ),
@@ -248,7 +252,7 @@ class _LinesCard extends ConsumerWidget {
                 Expanded(flex: 3, child: Text(l10n.itemService)),
                 Expanded(child: Text(l10n.qty)),
                 Expanded(child: Text(l10n.rate)),
-                const Expanded(child: Text('Backend amount')),
+                Expanded(child: Text('${l10n.amount} (draft)')),
                 const SizedBox(width: 40),
               ],
             ),
@@ -354,9 +358,7 @@ class _EstimateLineRow extends ConsumerWidget {
               ),
             ),
           ),
-          const Expanded(
-            child: Text('After save', textAlign: TextAlign.end),
-          ),
+          Expanded(child: Text(line.draftAmount.toStringAsFixed(2), textAlign: TextAlign.end)),
           SizedBox(
             width: 40,
             child: IconButton(
@@ -370,26 +372,36 @@ class _EstimateLineRow extends ConsumerWidget {
   }
 }
 
-class _BackendTotalsCard extends StatelessWidget {
-  const _BackendTotalsCard();
+class _DraftTotalsCard extends StatelessWidget {
+  const _DraftTotalsCard({required this.total});
+
+  final double total;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: SizedBox(
         width: 360,
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.cloud_done_outlined, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Totals, taxes, and document status are calculated by the backend after saving.',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Draft total', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '${total.toStringAsFixed(2)} ${l10n.egp}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'The backend recalculates official totals, taxes, and document status after save.',
+                style: TextStyle(fontSize: 12),
               ),
             ],
           ),
