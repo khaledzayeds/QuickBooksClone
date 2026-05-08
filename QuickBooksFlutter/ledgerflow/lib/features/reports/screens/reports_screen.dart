@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../payroll/providers/payroll_runs_provider.dart';
+import '../../time_tracking/providers/time_entries_provider.dart';
 import '../data/models/report_models.dart';
 import '../providers/reports_provider.dart';
 
@@ -28,6 +30,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _ReportMenuItem(l10n.billTracker, Icons.storefront_outlined),
       _ReportMenuItem(l10n.stock, Icons.inventory_2_outlined),
       _ReportMenuItem(l10n.tax, Icons.receipt_long_outlined),
+      const _ReportMenuItem('Payroll Summary', Icons.payments_outlined),
+      const _ReportMenuItem('Time Tracking Summary', Icons.timer_outlined),
     ];
 
     return Scaffold(
@@ -93,6 +97,10 @@ class _ReportBody extends ConsumerWidget {
         return _InventoryValuationView(report: ref.watch(inventoryValuationReportProvider));
       case 6:
         return _TaxSummaryView(report: ref.watch(taxSummaryReportProvider));
+      case 7:
+        return _PayrollSummaryView(report: ref.watch(payrollReportHubProvider));
+      case 8:
+        return _TimeTrackingSummaryView(report: ref.watch(timeTrackingReportHubProvider));
       default:
         return const SizedBox.shrink();
     }
@@ -278,6 +286,88 @@ class _TaxSummaryView extends StatelessWidget {
   }
 }
 
+class _PayrollSummaryView extends StatelessWidget {
+  const _PayrollSummaryView({required this.report});
+  final AsyncValue<PayrollSummaryReport> report;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AsyncReportFrame<PayrollSummaryReport>(
+      title: 'Payroll Summary',
+      report: report,
+      builder: (data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SummaryGrid(items: [
+            _SummaryItem('Runs', data.runCount.toDouble()),
+            _SummaryItem('Employees', data.employeeCount.toDouble()),
+            _SummaryItem('Gross Pay', data.totalGrossPay),
+            _SummaryItem('Net Pay', data.totalNetPay),
+          ]),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _ReportTable(
+              columns: const ['Run', 'Pay Date', 'Status', 'Employees', 'Gross', 'Deductions', 'Net'],
+              rows: data.runs
+                  .map((run) => [
+                        run.runNumber,
+                        _date(run.payDate),
+                        run.status,
+                        run.employeeCount.toString(),
+                        run.grossPay.toStringAsFixed(2),
+                        run.deductions.toStringAsFixed(2),
+                        run.netPay.toStringAsFixed(2),
+                      ])
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeTrackingSummaryView extends StatelessWidget {
+  const _TimeTrackingSummaryView({required this.report});
+  final AsyncValue<TimeEntrySummaryReport> report;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AsyncReportFrame<TimeEntrySummaryReport>(
+      title: 'Time Tracking Summary',
+      report: report,
+      builder: (data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SummaryGrid(items: [
+            _SummaryItem('Entries', data.entryCount.toDouble()),
+            _SummaryItem('Total Hours', data.totalHours),
+            _SummaryItem('Billable Hours', data.billableHours),
+            _SummaryItem('Billable Not Invoiced', data.billableNotInvoicedHours),
+          ]),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _ReportTable(
+              columns: const ['Date', 'Person', 'Customer', 'Service', 'Activity', 'Hours', 'Status'],
+              rows: data.billableQueue
+                  .map((row) => [
+                        _date(row.workDate),
+                        row.personName,
+                        row.customerName,
+                        row.serviceItemName,
+                        row.activity,
+                        row.hours.toStringAsFixed(2),
+                        timeEntryStatusLabel(row.status),
+                      ])
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AsyncReportFrame<T> extends StatelessWidget {
   const _AsyncReportFrame({required this.title, required this.report, required this.builder});
 
@@ -287,7 +377,6 @@ class _AsyncReportFrame<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -409,3 +498,5 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+
+String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
