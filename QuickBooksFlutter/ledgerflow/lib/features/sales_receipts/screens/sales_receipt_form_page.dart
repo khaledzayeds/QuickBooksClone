@@ -154,8 +154,9 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   Future<void> _runPreview() async {
     if (_selectedCustomer == null ||
         _depositAccountId == null ||
-        _validLines().isEmpty)
+        _validLines().isEmpty) {
       return;
+    }
     setState(() => _previewing = true);
     final dto = PreviewSalesReceiptDto(
       customerId: _selectedCustomer!.id,
@@ -234,10 +235,11 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
             SnackBar(content: Text(l10n.salesReceiptCreatedSuccess)),
           );
           if (closeAfterSave) {
-            if (context.canPop())
+            if (context.canPop()) {
               context.pop();
-            else
+            } else {
               context.go('/sales/receipts');
+            }
           } else {
             // clear form for new
             setState(() {
@@ -263,7 +265,9 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     _customerCtrl.clear();
     _depositAccountCtrl.clear();
     _paymentMethodCtrl.text = 'Cash';
-    for (final l in _lines) l.dispose();
+    for (final l in _lines) {
+      l.dispose();
+    }
     _lines
       ..clear()
       ..add(TransactionLineEntry());
@@ -275,10 +279,6 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       backgroundColor: Theme.of(context).colorScheme.error,
     ),
   );
-
-  void _showInfo(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _pickReceiptDate() async {
     final picked = await showDatePicker(
@@ -296,6 +296,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     });
   }
 
+  // ignore: unused_element
   Future<void> _selectCustomer() async {
     final customersAsync = ref.read(customersProvider);
     final customers = customersAsync.maybeWhen(
@@ -345,6 +346,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     _schedulePreview();
   }
 
+  // ignore: unused_element
   Future<void> _selectDepositAccount() async {
     final accountsAsync = ref.read(accountsProvider);
     final accounts = accountsAsync.maybeWhen(
@@ -445,10 +447,13 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     _schedulePreview();
   }
 
+  // ignore: unused_element
   void _clearLines() {
     if (_lines.length == 1 && _lines.first.itemId == null) return;
     setState(() {
-      for (final line in _lines) line.dispose();
+      for (final line in _lines) {
+        line.dispose();
+      }
       _lines
         ..clear()
         ..add(TransactionLineEntry());
@@ -519,10 +524,11 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   }
 
   void _cancel() {
-    if (context.canPop())
+    if (context.canPop()) {
       context.pop();
-    else
+    } else {
       context.go('/sales/receipts');
+    }
   }
 
   @override
@@ -776,7 +782,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                                           Expanded(
                                             child:
                                                 DropdownButtonFormField<String>(
-                                                  value: _paymentMethod,
+                                                  initialValue: _paymentMethod,
                                                   isDense: true,
                                                   decoration:
                                                       const InputDecoration(
@@ -833,7 +839,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<String>(
-                                            value: _paymentMethod,
+                                            initialValue: _paymentMethod,
                                             isDense: true,
                                             decoration: const InputDecoration(
                                               labelText: 'Payment Method',
@@ -887,7 +893,17 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                         ),
                         const SizedBox(width: 8),
                         Chip(label: Text('${_lines.length} lines')),
-                        if (_preview != null) ...[
+                        if (_previewing) ...[
+                          const SizedBox(width: 8),
+                          const Chip(
+                            label: Text('Previewing'),
+                            avatar: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ] else if (_preview != null) ...[
                           const SizedBox(width: 8),
                           Chip(
                             label: const Text('Preview ready'),
@@ -948,7 +964,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
               width: 300,
               child: Material(
                 elevation: 1,
-                color: cs.surfaceVariant.withOpacity(0.3),
+                color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,

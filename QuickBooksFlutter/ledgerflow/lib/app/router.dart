@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/widgets/coming_soon_screen.dart';
 import '../core/widgets/responsive_scaffold.dart';
 import '../features/accounts/screens/account_form_screen.dart';
 import '../features/accounts/screens/chart_of_accounts_screen.dart';
@@ -198,15 +197,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.setup,
     redirect: (context, state) {
       if (authState is AsyncLoading || setupState is AsyncLoading) return null;
-      if (setupState.hasError)
+      if (setupState.hasError) {
         return state.uri.path == AppRoutes.setup ? null : AppRoutes.setup;
+      }
 
       final setup = setupState.value;
       final isSetupRoute = state.uri.path == AppRoutes.setup;
-      if (setup != null && !setup.isInitialized && !isSetupRoute)
+      if (setup != null && !setup.isInitialized && !isSetupRoute) {
         return AppRoutes.setup;
-      if (setup != null && setup.isInitialized && isSetupRoute)
+      }
+      if (setup != null && setup.isInitialized && isSetupRoute) {
         return AppRoutes.login;
+      }
 
       final user = authState.value;
       final isLoggedIn = user != null;
@@ -637,7 +639,3 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-GoRoute _comingSoon(String path, String title) => GoRoute(
-  path: path,
-  builder: (context, state) => ComingSoonScreen(title: title),
-);

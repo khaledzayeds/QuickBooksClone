@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/api/api_result.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
@@ -174,7 +173,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                       },
                     );
 
-                    if (!wide)
+                    if (!wide) {
                       return Column(
                         children: [
                           search,
@@ -183,6 +182,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                           inactiveSwitch,
                         ],
                       );
+                    }
                     return Row(
                       children: [
                         Expanded(flex: 2, child: search),

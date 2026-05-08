@@ -156,8 +156,9 @@ class _ModeCard extends StatelessWidget {
               )
               .toList(),
           onChanged: (value) {
-            if (value != null)
+            if (value != null) {
               notifier.update((current) => current.copyWith(printMode: value));
+            }
           },
         ),
         const SizedBox(height: 12),
@@ -209,10 +210,11 @@ class _A4Card extends StatelessWidget {
               )
               .toList(),
           onChanged: (value) {
-            if (value != null)
+            if (value != null) {
               notifier.update(
                 (current) => current.copyWith(a4TemplateStyle: value),
               );
+            }
           },
         ),
         const SizedBox(height: 12),
@@ -256,10 +258,11 @@ class _ThermalCard extends StatelessWidget {
               )
               .toList(),
           onChanged: (value) {
-            if (value != null)
+            if (value != null) {
               notifier.update(
                 (current) => current.copyWith(thermalWidth: value),
               );
+            }
           },
         ),
         const SizedBox(height: 12),

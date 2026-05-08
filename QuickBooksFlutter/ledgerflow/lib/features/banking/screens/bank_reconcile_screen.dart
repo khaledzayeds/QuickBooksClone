@@ -29,8 +29,9 @@ class _BankReconcileScreenState extends ConsumerState<BankReconcileScreen> {
 
   Future<void> preview() async {
     final value = double.tryParse(endingBalance.text.trim()) ?? 0;
-    if (accountId == null || accountId!.isEmpty)
+    if (accountId == null || accountId!.isEmpty) {
       return error('Select bank account.');
+    }
 
     ref.read(bankReconcilePreviewSavingProvider.notifier).state = true;
     final result = await ref

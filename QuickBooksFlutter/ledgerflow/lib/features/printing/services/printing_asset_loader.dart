@@ -1,7 +1,6 @@
 // printing_asset_loader.dart
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:pdf/widgets.dart' as pw;

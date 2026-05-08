@@ -67,7 +67,7 @@ class SetupNotifier extends Notifier<SetupState> {
     }
   }
 
-  Future<void> initializeCompany(InitializeCompanyPayload payload) async {
+  Future<bool> initializeCompany(InitializeCompanyPayload payload) async {
     state = state.copyWith(submitting: true, clearError: true, clearSuccess: true);
     try {
       final result = await _repository.initializeCompany(payload);
@@ -79,8 +79,10 @@ class SetupNotifier extends Notifier<SetupState> {
         successMessage: 'Company initialized: ${result.companyName}',
         clearError: true,
       );
+      return status.isInitialized;
     } catch (error) {
       state = state.copyWith(submitting: false, errorMessage: error.toString());
+      return false;
     }
   }
 

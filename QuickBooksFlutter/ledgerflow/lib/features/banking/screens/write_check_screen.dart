@@ -39,8 +39,9 @@ class _WriteCheckScreenState extends ConsumerState<WriteCheckScreen> {
   Future<void> save() async {
     final value = double.tryParse(amount.text.trim()) ?? 0;
     if (bankId == null || bankId!.isEmpty) return error('Select bank account.');
-    if (expenseId == null || expenseId!.isEmpty)
+    if (expenseId == null || expenseId!.isEmpty) {
       return error('Select expense/offset account.');
+    }
     if (bankId == expenseId) return error('Accounts must be different.');
     if (value <= 0) return error('Enter a positive amount.');
 

@@ -32,7 +32,7 @@ class _CustomerCreditFormScreenState extends ConsumerState<CustomerCreditFormScr
   String? _customerId;
   String? _invoiceId;
   String? _refundAccountId;
-  DateTime _activityDate = DateTime.now();
+  final DateTime _activityDate = DateTime.now();
   double _amount = 0;
   CustomerCreditAction _action = CustomerCreditAction.applyToInvoice;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
@@ -150,9 +150,6 @@ class _CustomerCreditFormScreenState extends ConsumerState<CustomerCreditFormScr
       failure: (error) => _error(context, error.message),
     );
   }
-
-  static String _dateOnly(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   static void _error(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(

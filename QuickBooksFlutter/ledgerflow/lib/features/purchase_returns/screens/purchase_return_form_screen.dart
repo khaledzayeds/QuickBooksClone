@@ -39,7 +39,7 @@ class PurchaseReturnFormScreen extends ConsumerStatefulWidget {
 
 class _PurchaseReturnFormScreenState extends ConsumerState<PurchaseReturnFormScreen> {
   String? _purchaseBillId;
-  DateTime _returnDate = DateTime.now();
+  final DateTime _returnDate = DateTime.now();
   List<PurchaseReturnLineState> _lines = [];
   bool _saving = false;
   bool _preselected = false;

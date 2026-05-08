@@ -27,7 +27,7 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
   String? _invoiceId;
   String? _depositAccountId;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
-  DateTime _paymentDate = DateTime.now();
+  final DateTime _paymentDate = DateTime.now();
   double _amount = 0;
   bool _saving = false;
 
@@ -134,8 +134,6 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
-  static String _dateOnly(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
 class _HeaderCard extends StatelessWidget {

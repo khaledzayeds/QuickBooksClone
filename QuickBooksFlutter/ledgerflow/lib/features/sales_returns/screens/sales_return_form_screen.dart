@@ -39,7 +39,7 @@ class SalesReturnFormScreen extends ConsumerStatefulWidget {
 
 class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
   String? _invoiceId;
-  DateTime _returnDate = DateTime.now();
+  final DateTime _returnDate = DateTime.now();
   List<SalesReturnLineState> _lines = [];
   bool _saving = false;
 

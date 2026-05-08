@@ -23,7 +23,7 @@ class AccountsRemoteDatasource {
         '/api/accounts',
         queryParameters: {
           if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
-          if (accountType != null) 'accountType': accountType,
+          'accountType': ?accountType,
           'includeInactive': includeInactive,
           'page': page,
           'pageSize': pageSize,

@@ -301,7 +301,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                     ),
                                 validator: _nonNegativeNumberValidator,
                               );
-                              if (!two)
+                              if (!two) {
                                 return Column(
                                   children: [
                                     sales,
@@ -309,6 +309,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                     purchase,
                                   ],
                                 );
+                              }
                               return Row(
                                 children: [
                                   Expanded(child: sales),
@@ -433,19 +434,23 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
     if (base != null) return base;
     final qty = double.tryParse(value ?? '') ?? 0;
     final cost = double.tryParse(_purchasePriceCtrl.text) ?? 0;
-    if (qty > 0 && cost <= 0)
+    if (qty > 0 && cost <= 0) {
       return 'Opening quantity requires purchase cost greater than zero';
+    }
     return null;
   }
 
   String? _validateAccountLinks() {
     if (_itemType == ItemType.inventory) {
-      if (_incomeAccountId == null)
+      if (_incomeAccountId == null) {
         return 'Inventory item requires an income account.';
-      if (_inventoryAssetAccountId == null)
+      }
+      if (_inventoryAssetAccountId == null) {
         return 'Inventory item requires an inventory asset account.';
-      if (_cogsAccountId == null)
+      }
+      if (_cogsAccountId == null) {
         return 'Inventory item requires a COGS account.';
+      }
     }
     if (_itemType == ItemType.service || _itemType == ItemType.nonInventory) {
       if (_incomeAccountId == null && _expenseAccountId == null) {

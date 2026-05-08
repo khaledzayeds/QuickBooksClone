@@ -20,6 +20,7 @@ class _PurchaseOrderListScreenState
     extends ConsumerState<PurchaseOrderListScreen> {
   PurchaseOrderStatus? _selectedStatus;
 
+  // ignore: unused_field
   static const _filters = [
     (null, 'الكل | All'),
     (PurchaseOrderStatus.draft, 'مسودة | Draft'),

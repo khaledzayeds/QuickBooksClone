@@ -133,11 +133,12 @@ class TaxSettingsScreen extends ConsumerWidget {
                             ),
                           ],
                           onChanged: (value) {
-                            if (value != null)
+                            if (value != null) {
                               notifier.update(
                                 (current) =>
                                     current.copyWith(taxRoundingMode: value),
                               );
+                            }
                           },
                         ),
                       ],

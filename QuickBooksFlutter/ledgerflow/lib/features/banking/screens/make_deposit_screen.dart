@@ -38,10 +38,12 @@ class _MakeDepositScreenState extends ConsumerState<MakeDepositScreen> {
 
   Future<void> save() async {
     final value = double.tryParse(amount.text.trim()) ?? 0;
-    if (bankId == null || bankId!.isEmpty)
+    if (bankId == null || bankId!.isEmpty) {
       return error('Select deposit account.');
-    if (offsetId == null || offsetId!.isEmpty)
+    }
+    if (offsetId == null || offsetId!.isEmpty) {
       return error('Select offset account.');
+    }
     if (bankId == offsetId) return error('Accounts must be different.');
     if (value <= 0) return error('Enter a positive amount.');
 

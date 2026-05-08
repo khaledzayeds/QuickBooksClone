@@ -31,7 +31,6 @@ class _ReceiveInventoryFormScreenState
     extends ConsumerState<ReceiveInventoryFormScreen> {
   VendorModel? _selectedVendor;
   PurchaseOrderModel? _selectedOrder;
-  ReceivingPlanModel? _activePlan;
   bool _loadingPlan = false;
 
   DateTime _receiptDate = DateTime.now();
@@ -65,7 +64,6 @@ class _ReceiveInventoryFormScreenState
   Future<void> _selectOrder(PurchaseOrderModel? order) async {
     setState(() {
       _selectedOrder = order;
-      _activePlan = null;
       if (order != null) {
         _selectedVendor = VendorModel(
           id: order.vendorId,
@@ -91,7 +89,6 @@ class _ReceiveInventoryFormScreenState
         success: (plan) {
           if (mounted) {
             setState(() {
-              _activePlan = plan;
               _fillLinesFromPlan(plan);
             });
           }
@@ -194,7 +191,6 @@ class _ReceiveInventoryFormScreenState
     setState(() {
       _selectedVendor = selected;
       _selectedOrder = null;
-      _activePlan = null;
     });
     _clearPoLinkedLines();
   }
@@ -408,7 +404,6 @@ class _ReceiveInventoryFormScreenState
                         setState(() {
                           _selectedVendor = null;
                           _selectedOrder = null;
-                          _activePlan = null;
                         });
                         _clearPoLinkedLines();
                       },

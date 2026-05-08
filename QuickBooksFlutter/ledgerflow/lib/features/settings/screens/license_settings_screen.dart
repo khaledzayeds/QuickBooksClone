@@ -101,10 +101,11 @@ class LicenseSettingsScreen extends ConsumerWidget {
                       ],
                     );
 
-                    if (!wide)
+                    if (!wide) {
                       return Column(
                         children: [left, const SizedBox(height: 16), right],
                       );
+                    }
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -170,8 +171,9 @@ class _EditionCard extends StatelessWidget {
               )
               .toList(),
           onChanged: (value) {
-            if (value != null)
+            if (value != null) {
               notifier.update((current) => current.copyWith(status: value));
+            }
           },
         ),
       ],

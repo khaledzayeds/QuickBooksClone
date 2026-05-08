@@ -142,6 +142,7 @@ class SettingsHomeScreen extends ConsumerWidget {
     );
   }
 
+  // ignore: unused_element
   static void _openComingSoon(BuildContext context, String title) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => ComingSoonScreen(title: title)),

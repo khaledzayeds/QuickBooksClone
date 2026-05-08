@@ -122,11 +122,12 @@ class CompanySettingsScreen extends ConsumerWidget {
                           ),
                         ],
                         onChanged: (value) {
-                          if (value != null)
+                          if (value != null) {
                             notifier.update(
                               (current) =>
                                   current.copyWith(defaultLanguage: value),
                             );
+                          }
                         },
                       ),
                     ),
@@ -319,8 +320,9 @@ class _SectionCard extends StatelessWidget {
     final spacedChildren = <Widget>[];
     for (var i = 0; i < children.length; i++) {
       spacedChildren.add(children[i]);
-      if (i != children.length - 1)
+      if (i != children.length - 1) {
         spacedChildren.add(const SizedBox(height: 16));
+      }
     }
 
     return Card(

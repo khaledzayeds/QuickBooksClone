@@ -3,7 +3,6 @@
 class AppInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // TODO: أضف token هنا لما تعمل Auth
     // final token = StorageService.instance.token;
     // if (token != null) options.headers['Authorization'] = 'Bearer $token';
     handler.next(options);

@@ -114,7 +114,6 @@ public sealed class TimeEntriesController : ControllerBase
         {
             return BadRequest(exception.Message);
         }
-        }
     }
 
     [HttpPut("{id:guid}")]
@@ -160,7 +159,6 @@ public sealed class TimeEntriesController : ControllerBase
         catch (ArgumentException exception)
         {
             return BadRequest(exception.Message);
-        }
         }
         catch (InvalidOperationException exception)
         {

@@ -32,8 +32,8 @@ class SalesOrderFormScreen extends ConsumerStatefulWidget {
 
 class _SalesOrderFormScreenState extends ConsumerState<SalesOrderFormScreen> {
   String? _customerId;
-  DateTime _orderDate = DateTime.now();
-  DateTime _expectedDate = DateTime.now().add(const Duration(days: 7));
+  final DateTime _orderDate = DateTime.now();
+  final DateTime _expectedDate = DateTime.now().add(const Duration(days: 7));
   final List<SalesOrderLineState> _lines = [SalesOrderLineState()];
   bool _saving = false;
 

@@ -9,7 +9,6 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../core/widgets/transaction_sidebar.dart';
 import '../../../../core/widgets/transaction_vendor_picker.dart';
-import '../../accounts/data/models/account_model.dart';
 import '../../purchase_bills/data/models/purchase_bill_model.dart';
 import '../../purchase_bills/providers/purchase_bills_provider.dart';
 import '../../vendors/data/models/vendor_model.dart';

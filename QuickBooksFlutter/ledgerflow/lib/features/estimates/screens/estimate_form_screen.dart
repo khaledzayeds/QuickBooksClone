@@ -32,8 +32,8 @@ class EstimateFormScreen extends ConsumerStatefulWidget {
 
 class _EstimateFormScreenState extends ConsumerState<EstimateFormScreen> {
   String? _customerId;
-  DateTime _estimateDate = DateTime.now();
-  DateTime _expirationDate = DateTime.now().add(const Duration(days: 30));
+  final DateTime _estimateDate = DateTime.now();
+  final DateTime _expirationDate = DateTime.now().add(const Duration(days: 30));
   final List<EstimateLineState> _lines = [EstimateLineState()];
   bool _saving = false;
 

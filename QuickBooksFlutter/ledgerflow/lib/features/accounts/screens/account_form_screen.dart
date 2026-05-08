@@ -157,10 +157,12 @@ class _AccountFormScreenState extends ConsumerState<AccountFormScreen> {
                                 keyboardType: TextInputType.number,
                                 validator: (value) {
                                   final trimmed = value?.trim() ?? '';
-                                  if (trimmed.isEmpty)
+                                  if (trimmed.isEmpty) {
                                     return 'Account code is required';
-                                  if (trimmed.length < 3)
+                                  }
+                                  if (trimmed.length < 3) {
                                     return 'Use a clear account code, e.g. 1000';
+                                  }
                                   return null;
                                 },
                               );

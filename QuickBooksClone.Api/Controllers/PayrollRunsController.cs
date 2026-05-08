@@ -452,7 +452,7 @@ public sealed class PayrollRunsController : ControllerBase
                 OvertimeHours = reader.GetDecimal(10),
                 TaxRate = reader.GetDecimal(11),
                 CreatedAt = reader.GetFieldValue<DateTimeOffset>(12),
-                UpdatedAt = reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
+                UpdatedAt = reader.IsDBNull(13) ? null : (DateTimeOffset?)reader.GetFieldValue<DateTimeOffset>(13),
             },
             cancellationToken);
 

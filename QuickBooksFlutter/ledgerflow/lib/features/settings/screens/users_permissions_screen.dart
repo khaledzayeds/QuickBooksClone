@@ -574,7 +574,7 @@ class _SectionCard extends StatelessWidget {
                 CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(icon, color: cs.onPrimaryContainer)),
                 const SizedBox(width: 12),
                 Expanded(child: Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
             const SizedBox(height: 16),

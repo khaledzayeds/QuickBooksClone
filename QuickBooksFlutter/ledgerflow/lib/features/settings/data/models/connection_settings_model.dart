@@ -106,15 +106,17 @@ class ConnectionSettingsModel {
 
   static String _normalizeLanHost(String value) {
     final trimmed = value.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return trimmed;
+    }
     return 'http://$trimmed';
   }
 
   static String _normalizeUrl(String value) {
     final trimmed = value.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return trimmed;
+    }
     return 'http://$trimmed';
   }
 }

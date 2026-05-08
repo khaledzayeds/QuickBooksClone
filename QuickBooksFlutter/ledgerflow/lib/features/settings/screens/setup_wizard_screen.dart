@@ -455,7 +455,7 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    await widget.notifier.initializeCompany(
+    final initialized = await widget.notifier.initializeCompany(
       InitializeCompanyPayload(
         companyName: _companyName.text,
         currency: _currency.text,
@@ -468,7 +468,7 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
         initialAdminSecret: _adminSecret.text,
       ),
     );
-    if (mounted && widget.notifier.state.status?.isInitialized == true) {
+    if (mounted && initialized) {
       widget.onInitialized();
     }
   }

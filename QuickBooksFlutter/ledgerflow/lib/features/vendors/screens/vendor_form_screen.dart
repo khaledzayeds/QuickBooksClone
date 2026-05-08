@@ -172,10 +172,12 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
                                 hint: 'vendor@example.com',
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (value) {
-                                  if (value == null || value.trim().isEmpty)
+                                  if (value == null || value.trim().isEmpty) {
                                     return null;
-                                  if (!value.contains('@'))
+                                  }
+                                  if (!value.contains('@')) {
                                     return 'Invalid email address';
+                                  }
                                   return null;
                                 },
                               );
@@ -186,7 +188,7 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
                                 keyboardType: TextInputType.phone,
                               );
 
-                              if (!two)
+                              if (!two) {
                                 return Column(
                                   children: [
                                     name,
@@ -198,6 +200,7 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
                                     phone,
                                   ],
                                 );
+                              }
                               return Column(
                                 children: [
                                   Row(
@@ -255,10 +258,12 @@ class _VendorFormScreenState extends ConsumerState<VendorFormScreen> {
                                   ),
                               validator: (value) {
                                 final number = double.tryParse(value ?? '');
-                                if (number == null)
+                                if (number == null) {
                                   return 'Enter a valid number';
-                                if (number < 0)
+                                }
+                                if (number < 0) {
                                   return 'Opening balance cannot be negative';
+                                }
                                 return null;
                               },
                             ),

@@ -22,7 +22,7 @@ class ItemsRemoteDatasource {
         '/api/items',
         queryParameters: {
           if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
-          if (itemType != null) 'itemType': itemType,
+          'itemType': ?itemType,
           'includeInactive': includeInactive,
           'page': page,
           'pageSize': pageSize,

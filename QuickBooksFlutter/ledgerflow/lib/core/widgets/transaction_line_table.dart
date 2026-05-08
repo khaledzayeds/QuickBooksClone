@@ -115,19 +115,19 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
             child: Row(
               children: [
                 const SizedBox(width: colAction),
-                _HeaderCell(l10n.itemService.toUpperCase(), colItem),
-                _HeaderCell(l10n.description.toUpperCase(), colDesc),
-                _HeaderCell(
+                _headerCell(l10n.itemService.toUpperCase(), colItem),
+                _headerCell(l10n.description.toUpperCase(), colDesc),
+                _headerCell(
                   l10n.qty.toUpperCase(),
                   colQty,
                   align: TextAlign.center,
                 ),
-                _HeaderCell(
+                _headerCell(
                   l10n.rate.toUpperCase(),
                   colRate,
                   align: TextAlign.right,
                 ),
-                _HeaderCell(
+                _headerCell(
                   l10n.amount.toUpperCase(),
                   colTotal,
                   align: TextAlign.right,
@@ -246,7 +246,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
     );
   }
 
-  Widget _HeaderCell(
+  Widget _headerCell(
     String label,
     double width, {
     TextAlign align = TextAlign.left,
