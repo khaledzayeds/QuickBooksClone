@@ -203,7 +203,18 @@ class _TimeSummaryReportPanel extends ConsumerWidget {
               ],
               if (report.billableQueue.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text('Billable Queue', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Billable Queue', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => _showCreateInvoiceFromTimeSheet(context, ref, report.billableQueue),
+                      icon: const Icon(Icons.receipt_long_outlined),
+                      label: const Text('Create Invoice from Time'),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -660,6 +671,171 @@ Future<void> _showEntrySheet(BuildContext context, WidgetRef ref) async {
   hoursController.dispose();
   activityController.dispose();
   notesController.dispose();
+}
+
+Future<void> _showCreateInvoiceFromTimeSheet(BuildContext context, WidgetRef ref, List<BillableTimeQueueItem> queue) async {
+  final grouped = <String, List<BillableTimeQueueItem>>{};
+  for (final item in queue) {
+    grouped.putIfAbsent(item.customerId, () => <BillableTimeQueueItem>[]).add(item);
+  }
+  if (grouped.isEmpty) return;
+
+  var selectedCustomerId = grouped.keys.first;
+  var invoiceDate = DateTime.now();
+  var dueDate = DateTime.now().add(const Duration(days: 30));
+  var postInvoice = true;
+  var saving = false;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (context, setState) {
+        final selectedItems = grouped[selectedCustomerId] ?? const <BillableTimeQueueItem>[];
+        final totalHours = selectedItems.fold<double>(0, (sum, item) => sum + item.hours);
+        final customerName = selectedItems.isEmpty ? selectedCustomerId : selectedItems.first.customerName;
+
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Create Invoice from Time', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 12),
+                const Text('The backend creates the invoice, validates entries, posts it if selected, and links the time entries to the invoice.'),
+                const SizedBox(height: 18),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedCustomerId,
+                  decoration: const InputDecoration(labelText: 'Customer', border: OutlineInputBorder()),
+                  items: grouped.entries
+                      .map((entry) => DropdownMenuItem<String>(
+                            value: entry.key,
+                            child: Text(entry.value.first.customerName),
+                          ))
+                      .toList(),
+                  onChanged: saving ? null : (value) => setState(() => selectedCustomerId = value ?? selectedCustomerId),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today_outlined),
+                  title: Text(_date(invoiceDate)),
+                  subtitle: const Text('Invoice date'),
+                  trailing: TextButton(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            final selected = await showDatePicker(
+                              context: context,
+                              initialDate: invoiceDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                            );
+                            if (selected != null) setState(() => invoiceDate = selected);
+                          },
+                    child: const Text('Change'),
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event_available_outlined),
+                  title: Text(_date(dueDate)),
+                  subtitle: const Text('Due date'),
+                  trailing: TextButton(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            final selected = await showDatePicker(
+                              context: context,
+                              initialDate: dueDate,
+                              firstDate: invoiceDate,
+                              lastDate: DateTime(2100),
+                            );
+                            if (selected != null) setState(() => dueDate = selected);
+                          },
+                    child: const Text('Change'),
+                  ),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Post invoice immediately'),
+                  value: postInvoice,
+                  onChanged: saving ? null : (value) => setState(() => postInvoice = value),
+                ),
+                const Divider(height: 24),
+                Text('Selected customer: $customerName', style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text('${selectedItems.length} time entr${selectedItems.length == 1 ? 'y' : 'ies'} • ${totalHours.toStringAsFixed(2)} hours'),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: selectedItems
+                          .map((item) => ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(item.activity),
+                                subtitle: Text('${_date(item.workDate)} • ${item.personName} • ${item.serviceItemName}'),
+                                trailing: Text('${item.hours.toStringAsFixed(2)} h'),
+                              ))
+                          .toList(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: saving ? null : () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: saving || selectedItems.isEmpty
+                          ? null
+                          : () async {
+                              setState(() => saving = true);
+                              try {
+                                final result = await ref.read(timeEntriesCommandsProvider).createInvoiceFromTime(
+                                      customerId: selectedCustomerId,
+                                      invoiceDate: invoiceDate,
+                                      dueDate: dueDate,
+                                      timeEntryIds: selectedItems.map((item) => item.id).toList(),
+                                      postInvoice: postInvoice,
+                                    );
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Created invoice ${result.invoiceNumber} for ${result.totalHours.toStringAsFixed(2)} hours.'),
+                                    ),
+                                  );
+                                }
+                              } catch (error) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+                                }
+                                setState(() => saving = false);
+                              }
+                            },
+                      icon: saving ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.receipt_long_outlined),
+                      label: const Text('Create Invoice'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 Future<void> _showMarkInvoicedSheet(BuildContext context, WidgetRef ref, TimeEntry entry) async {
