@@ -8,6 +8,11 @@ final payrollSetupProvider = FutureProvider.autoDispose<PayrollSetup>((ref) asyn
   return PayrollSetup.fromJson(response.data!);
 });
 
+final payrollAccountSettingsProvider = FutureProvider.autoDispose<PayrollAccountSettings>((ref) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/account-settings');
+  return PayrollAccountSettings.fromJson(response.data!);
+});
+
 final payrollSetupCommandsProvider = Provider<PayrollSetupCommands>((ref) => PayrollSetupCommands(ref));
 
 class PayrollSetupCommands {
@@ -30,6 +35,23 @@ class PayrollSetupCommands {
         'isPayrollEnabled': isPayrollEnabled,
       },
     );
+    ref.invalidate(payrollSetupProvider);
+  }
+
+  Future<void> updateAccountSettings({
+    required String? payrollExpenseAccountId,
+    required String? payrollPayableAccountId,
+    required String? payrollTaxPayableAccountId,
+  }) async {
+    await ApiClient.instance.put<Map<String, dynamic>>(
+      '/api/payroll/account-settings',
+      data: {
+        'payrollExpenseAccountId': payrollExpenseAccountId,
+        'payrollPayableAccountId': payrollPayableAccountId,
+        'payrollTaxPayableAccountId': payrollTaxPayableAccountId,
+      },
+    );
+    ref.invalidate(payrollAccountSettingsProvider);
     ref.invalidate(payrollSetupProvider);
   }
 
@@ -108,6 +130,39 @@ class PayrollSetup {
         deductionTypes: JsonUtils.asList(json['deductionTypes'], (row) => PayrollDeductionType.fromJson(row)),
         activeEmployeeCount: JsonUtils.asInt(json['activeEmployeeCount']),
         payScheduleCount: JsonUtils.asInt(json['payScheduleCount']),
+      );
+}
+
+class PayrollAccountSettings {
+  const PayrollAccountSettings({
+    required this.settingsId,
+    required this.payrollExpenseAccountId,
+    required this.payrollExpenseAccountName,
+    required this.payrollPayableAccountId,
+    required this.payrollPayableAccountName,
+    required this.payrollTaxPayableAccountId,
+    required this.payrollTaxPayableAccountName,
+    required this.isConfigured,
+  });
+
+  final String settingsId;
+  final String? payrollExpenseAccountId;
+  final String? payrollExpenseAccountName;
+  final String? payrollPayableAccountId;
+  final String? payrollPayableAccountName;
+  final String? payrollTaxPayableAccountId;
+  final String? payrollTaxPayableAccountName;
+  final bool isConfigured;
+
+  factory PayrollAccountSettings.fromJson(Map<String, dynamic> json) => PayrollAccountSettings(
+        settingsId: JsonUtils.asString(json['settingsId']),
+        payrollExpenseAccountId: JsonUtils.asNullableString(json['payrollExpenseAccountId']),
+        payrollExpenseAccountName: JsonUtils.asNullableString(json['payrollExpenseAccountName']),
+        payrollPayableAccountId: JsonUtils.asNullableString(json['payrollPayableAccountId']),
+        payrollPayableAccountName: JsonUtils.asNullableString(json['payrollPayableAccountName']),
+        payrollTaxPayableAccountId: JsonUtils.asNullableString(json['payrollTaxPayableAccountId']),
+        payrollTaxPayableAccountName: JsonUtils.asNullableString(json['payrollTaxPayableAccountName']),
+        isConfigured: JsonUtils.asBool(json['isConfigured']),
       );
 }
 
