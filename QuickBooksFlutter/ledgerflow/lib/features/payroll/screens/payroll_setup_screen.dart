@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/api_enums.dart' show AccountType;
+import '../../accounts/data/models/account_model.dart';
+import '../../accounts/providers/accounts_provider.dart';
 import '../providers/payroll_setup_provider.dart';
 import '../widgets/payroll_runs_section.dart';
 
@@ -17,7 +20,10 @@ class PayrollSetupScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => ref.invalidate(payrollSetupProvider),
+            onPressed: () {
+              ref.invalidate(payrollSetupProvider);
+              ref.invalidate(payrollAccountSettingsProvider);
+            },
             icon: const Icon(Icons.refresh),
           ),
           const SizedBox(width: 8),
@@ -93,6 +99,8 @@ class _PayrollSetupBody extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 24),
+        const _PayrollAccountsPanel(),
+        const SizedBox(height: 24),
         PayrollRunsSection(setup: setup),
         const SizedBox(height: 16),
         _Panel(
@@ -126,6 +134,103 @@ class _PayrollSetupBody extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _PayrollAccountsPanel extends ConsumerWidget {
+  const _PayrollAccountsPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settingsAsync = ref.watch(payrollAccountSettingsProvider);
+    final cs = Theme.of(context).colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: settingsAsync.when(
+          loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+          error: (error, _) => _InlineError(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(payrollAccountSettingsProvider),
+          ),
+          data: (settings) {
+            final configured = settings.isConfigured;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: (configured ? Colors.green : Colors.orange).withValues(alpha: 0.14),
+                      child: Icon(configured ? Icons.check_circle_outline : Icons.warning_amber_outlined, color: configured ? Colors.green : Colors.orange),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Payroll Posting Accounts', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Text(
+                            configured
+                                ? 'Payroll posting will use these backend-configured accounts.'
+                                : 'Select payroll accounts before posting payroll runs.',
+                            style: TextStyle(color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _showPayrollAccountSettingsSheet(context, ref, settings),
+                      icon: const Icon(Icons.account_tree_outlined),
+                      label: Text(configured ? 'Edit Accounts' : 'Set Accounts'),
+                    ),
+                  ],
+                ),
+                const Divider(height: 26),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _AccountSettingChip(label: 'Expense', value: settings.payrollExpenseAccountName),
+                    _AccountSettingChip(label: 'Net Payable', value: settings.payrollPayableAccountName),
+                    _AccountSettingChip(label: 'Tax Payable', value: settings.payrollTaxPayableAccountName),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountSettingChip extends StatelessWidget {
+  const _AccountSettingChip({required this.label, required this.value});
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) => Chip(
+        avatar: Icon(value == null || value!.isEmpty ? Icons.warning_amber_outlined : Icons.check_circle_outline, size: 18),
+        label: Text('$label: ${value == null || value!.isEmpty ? 'Not set' : value!}'),
+      );
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+        ],
+      );
 }
 
 class _SummaryTile extends StatelessWidget {
@@ -303,6 +408,64 @@ Future<void> _showSettingsSheet(BuildContext context, WidgetRef ref, PayrollSett
   schedule.dispose();
   currency.dispose();
   hours.dispose();
+}
+
+Future<void> _showPayrollAccountSettingsSheet(BuildContext context, WidgetRef ref, PayrollAccountSettings settings) async {
+  final accounts = ref.read(accountsProvider).value ?? const <AccountModel>[];
+  final expenseAccounts = accounts.where((account) => account.isActive && account.accountType == AccountType.expense).toList();
+  final liabilityAccounts = accounts.where((account) => account.isActive && account.accountType == AccountType.otherCurrentLiability).toList();
+
+  String? expenseId = expenseAccounts.any((account) => account.id == settings.payrollExpenseAccountId) ? settings.payrollExpenseAccountId : null;
+  String? payableId = liabilityAccounts.any((account) => account.id == settings.payrollPayableAccountId) ? settings.payrollPayableAccountId : null;
+  String? taxPayableId = liabilityAccounts.any((account) => account.id == settings.payrollTaxPayableAccountId) ? settings.payrollTaxPayableAccountId : null;
+
+  await _showFormSheet(
+    context,
+    title: 'Payroll Posting Accounts',
+    fields: [
+      if (accounts.isEmpty)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: Text('Accounts are still loading. Refresh Chart of Accounts if this list is empty.'),
+        ),
+      StatefulBuilder(
+        builder: (context, setState) => DropdownButtonFormField<String>(
+          initialValue: expenseId,
+          decoration: const InputDecoration(labelText: 'Payroll expense account', border: OutlineInputBorder()),
+          items: expenseAccounts.map((account) => DropdownMenuItem<String>(value: account.id, child: Text('${account.code} - ${account.name}'))).toList(),
+          onChanged: (value) => setState(() => expenseId = value),
+          validator: _required,
+        ),
+      ),
+      const SizedBox(height: 12),
+      StatefulBuilder(
+        builder: (context, setState) => DropdownButtonFormField<String>(
+          initialValue: payableId,
+          decoration: const InputDecoration(labelText: 'Payroll net payable account', border: OutlineInputBorder()),
+          items: liabilityAccounts.map((account) => DropdownMenuItem<String>(value: account.id, child: Text('${account.code} - ${account.name}'))).toList(),
+          onChanged: (value) => setState(() => payableId = value),
+          validator: _required,
+        ),
+      ),
+      const SizedBox(height: 12),
+      StatefulBuilder(
+        builder: (context, setState) => DropdownButtonFormField<String>(
+          initialValue: taxPayableId,
+          decoration: const InputDecoration(labelText: 'Payroll tax payable account', border: OutlineInputBorder()),
+          items: liabilityAccounts.map((account) => DropdownMenuItem<String>(value: account.id, child: Text('${account.code} - ${account.name}'))).toList(),
+          onChanged: (value) => setState(() => taxPayableId = value),
+          validator: _required,
+        ),
+      ),
+      const SizedBox(height: 12),
+      const Text('Payroll posting will be blocked until all three accounts are selected and valid in the backend.'),
+    ],
+    onSave: () => ref.read(payrollSetupCommandsProvider).updateAccountSettings(
+          payrollExpenseAccountId: expenseId,
+          payrollPayableAccountId: payableId,
+          payrollTaxPayableAccountId: taxPayableId,
+        ),
+  );
 }
 
 Future<void> _showEmployeeSheet(BuildContext context, WidgetRef ref, PayrollSettings settings) async {
