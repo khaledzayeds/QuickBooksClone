@@ -114,9 +114,6 @@ public sealed class TimeEntriesController : ControllerBase
         {
             return BadRequest(exception.Message);
         }
-        catch (ArgumentOutOfRangeException exception)
-        {
-            return BadRequest(exception.Message);
         }
     }
 
@@ -164,9 +161,6 @@ public sealed class TimeEntriesController : ControllerBase
         {
             return BadRequest(exception.Message);
         }
-        catch (ArgumentOutOfRangeException exception)
-        {
-            return BadRequest(exception.Message);
         }
         catch (InvalidOperationException exception)
         {

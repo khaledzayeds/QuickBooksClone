@@ -577,7 +577,7 @@ public sealed class PayrollRunsController : ControllerBase
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    private async Task<IReadOnlyList<T>> QueryAsync<T>(string sql, IReadOnlyDictionary<string, object?> parameters, Func<IDataRecord, T> mapper, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<T>> QueryAsync<T>(string sql, IReadOnlyDictionary<string, object?> parameters, Func<System.Data.Common.DbDataReader, T> mapper, CancellationToken cancellationToken)
     {
         var result = new List<T>();
         await using var command = _db.Database.GetDbConnection().CreateCommand();
