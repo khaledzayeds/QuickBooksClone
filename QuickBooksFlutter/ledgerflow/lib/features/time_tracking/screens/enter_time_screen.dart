@@ -16,7 +16,10 @@ class EnterTimeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => ref.invalidate(timeEntriesProvider),
+            onPressed: () {
+              ref.invalidate(timeEntriesProvider);
+              ref.invalidate(timeEntryLookupsProvider);
+            },
             icon: const Icon(Icons.refresh),
           ),
           const SizedBox(width: 8),
@@ -341,12 +344,21 @@ Future<void> _showEntrySheet(BuildContext context, WidgetRef ref) async {
   var workDate = DateTime.now();
   var isBillable = true;
   var saving = false;
+  String? customerId;
+  String? serviceItemId;
 
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, setState) {
+        final lookupsAsync = ref.watch(timeEntryLookupsProvider);
+        final lookups = lookupsAsync.valueOrNull;
+        final customers = lookups?.customers ?? const <TimeEntryCustomerLookup>[];
+        final serviceItems = lookups?.serviceItems ?? const <TimeEntryServiceItemLookup>[];
+        final safeCustomerId = customers.any((customer) => customer.id == customerId) ? customerId : null;
+        final safeServiceItemId = serviceItems.any((item) => item.id == serviceItemId) ? serviceItemId : null;
+
         return Padding(
           padding: EdgeInsets.only(
             left: 24,
@@ -417,6 +429,43 @@ Future<void> _showEntrySheet(BuildContext context, WidgetRef ref) async {
                     value: isBillable,
                     onChanged: (value) => setState(() => isBillable = value),
                   ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: safeCustomerId,
+                    decoration: const InputDecoration(
+                      labelText: 'Customer for billable time',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: customers
+                        .map((customer) => DropdownMenuItem<String>(
+                              value: customer.id,
+                              child: Text(customer.displayName),
+                            ))
+                        .toList(),
+                    onChanged: (value) => setState(() => customerId = value),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: safeServiceItemId,
+                    decoration: const InputDecoration(
+                      labelText: 'Service item for billable time',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: serviceItems
+                        .map((item) => DropdownMenuItem<String>(
+                              value: item.id,
+                              child: Text(item.name),
+                            ))
+                        .toList(),
+                    onChanged: (value) => setState(() => serviceItemId = value),
+                  ),
+                  const SizedBox(height: 8),
+                  if (lookupsAsync.isLoading) const LinearProgressIndicator(),
+                  if (lookupsAsync.hasError)
+                    Text(
+                      'Could not load time entry lookups. You can still save a draft time entry.',
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
                   const SizedBox(height: 8),
                   const Text(
                     'Customer and service item are optional at draft entry time, but backend requires them before moving billable time to Billable/Invoiced.',
@@ -440,6 +489,8 @@ Future<void> _showEntrySheet(BuildContext context, WidgetRef ref) async {
                                         hours: double.parse(hoursController.text.trim()),
                                         activity: activityController.text.trim(),
                                         notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                                        customerId: customerId,
+                                        serviceItemId: serviceItemId,
                                         isBillable: isBillable,
                                       );
                                   if (context.mounted) Navigator.of(context).pop();
