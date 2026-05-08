@@ -249,7 +249,7 @@ class _SalesSummaryView extends StatelessWidget {
                         _date(row.invoiceDate),
                         _date(row.dueDate),
                         row.customerName,
-                        row.status.toString(),
+                        _invoiceStatusLabel(row.status),
                         row.totalAmount.toStringAsFixed(2),
                         row.paidAmount.toStringAsFixed(2),
                         row.balanceDue.toStringAsFixed(2),
@@ -291,7 +291,7 @@ class _PurchasesSummaryView extends StatelessWidget {
                         _date(row.billDate),
                         _date(row.dueDate),
                         row.vendorName,
-                        row.status.toString(),
+                        _purchaseBillStatusLabel(row.status),
                         row.totalAmount.toStringAsFixed(2),
                         row.paidAmount.toStringAsFixed(2),
                         row.balanceDue.toStringAsFixed(2),
@@ -586,9 +586,12 @@ class _ReportTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: DataTable(
-        columns: columns.map((column) => DataColumn(label: Text(column))).toList(),
-        rows: rows.map((row) => DataRow(cells: row.map((cell) => DataCell(Text(cell))).toList())).toList(),
+      scrollDirection: Axis.horizontal,
+      child: SingleChildScrollView(
+        child: DataTable(
+          columns: columns.map((column) => DataColumn(label: Text(column))).toList(),
+          rows: rows.map((row) => DataRow(cells: row.map((cell) => DataCell(Text(cell))).toList())).toList(),
+        ),
       ),
     );
   }
@@ -672,5 +675,26 @@ Future<void> _showDateRangeSheet(BuildContext context, WidgetRef ref, ReportDate
     ),
   );
 }
+
+String _invoiceStatusLabel(int status) => switch (status) {
+      1 => 'Draft',
+      2 => 'Sent',
+      3 => 'Partially Paid',
+      4 => 'Paid',
+      5 => 'Void',
+      6 => 'Posted',
+      7 => 'Returned',
+      _ => status.toString(),
+    };
+
+String _purchaseBillStatusLabel(int status) => switch (status) {
+      1 => 'Draft',
+      2 => 'Posted',
+      3 => 'Void',
+      4 => 'Partially Paid',
+      5 => 'Paid',
+      6 => 'Returned',
+      _ => status.toString(),
+    };
 
 String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
