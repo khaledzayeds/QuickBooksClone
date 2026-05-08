@@ -8,6 +8,11 @@ final timeEntriesProvider = FutureProvider.autoDispose<TimeEntryList>((ref) asyn
   return TimeEntryList.fromJson(response.data!);
 });
 
+final timeEntryLookupsProvider = FutureProvider.autoDispose<TimeEntryLookups>((ref) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries/lookups');
+  return TimeEntryLookups.fromJson(response.data!);
+});
+
 final timeEntriesCommandsProvider = Provider<TimeEntriesCommands>((ref) => TimeEntriesCommands(ref));
 
 class TimeEntriesCommands {
@@ -92,6 +97,42 @@ class TimeEntryList {
         totalHours: JsonUtils.asDouble(json['totalHours']),
         billableHours: JsonUtils.asDouble(json['billableHours']),
         nonBillableHours: JsonUtils.asDouble(json['nonBillableHours']),
+      );
+}
+
+class TimeEntryLookups {
+  const TimeEntryLookups({required this.customers, required this.serviceItems});
+
+  final List<TimeEntryCustomerLookup> customers;
+  final List<TimeEntryServiceItemLookup> serviceItems;
+
+  factory TimeEntryLookups.fromJson(Map<String, dynamic> json) => TimeEntryLookups(
+        customers: JsonUtils.asList(json['customers'], (row) => TimeEntryCustomerLookup.fromJson(row)),
+        serviceItems: JsonUtils.asList(json['serviceItems'], (row) => TimeEntryServiceItemLookup.fromJson(row)),
+      );
+}
+
+class TimeEntryCustomerLookup {
+  const TimeEntryCustomerLookup({required this.id, required this.displayName});
+
+  final String id;
+  final String displayName;
+
+  factory TimeEntryCustomerLookup.fromJson(Map<String, dynamic> json) => TimeEntryCustomerLookup(
+        id: JsonUtils.asString(json['id']),
+        displayName: JsonUtils.asString(json['displayName']),
+      );
+}
+
+class TimeEntryServiceItemLookup {
+  const TimeEntryServiceItemLookup({required this.id, required this.name});
+
+  final String id;
+  final String name;
+
+  factory TimeEntryServiceItemLookup.fromJson(Map<String, dynamic> json) => TimeEntryServiceItemLookup(
+        id: JsonUtils.asString(json['id']),
+        name: JsonUtils.asString(json['name']),
       );
 }
 
