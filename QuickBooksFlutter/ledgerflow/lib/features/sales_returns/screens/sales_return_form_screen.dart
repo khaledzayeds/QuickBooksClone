@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
@@ -28,31 +27,26 @@ class SalesReturnLineState {
   double quantity;
   double discountPercent;
 
-  double get total => quantity * unitPrice * (1 - (discountPercent / 100));
+  double get draftAmount => quantity * unitPrice * (1 - (discountPercent / 100));
 }
 
-class SalesReturnFormState {
-  String? invoiceId;
-  DateTime returnDate = DateTime.now();
-  List<SalesReturnLineState> lines = [];
-
-  double get total => lines.fold(0, (sum, line) => sum + line.total);
-}
-
-final salesReturnFormProvider = StateProvider.autoDispose<SalesReturnFormState>(
-  (ref) => SalesReturnFormState(),
-);
-final salesReturnSavingProvider = StateProvider.autoDispose<bool>(
-  (ref) => false,
-);
-
-class SalesReturnFormScreen extends ConsumerWidget {
+class SalesReturnFormScreen extends ConsumerStatefulWidget {
   const SalesReturnFormScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final form = ref.watch(salesReturnFormProvider);
-    final saving = ref.watch(salesReturnSavingProvider);
+  ConsumerState<SalesReturnFormScreen> createState() => _SalesReturnFormScreenState();
+}
+
+class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
+  String? _invoiceId;
+  DateTime _returnDate = DateTime.now();
+  List<SalesReturnLineState> _lines = [];
+  bool _saving = false;
+
+  double get _draftTotal => _lines.fold(0, (sum, line) => sum + line.draftAmount);
+
+  @override
+  Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(invoicesProvider);
 
     return Scaffold(
@@ -60,17 +54,15 @@ class SalesReturnFormScreen extends ConsumerWidget {
         title: const Text('مرتجع بيع جديد'),
         actions: [
           TextButton(
-            onPressed: saving
+            onPressed: _saving
                 ? null
-                : () => context.canPop()
-                      ? context.pop()
-                      : context.go(AppRoutes.salesReturns),
+                : () => context.canPop() ? context.pop() : context.go(AppRoutes.salesReturns),
             child: const Text('إلغاء'),
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
-            onPressed: saving ? null : () => _save(context, ref),
-            icon: saving
+            onPressed: _saving ? null : _save,
+            icon: _saving
                 ? const SizedBox(
                     width: 16,
                     height: 16,
@@ -85,27 +77,57 @@ class SalesReturnFormScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          _InvoiceCard(form: form, invoicesAsync: invoicesAsync),
+          _InvoiceCard(
+            invoiceId: _invoiceId,
+            returnDate: _returnDate,
+            invoicesAsync: invoicesAsync,
+            onInvoiceChanged: _selectInvoice,
+          ),
           const SizedBox(height: 24),
-          _LinesCard(form: form),
+          _LinesCard(
+            lines: _lines,
+            onQuantityChanged: (index, quantity) => setState(() => _lines[index].quantity = quantity),
+          ),
           const SizedBox(height: 24),
           Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: _TotalCard(total: form.total),
+            child: _DraftTotalCard(total: _draftTotal),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _save(BuildContext context, WidgetRef ref) async {
-    final form = ref.read(salesReturnFormProvider);
-    if (form.invoiceId == null || form.invoiceId!.isEmpty) {
+  void _selectInvoice(InvoiceModel? invoice) {
+    setState(() {
+      if (invoice == null) {
+        _invoiceId = null;
+        _lines = [];
+        return;
+      }
+
+      _invoiceId = invoice.id;
+      _lines = invoice.lines
+          .map(
+            (line) => SalesReturnLineState(
+              invoiceLineId: line.id,
+              description: line.description.isEmpty ? line.itemId : line.description,
+              originalQuantity: line.quantity,
+              unitPrice: line.unitPrice,
+              discountPercent: line.discountPercent,
+            ),
+          )
+          .toList();
+    });
+  }
+
+  Future<void> _save() async {
+    if (_invoiceId == null || _invoiceId!.isEmpty) {
       _error(context, 'اختر الفاتورة أولاً');
       return;
     }
 
-    final validLines = form.lines.where((line) => line.quantity > 0).toList();
+    final validLines = _lines.where((line) => line.quantity > 0).toList();
     if (validLines.isEmpty) {
       _error(context, 'حدد كمية مرتجعة لسطر واحد على الأقل');
       return;
@@ -119,8 +141,8 @@ class SalesReturnFormScreen extends ConsumerWidget {
     }
 
     final dto = CreateSalesReturnDto(
-      invoiceId: form.invoiceId!,
-      returnDate: form.returnDate,
+      invoiceId: _invoiceId!,
+      returnDate: _returnDate,
       lines: validLines
           .map(
             (line) => CreateSalesReturnLineDto(
@@ -133,11 +155,11 @@ class SalesReturnFormScreen extends ConsumerWidget {
           .toList(),
     );
 
-    ref.read(salesReturnSavingProvider.notifier).state = true;
+    setState(() => _saving = true);
     final result = await ref.read(salesReturnsProvider.notifier).create(dto);
-    ref.read(salesReturnSavingProvider.notifier).state = false;
+    if (!mounted) return;
+    setState(() => _saving = false);
 
-    if (!context.mounted) return;
     result.when(
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
@@ -160,23 +182,26 @@ class SalesReturnFormScreen extends ConsumerWidget {
   }
 }
 
-class _InvoiceCard extends ConsumerWidget {
-  const _InvoiceCard({required this.form, required this.invoicesAsync});
+class _InvoiceCard extends StatelessWidget {
+  const _InvoiceCard({
+    required this.invoiceId,
+    required this.returnDate,
+    required this.invoicesAsync,
+    required this.onInvoiceChanged,
+  });
 
-  final SalesReturnFormState form;
+  final String? invoiceId;
+  final DateTime returnDate;
   final AsyncValue<List<InvoiceModel>> invoicesAsync;
+  final ValueChanged<InvoiceModel?> onInvoiceChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final invoices = invoicesAsync.maybeWhen(
-      data: (data) => data
-          .where((invoice) => !invoice.isVoid && invoice.lines.isNotEmpty)
-          .toList(),
+      data: (data) => data.where((invoice) => !invoice.isVoid && invoice.lines.isNotEmpty).toList(),
       orElse: () => <InvoiceModel>[],
     );
-    final selected = invoices
-        .where((invoice) => invoice.id == form.invoiceId)
-        .firstOrNull;
+    final selected = invoices.where((invoice) => invoice.id == invoiceId).firstOrNull;
 
     return Card(
       child: Padding(
@@ -201,32 +226,14 @@ class _InvoiceCard extends ConsumerWidget {
                   )
                   .toList(),
               onChanged: (value) {
-                final invoice = invoices
-                    .where((item) => item.id == value)
-                    .firstOrNull;
-                final newState = SalesReturnFormState()
-                  ..invoiceId = value
-                  ..returnDate = form.returnDate
-                  ..lines = (invoice?.lines ?? const [])
-                      .map(
-                        (line) => SalesReturnLineState(
-                          invoiceLineId: line.id,
-                          description: line.description.isEmpty
-                              ? line.itemId
-                              : line.description,
-                          originalQuantity: line.quantity,
-                          unitPrice: line.unitPrice,
-                          discountPercent: line.discountPercent,
-                        ),
-                      )
-                      .toList();
-                ref.read(salesReturnFormProvider.notifier).state = newState;
+                final invoice = invoices.where((item) => item.id == value).firstOrNull;
+                onInvoiceChanged(invoice);
               },
             ),
             const SizedBox(height: 16),
             TextFormField(
               readOnly: true,
-              initialValue: SalesReturnFormScreen._dateOnly(form.returnDate),
+              initialValue: _SalesReturnFormScreenState._dateOnly(returnDate),
               decoration: const InputDecoration(
                 labelText: 'تاريخ المرتجع',
                 border: OutlineInputBorder(),
@@ -240,13 +247,15 @@ class _InvoiceCard extends ConsumerWidget {
   }
 }
 
-class _LinesCard extends ConsumerWidget {
-  const _LinesCard({required this.form});
-  final SalesReturnFormState form;
+class _LinesCard extends StatelessWidget {
+  const _LinesCard({required this.lines, required this.onQuantityChanged});
+
+  final List<SalesReturnLineState> lines;
+  final void Function(int index, double quantity) onQuantityChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (form.lines.isEmpty) {
+  Widget build(BuildContext context) {
+    if (lines.isEmpty) {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(24),
@@ -266,14 +275,17 @@ class _LinesCard extends ConsumerWidget {
                 Expanded(child: Text('كمية الفاتورة')),
                 Expanded(child: Text('كمية المرتجع')),
                 Expanded(child: Text('السعر')),
-                Expanded(child: Text('الإجمالي')),
+                Expanded(child: Text('Draft amount')),
               ],
             ),
             const Divider(),
-            ...form.lines.asMap().entries.map(
-              (entry) =>
-                  _LineRow(index: entry.key, line: entry.value, form: form),
-            ),
+            ...lines.asMap().entries.map(
+                  (entry) => _LineRow(
+                    index: entry.key,
+                    line: entry.value,
+                    onQuantityChanged: onQuantityChanged,
+                  ),
+                ),
           ],
         ),
       ),
@@ -281,15 +293,19 @@ class _LinesCard extends ConsumerWidget {
   }
 }
 
-class _LineRow extends ConsumerWidget {
-  const _LineRow({required this.index, required this.line, required this.form});
+class _LineRow extends StatelessWidget {
+  const _LineRow({
+    required this.index,
+    required this.line,
+    required this.onQuantityChanged,
+  });
 
   final int index;
   final SalesReturnLineState line;
-  final SalesReturnFormState form;
+  final void Function(int index, double quantity) onQuantityChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -300,54 +316,50 @@ class _LineRow extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: TextFormField(
-                initialValue: line.quantity == 0
-                    ? ''
-                    : line.quantity.toString(),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onChanged: (value) {
-                  form.lines[index].quantity = double.tryParse(value) ?? 0;
-                  _update(ref, form);
-                },
+                initialValue: line.quantity == 0 ? '' : line.quantity.toString(),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                onChanged: (value) => onQuantityChanged(index, double.tryParse(value) ?? 0),
               ),
             ),
           ),
           Expanded(child: Text(line.unitPrice.toStringAsFixed(2))),
-          Expanded(child: Text(line.total.toStringAsFixed(2))),
+          Expanded(child: Text(line.draftAmount.toStringAsFixed(2))),
         ],
       ),
     );
   }
 }
 
-class _TotalCard extends StatelessWidget {
-  const _TotalCard({required this.total});
+class _DraftTotalCard extends StatelessWidget {
+  const _DraftTotalCard({required this.total});
   final double total;
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: SizedBox(
-        width: 320,
+        width: 360,
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'إجمالي المرتجع',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Draft return total', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    total.toStringAsFixed(2),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: cs.primary),
+                  ),
+                ],
               ),
-              Text(
-                total.toStringAsFixed(2),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              const SizedBox(height: 8),
+              const Text(
+                'Official return totals, stock impact, customer credit, and accounting posting are recalculated by the backend after save.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -355,11 +367,4 @@ class _TotalCard extends StatelessWidget {
       ),
     );
   }
-}
-
-void _update(WidgetRef ref, SalesReturnFormState old) {
-  ref.read(salesReturnFormProvider.notifier).state = SalesReturnFormState()
-    ..invoiceId = old.invoiceId
-    ..returnDate = old.returnDate
-    ..lines = List.from(old.lines);
 }
