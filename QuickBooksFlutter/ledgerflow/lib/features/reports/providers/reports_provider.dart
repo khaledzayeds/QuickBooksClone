@@ -3,6 +3,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../payroll/providers/payroll_runs_provider.dart';
+import '../../time_tracking/providers/time_entries_provider.dart';
 import '../data/datasources/reports_remote_datasource.dart';
 import '../data/models/report_models.dart';
 import '../data/repositories/reports_repository.dart';
@@ -48,4 +50,14 @@ final inventoryValuationReportProvider = FutureProvider.autoDispose<InventoryVal
 final taxSummaryReportProvider = FutureProvider.autoDispose<TaxSummaryReportModel>((ref) async {
   final result = await ref.read(reportsRepositoryProvider).getTaxSummary();
   return result.when(success: (data) => data, failure: (error) => throw error);
+});
+
+final payrollReportHubProvider = FutureProvider.autoDispose<PayrollSummaryReport>((ref) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/reports/summary');
+  return PayrollSummaryReport.fromJson(response.data!);
+});
+
+final timeTrackingReportHubProvider = FutureProvider.autoDispose<TimeEntrySummaryReport>((ref) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries/reports/summary');
+  return TimeEntrySummaryReport.fromJson(response.data!);
 });
