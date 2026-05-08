@@ -37,7 +37,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.reports)),
+      appBar: AppBar(
+        title: Text(l10n.reports),
+        actions: const [
+          _ReportDateRangeButton(),
+          SizedBox(width: 8),
+        ],
+      ),
       body: Row(
         children: [
           SizedBox(
@@ -68,6 +74,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ReportDateRangeButton extends ConsumerWidget {
+  const _ReportDateRangeButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final range = ref.watch(reportsDateRangeProvider);
+    return OutlinedButton.icon(
+      onPressed: () => _showDateRangeSheet(context, ref, range),
+      icon: const Icon(Icons.date_range_outlined),
+      label: Text('${_date(range.fromDate)} → ${_date(range.toDate)}'),
     );
   }
 }
@@ -587,6 +607,70 @@ class _ErrorState extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _showDateRangeSheet(BuildContext context, WidgetRef ref, ReportDateRange current) async {
+  var fromDate = current.fromDate;
+  var toDate = current.toDate;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (context, setState) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Report Date Range', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_outlined),
+              title: Text(_date(fromDate)),
+              subtitle: const Text('From date'),
+              trailing: TextButton(
+                onPressed: () async {
+                  final selected = await showDatePicker(context: context, initialDate: fromDate, firstDate: DateTime(2020), lastDate: DateTime(2100));
+                  if (selected != null) setState(() => fromDate = selected);
+                },
+                child: const Text('Change'),
+              ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_available_outlined),
+              title: Text(_date(toDate)),
+              subtitle: const Text('To date'),
+              trailing: TextButton(
+                onPressed: () async {
+                  final selected = await showDatePicker(context: context, initialDate: toDate, firstDate: fromDate, lastDate: DateTime(2100));
+                  if (selected != null) setState(() => toDate = selected);
+                },
+                child: const Text('Change'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: () {
+                    ref.read(reportsDateRangeProvider.notifier).state = ReportDateRange(fromDate: fromDate, toDate: toDate);
+                    Navigator.of(context).pop();
+                  },
+                  icon: const Icon(Icons.check_outlined),
+                  label: const Text('Apply'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
