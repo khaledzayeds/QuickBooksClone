@@ -26,6 +26,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _ReportMenuItem(l10n.profitAndLoss, Icons.trending_up),
       _ReportMenuItem(l10n.bankAccounts, Icons.account_balance),
       _ReportMenuItem(l10n.chartOfAccounts, Icons.balance),
+      const _ReportMenuItem('Sales Summary', Icons.point_of_sale_outlined),
+      const _ReportMenuItem('Purchases Summary', Icons.shopping_cart_outlined),
       _ReportMenuItem(l10n.incomeTracker, Icons.groups_outlined),
       _ReportMenuItem(l10n.billTracker, Icons.storefront_outlined),
       _ReportMenuItem(l10n.stock, Icons.inventory_2_outlined),
@@ -90,16 +92,20 @@ class _ReportBody extends ConsumerWidget {
       case 2:
         return _TrialBalanceView(report: ref.watch(trialBalanceReportProvider));
       case 3:
-        return _AgingView(report: ref.watch(accountsReceivableAgingReportProvider));
+        return _SalesSummaryView(report: ref.watch(salesSummaryReportProvider));
       case 4:
-        return _AgingView(report: ref.watch(accountsPayableAgingReportProvider));
+        return _PurchasesSummaryView(report: ref.watch(purchasesSummaryReportProvider));
       case 5:
-        return _InventoryValuationView(report: ref.watch(inventoryValuationReportProvider));
+        return _AgingView(report: ref.watch(accountsReceivableAgingReportProvider));
       case 6:
-        return _TaxSummaryView(report: ref.watch(taxSummaryReportProvider));
+        return _AgingView(report: ref.watch(accountsPayableAgingReportProvider));
       case 7:
-        return _PayrollSummaryView(report: ref.watch(payrollReportHubProvider));
+        return _InventoryValuationView(report: ref.watch(inventoryValuationReportProvider));
       case 8:
+        return _TaxSummaryView(report: ref.watch(taxSummaryReportProvider));
+      case 9:
+        return _PayrollSummaryView(report: ref.watch(payrollReportHubProvider));
+      case 10:
         return _TimeTrackingSummaryView(report: ref.watch(timeTrackingReportHubProvider));
       default:
         return const SizedBox.shrink();
@@ -185,6 +191,90 @@ class _TrialBalanceView extends StatelessWidget {
                         '${row.accountCode} - ${row.accountName}',
                         row.closingDebit.toStringAsFixed(2),
                         row.closingCredit.toStringAsFixed(2),
+                      ])
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SalesSummaryView extends StatelessWidget {
+  const _SalesSummaryView({required this.report});
+  final AsyncValue<SalesSummaryReportModel> report;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AsyncReportFrame<SalesSummaryReportModel>(
+      title: 'Sales Summary',
+      report: report,
+      builder: (data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SummaryGrid(items: [
+            _SummaryItem('Invoices', data.invoiceCount.toDouble()),
+            _SummaryItem('Customers', data.customerCount.toDouble()),
+            _SummaryItem('Total Sales', data.totalAmount),
+            _SummaryItem('Balance Due', data.balanceDue),
+          ]),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _ReportTable(
+              columns: const ['Invoice', 'Date', 'Due', 'Customer', 'Status', 'Total', 'Paid', 'Balance'],
+              rows: data.invoices
+                  .map((row) => [
+                        row.invoiceNumber,
+                        _date(row.invoiceDate),
+                        _date(row.dueDate),
+                        row.customerName,
+                        row.status.toString(),
+                        row.totalAmount.toStringAsFixed(2),
+                        row.paidAmount.toStringAsFixed(2),
+                        row.balanceDue.toStringAsFixed(2),
+                      ])
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PurchasesSummaryView extends StatelessWidget {
+  const _PurchasesSummaryView({required this.report});
+  final AsyncValue<PurchasesSummaryReportModel> report;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AsyncReportFrame<PurchasesSummaryReportModel>(
+      title: 'Purchases Summary',
+      report: report,
+      builder: (data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SummaryGrid(items: [
+            _SummaryItem('Bills', data.billCount.toDouble()),
+            _SummaryItem('Vendors', data.vendorCount.toDouble()),
+            _SummaryItem('Total Purchases', data.totalAmount),
+            _SummaryItem('Balance Due', data.balanceDue),
+          ]),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _ReportTable(
+              columns: const ['Bill', 'Date', 'Due', 'Vendor', 'Status', 'Total', 'Paid', 'Balance'],
+              rows: data.bills
+                  .map((row) => [
+                        row.billNumber,
+                        _date(row.billDate),
+                        _date(row.dueDate),
+                        row.vendorName,
+                        row.status.toString(),
+                        row.totalAmount.toStringAsFixed(2),
+                        row.paidAmount.toStringAsFixed(2),
+                        row.balanceDue.toStringAsFixed(2),
                       ])
                   .toList(),
             ),
