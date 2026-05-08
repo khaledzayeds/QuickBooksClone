@@ -276,4 +276,198 @@ class TaxSummaryRowModel {
       );
 }
 
+class SalesSummaryReportModel {
+  const SalesSummaryReportModel({
+    required this.invoiceCount,
+    required this.customerCount,
+    required this.subtotal,
+    required this.taxAmount,
+    required this.totalAmount,
+    required this.paidAmount,
+    required this.balanceDue,
+    required this.byStatus,
+    required this.byCustomer,
+    required this.invoices,
+  });
+
+  final int invoiceCount;
+  final int customerCount;
+  final double subtotal;
+  final double taxAmount;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  final List<SalesSummaryByStatusModel> byStatus;
+  final List<SalesSummaryByCustomerModel> byCustomer;
+  final List<SalesSummaryInvoiceModel> invoices;
+
+  factory SalesSummaryReportModel.fromJson(Map<String, dynamic> json) => SalesSummaryReportModel(
+        invoiceCount: JsonUtils.asInt(json['invoiceCount']),
+        customerCount: JsonUtils.asInt(json['customerCount']),
+        subtotal: JsonUtils.asDouble(json['subtotal']),
+        taxAmount: JsonUtils.asDouble(json['taxAmount']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+        byStatus: JsonUtils.asList(json['byStatus'], (row) => SalesSummaryByStatusModel.fromJson(row)),
+        byCustomer: JsonUtils.asList(json['byCustomer'], (row) => SalesSummaryByCustomerModel.fromJson(row)),
+        invoices: JsonUtils.asList(json['invoices'], (row) => SalesSummaryInvoiceModel.fromJson(row)),
+      );
+}
+
+class SalesSummaryByStatusModel {
+  const SalesSummaryByStatusModel({required this.status, required this.invoiceCount, required this.totalAmount, required this.paidAmount, required this.balanceDue});
+  final int status;
+  final int invoiceCount;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  factory SalesSummaryByStatusModel.fromJson(Map<String, dynamic> json) => SalesSummaryByStatusModel(
+        status: JsonUtils.asInt(json['status']),
+        invoiceCount: JsonUtils.asInt(json['invoiceCount']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+      );
+}
+
+class SalesSummaryByCustomerModel {
+  const SalesSummaryByCustomerModel({required this.customerId, required this.customerName, required this.invoiceCount, required this.totalAmount, required this.paidAmount, required this.balanceDue});
+  final String customerId;
+  final String customerName;
+  final int invoiceCount;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  factory SalesSummaryByCustomerModel.fromJson(Map<String, dynamic> json) => SalesSummaryByCustomerModel(
+        customerId: JsonUtils.asString(json['customerId']),
+        customerName: JsonUtils.asString(json['customerName']),
+        invoiceCount: JsonUtils.asInt(json['invoiceCount']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+      );
+}
+
+class SalesSummaryInvoiceModel {
+  const SalesSummaryInvoiceModel({required this.id, required this.invoiceNumber, required this.invoiceDate, required this.dueDate, required this.customerName, required this.status, required this.totalAmount, required this.paidAmount, required this.balanceDue});
+  final String id;
+  final String invoiceNumber;
+  final DateTime invoiceDate;
+  final DateTime dueDate;
+  final String customerName;
+  final int status;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  factory SalesSummaryInvoiceModel.fromJson(Map<String, dynamic> json) => SalesSummaryInvoiceModel(
+        id: JsonUtils.asString(json['id']),
+        invoiceNumber: JsonUtils.asString(json['invoiceNumber']),
+        invoiceDate: _parseDate(json['invoiceDate']),
+        dueDate: _parseDate(json['dueDate']),
+        customerName: JsonUtils.asString(json['customerName']),
+        status: JsonUtils.asInt(json['status']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+      );
+}
+
+class PurchasesSummaryReportModel {
+  const PurchasesSummaryReportModel({
+    required this.billCount,
+    required this.vendorCount,
+    required this.subtotal,
+    required this.taxAmount,
+    required this.totalAmount,
+    required this.paidAmount,
+    required this.balanceDue,
+    required this.byStatus,
+    required this.byVendor,
+    required this.bills,
+  });
+
+  final int billCount;
+  final int vendorCount;
+  final double subtotal;
+  final double taxAmount;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  final List<PurchasesSummaryByStatusModel> byStatus;
+  final List<PurchasesSummaryByVendorModel> byVendor;
+  final List<PurchasesSummaryBillModel> bills;
+
+  factory PurchasesSummaryReportModel.fromJson(Map<String, dynamic> json) => PurchasesSummaryReportModel(
+        billCount: JsonUtils.asInt(json['billCount']),
+        vendorCount: JsonUtils.asInt(json['vendorCount']),
+        subtotal: JsonUtils.asDouble(json['subtotal']),
+        taxAmount: JsonUtils.asDouble(json['taxAmount']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+        byStatus: JsonUtils.asList(json['byStatus'], (row) => PurchasesSummaryByStatusModel.fromJson(row)),
+        byVendor: JsonUtils.asList(json['byVendor'], (row) => PurchasesSummaryByVendorModel.fromJson(row)),
+        bills: JsonUtils.asList(json['bills'], (row) => PurchasesSummaryBillModel.fromJson(row)),
+      );
+}
+
+class PurchasesSummaryByStatusModel {
+  const PurchasesSummaryByStatusModel({required this.status, required this.billCount, required this.totalAmount, required this.paidAmount, required this.balanceDue});
+  final int status;
+  final int billCount;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  factory PurchasesSummaryByStatusModel.fromJson(Map<String, dynamic> json) => PurchasesSummaryByStatusModel(
+        status: JsonUtils.asInt(json['status']),
+        billCount: JsonUtils.asInt(json['billCount']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+      );
+}
+
+class PurchasesSummaryByVendorModel {
+  const PurchasesSummaryByVendorModel({required this.vendorId, required this.vendorName, required this.billCount, required this.totalAmount, required this.paidAmount, required this.balanceDue});
+  final String vendorId;
+  final String vendorName;
+  final int billCount;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  factory PurchasesSummaryByVendorModel.fromJson(Map<String, dynamic> json) => PurchasesSummaryByVendorModel(
+        vendorId: JsonUtils.asString(json['vendorId']),
+        vendorName: JsonUtils.asString(json['vendorName']),
+        billCount: JsonUtils.asInt(json['billCount']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+      );
+}
+
+class PurchasesSummaryBillModel {
+  const PurchasesSummaryBillModel({required this.id, required this.billNumber, required this.billDate, required this.dueDate, required this.vendorName, required this.status, required this.totalAmount, required this.paidAmount, required this.balanceDue});
+  final String id;
+  final String billNumber;
+  final DateTime billDate;
+  final DateTime dueDate;
+  final String vendorName;
+  final int status;
+  final double totalAmount;
+  final double paidAmount;
+  final double balanceDue;
+  factory PurchasesSummaryBillModel.fromJson(Map<String, dynamic> json) => PurchasesSummaryBillModel(
+        id: JsonUtils.asString(json['id']),
+        billNumber: JsonUtils.asString(json['billNumber']),
+        billDate: _parseDate(json['billDate']),
+        dueDate: _parseDate(json['dueDate']),
+        vendorName: JsonUtils.asString(json['vendorName']),
+        status: JsonUtils.asInt(json['status']),
+        totalAmount: JsonUtils.asDouble(json['totalAmount']),
+        paidAmount: JsonUtils.asDouble(json['paidAmount']),
+        balanceDue: JsonUtils.asDouble(json['balanceDue']),
+      );
+}
+
 DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
