@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../providers/payroll_runs_provider.dart';
 import '../providers/payroll_setup_provider.dart';
 
@@ -142,6 +144,7 @@ class _PayrollRunTile extends ConsumerWidget {
     final commands = ref.read(payrollRunCommandsProvider);
     final color = _statusColor(context, run.status);
     final journalEntryId = run.journalEntryId;
+    final hasJournalEntry = journalEntryId != null && journalEntryId.isNotEmpty;
 
     return Card(
       elevation: 0,
@@ -170,7 +173,7 @@ class _PayrollRunTile extends ConsumerWidget {
                         Text('${_date(run.periodStart)} to ${_date(run.periodEnd)} • Pay ${_date(run.payDate)}'),
                         const SizedBox(height: 4),
                         Text('${run.paySchedule} • ${run.employeeCount} employee(s)'),
-                        if (journalEntryId != null && journalEntryId.isNotEmpty) ...[
+                        if (hasJournalEntry) ...[
                           const SizedBox(height: 4),
                           Text('Journal Entry: $journalEntryId'),
                         ],
@@ -207,6 +210,11 @@ class _PayrollRunTile extends ConsumerWidget {
                     onPressed: run.status == 'Approved' ? () => _run(context, () => commands.post(run.id)) : null,
                     icon: const Icon(Icons.post_add_outlined),
                     label: const Text('Post'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: hasJournalEntry ? () => _openJournalEntry(context, journalEntryId) : null,
+                    icon: const Icon(Icons.article_outlined),
+                    label: const Text('Open Journal'),
                   ),
                   OutlinedButton.icon(
                     onPressed: run.status == 'Draft' || run.status == 'Approved' ? () => _run(context, () => commands.voidRun(run.id)) : null,
@@ -259,6 +267,7 @@ class _PayrollRunDetailsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final journalEntryId = details.journalEntryId;
+    final hasJournalEntry = journalEntryId != null && journalEntryId.isNotEmpty;
 
     return SingleChildScrollView(
       child: Column(
@@ -273,8 +282,12 @@ class _PayrollRunDetailsView extends StatelessWidget {
               _InfoChip(label: 'Period', value: '${_date(details.periodStart)} → ${_date(details.periodEnd)}'),
               _InfoChip(label: 'Pay Date', value: _date(details.payDate)),
               _InfoChip(label: 'Tax Rate', value: '${(details.taxWithholdingRate * 100).toStringAsFixed(2)}%'),
-              if (journalEntryId != null && journalEntryId.isNotEmpty)
-                _InfoChip(label: 'Journal Entry', value: journalEntryId),
+              if (hasJournalEntry)
+                ActionChip(
+                  avatar: const Icon(Icons.article_outlined, size: 18),
+                  label: Text('Open Journal: $journalEntryId'),
+                  onPressed: () => _openJournalEntry(context, journalEntryId, closeDialog: true),
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -505,6 +518,12 @@ Future<void> _run(BuildContext context, Future<void> Function() action) async {
   } catch (error) {
     if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
   }
+}
+
+void _openJournalEntry(BuildContext context, String journalEntryId, {bool closeDialog = false}) {
+  final router = GoRouter.of(context);
+  if (closeDialog) Navigator.of(context).pop();
+  router.go(AppRoutes.journalEntryDetails.replaceFirst(':id', journalEntryId));
 }
 
 Color _statusColor(BuildContext context, String status) => switch (status) {
