@@ -18,6 +18,11 @@ final payrollRunJournalLinksProvider = FutureProvider.autoDispose.family<Payroll
   return PayrollRunJournalLinks.fromJson(response.data!);
 });
 
+final payrollSummaryReportProvider = FutureProvider.autoDispose<PayrollSummaryReport>((ref) async {
+  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/reports/summary');
+  return PayrollSummaryReport.fromJson(response.data!);
+});
+
 final payrollRunCommandsProvider = Provider<PayrollRunCommands>((ref) => PayrollRunCommands(ref));
 
 class PayrollRunCommands {
@@ -47,6 +52,7 @@ class PayrollRunCommands {
       },
     );
     ref.invalidate(payrollRunsProvider);
+    ref.invalidate(payrollSummaryReportProvider);
   }
 
   Future<void> approve(String id) async {
@@ -54,6 +60,7 @@ class PayrollRunCommands {
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
     ref.invalidate(payrollRunJournalLinksProvider(id));
+    ref.invalidate(payrollSummaryReportProvider);
   }
 
   Future<void> post(String id) async {
@@ -61,6 +68,7 @@ class PayrollRunCommands {
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
     ref.invalidate(payrollRunJournalLinksProvider(id));
+    ref.invalidate(payrollSummaryReportProvider);
   }
 
   Future<void> voidRun(String id) async {
@@ -68,6 +76,7 @@ class PayrollRunCommands {
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
     ref.invalidate(payrollRunJournalLinksProvider(id));
+    ref.invalidate(payrollSummaryReportProvider);
   }
 }
 
@@ -266,5 +275,128 @@ class PayrollRunLine {
       );
 }
 
+class PayrollSummaryReport {
+  const PayrollSummaryReport({
+    required this.fromDate,
+    required this.toDate,
+    required this.runCount,
+    required this.employeeCount,
+    required this.totalGrossPay,
+    required this.totalDeductions,
+    required this.totalNetPay,
+    required this.byStatus,
+    required this.byEmployee,
+    required this.runs,
+  });
+
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final int runCount;
+  final int employeeCount;
+  final double totalGrossPay;
+  final double totalDeductions;
+  final double totalNetPay;
+  final List<PayrollSummaryByStatus> byStatus;
+  final List<PayrollSummaryByEmployee> byEmployee;
+  final List<PayrollSummaryRun> runs;
+
+  factory PayrollSummaryReport.fromJson(Map<String, dynamic> json) => PayrollSummaryReport(
+        fromDate: _parseNullableDate(json['fromDate']),
+        toDate: _parseNullableDate(json['toDate']),
+        runCount: JsonUtils.asInt(json['runCount']),
+        employeeCount: JsonUtils.asInt(json['employeeCount']),
+        totalGrossPay: JsonUtils.asDouble(json['totalGrossPay']),
+        totalDeductions: JsonUtils.asDouble(json['totalDeductions']),
+        totalNetPay: JsonUtils.asDouble(json['totalNetPay']),
+        byStatus: JsonUtils.asList(json['byStatus'], (row) => PayrollSummaryByStatus.fromJson(row)),
+        byEmployee: JsonUtils.asList(json['byEmployee'], (row) => PayrollSummaryByEmployee.fromJson(row)),
+        runs: JsonUtils.asList(json['runs'], (row) => PayrollSummaryRun.fromJson(row)),
+      );
+}
+
+class PayrollSummaryByStatus {
+  const PayrollSummaryByStatus({required this.status, required this.runCount, required this.grossPay, required this.deductions, required this.netPay});
+
+  final String status;
+  final int runCount;
+  final double grossPay;
+  final double deductions;
+  final double netPay;
+
+  factory PayrollSummaryByStatus.fromJson(Map<String, dynamic> json) => PayrollSummaryByStatus(
+        status: JsonUtils.asString(json['status']),
+        runCount: JsonUtils.asInt(json['runCount']),
+        grossPay: JsonUtils.asDouble(json['grossPay']),
+        deductions: JsonUtils.asDouble(json['deductions']),
+        netPay: JsonUtils.asDouble(json['netPay']),
+      );
+}
+
+class PayrollSummaryByEmployee {
+  const PayrollSummaryByEmployee({required this.employeeId, required this.employeeNumber, required this.employeeName, required this.grossPay, required this.deductions, required this.netPay});
+
+  final String employeeId;
+  final String employeeNumber;
+  final String employeeName;
+  final double grossPay;
+  final double deductions;
+  final double netPay;
+
+  factory PayrollSummaryByEmployee.fromJson(Map<String, dynamic> json) => PayrollSummaryByEmployee(
+        employeeId: JsonUtils.asString(json['employeeId']),
+        employeeNumber: JsonUtils.asString(json['employeeNumber']),
+        employeeName: JsonUtils.asString(json['employeeName']),
+        grossPay: JsonUtils.asDouble(json['grossPay']),
+        deductions: JsonUtils.asDouble(json['deductions']),
+        netPay: JsonUtils.asDouble(json['netPay']),
+      );
+}
+
+class PayrollSummaryRun {
+  const PayrollSummaryRun({
+    required this.id,
+    required this.runNumber,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.payDate,
+    required this.status,
+    required this.currency,
+    required this.employeeCount,
+    required this.grossPay,
+    required this.deductions,
+    required this.netPay,
+    required this.journalEntryId,
+  });
+
+  final String id;
+  final String runNumber;
+  final DateTime periodStart;
+  final DateTime periodEnd;
+  final DateTime payDate;
+  final String status;
+  final String currency;
+  final int employeeCount;
+  final double grossPay;
+  final double deductions;
+  final double netPay;
+  final String? journalEntryId;
+
+  factory PayrollSummaryRun.fromJson(Map<String, dynamic> json) => PayrollSummaryRun(
+        id: JsonUtils.asString(json['id']),
+        runNumber: JsonUtils.asString(json['runNumber']),
+        periodStart: _parseDate(json['periodStart']),
+        periodEnd: _parseDate(json['periodEnd']),
+        payDate: _parseDate(json['payDate']),
+        status: JsonUtils.asString(json['status']),
+        currency: JsonUtils.asString(json['currency']),
+        employeeCount: JsonUtils.asInt(json['employeeCount']),
+        grossPay: JsonUtils.asDouble(json['grossPay']),
+        deductions: JsonUtils.asDouble(json['deductions']),
+        netPay: JsonUtils.asDouble(json['netPay']),
+        journalEntryId: JsonUtils.asNullableString(json['journalEntryId']),
+      );
+}
+
 String _dateOnly(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+DateTime? _parseNullableDate(dynamic value) => value == null ? null : DateTime.tryParse(value.toString());
