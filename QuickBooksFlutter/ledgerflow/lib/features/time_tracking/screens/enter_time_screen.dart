@@ -19,6 +19,7 @@ class EnterTimeScreen extends ConsumerWidget {
             onPressed: () {
               ref.invalidate(timeEntriesProvider);
               ref.invalidate(timeEntryLookupsProvider);
+              ref.invalidate(timeEntrySummaryReportProvider);
             },
             icon: const Icon(Icons.refresh),
           ),
@@ -77,6 +78,8 @@ class _EnterTimeBody extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 24),
+        const _TimeSummaryReportPanel(),
+        const SizedBox(height: 24),
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = constraints.maxWidth >= 1024 ? 4 : constraints.maxWidth >= 680 ? 2 : 1;
@@ -107,6 +110,150 @@ class _EnterTimeBody extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _TimeSummaryReportPanel extends ConsumerWidget {
+  const _TimeSummaryReportPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reportAsync = ref.watch(timeEntrySummaryReportProvider);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: reportAsync.when(
+          loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+          error: (error, _) => _InlineError(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(timeEntrySummaryReportProvider),
+          ),
+          data: (report) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(child: Icon(Icons.analytics_outlined)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Time Tracking Summary', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Backend-generated report and billable queue from /api/time-entries/reports/summary.',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => ref.invalidate(timeEntrySummaryReportProvider),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh'),
+                  ),
+                ],
+              ),
+              const Divider(height: 26),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 1024 ? 4 : constraints.maxWidth >= 680 ? 2 : 1;
+                  return GridView.count(
+                    crossAxisCount: columns,
+                    childAspectRatio: columns == 1 ? 3.7 : 2.25,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    children: [
+                      _SummaryTile('Report Entries', report.entryCount.toString(), Icons.list_alt_outlined, cs.primary),
+                      _SummaryTile('Report Hours', report.totalHours.toStringAsFixed(2), Icons.schedule_outlined, Colors.blue),
+                      _SummaryTile('Billable Not Invoiced', report.billableNotInvoicedHours.toStringAsFixed(2), Icons.pending_actions_outlined, Colors.teal),
+                      _SummaryTile('In Queue', report.billableQueue.length.toString(), Icons.playlist_add_check_outlined, Colors.deepPurple),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              if (report.byStatus.isNotEmpty) ...[
+                Text('By Status', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Status')),
+                      DataColumn(label: Text('Entries')),
+                      DataColumn(label: Text('Hours')),
+                      DataColumn(label: Text('Billable Hours')),
+                    ],
+                    rows: report.byStatus
+                        .map((row) => DataRow(cells: [
+                              DataCell(Text(timeEntryStatusLabel(row.status))),
+                              DataCell(Text(row.entryCount.toString())),
+                              DataCell(Text(row.totalHours.toStringAsFixed(2))),
+                              DataCell(Text(row.billableHours.toStringAsFixed(2))),
+                            ]))
+                        .toList(),
+                  ),
+                ),
+              ],
+              if (report.billableQueue.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('Billable Queue', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Date')),
+                      DataColumn(label: Text('Person')),
+                      DataColumn(label: Text('Customer')),
+                      DataColumn(label: Text('Service')),
+                      DataColumn(label: Text('Activity')),
+                      DataColumn(label: Text('Hours')),
+                      DataColumn(label: Text('Status')),
+                    ],
+                    rows: report.billableQueue
+                        .take(10)
+                        .map((row) => DataRow(cells: [
+                              DataCell(Text(_date(row.workDate))),
+                              DataCell(Text(row.personName)),
+                              DataCell(Text(row.customerName)),
+                              DataCell(Text(row.serviceItemName)),
+                              DataCell(Text(row.activity)),
+                              DataCell(Text(row.hours.toStringAsFixed(2))),
+                              DataCell(Text(timeEntryStatusLabel(row.status))),
+                            ]))
+                        .toList(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+        ],
+      );
 }
 
 class _SummaryTile extends StatelessWidget {
@@ -261,13 +408,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(context, status);
-    final label = switch (status) {
-      TimeEntryStatus.open => 'Open',
-      TimeEntryStatus.approved => 'Approved',
-      TimeEntryStatus.billable => 'Billable',
-      TimeEntryStatus.invoiced => 'Invoiced',
-      TimeEntryStatus.voided => 'Void',
-    };
+    final label = timeEntryStatusLabel(status);
 
     return Chip(
       visualDensity: VisualDensity.compact,
