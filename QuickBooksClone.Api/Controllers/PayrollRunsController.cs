@@ -167,27 +167,21 @@ public sealed class PayrollRunsController : ControllerBase
             return BadRequest("Payroll run is already linked to a journal entry.");
         }
 
-        var payrollExpense = await ResolveAccountAsync(AccountType.Expense, ["payroll", "wage", "salary", "compensation"], cancellationToken);
-        if (payrollExpense is null)
-        {
-            return BadRequest("Cannot post payroll because no active Expense account is available for payroll expense.");
-        }
-
-        var payrollLiability = await ResolveAccountAsync(AccountType.OtherCurrentLiability, ["payroll", "wage", "salary", "withholding", "tax", "liability", "payable"], cancellationToken);
-        if (payrollLiability is null)
-        {
-            return BadRequest("Cannot post payroll because no active Other Current Liability account is available for payroll payable/withholding.");
-        }
+        var accountsResult = await GetConfiguredPayrollAccountsAsync(cancellationToken);
+        if (accountsResult.ErrorMessage is not null) return BadRequest(accountsResult.ErrorMessage);
+        var payrollExpense = accountsResult.PayrollExpense!;
+        var payrollPayable = accountsResult.PayrollPayable!;
+        var payrollTaxPayable = accountsResult.PayrollTaxPayable!;
 
         var journalLines = new List<JournalEntryLine>
         {
             new(payrollExpense.Id, $"Payroll gross pay for {details.RunNumber}", details.TotalGrossPay, 0),
-            new(payrollLiability.Id, $"Payroll net payable for {details.RunNumber}", 0, details.TotalNetPay)
+            new(payrollPayable.Id, $"Payroll net payable for {details.RunNumber}", 0, details.TotalNetPay)
         };
 
         if (details.TotalDeductions > 0)
         {
-            journalLines.Add(new JournalEntryLine(payrollLiability.Id, $"Payroll deductions payable for {details.RunNumber}", 0, details.TotalDeductions));
+            journalLines.Add(new JournalEntryLine(payrollTaxPayable.Id, $"Payroll deductions payable for {details.RunNumber}", 0, details.TotalDeductions));
         }
 
         var allocation = await _documentNumbers.AllocateAsync(DocumentTypes.JournalEntry, cancellationToken);
@@ -286,6 +280,21 @@ public sealed class PayrollRunsController : ControllerBase
                     NetPay decimal(18,2) NOT NULL
                 );
                 CREATE INDEX IX_payroll_run_lines_RunId ON payroll_run_lines (PayrollRunId);
+            END
+
+            IF OBJECT_ID(N'payroll_settings', N'U') IS NOT NULL AND COL_LENGTH('payroll_settings', 'PayrollExpenseAccountId') IS NULL
+            BEGIN
+                ALTER TABLE payroll_settings ADD PayrollExpenseAccountId uniqueidentifier NULL;
+            END
+
+            IF OBJECT_ID(N'payroll_settings', N'U') IS NOT NULL AND COL_LENGTH('payroll_settings', 'PayrollPayableAccountId') IS NULL
+            BEGIN
+                ALTER TABLE payroll_settings ADD PayrollPayableAccountId uniqueidentifier NULL;
+            END
+
+            IF OBJECT_ID(N'payroll_settings', N'U') IS NOT NULL AND COL_LENGTH('payroll_settings', 'PayrollTaxPayableAccountId') IS NULL
+            BEGIN
+                ALTER TABLE payroll_settings ADD PayrollTaxPayableAccountId uniqueidentifier NULL;
             END
             """,
             new Dictionary<string, object?>(),
@@ -403,18 +412,52 @@ public sealed class PayrollRunsController : ControllerBase
             run.UpdatedAt);
     }
 
-    private async Task<Account?> ResolveAccountAsync(AccountType accountType, IReadOnlyCollection<string> preferredTerms, CancellationToken cancellationToken)
+    private async Task<ConfiguredPayrollAccountsResult> GetConfiguredPayrollAccountsAsync(CancellationToken cancellationToken)
     {
-        var accounts = await _accounts.SearchAsync(new AccountSearch(null, accountType, false, 1, 500), cancellationToken);
-        var activeAccounts = accounts.Items.Where(account => account.IsActive).ToList();
-        if (activeAccounts.Count == 0) return null;
+        var rows = await QueryAsync(
+            """
+            SELECT PayrollExpenseAccountId, PayrollPayableAccountId, PayrollTaxPayableAccountId
+            FROM payroll_settings
+            WHERE CompanyId = @CompanyId
+            """,
+            new Dictionary<string, object?> { ["CompanyId"] = Guid.Parse(DefaultCompanyId) },
+            reader => new
+            {
+                PayrollExpenseAccountId = reader.IsDBNull(0) ? null : (Guid?)reader.GetGuid(0),
+                PayrollPayableAccountId = reader.IsDBNull(1) ? null : (Guid?)reader.GetGuid(1),
+                PayrollTaxPayableAccountId = reader.IsDBNull(2) ? null : (Guid?)reader.GetGuid(2),
+            },
+            cancellationToken);
 
-        var preferred = activeAccounts.FirstOrDefault(account =>
-            preferredTerms.Any(term =>
-                account.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                account.Code.Contains(term, StringComparison.OrdinalIgnoreCase)));
+        var settings = rows.SingleOrDefault();
+        if (settings is null)
+        {
+            return ConfiguredPayrollAccountsResult.Fail("Payroll settings are not initialized. Open Payroll Setup and save account settings before posting payroll.");
+        }
+        if (settings.PayrollExpenseAccountId is null || settings.PayrollPayableAccountId is null || settings.PayrollTaxPayableAccountId is null)
+        {
+            return ConfiguredPayrollAccountsResult.Fail("Payroll account settings are incomplete. Select payroll expense, payroll payable, and payroll tax payable accounts before posting payroll.");
+        }
 
-        return preferred ?? activeAccounts.First();
+        var expense = await _accounts.GetByIdAsync(settings.PayrollExpenseAccountId.Value, cancellationToken);
+        if (expense is null || !expense.IsActive || expense.AccountType != AccountType.Expense)
+        {
+            return ConfiguredPayrollAccountsResult.Fail("Payroll expense account is missing, inactive, or not an Expense account.");
+        }
+
+        var payable = await _accounts.GetByIdAsync(settings.PayrollPayableAccountId.Value, cancellationToken);
+        if (payable is null || !payable.IsActive || payable.AccountType != AccountType.OtherCurrentLiability)
+        {
+            return ConfiguredPayrollAccountsResult.Fail("Payroll payable account is missing, inactive, or not an Other Current Liability account.");
+        }
+
+        var taxPayable = await _accounts.GetByIdAsync(settings.PayrollTaxPayableAccountId.Value, cancellationToken);
+        if (taxPayable is null || !taxPayable.IsActive || taxPayable.AccountType != AccountType.OtherCurrentLiability)
+        {
+            return ConfiguredPayrollAccountsResult.Fail("Payroll tax payable account is missing, inactive, or not an Other Current Liability account.");
+        }
+
+        return ConfiguredPayrollAccountsResult.Success(expense, payable, taxPayable);
     }
 
     private async Task<string> NextRunNumberAsync(CancellationToken cancellationToken)
@@ -479,4 +522,9 @@ public sealed class PayrollRunsController : ControllerBase
 
     private sealed record PayrollEmployeeData(Guid Id, string EmployeeNumber, string DisplayName, string PaySchedule, decimal DefaultHourlyRate, string Currency);
     private sealed record PayrollRunLineData(Guid Id, Guid PayrollRunId, Guid EmployeeId, string EmployeeNumber, string EmployeeName, decimal RegularHours, decimal OvertimeHours, decimal HourlyRate, decimal GrossPay, decimal Deductions, decimal NetPay);
+    private sealed record ConfiguredPayrollAccountsResult(Account? PayrollExpense, Account? PayrollPayable, Account? PayrollTaxPayable, string? ErrorMessage)
+    {
+        public static ConfiguredPayrollAccountsResult Success(Account expense, Account payable, Account taxPayable) => new(expense, payable, taxPayable, null);
+        public static ConfiguredPayrollAccountsResult Fail(string errorMessage) => new(null, null, null, errorMessage);
+    }
 }
