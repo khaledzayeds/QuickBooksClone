@@ -588,7 +588,7 @@ class _TotalsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = lines.fold<double>(0, (sum, l) => sum + l.amount);
+    final draftSubtotal = lines.fold<double>(0, (sum, l) => sum + l.amount);
     final theme = Theme.of(context);
 
     return Card(
@@ -596,12 +596,16 @@ class _TotalsCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _AmountRow(label: l10n.subtotal, amount: subtotal),
-            const SizedBox(height: 8),
-            _AmountRow(label: l10n.tax, amount: 0.0),
+            _AmountRow(label: 'Draft subtotal', amount: draftSubtotal),
             const Divider(height: 24),
-            _AmountRow(label: l10n.total, amount: subtotal, isTotal: true),
+            _AmountRow(label: 'Draft total', amount: draftSubtotal, isTotal: true),
+            const SizedBox(height: 10),
+            const Text(
+              'Official bill totals, taxes, and posting amounts are recalculated by the backend after save.',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       ),
