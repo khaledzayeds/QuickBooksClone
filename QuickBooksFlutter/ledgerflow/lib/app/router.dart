@@ -17,6 +17,7 @@ import '../features/banking/screens/bank_register_screen.dart';
 import '../features/banking/screens/bank_transfer_screen.dart';
 import '../features/banking/screens/make_deposit_screen.dart';
 import '../features/banking/screens/write_check_screen.dart';
+import '../features/calendar/screens/calendar_screen.dart';
 import '../features/cash_flow/screens/cash_flow_hub_screen.dart';
 import '../features/customer_credits/screens/customer_credit_details_screen.dart';
 import '../features/customer_credits/screens/customer_credit_form_screen.dart';
@@ -43,6 +44,7 @@ import '../features/journal_entries/screens/journal_entry_list_screen.dart';
 import '../features/payments/screens/payment_form_screen.dart';
 import '../features/payments/screens/payment_details_screen.dart';
 import '../features/payments/screens/payment_list_screen.dart';
+import '../features/payroll/screens/payroll_setup_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_details_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
@@ -78,6 +80,8 @@ import '../features/settings/screens/users_permissions_screen.dart';
 import '../features/settings/widgets/license_gate.dart';
 import '../features/setup/providers/setup_provider.dart';
 import '../features/setup/screens/setup_screen.dart';
+import '../features/snapshots/screens/snapshots_screen.dart';
+import '../features/time_tracking/screens/enter_time_screen.dart';
 import '../features/transactions/screens/transaction_details_screen.dart';
 import '../features/transactions/screens/transaction_list_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_details_screen.dart';
@@ -89,6 +93,7 @@ import '../features/vendor_payments/screens/vendor_payment_list_screen.dart';
 import '../features/vendors/screens/vendor_details_screen.dart';
 import '../features/vendors/screens/vendor_form_screen.dart';
 import '../features/vendors/screens/vendor_list_screen.dart';
+import '../features/workspace/screens/open_windows_screen.dart';
 
 class AppRoutes {
   static const dashboard = '/';
@@ -595,14 +600,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.licenseSettings,
             builder: (context, state) => const LicenseSettingsScreen(),
           ),
-          _comingSoonGated(
-            AppRoutes.payroll,
-            'Payroll',
-            LicenseFeature.payroll,
+          GoRoute(
+            path: AppRoutes.payroll,
+            builder: (context, state) => const LicenseGate(
+              feature: LicenseFeature.payroll,
+              child: PayrollSetupScreen(),
+            ),
           ),
-          _comingSoon(AppRoutes.timeTracking, 'Enter Time'),
-          _comingSoon(AppRoutes.calendar, 'Calendar'),
-          _comingSoon(AppRoutes.snapshots, 'Snapshots'),
+          GoRoute(
+            path: AppRoutes.timeTracking,
+            builder: (context, state) => const EnterTimeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.calendar,
+            builder: (context, state) => const CalendarScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.snapshots,
+            builder: (context, state) => const SnapshotsScreen(),
+          ),
           GoRoute(
             path: AppRoutes.cashFlowHub,
             builder: (context, state) => const CashFlowHubScreen(),
@@ -611,7 +627,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.myCompany,
             builder: (context, state) => const CompanySettingsScreen(),
           ),
-          _comingSoon(AppRoutes.openWindows, 'Open Windows'),
+          GoRoute(
+            path: AppRoutes.openWindows,
+            builder: (context, state) => const OpenWindowsScreen(),
+          ),
         ],
       ),
     ],
@@ -622,12 +641,3 @@ GoRoute _comingSoon(String path, String title) => GoRoute(
   path: path,
   builder: (context, state) => ComingSoonScreen(title: title),
 );
-
-GoRoute _comingSoonGated(String path, String title, LicenseFeature feature) =>
-    GoRoute(
-      path: path,
-      builder: (context, state) => LicenseGate(
-        feature: feature,
-        child: ComingSoonScreen(title: title),
-      ),
-    );
