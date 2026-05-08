@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/api_enums.dart' show AccountType, PaymentMethod;
@@ -15,26 +14,23 @@ import '../../invoices/providers/invoices_provider.dart';
 import '../data/models/payment_model.dart';
 import '../providers/payments_provider.dart';
 
-class PaymentFormState {
-  String? invoiceId;
-  String? depositAccountId;
-  PaymentMethod paymentMethod = PaymentMethod.cash;
-  DateTime paymentDate = DateTime.now();
-  double amount = 0;
-}
-
-final paymentFormProvider = StateProvider.autoDispose<PaymentFormState>(
-  (ref) => PaymentFormState(),
-);
-final paymentSavingProvider = StateProvider.autoDispose<bool>((ref) => false);
-
-class PaymentFormScreen extends ConsumerWidget {
+class PaymentFormScreen extends ConsumerStatefulWidget {
   const PaymentFormScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final form = ref.watch(paymentFormProvider);
-    final saving = ref.watch(paymentSavingProvider);
+  ConsumerState<PaymentFormScreen> createState() => _PaymentFormScreenState();
+}
+
+class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
+  String? _invoiceId;
+  String? _depositAccountId;
+  PaymentMethod _paymentMethod = PaymentMethod.cash;
+  DateTime _paymentDate = DateTime.now();
+  double _amount = 0;
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(invoicesProvider);
     final accountsAsync = ref.watch(accountsProvider);
 
@@ -45,7 +41,7 @@ class PaymentFormScreen extends ConsumerWidget {
           AppButton(
             label: 'إلغاء',
             variant: AppButtonVariant.secondary,
-            onPressed: saving
+            onPressed: _saving
                 ? null
                 : () => context.canPop()
                       ? context.pop()
@@ -54,8 +50,8 @@ class PaymentFormScreen extends ConsumerWidget {
           const SizedBox(width: 12),
           AppButton(
             label: 'حفظ التحصيل',
-            loading: saving,
-            onPressed: saving ? null : () => _save(context, ref),
+            loading: _saving,
+            onPressed: _saving ? null : _save,
           ),
           const SizedBox(width: 12),
         ],
@@ -64,45 +60,60 @@ class PaymentFormScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(24),
         children: [
           _HeaderCard(
-            form: form,
+            invoiceId: _invoiceId,
+            depositAccountId: _depositAccountId,
+            paymentMethod: _paymentMethod,
+            paymentDate: _paymentDate,
+            amount: _amount,
             invoicesAsync: invoicesAsync,
             accountsAsync: accountsAsync,
+            onInvoiceChanged: (invoice) => setState(() {
+              _invoiceId = invoice?.id;
+              _amount = invoice?.balanceDue ?? _amount;
+            }),
+            onDepositAccountChanged: (value) => setState(() => _depositAccountId = value),
+            onPaymentMethodChanged: (value) => setState(() => _paymentMethod = value),
+            onAmountChanged: (value) => setState(() => _amount = value),
           ),
           const SizedBox(height: 24),
-          _InfoCard(form: form, invoicesAsync: invoicesAsync),
+          _InfoCard(invoiceId: _invoiceId, invoicesAsync: invoicesAsync),
+          const SizedBox(height: 24),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: _DraftPaymentAmountCard(amount: _amount),
+          ),
         ],
       ),
     );
   }
 
-  Future<void> _save(BuildContext context, WidgetRef ref) async {
-    final form = ref.read(paymentFormProvider);
-    if (form.invoiceId == null || form.invoiceId!.isEmpty) {
+  Future<void> _save() async {
+    if (_invoiceId == null || _invoiceId!.isEmpty) {
       _error(context, 'اختر الفاتورة أولاً');
       return;
     }
-    if (form.depositAccountId == null || form.depositAccountId!.isEmpty) {
+    if (_depositAccountId == null || _depositAccountId!.isEmpty) {
       _error(context, 'اختر حساب الإيداع أولاً');
       return;
     }
-    if (form.amount <= 0) {
+    if (_amount <= 0) {
       _error(context, 'قيمة التحصيل يجب أن تكون أكبر من صفر');
       return;
     }
 
     final dto = CreatePaymentDto(
-      invoiceId: form.invoiceId!,
-      depositAccountId: form.depositAccountId!,
-      paymentDate: form.paymentDate,
-      amount: form.amount,
-      paymentMethod: form.paymentMethod,
+      invoiceId: _invoiceId!,
+      depositAccountId: _depositAccountId!,
+      paymentDate: _paymentDate,
+      amount: _amount,
+      paymentMethod: _paymentMethod,
     );
 
-    ref.read(paymentSavingProvider.notifier).state = true;
+    setState(() => _saving = true);
     final result = await ref.read(paymentsProvider.notifier).create(dto);
-    ref.read(paymentSavingProvider.notifier).state = false;
+    if (!mounted) return;
+    setState(() => _saving = false);
 
-    if (!context.mounted) return;
     result.when(
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
@@ -125,19 +136,35 @@ class PaymentFormScreen extends ConsumerWidget {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
-class _HeaderCard extends ConsumerWidget {
+class _HeaderCard extends StatelessWidget {
   const _HeaderCard({
-    required this.form,
+    required this.invoiceId,
+    required this.depositAccountId,
+    required this.paymentMethod,
+    required this.paymentDate,
+    required this.amount,
     required this.invoicesAsync,
     required this.accountsAsync,
+    required this.onInvoiceChanged,
+    required this.onDepositAccountChanged,
+    required this.onPaymentMethodChanged,
+    required this.onAmountChanged,
   });
 
-  final PaymentFormState form;
+  final String? invoiceId;
+  final String? depositAccountId;
+  final PaymentMethod paymentMethod;
+  final DateTime paymentDate;
+  final double amount;
   final AsyncValue<List<InvoiceModel>> invoicesAsync;
   final AsyncValue<List<AccountModel>> accountsAsync;
+  final ValueChanged<InvoiceModel?> onInvoiceChanged;
+  final ValueChanged<String?> onDepositAccountChanged;
+  final ValueChanged<PaymentMethod> onPaymentMethodChanged;
+  final ValueChanged<double> onAmountChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final openInvoices = invoicesAsync.maybeWhen(
       data: (invoices) => invoices
           .where(
@@ -161,12 +188,12 @@ class _HeaderCard extends ConsumerWidget {
       orElse: () => <AccountModel>[],
     );
     final selectedInvoice = openInvoices
-        .where((invoice) => invoice.id == form.invoiceId)
+        .where((invoice) => invoice.id == invoiceId)
         .firstOrNull;
     final safeInvoiceId = selectedInvoice?.id;
     final safeDepositId =
-        depositAccounts.any((account) => account.id == form.depositAccountId)
-        ? form.depositAccountId
+        depositAccounts.any((account) => account.id == depositAccountId)
+        ? depositAccountId
         : null;
 
     return Card(
@@ -195,12 +222,7 @@ class _HeaderCard extends ConsumerWidget {
                 final selected = openInvoices
                     .where((invoice) => invoice.id == value)
                     .firstOrNull;
-                _update(
-                  ref,
-                  form
-                    ..invoiceId = value
-                    ..amount = selected?.balanceDue ?? form.amount,
-                );
+                onInvoiceChanged(selected);
               },
             ),
             const SizedBox(height: 16),
@@ -222,14 +244,13 @@ class _HeaderCard extends ConsumerWidget {
                           ),
                         )
                         .toList(),
-                    onChanged: (value) =>
-                        _update(ref, form..depositAccountId = value),
+                    onChanged: onDepositAccountChanged,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<PaymentMethod>(
-                    initialValue: form.paymentMethod,
+                    initialValue: paymentMethod,
                     decoration: const InputDecoration(
                       labelText: 'طريقة الدفع',
                       border: OutlineInputBorder(),
@@ -254,8 +275,7 @@ class _HeaderCard extends ConsumerWidget {
                       ),
                     ],
                     onChanged: (value) {
-                      if (value != null)
-                        _update(ref, form..paymentMethod = value);
+                      if (value != null) onPaymentMethodChanged(value);
                     },
                   ),
                 ),
@@ -268,23 +288,21 @@ class _HeaderCard extends ConsumerWidget {
                   child: AppTextField(
                     label: 'تاريخ التحصيل',
                     readOnly: true,
-                    initialValue: PaymentFormScreen._dateOnly(form.paymentDate),
+                    initialValue: PaymentFormScreen._dateOnly(paymentDate),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: AppTextField(
+                    key: ValueKey('payment-amount-${invoiceId ?? 'manual'}-$amount'),
                     label: 'المبلغ *',
-                    initialValue: form.amount == 0
+                    initialValue: amount == 0
                         ? ''
-                        : form.amount.toStringAsFixed(2),
+                        : amount.toStringAsFixed(2),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    onChanged: (value) {
-                      form.amount = double.tryParse(value) ?? 0;
-                      _update(ref, form);
-                    },
+                    onChanged: (value) => onAmountChanged(double.tryParse(value) ?? 0),
                   ),
                 ),
               ],
@@ -297,15 +315,15 @@ class _HeaderCard extends ConsumerWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.form, required this.invoicesAsync});
+  const _InfoCard({required this.invoiceId, required this.invoicesAsync});
 
-  final PaymentFormState form;
+  final String? invoiceId;
   final AsyncValue<List<InvoiceModel>> invoicesAsync;
 
   @override
   Widget build(BuildContext context) {
     final invoice = invoicesAsync.value
-        ?.where((i) => i.id == form.invoiceId)
+        ?.where((i) => i.id == invoiceId)
         .firstOrNull;
 
     return Card(
@@ -344,6 +362,45 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
+class _DraftPaymentAmountCard extends StatelessWidget {
+  const _DraftPaymentAmountCard({required this.amount});
+
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: SizedBox(
+        width: 360,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Draft payment amount', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    amount.toStringAsFixed(2),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: cs.primary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Official invoice balance, customer balance, deposit, and accounting impact are recalculated by the backend after save.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Row extends StatelessWidget {
   const _Row({required this.label, required this.value});
   final String label;
@@ -360,13 +417,4 @@ class _Row extends StatelessWidget {
       ],
     ),
   );
-}
-
-void _update(WidgetRef ref, PaymentFormState old) {
-  ref.read(paymentFormProvider.notifier).state = PaymentFormState()
-    ..invoiceId = old.invoiceId
-    ..depositAccountId = old.depositAccountId
-    ..paymentMethod = old.paymentMethod
-    ..paymentDate = old.paymentDate
-    ..amount = old.amount;
 }
