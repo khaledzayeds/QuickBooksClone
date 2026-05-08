@@ -46,8 +46,16 @@ class TimeEntriesCommands {
     ref.invalidate(timeEntriesProvider);
   }
 
-  Future<void> markInvoiced(String id) async {
-    await ApiClient.instance.post<Map<String, dynamic>>('/api/time-entries/$id/mark-invoiced');
+  Future<void> markBillable(String id) async {
+    await ApiClient.instance.post<Map<String, dynamic>>('/api/time-entries/$id/mark-billable');
+    ref.invalidate(timeEntriesProvider);
+  }
+
+  Future<void> markInvoiced(String id, {String? invoiceId}) async {
+    await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/time-entries/$id/mark-invoiced-with-link',
+      data: {'invoiceId': invoiceId},
+    );
     ref.invalidate(timeEntriesProvider);
   }
 
@@ -99,6 +107,7 @@ class TimeEntry {
     required this.customerName,
     required this.serviceItemId,
     required this.serviceItemName,
+    required this.invoiceId,
     required this.isBillable,
     required this.status,
     required this.createdAt,
@@ -115,6 +124,7 @@ class TimeEntry {
   final String? customerName;
   final String? serviceItemId;
   final String? serviceItemName;
+  final String? invoiceId;
   final bool isBillable;
   final TimeEntryStatus status;
   final DateTime createdAt;
@@ -131,6 +141,7 @@ class TimeEntry {
         customerName: JsonUtils.asNullableString(json['customerName']),
         serviceItemId: JsonUtils.asNullableString(json['serviceItemId']),
         serviceItemName: JsonUtils.asNullableString(json['serviceItemName']),
+        invoiceId: JsonUtils.asNullableString(json['invoiceId']),
         isBillable: JsonUtils.asBool(json['isBillable']),
         status: _status(json['status']),
         createdAt: _parseDate(json['createdAt']),
@@ -138,14 +149,15 @@ class TimeEntry {
       );
 }
 
-enum TimeEntryStatus { open, approved, invoiced, voided }
+enum TimeEntryStatus { open, approved, billable, invoiced, voided }
 
 TimeEntryStatus _status(dynamic value) {
   final text = value.toString().toLowerCase();
   return switch (text) {
     '2' || 'approved' => TimeEntryStatus.approved,
     '3' || 'invoiced' => TimeEntryStatus.invoiced,
-    '4' || 'void' => TimeEntryStatus.voided,
+    '4' || 'void' || 'voided' => TimeEntryStatus.voided,
+    '5' || 'billable' => TimeEntryStatus.billable,
     _ => TimeEntryStatus.open,
   };
 }
