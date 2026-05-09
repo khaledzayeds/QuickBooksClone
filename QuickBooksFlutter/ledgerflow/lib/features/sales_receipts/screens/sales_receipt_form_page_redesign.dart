@@ -85,28 +85,11 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
     final currency = _activity?.currency ?? _customer?.currency ?? 'EGP';
     return [
       if (_customer != null)
-        TransactionContextMetric(
-          label: 'Open balance',
-          value: '${(_activity?.openBalance ?? _customer!.balance).toStringAsFixed(2)} $currency',
-          icon: Icons.account_balance_wallet_outlined,
-        ),
+        TransactionContextMetric(label: 'Open balance', value: '${(_activity?.openBalance ?? _customer!.balance).toStringAsFixed(2)} $currency', icon: Icons.account_balance_wallet_outlined),
       if (_customer != null)
-        TransactionContextMetric(
-          label: 'Credits',
-          value: '${(_activity?.creditBalance ?? _customer!.creditBalance).toStringAsFixed(2)} $currency',
-          icon: Icons.credit_score_outlined,
-        ),
-      TransactionContextMetric(
-        label: 'Receipt total',
-        value: '${_totals.total.toStringAsFixed(2)} $currency',
-        icon: Icons.receipt_long_outlined,
-      ),
-      if (_preview != null)
-        TransactionContextMetric(
-          label: 'Tax',
-          value: '${_preview!.taxTotal.toStringAsFixed(2)} $currency',
-          icon: Icons.percent_outlined,
-        ),
+        TransactionContextMetric(label: 'Credits', value: '${(_activity?.creditBalance ?? _customer!.creditBalance).toStringAsFixed(2)} $currency', icon: Icons.credit_score_outlined),
+      TransactionContextMetric(label: 'Receipt total', value: '${_totals.total.toStringAsFixed(2)} $currency', icon: Icons.receipt_long_outlined),
+      if (_preview != null) TransactionContextMetric(label: 'Tax', value: '${_preview!.taxTotal.toStringAsFixed(2)} $currency', icon: Icons.percent_outlined),
     ];
   }
 
@@ -114,30 +97,9 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
     final activity = _activity;
     if (activity == null) return const [];
     return [
-      ...activity.recentSalesReceipts.map(
-        (x) => TransactionContextActivity(
-          title: 'Receipt ${x.number}',
-          subtitle: _date(x.date),
-          amount: '${x.totalAmount.toStringAsFixed(2)} ${activity.currency}',
-          status: 'Receipt',
-        ),
-      ),
-      ...activity.recentInvoices.map(
-        (x) => TransactionContextActivity(
-          title: 'Invoice ${x.number}',
-          subtitle: _date(x.date),
-          amount: '${x.balanceDue.toStringAsFixed(2)} ${activity.currency}',
-          status: 'Invoice',
-        ),
-      ),
-      ...activity.recentPayments.map(
-        (x) => TransactionContextActivity(
-          title: 'Payment ${x.number}',
-          subtitle: '${_date(x.paymentDate)} • ${x.paymentMethod}',
-          amount: '${x.amount.toStringAsFixed(2)} ${activity.currency}',
-          status: 'Payment',
-        ),
-      ),
+      ...activity.recentSalesReceipts.map((x) => TransactionContextActivity(title: 'Receipt ${x.number}', subtitle: _date(x.date), amount: '${x.totalAmount.toStringAsFixed(2)} ${activity.currency}', status: 'Receipt')),
+      ...activity.recentInvoices.map((x) => TransactionContextActivity(title: 'Invoice ${x.number}', subtitle: _date(x.date), amount: '${x.balanceDue.toStringAsFixed(2)} ${activity.currency}', status: 'Invoice')),
+      ...activity.recentPayments.map((x) => TransactionContextActivity(title: 'Payment ${x.number}', subtitle: '${_date(x.paymentDate)} • ${x.paymentMethod}', amount: '${x.amount.toStringAsFixed(2)} ${activity.currency}', status: 'Payment')),
     ];
   }
 
@@ -165,12 +127,7 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
       depositAccountId: _depositAccount!.id,
       paymentMethod: _paymentMethod,
       lines: _validLines()
-          .map((line) => PreviewSalesLineDto(
-                itemId: line.itemId!,
-                description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
-                quantity: line.qty,
-                unitPrice: line.rate,
-              ))
+          .map((line) => PreviewSalesLineDto(itemId: line.itemId!, description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(), quantity: line.qty, unitPrice: line.rate))
           .toList(),
     );
     final result = await ref.read(salesReceiptsRepoProvider).preview(dto);
@@ -197,12 +154,7 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
       depositAccountId: _depositAccount!.id,
       paymentMethod: _paymentMethod,
       lines: validLines
-          .map((line) => CreateSalesReceiptLineDto(
-                itemId: line.itemId!,
-                description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
-                quantity: line.qty,
-                unitPrice: line.rate,
-              ))
+          .map((line) => CreateSalesReceiptLineDto(itemId: line.itemId!, description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(), quantity: line.qty, unitPrice: line.rate))
           .toList(),
     );
     try {
@@ -281,24 +233,24 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 64,
+        toolbarHeight: 52,
         automaticallyImplyLeading: false,
-        titleSpacing: 20,
+        titleSpacing: 14,
         title: Row(children: [
-          IconButton(onPressed: _goBack, icon: const Icon(Icons.arrow_back)),
-          const SizedBox(width: 8),
+          IconButton(visualDensity: VisualDensity.compact, onPressed: _goBack, icon: const Icon(Icons.arrow_back)),
+          const SizedBox(width: 4),
           const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('New Sales Receipt', style: TextStyle(fontWeight: FontWeight.w900)),
-            Text('Sales / Receipts / New', style: TextStyle(fontSize: 12)),
+            Text('New Sales Receipt', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+            Text('Sales / Receipts / New', style: TextStyle(fontSize: 11)),
           ]),
         ]),
         actions: [
-          OutlinedButton.icon(onPressed: _saving ? null : () => _save(closeAfterSave: false), icon: const Icon(Icons.add_circle_outline), label: const Text('Save & New')),
+          OutlinedButton.icon(onPressed: _saving ? null : () => _save(closeAfterSave: false), icon: const Icon(Icons.add_circle_outline, size: 18), label: const Text('Save & New')),
+          const SizedBox(width: 6),
+          FilledButton.icon(onPressed: _saving ? null : () => _save(closeAfterSave: true), icon: _saving ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined, size: 18), label: const Text('Save & Close')),
           const SizedBox(width: 8),
-          FilledButton.icon(onPressed: _saving ? null : () => _save(closeAfterSave: true), icon: _saving ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined), label: const Text('Save & Close')),
-          const SizedBox(width: 12),
-          IconButton(onPressed: _goBack, icon: const Icon(Icons.close)),
-          const SizedBox(width: 12),
+          IconButton(visualDensity: VisualDensity.compact, onPressed: _goBack, icon: const Icon(Icons.close)),
+          const SizedBox(width: 8),
         ],
       ),
       body: LayoutBuilder(builder: (context, constraints) {
@@ -329,59 +281,63 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
     return ColoredBox(
       color: cs.surfaceContainerLowest,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         child: Column(children: [
           Card(
             elevation: 0,
             margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: cs.outlineVariant)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: cs.outlineVariant)),
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(12),
               child: Column(children: [
                 Row(children: [
                   Expanded(child: _ReadOnlyField(controller: _numberCtrl, label: 'Receipt #')),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(child: _ReadOnlyField(controller: _dateCtrl, label: 'Date', icon: Icons.calendar_today_outlined, onTap: _pickDate)),
-                  const SizedBox(width: 12),
-                  Expanded(flex: 2, child: TextField(controller: _referenceCtrl, decoration: const InputDecoration(labelText: 'Reference', border: OutlineInputBorder()))),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 2, child: _CompactTextField(controller: _referenceCtrl, label: 'Reference')),
                 ]),
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
                 Row(children: [
                   Expanded(flex: 2, child: _customerField(customers)),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(flex: 2, child: _accountField(accounts)),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(child: _paymentMethodField()),
                 ]),
               ]),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(children: [
             const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Products and services', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
-              Text('Backend preview recalculates totals automatically.', style: TextStyle(fontSize: 12)),
+              Text('Products and services', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+              Text('Enter or Tab adds the next line automatically.', style: TextStyle(fontSize: 11)),
             ]),
             const Spacer(),
-            if (_previewing) const Padding(padding: EdgeInsets.only(right: 8), child: SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))),
-            FilledButton.tonalIcon(onPressed: _addLine, icon: const Icon(Icons.add), label: const Text('Add line')),
+            if (_previewing) const Padding(padding: EdgeInsets.only(right: 8), child: SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+            TextButton.icon(onPressed: _addLine, icon: const Icon(Icons.add, size: 16), label: const Text('Add line')),
           ]),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Expanded(
             child: Card(
               elevation: 0,
               margin: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: cs.outlineVariant)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: cs.outlineVariant)),
               child: Column(children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(12),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: TransactionLineTable(lines: _lines, priceMode: TransactionLinePriceMode.sales, onChanged: () {
+                    padding: const EdgeInsets.all(8),
+                    child: TransactionLineTable(
+                      lines: _lines,
+                      priceMode: TransactionLinePriceMode.sales,
+                      fillWidth: true,
+                      compact: true,
+                      showAddLineFooter: false,
+                      onChanged: () {
                         setState(() => _preview = null);
                         _schedulePreview();
-                      }),
+                      },
                     ),
                   ),
                 ),
@@ -405,7 +361,8 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
   Widget _customerField(List<CustomerModel> customers) => TypeAheadField<CustomerModel>(
         textFieldConfiguration: TextFieldConfiguration(
           controller: _customerCtrl,
-          decoration: InputDecoration(labelText: 'Customer', border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.person_outline), suffixIcon: _customer == null ? const Icon(Icons.search) : IconButton(onPressed: () => setState(() { _customer = null; _customerCtrl.clear(); _activity = null; _preview = null; }), icon: const Icon(Icons.close))),
+          style: const TextStyle(fontSize: 13),
+          decoration: InputDecoration(labelText: 'Customer', isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.person_outline, size: 18), suffixIcon: _customer == null ? const Icon(Icons.search, size: 18) : IconButton(visualDensity: VisualDensity.compact, onPressed: () => setState(() { _customer = null; _customerCtrl.clear(); _activity = null; _preview = null; }), icon: const Icon(Icons.close, size: 18))),
         ),
         suggestionsCallback: (pattern) {
           final text = pattern.toLowerCase().trim();
@@ -423,7 +380,8 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
   Widget _accountField(List<AccountModel> accounts) => TypeAheadField<AccountModel>(
         textFieldConfiguration: TextFieldConfiguration(
           controller: _depositCtrl,
-          decoration: InputDecoration(labelText: 'Deposit Account', border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.account_balance_outlined), suffixIcon: _depositAccount == null ? const Icon(Icons.search) : IconButton(onPressed: () => setState(() { _depositAccount = null; _depositCtrl.clear(); _preview = null; }), icon: const Icon(Icons.close))),
+          style: const TextStyle(fontSize: 13),
+          decoration: InputDecoration(labelText: 'Deposit Account', isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.account_balance_outlined, size: 18), suffixIcon: _depositAccount == null ? const Icon(Icons.search, size: 18) : IconButton(visualDensity: VisualDensity.compact, onPressed: () => setState(() { _depositAccount = null; _depositCtrl.clear(); _preview = null; }), icon: const Icon(Icons.close, size: 18))),
         ),
         suggestionsCallback: (pattern) {
           final text = pattern.toLowerCase().trim();
@@ -439,7 +397,8 @@ class _SalesReceiptFormPageRedesignState extends ConsumerState<SalesReceiptFormP
 
   Widget _paymentMethodField() => DropdownButtonFormField<String>(
         value: _paymentMethod,
-        decoration: const InputDecoration(labelText: 'Payment Method', border: OutlineInputBorder()),
+        style: const TextStyle(fontSize: 13),
+        decoration: const InputDecoration(labelText: 'Payment Method', isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10), border: OutlineInputBorder()),
         items: const [
           DropdownMenuItem(value: 'Cash', child: Text('Cash')),
           DropdownMenuItem(value: 'Check', child: Text('Check')),
@@ -462,7 +421,26 @@ class _ReadOnlyField extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => TextField(controller: controller, readOnly: true, onTap: onTap, decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), suffixIcon: icon == null ? null : Icon(icon)));
+  Widget build(BuildContext context) => TextField(
+        controller: controller,
+        readOnly: true,
+        onTap: onTap,
+        style: const TextStyle(fontSize: 13),
+        decoration: InputDecoration(labelText: label, isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), border: const OutlineInputBorder(), suffixIcon: icon == null ? null : Icon(icon, size: 18)),
+      );
+}
+
+class _CompactTextField extends StatelessWidget {
+  const _CompactTextField({required this.controller, required this.label});
+  final TextEditingController controller;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+        controller: controller,
+        style: const TextStyle(fontSize: 13),
+        decoration: InputDecoration(labelText: label, isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), border: const OutlineInputBorder()),
+      );
 }
 
 String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
