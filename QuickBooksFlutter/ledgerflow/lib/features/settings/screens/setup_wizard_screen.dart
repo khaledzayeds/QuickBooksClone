@@ -692,13 +692,11 @@ class _StartModeCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              Expanded(
-                child: Text(
-                  subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 10),
               Row(

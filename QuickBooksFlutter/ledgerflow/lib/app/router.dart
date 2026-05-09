@@ -92,6 +92,8 @@ import '../features/vendor_payments/screens/vendor_payment_list_screen.dart';
 import '../features/vendors/screens/vendor_details_screen.dart';
 import '../features/vendors/screens/vendor_form_screen.dart';
 import '../features/vendors/screens/vendor_list_screen.dart';
+import '../design_playground/form_playground_screen.dart';
+import '../design_playground/table_playground_screen.dart';
 import '../features/workspace/screens/open_windows_screen.dart';
 
 class AppRoutes {
@@ -184,6 +186,10 @@ class AppRoutes {
   static const cashFlowHub = '/company/cash-flow-hub';
   static const myCompany = '/company/profile';
   static const openWindows = '/company/open-windows';
+
+  // Design Playground
+  static const playgroundTable = '/playground/table';
+  static const playgroundForm = '/playground/form';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -633,9 +639,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.openWindows,
             builder: (context, state) => const OpenWindowsScreen(),
           ),
+          GoRoute(
+            path: AppRoutes.playgroundTable,
+            builder: (context, state) => const TablePlaygroundScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.playgroundForm,
+            builder: (context, state) => const FormPlaygroundScreen(),
+          ),
         ],
       ),
     ],
   );
 });
-
