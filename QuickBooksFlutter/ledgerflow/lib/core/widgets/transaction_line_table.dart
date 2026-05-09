@@ -1,8 +1,9 @@
 // transaction_line_table.dart
 // Optimized QuickBooks-style editable grid with inline searchable item picker.
-// Enhanced for scanner support and reusable purchase/sales pricing.
+// Enhanced for scanner support, compact data entry, and reusable purchase/sales pricing.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
@@ -18,15 +19,20 @@ class TransactionLineTable extends ConsumerStatefulWidget {
     required this.lines,
     required this.onChanged,
     this.priceMode = TransactionLinePriceMode.purchase,
+    this.fillWidth = false,
+    this.compact = false,
+    this.showAddLineFooter = true,
   });
 
   final List<TransactionLineEntry> lines;
   final VoidCallback onChanged;
   final TransactionLinePriceMode priceMode;
+  final bool fillWidth;
+  final bool compact;
+  final bool showAddLineFooter;
 
   @override
-  ConsumerState<TransactionLineTable> createState() =>
-      _TransactionLineTableState();
+  ConsumerState<TransactionLineTable> createState() => _TransactionLineTableState();
 }
 
 class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
@@ -34,15 +40,32 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
   void initState() {
     super.initState();
     if (widget.lines.isEmpty) {
-      _addLine();
+      _addLine(notify: false);
     }
   }
 
-  void _addLine() {
+  void _addLine({bool notify = true}) {
     setState(() {
       widget.lines.add(TransactionLineEntry());
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+    if (notify) WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+  }
+
+  void _ensureTrailingBlankLine() {
+    if (widget.lines.isEmpty) {
+      _addLine();
+      return;
+    }
+
+    final last = widget.lines.last;
+    final hasBlankTrailingLine = last.itemId == null &&
+        last.itemName.trim().isEmpty &&
+        last.descCtrl.text.trim().isEmpty &&
+        (double.tryParse(last.rateCtrl.text) ?? 0) == 0;
+
+    if (!hasBlankTrailingLine) {
+      _addLine();
+    }
   }
 
   void _removeLine(int index) {
@@ -50,7 +73,7 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
       final line = widget.lines.removeAt(index);
       line.dispose();
     });
-    if (widget.lines.isEmpty) _addLine();
+    if (widget.lines.isEmpty) _addLine(notify: false);
     WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
   }
 
@@ -79,29 +102,105 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
 
       // QuickBooks/scanner behavior: picking an item on the last line creates the next line.
       if (index == widget.lines.length - 1) {
-        _addLine();
+        widget.lines.add(TransactionLineEntry());
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
   }
 
+  void _onLastCellCommit() {
+    _ensureTrailingBlankLine();
+    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+  }
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.hasBoundedWidth ? constraints.maxWidth : 0.0;
+        final compact = widget.compact;
+        final minWidth = compact ? 760.0 : 920.0;
+        final totalWidth = widget.fillWidth && availableWidth > minWidth ? availableWidth : minWidth;
+
+        final colAction = compact ? 26.0 : 34.0;
+        final colQty = compact ? 66.0 : 74.0;
+        final colRate = compact ? 92.0 : 110.0;
+        final colTotal = compact ? 106.0 : 120.0;
+        final fixed = colAction + colQty + colRate + colTotal + 2;
+        final flexible = (totalWidth - fixed).clamp(460.0, 9000.0);
+        final colItem = flexible * (compact ? 0.42 : 0.48);
+        final colDesc = flexible - colItem;
+
+        return _GridShell(
+          width: totalWidth,
+          colAction: colAction,
+          colItem: colItem,
+          colDesc: colDesc,
+          colQty: colQty,
+          colRate: colRate,
+          colTotal: colTotal,
+          compact: compact,
+          showAddLineFooter: widget.showAddLineFooter,
+          lines: widget.lines,
+          priceMode: widget.priceMode,
+          onAddLine: _addLine,
+          onRemoveLine: _removeLine,
+          onItemPicked: _onItemPicked,
+          onLastCellCommit: _onLastCellCommit,
+          onChanged: widget.onChanged,
+        );
+      },
+    );
+  }
+}
+
+class _GridShell extends ConsumerWidget {
+  const _GridShell({
+    required this.width,
+    required this.colAction,
+    required this.colItem,
+    required this.colDesc,
+    required this.colQty,
+    required this.colRate,
+    required this.colTotal,
+    required this.compact,
+    required this.showAddLineFooter,
+    required this.lines,
+    required this.priceMode,
+    required this.onAddLine,
+    required this.onRemoveLine,
+    required this.onItemPicked,
+    required this.onLastCellCommit,
+    required this.onChanged,
+  });
+
+  final double width;
+  final double colAction;
+  final double colItem;
+  final double colDesc;
+  final double colQty;
+  final double colRate;
+  final double colTotal;
+  final bool compact;
+  final bool showAddLineFooter;
+  final List<TransactionLineEntry> lines;
+  final TransactionLinePriceMode priceMode;
+  final void Function({bool notify}) onAddLine;
+  final void Function(int index) onRemoveLine;
+  final void Function(int index, ItemModel item) onItemPicked;
+  final VoidCallback onLastCellCommit;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
-
-    const double colAction = 34;
-    const double colItem = 280;
-    const double colDesc = 300;
-    const double colQty = 74;
-    const double colRate = 110;
-    const double colTotal = 120;
-    const double totalWidth =
-        colAction + colItem + colDesc + colQty + colRate + colTotal + 2;
+    final rowHeight = compact ? 30.0 : 36.0;
+    final headerHeight = compact ? 26.0 : 30.0;
 
     return Container(
-      width: totalWidth,
+      width: width,
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border.all(color: cs.outlineVariant),
@@ -111,45 +210,28 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
         children: [
           Container(
             color: cs.surfaceContainerHigh,
-            height: 30,
+            height: headerHeight,
             child: Row(
               children: [
-                const SizedBox(width: colAction),
-                _headerCell(l10n.itemService.toUpperCase(), colItem),
-                _headerCell(l10n.description.toUpperCase(), colDesc),
-                _headerCell(
-                  l10n.qty.toUpperCase(),
-                  colQty,
-                  align: TextAlign.center,
-                ),
-                _headerCell(
-                  l10n.rate.toUpperCase(),
-                  colRate,
-                  align: TextAlign.right,
-                ),
-                _headerCell(
-                  l10n.amount.toUpperCase(),
-                  colTotal,
-                  align: TextAlign.right,
-                ),
+                SizedBox(width: colAction),
+                _headerCell(l10n.itemService.toUpperCase(), colItem, compact: compact),
+                _headerCell(l10n.description.toUpperCase(), colDesc, compact: compact),
+                _headerCell(l10n.qty.toUpperCase(), colQty, align: TextAlign.center, compact: compact),
+                _headerCell(l10n.rate.toUpperCase(), colRate, align: TextAlign.right, compact: compact),
+                _headerCell(l10n.amount.toUpperCase(), colTotal, align: TextAlign.right, compact: compact),
               ],
             ),
           ),
-          ...widget.lines.asMap().entries.map((entry) {
+          ...lines.asMap().entries.map((entry) {
             final i = entry.key;
             final line = entry.value;
+            final isLast = i == lines.length - 1;
 
             return Container(
-              height: 36,
+              height: rowHeight,
               decoration: BoxDecoration(
-                color: i.isEven
-                    ? cs.surface
-                    : cs.surfaceContainerHighest.withValues(alpha: 0.42),
-                border: Border(
-                  bottom: BorderSide(
-                    color: cs.outlineVariant.withValues(alpha: 0.5),
-                  ),
-                ),
+                color: i.isEven ? cs.surface : cs.surfaceContainerHighest.withValues(alpha: 0.42),
+                border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
               ),
               child: Row(
                 children: [
@@ -158,12 +240,8 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                     child: IconButton(
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () => _removeLine(i),
+                      icon: Icon(Icons.delete_outline, size: compact ? 14 : 16, color: Colors.grey),
+                      onPressed: () => onRemoveLine(i),
                     ),
                   ),
                   SizedBox(
@@ -171,8 +249,10 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                     child: _InlineItemPicker(
                       key: ValueKey('item_$i'),
                       initialValue: line.itemName,
-                      priceMode: widget.priceMode,
-                      onPicked: (item) => _onItemPicked(i, item),
+                      priceMode: priceMode,
+                      compact: compact,
+                      onPicked: (item) => onItemPicked(i, item),
+                      onKeyboardCommit: isLast ? onLastCellCommit : null,
                     ),
                   ),
                   SizedBox(
@@ -180,6 +260,8 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                     child: _InlineTextField(
                       controller: line.descCtrl,
                       hint: l10n.description,
+                      compact: compact,
+                      onSubmitted: isLast ? onLastCellCommit : null,
                     ),
                   ),
                   SizedBox(
@@ -188,12 +270,11 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                       controller: line.qtyCtrl,
                       numeric: true,
                       align: TextAlign.center,
+                      compact: compact,
+                      onSubmitted: isLast ? onLastCellCommit : null,
                       onChanged: () {
                         line.qty = double.tryParse(line.qtyCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback(
-                          (_) => widget.onChanged(),
-                        );
-                        setState(() {});
+                        WidgetsBinding.instance.addPostFrameCallback((_) => onChanged());
                       },
                     ),
                   ),
@@ -203,23 +284,25 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
                       controller: line.rateCtrl,
                       numeric: true,
                       align: TextAlign.right,
+                      compact: compact,
+                      onSubmitted: isLast ? onLastCellCommit : null,
                       onChanged: () {
                         line.rate = double.tryParse(line.rateCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback(
-                          (_) => widget.onChanged(),
-                        );
-                        setState(() {});
+                        WidgetsBinding.instance.addPostFrameCallback((_) => onChanged());
                       },
                     ),
                   ),
                   SizedBox(
                     width: colTotal,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        line.amount.toStringAsFixed(2),
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          line.amount.toStringAsFixed(2),
+                          textAlign: TextAlign.right,
+                          style: TextStyle(fontSize: compact ? 11 : 12, fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ),
                   ),
@@ -227,39 +310,42 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
               ),
             );
           }),
-          Container(
-            height: 32,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: [
-                TextButton.icon(
-                  onPressed: _addLine,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text(l10n.addLine),
-                ),
-                const Spacer(),
-              ],
+          if (showAddLineFooter)
+            SizedBox(
+              height: compact ? 28 : 32,
+              child: Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: () => onAddLine(notify: true),
+                    icon: Icon(Icons.add, size: compact ? 14 : 16),
+                    label: Text(l10n.addLine, style: TextStyle(fontSize: compact ? 11 : null)),
+                  ),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 10),
+                    child: Text(
+                      'Enter/Tab adds the next line',
+                      style: theme.textTheme.bodySmall?.copyWith(fontSize: compact ? 10 : 11, color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _headerCell(
-    String label,
-    double width, {
-    TextAlign align = TextAlign.left,
-  }) {
+  Widget _headerCell(String label, double width, {TextAlign align = TextAlign.left, required bool compact}) {
     return SizedBox(
       width: width,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8),
         child: Text(
           label,
           textAlign: align,
-          style: const TextStyle(
-            fontSize: 10,
+          style: TextStyle(
+            fontSize: compact ? 9 : 10,
             fontWeight: FontWeight.w800,
             color: Colors.blueGrey,
           ),
@@ -269,13 +355,15 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
   }
 }
 
-class _InlineTextField extends StatelessWidget {
+class _InlineTextField extends StatefulWidget {
   const _InlineTextField({
     required this.controller,
     this.hint,
     this.numeric = false,
     this.align = TextAlign.left,
     this.onChanged,
+    this.onSubmitted,
+    this.compact = false,
   });
 
   final TextEditingController controller;
@@ -283,26 +371,60 @@ class _InlineTextField extends StatelessWidget {
   final bool numeric;
   final TextAlign align;
   final VoidCallback? onChanged;
+  final VoidCallback? onSubmitted;
+  final bool compact;
+
+  @override
+  State<_InlineTextField> createState() => _InlineTextFieldState();
+}
+
+class _InlineTextFieldState extends State<_InlineTextField> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      widget.onSubmitted?.call();
+      return widget.onSubmitted == null ? KeyEventResult.ignored : KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.tab && widget.onSubmitted != null) {
+      widget.onSubmitted?.call();
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      textAlign: align,
-      keyboardType: numeric
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : null,
-      textInputAction: TextInputAction.next,
-      onChanged: (_) => onChanged?.call(),
-      style: const TextStyle(fontSize: 12),
-      decoration: InputDecoration(
-        hintText: hint,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-        border: InputBorder.none,
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue, width: 1),
-          borderRadius: BorderRadius.zero,
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKey,
+      child: TextField(
+        controller: widget.controller,
+        textAlign: widget.align,
+        keyboardType: widget.numeric ? const TextInputType.numberWithOptions(decimal: true) : null,
+        textInputAction: TextInputAction.next,
+        onSubmitted: (_) => widget.onSubmitted?.call(),
+        onChanged: (_) => widget.onChanged?.call(),
+        style: TextStyle(fontSize: widget.compact ? 11 : 12),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
+          border: InputBorder.none,
+          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
         ),
       ),
     );
@@ -315,11 +437,15 @@ class _InlineItemPicker extends ConsumerStatefulWidget {
     required this.initialValue,
     required this.onPicked,
     required this.priceMode,
+    this.onKeyboardCommit,
+    this.compact = false,
   });
 
   final String initialValue;
   final Function(ItemModel) onPicked;
   final TransactionLinePriceMode priceMode;
+  final VoidCallback? onKeyboardCommit;
+  final bool compact;
 
   @override
   ConsumerState<_InlineItemPicker> createState() => _InlineItemPickerState();
@@ -362,10 +488,41 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
     final text = pattern.toLowerCase().trim();
     if (text.isEmpty) return const Iterable<ItemModel>.empty();
     return items.where(
-      (item) =>
-          item.name.toLowerCase().contains(text) ||
-          (item.sku?.toLowerCase().contains(text) ?? false),
+      (item) => item.name.toLowerCase().contains(text) || (item.sku?.toLowerCase().contains(text) ?? false),
     );
+  }
+
+  void _submitValue(List<ItemModel> items, String value) {
+    final exact = _matches(items, value)
+        .where(
+          (item) => item.name.toLowerCase() == value.toLowerCase().trim() || item.sku?.toLowerCase() == value.toLowerCase().trim(),
+        )
+        .toList();
+    if (exact.isNotEmpty) {
+      widget.onPicked(exact.first);
+      return;
+    }
+
+    final partial = _matches(items, value).toList();
+    if (partial.isNotEmpty) {
+      widget.onPicked(partial.first);
+      return;
+    }
+
+    widget.onKeyboardCommit?.call();
+  }
+
+  KeyEventResult _handleKey(List<ItemModel> items, FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      _submitValue(items, _controller.text);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.tab && widget.onKeyboardCommit != null) {
+      widget.onKeyboardCommit?.call();
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -375,72 +532,43 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
 
     return itemsAsync.when(
       loading: () => const Center(
-        child: SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (e, _) =>
-          const Icon(Icons.error_outline, color: Colors.red, size: 16),
-      data: (items) => TypeAheadField<ItemModel>(
-        textFieldConfiguration: TextFieldConfiguration(
-          controller: _controller,
-          focusNode: _focusNode,
-          textInputAction: TextInputAction.next,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          onSubmitted: (value) {
-            final exact = _matches(items, value)
-                .where(
-                  (item) =>
-                      item.name.toLowerCase() == value.toLowerCase().trim() ||
-                      item.sku?.toLowerCase() == value.toLowerCase().trim(),
-                )
-                .toList();
-            if (exact.isNotEmpty) {
-              widget.onPicked(exact.first);
-              return;
-            }
-
-            final partial = _matches(items, value).toList();
-            if (partial.isNotEmpty) widget.onPicked(partial.first);
-          },
-          decoration: InputDecoration(
-            hintText: l10n.selectItem,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 9,
+      error: (e, _) => const Icon(Icons.error_outline, color: Colors.red, size: 16),
+      data: (items) => Focus(
+        focusNode: _focusNode,
+        onKeyEvent: (node, event) => _handleKey(items, node, event),
+        child: TypeAheadField<ItemModel>(
+          textFieldConfiguration: TextFieldConfiguration(
+            controller: _controller,
+            focusNode: _focusNode,
+            textInputAction: TextInputAction.next,
+            style: TextStyle(fontSize: widget.compact ? 11 : 12, fontWeight: FontWeight.w600),
+            onSubmitted: (value) => _submitValue(items, value),
+            decoration: InputDecoration(
+              hintText: l10n.selectItem,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
+              border: InputBorder.none,
+              focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
+              suffixIcon: Icon(Icons.search, size: widget.compact ? 12 : 14, color: Colors.grey),
             ),
-            border: InputBorder.none,
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.blue, width: 1),
-              borderRadius: BorderRadius.zero,
-            ),
-            suffixIcon: const Icon(Icons.search, size: 14, color: Colors.grey),
           ),
-        ),
-        suggestionsCallback: (pattern) => _matches(items, pattern).toList(),
-        itemBuilder: (context, item) {
-          return ListTile(
-            dense: true,
-            title: Text(
-              item.name,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(
-              '${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}',
-            ),
-          );
-        },
-        onSuggestionSelected: (item) {
-          _controller.text = item.name;
-          widget.onPicked(item);
-        },
-        noItemsFoundBuilder: (_) => const SizedBox.shrink(),
-        suggestionsBoxDecoration: const SuggestionsBoxDecoration(
-          elevation: 4,
-          constraints: BoxConstraints(maxHeight: 300),
+          suggestionsCallback: (pattern) => _matches(items, pattern).toList(),
+          itemBuilder: (context, item) {
+            return ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text('${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}'),
+            );
+          },
+          onSuggestionSelected: (item) {
+            _controller.text = item.name;
+            widget.onPicked(item);
+          },
+          noItemsFoundBuilder: (_) => const SizedBox.shrink(),
+          suggestionsBoxDecoration: const SuggestionsBoxDecoration(elevation: 4, constraints: BoxConstraints(maxHeight: 300)),
         ),
       ),
     );
