@@ -100,7 +100,6 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
         line.qtyCtrl.text = '1';
       }
 
-      // QuickBooks/scanner behavior: picking an item on the last line creates the next line.
       if (index == widget.lines.length - 1) {
         widget.lines.add(TransactionLineEntry());
       }
@@ -198,13 +197,11 @@ class _GridShell extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final rowHeight = compact ? 30.0 : 36.0;
     final headerHeight = compact ? 26.0 : 30.0;
+    final itemsAsync = ref.watch(itemsProvider);
 
     return Container(
       width: width,
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border.all(color: cs.outlineVariant),
-      ),
+      decoration: BoxDecoration(color: cs.surface, border: Border.all(color: cs.outlineVariant)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -249,6 +246,7 @@ class _GridShell extends ConsumerWidget {
                     child: _InlineItemPicker(
                       key: ValueKey('item_$i'),
                       initialValue: line.itemName,
+                      itemsAsync: itemsAsync,
                       priceMode: priceMode,
                       compact: compact,
                       onPicked: (item) => onItemPicked(i, item),
@@ -344,11 +342,7 @@ class _GridShell extends ConsumerWidget {
         child: Text(
           label,
           textAlign: align,
-          style: TextStyle(
-            fontSize: compact ? 9 : 10,
-            fontWeight: FontWeight.w800,
-            color: Colors.blueGrey,
-          ),
+          style: TextStyle(fontSize: compact ? 9 : 10, fontWeight: FontWeight.w800, color: Colors.blueGrey),
         ),
       ),
     );
@@ -431,10 +425,11 @@ class _InlineTextFieldState extends State<_InlineTextField> {
   }
 }
 
-class _InlineItemPicker extends ConsumerStatefulWidget {
+class _InlineItemPicker extends StatefulWidget {
   const _InlineItemPicker({
     super.key,
     required this.initialValue,
+    required this.itemsAsync,
     required this.onPicked,
     required this.priceMode,
     this.onKeyboardCommit,
@@ -442,16 +437,17 @@ class _InlineItemPicker extends ConsumerStatefulWidget {
   });
 
   final String initialValue;
+  final AsyncValue<List<ItemModel>> itemsAsync;
   final Function(ItemModel) onPicked;
   final TransactionLinePriceMode priceMode;
   final VoidCallback? onKeyboardCommit;
   final bool compact;
 
   @override
-  ConsumerState<_InlineItemPicker> createState() => _InlineItemPickerState();
+  State<_InlineItemPicker> createState() => _InlineItemPickerState();
 }
 
-class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
+class _InlineItemPickerState extends State<_InlineItemPicker> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
 
@@ -486,10 +482,10 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
 
   Iterable<ItemModel> _matches(List<ItemModel> items, String pattern) {
     final text = pattern.toLowerCase().trim();
-    if (text.isEmpty) return const Iterable<ItemModel>.empty();
+    if (text.isEmpty) return items.take(20);
     return items.where(
       (item) => item.name.toLowerCase().contains(text) || (item.sku?.toLowerCase().contains(text) ?? false),
-    );
+    ).take(25);
   }
 
   void _submitValue(List<ItemModel> items, String value) {
@@ -504,7 +500,7 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
     }
 
     final partial = _matches(items, value).toList();
-    if (partial.isNotEmpty) {
+    if (partial.isNotEmpty && value.trim().isNotEmpty) {
       widget.onPicked(partial.first);
       return;
     }
@@ -527,12 +523,18 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final itemsAsync = ref.watch(itemsProvider);
     final l10n = AppLocalizations.of(context)!;
-
-    return itemsAsync.when(
-      loading: () => const Center(
-        child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+    return widget.itemsAsync.when(
+      loading: () => TextField(
+        enabled: false,
+        style: TextStyle(fontSize: widget.compact ? 11 : 12),
+        decoration: InputDecoration(
+          hintText: 'Loading items...',
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
+          border: InputBorder.none,
+          suffixIcon: SizedBox(width: 14, height: 14, child: Center(child: SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)))),
+        ),
       ),
       error: (e, _) => const Icon(Icons.error_outline, color: Colors.red, size: 16),
       data: (items) => Focus(
