@@ -201,6 +201,7 @@ class _QbGridTextCellState extends State<QbGridTextCell> {
             ? BoxDecoration(border: Border.all(color: cs.primary, width: 1.2))
             : const BoxDecoration(),
         child: TextField(
+          focusNode: _focusNode,
           controller: widget.controller,
           textAlign: widget.align,
           keyboardType: widget.numeric
