@@ -61,7 +61,7 @@ import '../features/sales_orders/screens/sales_order_form_screen.dart';
 import '../features/sales_orders/screens/sales_order_details_screen.dart';
 import '../features/sales_orders/screens/sales_order_list_screen.dart';
 import '../features/sales_receipts/screens/sales_receipt_details_page.dart';
-import '../features/sales_receipts/screens/sales_receipt_form_page_redesign.dart';
+import '../features/sales_receipts/screens/sales_receipt_form_page_shell.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
 import '../features/sales_returns/screens/sales_return_details_screen.dart';
@@ -236,26 +236,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => ResponsiveScaffold(child: child),
         routes: [
-          GoRoute(
-            path: AppRoutes.dashboard,
-            builder: (context, state) => const DashboardScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.items,
-            builder: (context, state) => const ItemListScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.itemNew,
-            builder: (context, state) => const ItemFormScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.itemDetails,
-            builder: (context, state) => ItemDetailsScreen(id: state.pathParameters['id']!),
-          ),
-          GoRoute(
-            path: AppRoutes.itemEdit,
-            builder: (context, state) => ItemFormScreen(id: state.pathParameters['id']!),
-          ),
+          GoRoute(path: AppRoutes.dashboard, builder: (context, state) => const DashboardScreen()),
+          GoRoute(path: AppRoutes.items, builder: (context, state) => const ItemListScreen()),
+          GoRoute(path: AppRoutes.itemNew, builder: (context, state) => const ItemFormScreen()),
+          GoRoute(path: AppRoutes.itemDetails, builder: (context, state) => ItemDetailsScreen(id: state.pathParameters['id']!)),
+          GoRoute(path: AppRoutes.itemEdit, builder: (context, state) => ItemFormScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.vendors, builder: (context, state) => const VendorListScreen()),
           GoRoute(path: AppRoutes.vendorNew, builder: (context, state) => const VendorFormScreen()),
           GoRoute(path: AppRoutes.vendorDetails, builder: (context, state) => VendorDetailsScreen(id: state.pathParameters['id']!)),
@@ -293,7 +278,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.salesOrderNew, builder: (context, state) => const SalesOrderFormScreen()),
           GoRoute(path: AppRoutes.salesOrderDetails, builder: (context, state) => SalesOrderDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.salesReceipts, builder: (context, state) => const SalesReceiptsListPage()),
-          GoRoute(path: AppRoutes.salesReceiptNew, builder: (context, state) => const SalesReceiptFormPageRedesign()),
+          GoRoute(path: AppRoutes.salesReceiptNew, builder: (context, state) => const SalesReceiptFormPageShell()),
           GoRoute(path: AppRoutes.salesReceiptDetails, builder: (context, state) => SalesReceiptDetailsPage(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.invoices, builder: (context, state) => const InvoicesListPage()),
           GoRoute(path: AppRoutes.invoiceNew, builder: (context, state) => const InvoiceFormPage()),
