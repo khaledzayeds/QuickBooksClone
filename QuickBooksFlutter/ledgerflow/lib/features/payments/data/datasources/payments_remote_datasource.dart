@@ -63,6 +63,21 @@ class PaymentsRemoteDatasource {
     }
   }
 
+  Future<ApiResult<List<PaymentModel>>> receive(ReceivePaymentDto dto) async {
+    try {
+      final response = await _client.post<List<dynamic>>(
+        '/api/payments/receive',
+        data: dto.toJson(),
+      );
+      final payments = (response.data ?? const [])
+          .map((json) => PaymentModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+      return Success(payments);
+    } on DioException catch (error) {
+      return Failure(parseError(error));
+    }
+  }
+
   Future<ApiResult<PaymentModel>> voidPayment(String id) async {
     try {
       final response = await _client.patch<Map<String, dynamic>>('/api/payments/$id/void');
