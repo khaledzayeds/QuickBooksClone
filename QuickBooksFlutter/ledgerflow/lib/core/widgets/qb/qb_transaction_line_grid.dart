@@ -7,9 +7,9 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 import '../../../features/items/data/models/item_model.dart';
 import '../../../features/items/providers/items_provider.dart';
 import '../../../features/purchase_orders/data/models/order_line_entry.dart';
-import '../transaction_line_table.dart';
 import 'qb_grid_cells.dart';
 import 'qb_item_cell.dart';
+import 'transaction_line_price_mode.dart';
 
 class QbTransactionLineGrid extends ConsumerStatefulWidget {
   const QbTransactionLineGrid({
