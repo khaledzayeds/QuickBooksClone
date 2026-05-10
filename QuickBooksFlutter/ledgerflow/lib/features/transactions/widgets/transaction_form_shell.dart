@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+enum TransactionFormActionStyle { icon, text, outlined, filled }
+
 class TransactionFormAction {
   const TransactionFormAction({
     required this.label,
     required this.icon,
     required this.onPressed,
+    this.style,
     this.filled = false,
     this.enabled = true,
+    this.busy = false,
     this.tooltip,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
+  final TransactionFormActionStyle? style;
   final bool filled;
   final bool enabled;
+  final bool busy;
   final String? tooltip;
+
+  TransactionFormActionStyle get resolvedStyle {
+    if (style != null) return style!;
+    return filled ? TransactionFormActionStyle.filled : TransactionFormActionStyle.outlined;
+  }
 }
 
 class TransactionFormShortcutSet {
@@ -140,27 +151,7 @@ class TransactionFormShell extends StatelessWidget {
       ),
       actions: [
         for (final action in actions) ...[
-          if (action.filled)
-            FilledButton.icon(
-              onPressed: action.enabled ? action.onPressed : null,
-              icon: Icon(action.icon, size: 16),
-              label: Text(action.label),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-            )
-          else
-            OutlinedButton.icon(
-              onPressed: action.enabled ? action.onPressed : null,
-              icon: Icon(action.icon, size: 16),
-              label: Text(action.label),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                side: BorderSide(color: cs.outlineVariant),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              ),
-            ),
+          _buildAction(context, action),
           const SizedBox(width: 8),
         ],
         IconButton(
@@ -176,6 +167,54 @@ class TransactionFormShell extends StatelessWidget {
         child: Divider(height: 1, color: cs.outlineVariant),
       ),
     );
+  }
+
+  Widget _buildAction(BuildContext context, TransactionFormAction action) {
+    final cs = Theme.of(context).colorScheme;
+    final enabled = action.enabled && !action.busy;
+    final icon = action.busy
+        ? const SizedBox.square(
+            dimension: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(action.icon, size: 16);
+
+    return switch (action.resolvedStyle) {
+      TransactionFormActionStyle.icon => IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: enabled ? action.onPressed : null,
+          icon: Icon(action.icon, size: 20),
+          tooltip: action.tooltip ?? action.label,
+        ),
+      TransactionFormActionStyle.text => TextButton.icon(
+          onPressed: enabled ? action.onPressed : null,
+          icon: icon,
+          label: Text(action.label),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          ),
+        ),
+      TransactionFormActionStyle.filled => FilledButton.icon(
+          onPressed: enabled ? action.onPressed : null,
+          icon: icon,
+          label: Text(action.label),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          ),
+        ),
+      TransactionFormActionStyle.outlined => OutlinedButton.icon(
+          onPressed: enabled ? action.onPressed : null,
+          icon: icon,
+          label: Text(action.label),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            side: BorderSide(color: cs.outlineVariant),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          ),
+        ),
+    };
   }
 }
 
