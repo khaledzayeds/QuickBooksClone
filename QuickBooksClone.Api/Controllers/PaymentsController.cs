@@ -133,6 +133,121 @@ public sealed class PaymentsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = payment.Id }, await ToDtoAsync(savedPayment!, cancellationToken));
     }
 
+    [HttpPost("receive")]
+    [ProducesResponseType(typeof(IReadOnlyList<PaymentDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<PaymentDto>>> Receive(ReceivePaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.CustomerId == Guid.Empty)
+        {
+            return BadRequest("Customer is required.");
+        }
+
+        if (request.DepositAccountId == Guid.Empty)
+        {
+            return BadRequest("Deposit account is required.");
+        }
+
+        if (request.Allocations is null || request.Allocations.Count == 0)
+        {
+            return BadRequest("At least one invoice allocation is required.");
+        }
+
+        var customer = await _customers.GetByIdAsync(request.CustomerId, cancellationToken);
+        if (customer is null)
+        {
+            return BadRequest("Customer does not exist.");
+        }
+
+        var depositAccount = await _accounts.GetByIdAsync(request.DepositAccountId, cancellationToken);
+        if (depositAccount is null)
+        {
+            return BadRequest("Deposit account does not exist.");
+        }
+
+        if (depositAccount.AccountType is not AccountType.Bank and not AccountType.OtherCurrentAsset)
+        {
+            return BadRequest("Deposit account must be a bank or other current asset account.");
+        }
+
+        var createdPayments = new List<Payment>();
+        var seenInvoices = new HashSet<Guid>();
+
+        foreach (var allocationRequest in request.Allocations)
+        {
+            if (allocationRequest.InvoiceId == Guid.Empty)
+            {
+                return BadRequest("Invoice is required for every allocation.");
+            }
+
+            if (!seenInvoices.Add(allocationRequest.InvoiceId))
+            {
+                return BadRequest("Duplicate invoice allocations are not allowed.");
+            }
+
+            if (allocationRequest.Amount <= 0)
+            {
+                return BadRequest("Every allocation amount must be greater than zero.");
+            }
+
+            var invoice = await _invoices.GetByIdAsync(allocationRequest.InvoiceId, cancellationToken);
+            if (invoice is null)
+            {
+                return BadRequest($"Invoice {allocationRequest.InvoiceId} does not exist.");
+            }
+
+            if (invoice.CustomerId != request.CustomerId)
+            {
+                return BadRequest($"Invoice {invoice.InvoiceNumber} does not belong to the selected customer.");
+            }
+
+            if (invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Void || invoice.PostedTransactionId is null)
+            {
+                return BadRequest($"Invoice {invoice.InvoiceNumber} is not posted.");
+            }
+
+            if (invoice.PaymentMode != InvoicePaymentMode.Credit)
+            {
+                return BadRequest($"Invoice {invoice.InvoiceNumber} is not a credit invoice.");
+            }
+
+            if (allocationRequest.Amount > invoice.BalanceDue)
+            {
+                return BadRequest($"Payment amount exceeds invoice {invoice.InvoiceNumber} balance. Balance due: {invoice.BalanceDue:N2}.");
+            }
+
+            var numberAllocation = await _documentNumbers.AllocateAsync(DocumentTypes.Payment, cancellationToken);
+            var payment = new Payment(
+                invoice.CustomerId,
+                invoice.Id,
+                request.DepositAccountId,
+                request.PaymentDate,
+                allocationRequest.Amount,
+                request.PaymentMethod ?? "Cash",
+                numberAllocation.DocumentNo);
+            payment.SetSyncIdentity(numberAllocation.DeviceId, numberAllocation.DocumentNo);
+
+            await _payments.AddAsync(payment, cancellationToken);
+
+            var postingResult = await _postingService.PostAsync(payment.Id, cancellationToken);
+            if (!postingResult.Succeeded)
+            {
+                return BadRequest(postingResult.ErrorMessage);
+            }
+
+            createdPayments.Add(payment);
+        }
+
+        var result = new List<PaymentDto>();
+        foreach (var payment in createdPayments)
+        {
+            var savedPayment = await _payments.GetByIdAsync(payment.Id, cancellationToken);
+            result.Add(await ToDtoAsync(savedPayment!, cancellationToken));
+        }
+
+        return CreatedAtAction(nameof(Search), result);
+    }
+
     [HttpPatch("{id:guid}/void")]
     [ProducesResponseType(typeof(PaymentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
