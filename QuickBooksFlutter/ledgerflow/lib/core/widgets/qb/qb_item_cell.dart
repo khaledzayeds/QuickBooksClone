@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
@@ -32,12 +31,13 @@ class QbItemCell extends StatefulWidget {
 class _QbItemCellState extends State<QbItemCell> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
+  bool _committedOnFocusLoss = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
-    _focusNode = FocusNode()..addListener(_repaintFocus);
+    _focusNode = FocusNode()..addListener(_handleFocusChanged);
   }
 
   @override
@@ -50,13 +50,19 @@ class _QbItemCellState extends State<QbItemCell> {
 
   @override
   void dispose() {
-    _focusNode.removeListener(_repaintFocus);
+    _focusNode.removeListener(_handleFocusChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _repaintFocus() {
+  void _handleFocusChanged() {
+    if (_focusNode.hasFocus) {
+      _committedOnFocusLoss = false;
+    } else if (!_committedOnFocusLoss && _controller.text.trim().isEmpty) {
+      _committedOnFocusLoss = true;
+      widget.onLastCellCommit?.call();
+    }
     if (mounted) setState(() {});
   }
 
@@ -72,11 +78,13 @@ class _QbItemCellState extends State<QbItemCell> {
   }
 
   void _pick(ItemModel item) {
+    _committedOnFocusLoss = true;
     _controller.text = item.name;
     widget.onPicked(item);
   }
 
   void _submit(String value) {
+    _committedOnFocusLoss = true;
     final normalized = value.toLowerCase().trim();
     final matches = _matches(value).toList();
     final exact = matches.where((item) {
@@ -96,24 +104,6 @@ class _QbItemCellState extends State<QbItemCell> {
     widget.onLastCellCommit?.call();
   }
 
-  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    if (event.logicalKey == LogicalKeyboardKey.enter ||
-        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      _submit(_controller.text);
-      return KeyEventResult.handled;
-    }
-
-    if (event.logicalKey == LogicalKeyboardKey.tab &&
-        widget.onLastCellCommit != null) {
-      widget.onLastCellCommit?.call();
-      return KeyEventResult.ignored;
-    }
-
-    return KeyEventResult.ignored;
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -121,66 +111,62 @@ class _QbItemCellState extends State<QbItemCell> {
 
     if (widget.loadingItems) return const SizedBox.expand();
 
-    return Focus(
-      focusNode: _focusNode,
-      onKeyEvent: _handleKey,
-      child: DecoratedBox(
-        decoration: _focusNode.hasFocus
-            ? BoxDecoration(border: Border.all(color: cs.primary, width: 1.2))
-            : const BoxDecoration(),
-        child: TypeAheadField<ItemModel>(
-          textFieldConfiguration: TextFieldConfiguration(
-            controller: _controller,
-            focusNode: _focusNode,
-            textInputAction: TextInputAction.next,
-            onSubmitted: _submit,
-            style: TextStyle(
-              fontSize: widget.compact ? 11 : 12,
-              fontWeight: FontWeight.w600,
+    return DecoratedBox(
+      decoration: _focusNode.hasFocus
+          ? BoxDecoration(border: Border.all(color: cs.primary, width: 1.2))
+          : const BoxDecoration(),
+      child: TypeAheadField<ItemModel>(
+        textFieldConfiguration: TextFieldConfiguration(
+          controller: _controller,
+          focusNode: _focusNode,
+          textInputAction: TextInputAction.next,
+          onSubmitted: _submit,
+          style: TextStyle(
+            fontSize: widget.compact ? 11 : 12,
+            fontWeight: FontWeight.w600,
+          ),
+          decoration: InputDecoration(
+            hintText: l10n.selectItem,
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: widget.compact ? 6 : 8,
+              vertical: widget.compact ? 5 : 8,
             ),
-            decoration: InputDecoration(
-              hintText: l10n.selectItem,
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: widget.compact ? 6 : 8,
-                vertical: widget.compact ? 5 : 8,
-              ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              filled: true,
-              fillColor: Colors.transparent,
-              suffixIcon: Icon(
-                Icons.search,
-                size: widget.compact ? 12 : 14,
-                color: cs.onSurfaceVariant.withOpacity(0.7),
-              ),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            filled: true,
+            fillColor: Colors.transparent,
+            suffixIcon: Icon(
+              Icons.search,
+              size: widget.compact ? 12 : 14,
+              color: cs.onSurfaceVariant.withOpacity(0.7),
             ),
           ),
-          suggestionsCallback: (pattern) => _matches(pattern).toList(),
-          itemBuilder: (context, item) => ListTile(
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            title: Text(
-              item.name,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(
-              '${widget.rateForItem(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}',
-            ),
+        ),
+        suggestionsCallback: (pattern) => _matches(pattern).toList(),
+        itemBuilder: (context, item) => ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          title: Text(
+            item.name,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
-          onSuggestionSelected: _pick,
-          noItemsFoundBuilder: (_) => Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(
-              'No items found',
-              style: TextStyle(fontSize: widget.compact ? 11 : 12),
-            ),
+          subtitle: Text(
+            '${widget.rateForItem(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}',
           ),
-          suggestionsBoxDecoration: const SuggestionsBoxDecoration(
-            elevation: 4,
-            constraints: BoxConstraints(maxHeight: 300),
+        ),
+        onSuggestionSelected: _pick,
+        noItemsFoundBuilder: (_) => Padding(
+          padding: const EdgeInsets.all(8),
+          child: Text(
+            'No items found',
+            style: TextStyle(fontSize: widget.compact ? 11 : 12),
           ),
+        ),
+        suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+          elevation: 4,
+          constraints: BoxConstraints(maxHeight: 300),
         ),
       ),
     );
