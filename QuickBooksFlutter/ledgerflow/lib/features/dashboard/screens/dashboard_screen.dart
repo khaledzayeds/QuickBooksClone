@@ -66,6 +66,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                 ),
                 const Spacer(),
                 Container(
+                  width: 204,
                   height: 32,
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
@@ -86,8 +87,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                     labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
                     unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                     tabs: [
-                      SizedBox(width: 96, child: Tab(text: l10n.homePage)),
-                      SizedBox(width: 96, child: Tab(text: l10n.insights)),
+                      Tab(text: l10n.homePage),
+                      Tab(text: l10n.insights),
                     ],
                   ),
                 ),
