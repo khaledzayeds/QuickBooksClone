@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../features/items/data/models/item_model.dart';
@@ -444,9 +443,7 @@ class _InlineItemPicker extends ConsumerStatefulWidget {
 class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
-  List<ItemModel>? _defaultItems;
-  String? _lastQuery;
-  List<ItemModel>? _lastResults;
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -477,23 +474,14 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
     };
   }
 
-  Future<List<ItemModel>> _fetchSuggestions(String pattern) async {
-    final query = pattern.trim();
-    if (query.isEmpty && _defaultItems != null) return _defaultItems!;
-    if (query == _lastQuery && _lastResults != null) return _lastResults!;
-
+  Future<List<ItemModel>> _searchItems(String query, {int pageSize = 25}) async {
     final result = await ref.read(itemsRepositoryProvider).getItems(
-          search: query.isEmpty ? null : query,
+          search: query.trim().isEmpty ? null : query.trim(),
           includeInactive: false,
           page: 1,
-          pageSize: query.isEmpty ? 20 : 25,
+          pageSize: pageSize,
         );
-
-    final rows = result.when(success: (data) => data, failure: (_) => const <ItemModel>[]);
-    if (query.isEmpty) _defaultItems = rows;
-    _lastQuery = query;
-    _lastResults = rows;
-    return rows;
+    return result.when(success: (data) => data, failure: (_) => const <ItemModel>[]);
   }
 
   Future<void> _submitValue(String value) async {
@@ -503,20 +491,66 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
       return;
     }
 
-    final items = await _fetchSuggestions(query);
+    setState(() => _isSearching = true);
+    final items = await _searchItems(query, pageSize: 10);
     if (!mounted) return;
+    setState(() => _isSearching = false);
 
     final lower = query.toLowerCase();
     final exact = items.where((item) => item.name.toLowerCase() == lower || item.sku?.toLowerCase() == lower);
     if (exact.isNotEmpty) {
-      widget.onPicked(exact.first);
+      _pick(exact.first);
       return;
     }
     if (items.isNotEmpty) {
-      widget.onPicked(items.first);
+      _pick(items.first);
       return;
     }
     widget.onKeyboardCommit?.call();
+  }
+
+  void _pick(ItemModel item) {
+    _controller.text = item.name;
+    widget.onPicked(item);
+  }
+
+  Future<void> _openLookup() async {
+    final items = await _searchItems(_controller.text, pageSize: 25);
+    if (!mounted) return;
+
+    final selected = await showDialog<ItemModel>(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(l10n.selectItem),
+          content: SizedBox(
+            width: 520,
+            height: 360,
+            child: items.isEmpty
+                ? const Center(child: Text('No items found'))
+                : ListView.separated(
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return ListTile(
+                        dense: true,
+                        title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        subtitle: Text('${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}'),
+                        onTap: () => Navigator.of(context).pop(item),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ],
+        );
+      },
+    );
+
+    if (selected != null) _pick(selected);
   }
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
@@ -538,40 +572,33 @@ class _InlineItemPickerState extends ConsumerState<_InlineItemPicker> {
     return Focus(
       focusNode: _focusNode,
       onKeyEvent: _handleKey,
-      child: TypeAheadField<ItemModel>(
-        textFieldConfiguration: TextFieldConfiguration(
-          controller: _controller,
-          focusNode: _focusNode,
-          textInputAction: TextInputAction.next,
-          style: TextStyle(fontSize: widget.compact ? 11 : 12, fontWeight: FontWeight.w600),
-          onSubmitted: _submitValue,
-          decoration: InputDecoration(
-            hintText: l10n.selectItem,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
-            border: InputBorder.none,
-            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
-            suffixIcon: Icon(Icons.search, size: widget.compact ? 12 : 14, color: Colors.grey),
-          ),
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        textInputAction: TextInputAction.next,
+        onSubmitted: _submitValue,
+        style: TextStyle(fontSize: widget.compact ? 11 : 12, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: l10n.selectItem,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
+          border: InputBorder.none,
+          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
+          suffixIcon: _isSearching
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: Center(
+                    child: SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                  ),
+                )
+              : IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(Icons.search, size: widget.compact ? 14 : 16, color: Colors.grey),
+                  onPressed: _openLookup,
+                ),
         ),
-        suggestionsCallback: _fetchSuggestions,
-        itemBuilder: (context, item) {
-          return ListTile(
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text('${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}'),
-          );
-        },
-        onSuggestionSelected: (item) {
-          _controller.text = item.name;
-          widget.onPicked(item);
-        },
-        noItemsFoundBuilder: (_) => Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text('No items found', style: TextStyle(fontSize: widget.compact ? 11 : 12)),
-        ),
-        suggestionsBoxDecoration: const SuggestionsBoxDecoration(elevation: 4, constraints: BoxConstraints(maxHeight: 300)),
       ),
     );
   }
