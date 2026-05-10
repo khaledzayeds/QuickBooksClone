@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../customers/data/models/customer_model.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
@@ -65,11 +64,10 @@ class InvoiceShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final busy = saving || posting;
 
     return TransactionFormShell(
-      title: l10n.newInvoice,
+      title: 'New Invoice',
       breadcrumb: 'Sales / Invoices / New',
       onBack: onClose,
       shortcuts: TransactionFormShortcutSet(
