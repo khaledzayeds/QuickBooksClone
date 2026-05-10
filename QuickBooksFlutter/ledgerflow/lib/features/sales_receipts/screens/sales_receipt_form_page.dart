@@ -41,7 +41,10 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   bool _saving = false;
   bool _previewing = false;
   bool _loadingActivity = false;
+  Timer? _lineChangeDebounce;
   Timer? _previewDebounce;
+  int _previewRequestId = 0;
+  String? _lastPreviewSignature;
 
   final _numberCtrl = TextEditingController(text: 'AUTO');
   final _dateCtrl = TextEditingController();
@@ -69,6 +72,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     for (final line in _lines) {
       line.dispose();
     }
+    _lineChangeDebounce?.cancel();
     _previewDebounce?.cancel();
     super.dispose();
   }
@@ -152,18 +156,30 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   }
 
   Future<void> _runPreview() async {
-    if (_selectedCustomer == null ||
-        _depositAccountId == null ||
-        _validLines().isEmpty) {
+    final validLines = _validLines();
+    if (_selectedCustomer == null || _depositAccountId == null || validLines.isEmpty) {
+      if (_previewing) {
+        setState(() => _previewing = false);
+      }
       return;
     }
-    setState(() => _previewing = true);
+
+    final signature = _previewSignature(validLines);
+    if (_preview != null && signature == _lastPreviewSignature) {
+      return;
+    }
+
+    final requestId = ++_previewRequestId;
+    if (!_previewing) {
+      setState(() => _previewing = true);
+    }
+
     final dto = PreviewSalesReceiptDto(
       customerId: _selectedCustomer!.id,
       receiptDate: _receiptDate,
       depositAccountId: _depositAccountId!,
       paymentMethod: _paymentMethod,
-      lines: _validLines()
+      lines: validLines
           .map(
             (line) => PreviewSalesLineDto(
               itemId: line.itemId!,
@@ -178,18 +194,41 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     );
     final result = await ref.read(salesReceiptsRepoProvider).preview(dto);
     if (!mounted) return;
+    if (requestId != _previewRequestId) return;
+
     setState(() => _previewing = false);
     result.when(
-      success: (preview) => setState(() => _preview = preview),
+      success: (preview) => setState(() {
+        _preview = preview;
+        _lastPreviewSignature = signature;
+      }),
       failure: (error) => _showError(error.message),
     );
   }
 
   void _schedulePreview() {
     _previewDebounce?.cancel();
-    _previewDebounce = Timer(const Duration(milliseconds: 600), () {
+    _previewDebounce = Timer(const Duration(milliseconds: 900), () {
       _runPreview();
     });
+  }
+
+  void _invalidatePreview() {
+    _previewRequestId++;
+    _lastPreviewSignature = null;
+    _preview = null;
+    _previewing = false;
+  }
+
+  String _previewSignature(List<TransactionLineEntry> validLines) {
+    final lineSignature = validLines.map((line) {
+      final description = line.descCtrl.text.trim().isEmpty
+          ? line.itemName
+          : line.descCtrl.text.trim();
+      return '${line.itemId}|$description|${line.qty}|${line.rate}';
+    }).join(';');
+
+    return '${_selectedCustomer?.id}|$_depositAccountId|${_formatDate(_receiptDate)}|$_paymentMethod|$lineSignature';
   }
 
   Future<void> _save({bool closeAfterSave = true}) async {
@@ -289,7 +328,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     if (picked == null) return;
     setState(() {
       _receiptDate = picked;
-      _preview = null;
+      _invalidatePreview();
       _syncDateController();
       _schedulePreview();
     });
@@ -338,7 +377,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     setState(() {
       _selectedCustomer = selected;
       _customerActivity = null;
-      _preview = null;
+      _invalidatePreview();
       _customerCtrl.text = selected.displayName;
     });
     _loadCustomerActivity(selected.id);
@@ -394,7 +433,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _selectedDepositAccount = selected;
       _depositAccountId = selected.id;
       _depositAccountCtrl.text = '${selected.code} - ${selected.name}';
-      _preview = null;
+      _invalidatePreview();
     });
     _schedulePreview();
   }
@@ -403,7 +442,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     setState(() {
       _selectedCustomer = null;
       _customerActivity = null;
-      _preview = null;
+      _invalidatePreview();
       _customerCtrl.clear();
     });
   }
@@ -413,7 +452,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _selectedDepositAccount = null;
       _depositAccountId = null;
       _depositAccountCtrl.clear();
-      _preview = null;
+      _invalidatePreview();
     });
   }
 
@@ -421,7 +460,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
     setState(() {
       _selectedCustomer = customer;
       _customerActivity = null;
-      _preview = null;
+      _invalidatePreview();
       _customerCtrl.text = customer.displayName;
     });
     _loadCustomerActivity(customer.id);
@@ -433,14 +472,14 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _selectedDepositAccount = account;
       _depositAccountId = account.id;
       _depositAccountCtrl.text = '${account.code} - ${account.name}';
-      _preview = null;
+      _invalidatePreview();
     });
     _schedulePreview();
   }
 
   void _addLine() {
     setState(() {
-      _preview = null;
+      _invalidatePreview();
       _lines.add(TransactionLineEntry());
     });
     _schedulePreview();
@@ -456,13 +495,17 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
       _lines
         ..clear()
         ..add(TransactionLineEntry());
-      _preview = null;
+      _invalidatePreview();
     });
   }
 
   void _onTableChanged() {
-    setState(() => _preview = null);
-    _schedulePreview();
+    _lineChangeDebounce?.cancel();
+    _lineChangeDebounce = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      setState(_invalidatePreview);
+      _schedulePreview();
+    });
   }
 
   Future<void> _showCustomerContextDialog() async {
@@ -815,7 +858,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                                                     if (value != null) {
                                                       setState(() {
                                                         _paymentMethod = value;
-                                                        _preview = null;
+                                                        _invalidatePreview();
                                                       });
                                                       _schedulePreview();
                                                     }
@@ -865,7 +908,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                                               if (value != null) {
                                                 setState(() {
                                                   _paymentMethod = value;
-                                                  _preview = null;
+                                                  _invalidatePreview();
                                                 });
                                                 _schedulePreview();
                                               }

@@ -1,24 +1,10 @@
-// sales_receipt_form_page_redesign.dart
-// Professional QuickBooks-style Sales Receipt form.
-// Layout: header fields → line table → totals footer | sidebar.
-//
-// Added on top of last commit:
-//   • F2  = Save & New  (keyboard shortcut)
-//   • F4  = Save & Close
-//   • Ctrl+P = Print
-//   • Clear button in AppBar
-//   • Print icon in AppBar
-//   • 5 default blank rows (instead of 1)
-//   • Post-save dialog with Print / New / Close actions
-
+// sales_receipt_form_page.dart
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:ledgerflow/core/widgets/transaction_sidebar.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../core/constants/api_enums.dart';
@@ -30,1223 +16,1646 @@ import '../../customers/providers/customers_provider.dart';
 import '../../invoices/data/models/sales_preview_contracts.dart';
 import '../../invoices/providers/invoices_state.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
-import '../../transactions/widgets/transaction_context_sidebar.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../../transactions/widgets/transaction_totals_footer.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
 
-const _kPaymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Check', 'Other'];
-
-// ─────────────────────────────────────────────────────────
-// Main widget
-// ─────────────────────────────────────────────────────────
-
-class SalesReceiptFormPageRedesign extends ConsumerStatefulWidget {
-  const SalesReceiptFormPageRedesign({super.key});
+class SalesReceiptFormPage extends ConsumerStatefulWidget {
+  const SalesReceiptFormPage({super.key});
 
   @override
-  ConsumerState<SalesReceiptFormPageRedesign> createState() =>
-      _SalesReceiptFormPageRedesignState();
+  ConsumerState<SalesReceiptFormPage> createState() =>
+      _SalesReceiptFormPageState();
 }
 
-class _SalesReceiptFormPageRedesignState
-    extends ConsumerState<SalesReceiptFormPageRedesign> {
-  // ── State ──────────────────────────────────────────────
-  CustomerModel? _customer;
-  CustomerSalesActivityModel? _activity;
+class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
+  // Customer
+  CustomerModel? _selectedCustomer;
+  CustomerSalesActivityModel? _customerActivity;
   SalesPostingPreviewModel? _preview;
-  AccountModel? _depositAccount;
+  AccountModel? _selectedDepositAccount;
+  String? _depositAccountId;
   DateTime _receiptDate = DateTime.now();
   String _paymentMethod = 'Cash';
   bool _saving = false;
   bool _previewing = false;
   bool _loadingActivity = false;
+  Timer? _lineChangeDebounce;
   Timer? _previewDebounce;
+  int _previewRequestId = 0;
+  String? _lastPreviewSignature;
 
-  // ── Controllers ───────────────────────────────────────
   final _numberCtrl = TextEditingController(text: 'AUTO');
   final _dateCtrl = TextEditingController();
   final _referenceCtrl = TextEditingController();
   final _customerCtrl = TextEditingController();
-  final _depositCtrl = TextEditingController();
+  final _depositAccountCtrl = TextEditingController();
+  final _paymentMethodCtrl = TextEditingController(text: 'Cash');
 
-  // 5 blank rows — feels ready, not empty (like QuickBooks)
-  final _lines = List.generate(5, (_) => TransactionLineEntry());
+  final List<TransactionLineEntry> _lines = [TransactionLineEntry()];
 
   @override
   void initState() {
     super.initState();
-    _dateCtrl.text = _fmtDate(_receiptDate);
+    _syncDateController();
   }
 
   @override
   void dispose() {
-    _previewDebounce?.cancel();
     _numberCtrl.dispose();
     _dateCtrl.dispose();
     _referenceCtrl.dispose();
     _customerCtrl.dispose();
-    _depositCtrl.dispose();
-    for (final l in _lines) l.dispose();
+    _depositAccountCtrl.dispose();
+    _paymentMethodCtrl.dispose();
+    for (final line in _lines) {
+      line.dispose();
+    }
+    _lineChangeDebounce?.cancel();
+    _previewDebounce?.cancel();
     super.dispose();
   }
 
-  // ── Derived ───────────────────────────────────────────
-  String _fmtDate(DateTime d) => DateFormat('dd/MM/yyyy').format(d);
-
-  double get _localSubtotal => _lines.fold(0, (s, l) => s + l.amount);
+  double get _subtotal => _lines.fold(0, (sum, line) => sum + line.amount);
 
   TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
-    subtotal: _preview?.subtotal ?? _localSubtotal,
+    subtotal: _preview?.subtotal ?? _subtotal,
     discountTotal: _preview?.discountTotal ?? 0,
     taxTotal: _preview?.taxTotal ?? 0,
-    total: _preview?.total ?? _localSubtotal,
-    paid: _preview?.paidAmount ?? _localSubtotal,
+    total: _preview?.total ?? _subtotal,
+    paid: _preview?.paidAmount ?? _subtotal,
     balanceDue: _preview?.balanceDue ?? 0,
-    currency: _activity?.currency ?? _customer?.currency ?? 'EGP',
+    currency:
+        _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP',
   );
 
-  List<TransactionLineEntry> _validLines() => _lines
-      .where((l) => l.itemId != null && l.qty > 0 && l.rate >= 0)
-      .toList();
-
-  List<TransactionContextMetric> get _metrics {
-    final cur = _activity?.currency ?? _customer?.currency ?? 'EGP';
-    final fmt = NumberFormat('#,##0.00');
+  List<TransactionContextMetric> get _sideMetrics {
+    final currency =
+        _customerActivity?.currency ?? _selectedCustomer?.currency ?? 'EGP';
     return [
-      if (_customer != null)
+      if (_selectedCustomer != null)
         TransactionContextMetric(
-          label: 'Open balance',
-          value:
-              '${fmt.format(_activity?.openBalance ?? _customer!.balance)} $cur',
+          label: 'Balance',
+          value: (_customerActivity?.openBalance ?? _selectedCustomer!.balance)
+              .toStringAsFixed(2),
           icon: Icons.account_balance_wallet_outlined,
         ),
-      if (_customer != null)
+      if (_selectedCustomer != null)
         TransactionContextMetric(
-          label: 'Credits available',
+          label: 'Credits',
           value:
-              '${fmt.format(_activity?.creditBalance ?? _customer!.creditBalance)} $cur',
+              (_customerActivity?.creditBalance ??
+                      _selectedCustomer!.creditBalance)
+                  .toStringAsFixed(2),
           icon: Icons.credit_score_outlined,
         ),
       TransactionContextMetric(
-        label: 'Receipt total',
-        value: '${fmt.format(_totals.total)} $cur',
+        label: 'Receipt Total',
+        value: '${_totals.total.toStringAsFixed(2)} $currency',
         icon: Icons.receipt_long_outlined,
       ),
-      if (_preview != null && _preview!.taxTotal > 0)
+      if (_preview != null)
         TransactionContextMetric(
           label: 'Tax',
-          value: '${fmt.format(_preview!.taxTotal)} $cur',
+          value: '${_preview!.taxTotal.toStringAsFixed(2)} $currency',
           icon: Icons.percent_outlined,
         ),
     ];
   }
 
-  List<TransactionContextActivity> get _activities {
-    final a = _activity;
-    if (a == null) return const [];
-    return [
-      ...a.recentSalesReceipts.map(
-        (x) => TransactionContextActivity(
-          title: 'Receipt ${x.number}',
-          subtitle: _fmtDate(x.date),
-          amount:
-              '${NumberFormat('#,##0.00').format(x.totalAmount)} ${a.currency}',
-          status: 'Receipt',
-        ),
-      ),
-      ...a.recentInvoices.map(
-        (x) => TransactionContextActivity(
-          title: 'Invoice ${x.number}',
-          subtitle: _fmtDate(x.date),
-          amount:
-              '${NumberFormat('#,##0.00').format(x.balanceDue)} ${a.currency}',
-          status: 'Invoice',
-        ),
-      ),
-      ...a.recentPayments.map(
-        (x) => TransactionContextActivity(
-          title: 'Payment ${x.number}',
-          subtitle: '${_fmtDate(x.paymentDate)} \u2022 ${x.paymentMethod}',
-          amount: '${NumberFormat('#,##0.00').format(x.amount)} ${a.currency}',
-          status: 'Payment',
-        ),
-      ),
-    ];
-  }
-
-  String? get _warning {
-    if (_customer == null) return null;
+  String? get _sideWarning {
+    if (_selectedCustomer == null) return 'Select customer';
     final warnings = <String>[
-      ...?_activity?.warnings,
+      ...?_customerActivity?.warnings,
       ...?_preview?.warnings,
-      if (_depositAccount == null) 'Select a deposit account.',
     ];
+    if (_depositAccountId == null) warnings.add('No deposit account');
     return warnings.isEmpty ? null : warnings.join('\n');
   }
 
-  // ── API ───────────────────────────────────────────────
-  Future<void> _loadCustomerActivity(String id) async {
+  void _syncDateController() {
+    _dateCtrl.text = _formatDate(_receiptDate);
+  }
+
+  List<TransactionLineEntry> _validLines() => _lines
+      .where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0)
+      .toList();
+
+  Future<void> _loadCustomerActivity(String customerId) async {
     setState(() => _loadingActivity = true);
     final result = await ref
         .read(invoicesRepoProvider)
-        .getCustomerActivity(id, limit: 5);
+        .getCustomerActivity(customerId, limit: 5);
     if (!mounted) return;
     setState(() => _loadingActivity = false);
     result.when(
-      success: (data) => setState(() => _activity = data),
-      failure: (e) => _showError(e.message),
+      success: (activity) => setState(() => _customerActivity = activity),
+      failure: (error) => _showError(error.message),
     );
   }
 
   Future<void> _runPreview() async {
-    if (_customer == null || _depositAccount == null || _validLines().isEmpty)
+    final validLines = _validLines();
+    if (_selectedCustomer == null ||
+        _depositAccountId == null ||
+        validLines.isEmpty) {
+      if (_previewing) {
+        setState(() => _previewing = false);
+      }
       return;
-    setState(() => _previewing = true);
+    }
+
+    final signature = _previewSignature(validLines);
+    if (_preview != null && signature == _lastPreviewSignature) {
+      return;
+    }
+
+    final requestId = ++_previewRequestId;
+    if (!_previewing) {
+      setState(() => _previewing = true);
+    }
+
     final dto = PreviewSalesReceiptDto(
-      customerId: _customer!.id,
+      customerId: _selectedCustomer!.id,
       receiptDate: _receiptDate,
-      depositAccountId: _depositAccount!.id,
+      depositAccountId: _depositAccountId!,
       paymentMethod: _paymentMethod,
-      lines: _validLines()
+      lines: validLines
           .map(
-            (l) => PreviewSalesLineDto(
-              itemId: l.itemId!,
-              description: l.descCtrl.text.trim().isEmpty
-                  ? l.itemName
-                  : l.descCtrl.text.trim(),
-              quantity: l.qty,
-              unitPrice: l.rate,
+            (line) => PreviewSalesLineDto(
+              itemId: line.itemId!,
+              description: line.descCtrl.text.trim().isEmpty
+                  ? line.itemName
+                  : line.descCtrl.text.trim(),
+              quantity: line.qty,
+              unitPrice: line.rate,
             ),
           )
           .toList(),
     );
     final result = await ref.read(salesReceiptsRepoProvider).preview(dto);
     if (!mounted) return;
+    if (requestId != _previewRequestId) return;
+
     setState(() => _previewing = false);
     result.when(
-      success: (data) => setState(() => _preview = data),
-      failure: (_) {},
+      success: (preview) => setState(() {
+        _preview = preview;
+        _lastPreviewSignature = signature;
+      }),
+      failure: (error) => _showError(error.message),
     );
   }
 
   void _schedulePreview() {
     _previewDebounce?.cancel();
-    _previewDebounce = Timer(const Duration(milliseconds: 550), _runPreview);
+    _previewDebounce = Timer(const Duration(milliseconds: 900), () {
+      _runPreview();
+    });
   }
 
-  // ── Save ──────────────────────────────────────────────
-  // Returns saved receipt number, or null on error.
-  Future<String?> _save() async {
+  void _invalidatePreview() {
+    _previewRequestId++;
+    _lastPreviewSignature = null;
+    _preview = null;
+    _previewing = false;
+  }
+
+  String _previewSignature(List<TransactionLineEntry> validLines) {
+    final lineSignature = validLines
+        .map((line) {
+          final description = line.descCtrl.text.trim().isEmpty
+              ? line.itemName
+              : line.descCtrl.text.trim();
+          return '${line.itemId}|$description|${line.qty}|${line.rate}';
+        })
+        .join(';');
+
+    return '${_selectedCustomer?.id}|$_depositAccountId|${_formatDate(_receiptDate)}|$_paymentMethod|$lineSignature';
+  }
+
+  Future<void> _save({bool closeAfterSave = true}) async {
     final l10n = AppLocalizations.of(context)!;
-    if (_customer == null) {
-      _showError(l10n.selectCustomerFirst);
-      return null;
+    if (_selectedCustomer == null) {
+      _showError(l10n.selectCustomer);
+      return;
     }
-    if (_depositAccount == null) {
-      _showError(l10n.selectDepositAccountFirst);
-      return null;
+    if (_depositAccountId == null || _depositAccountId!.isEmpty) {
+      _showError(l10n.selectDepositAccount);
+      return;
     }
     final validLines = _validLines();
     if (validLines.isEmpty) {
-      _showError('Add at least one valid line.');
-      return null;
+      _showError(l10n.minOneQty);
+      return;
     }
-
-    setState(() => _saving = true);
     final dto = CreateSalesReceiptDto(
-      customerId: _customer!.id,
+      customerId: _selectedCustomer!.id,
       receiptDate: _receiptDate,
-      depositAccountId: _depositAccount!.id,
+      depositAccountId: _depositAccountId!,
       paymentMethod: _paymentMethod,
       lines: validLines
           .map(
-            (l) => CreateSalesReceiptLineDto(
-              itemId: l.itemId!,
-              description: l.descCtrl.text.trim().isEmpty
-                  ? l.itemName
-                  : l.descCtrl.text.trim(),
-              quantity: l.qty,
-              unitPrice: l.rate,
+            (line) => CreateSalesReceiptLineDto(
+              itemId: line.itemId!,
+              description: line.descCtrl.text.trim().isEmpty
+                  ? line.itemName
+                  : line.descCtrl.text.trim(),
+              quantity: line.qty,
+              unitPrice: line.rate,
             ),
           )
           .toList(),
     );
-
-    String? savedNumber;
+    setState(() => _saving = true);
     try {
       final result = await ref.read(salesReceiptsRepoProvider).create(dto);
-      if (!mounted) return null;
       result.when(
-        success: (doc) {
-          savedNumber = doc.receiptNumber;
+        success: (_) {
           ref.read(salesReceiptsStateProvider.notifier).refresh();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.salesReceiptCreatedSuccess)),
+          );
+          if (closeAfterSave) {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/sales/receipts');
+            }
+          } else {
+            setState(() {
+              _clearForm();
+            });
+          }
         },
-        failure: (e) => _showError(e.message),
+        failure: (error) => _showError(error.message),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-    return savedNumber;
   }
 
-  Future<void> _saveAndClose() async {
-    final num = await _save();
-    if (num != null && mounted) _showPostSaveDialog(num, closeAfter: true);
-  }
-
-  Future<void> _saveAndNew() async {
-    final num = await _save();
-    if (num != null && mounted) {
-      _reset();
-      _showPostSaveDialog(num, closeAfter: false);
+  void _clearForm() {
+    _selectedCustomer = null;
+    _customerActivity = null;
+    _preview = null;
+    _selectedDepositAccount = null;
+    _depositAccountId = null;
+    _receiptDate = DateTime.now();
+    _paymentMethod = 'Cash';
+    _customerCtrl.clear();
+    _depositAccountCtrl.clear();
+    _paymentMethodCtrl.text = 'Cash';
+    for (final l in _lines) {
+      l.dispose();
     }
+    _lines
+      ..clear()
+      ..add(TransactionLineEntry());
   }
 
-  void _showPostSaveDialog(String docNumber, {required bool closeAfter}) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => _PostSaveDialog(
-        docNumber: docNumber,
-        onPrint: _handlePrint,
-        onNew: () {
-          Navigator.of(ctx).pop();
-          if (!closeAfter) _reset();
-        },
-        onClose: () {
-          Navigator.of(ctx).pop();
-          if (closeAfter) _goBack();
-        },
-      ),
-    );
-  }
+  void _showError(String message) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Theme.of(context).colorScheme.error,
+    ),
+  );
 
-  void _handlePrint() {
-    // TODO: connect to print/preview service
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Print coming soon…')));
-  }
-
-  void _reset() {
-    setState(() {
-      _customer = null;
-      _activity = null;
-      _preview = null;
-      _depositAccount = null;
-      _receiptDate = DateTime.now();
-      _paymentMethod = 'Cash';
-      _numberCtrl.text = 'AUTO';
-      _dateCtrl.text = _fmtDate(_receiptDate);
-      _referenceCtrl.clear();
-      _customerCtrl.clear();
-      _depositCtrl.clear();
-      for (final l in _lines) l.dispose();
-      _lines
-        ..clear()
-        ..addAll(List.generate(5, (_) => TransactionLineEntry()));
-    });
-  }
-
-  Future<void> _pickDate() async {
+  Future<void> _pickReceiptDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _receiptDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
-    if (picked == null || !mounted) return;
+    if (picked == null) return;
     setState(() {
       _receiptDate = picked;
-      _dateCtrl.text = _fmtDate(picked);
-      _preview = null;
+      _invalidatePreview();
+      _syncDateController();
+      _schedulePreview();
+    });
+  }
+
+  // ignore: unused_element
+  Future<void> _selectCustomer() async {
+    final customersAsync = ref.read(customersProvider);
+    final customers = customersAsync.maybeWhen(
+      data: (items) => items.where((customer) => customer.isActive).toList(),
+      orElse: () => const <CustomerModel>[],
+    );
+    final selected = await showDialog<CustomerModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Customer'),
+        content: SizedBox(
+          width: 520,
+          child: customers.isEmpty
+              ? const Text('No active customers loaded yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: customers.length,
+                  itemBuilder: (context, index) {
+                    final customer = customers[index];
+                    return ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(customer.displayName),
+                      subtitle: Text(
+                        'Balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)}',
+                      ),
+                      onTap: () => Navigator.of(context).pop(customer),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    setState(() {
+      _selectedCustomer = selected;
+      _customerActivity = null;
+      _invalidatePreview();
+      _customerCtrl.text = selected.displayName;
+    });
+    _loadCustomerActivity(selected.id);
+    _schedulePreview();
+  }
+
+  // ignore: unused_element
+  Future<void> _selectDepositAccount() async {
+    final accountsAsync = ref.read(accountsProvider);
+    final accounts = accountsAsync.maybeWhen(
+      data: (items) => items
+          .where(
+            (account) =>
+                account.isActive &&
+                (account.accountType == AccountType.bank ||
+                    account.accountType == AccountType.otherCurrentAsset),
+          )
+          .toList(),
+      orElse: () => const <AccountModel>[],
+    );
+    final selected = await showDialog<AccountModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Deposit Account'),
+        content: SizedBox(
+          width: 520,
+          child: accounts.isEmpty
+              ? const Text('No active bank/current asset accounts loaded yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: accounts.length,
+                  itemBuilder: (context, index) {
+                    final account = accounts[index];
+                    return ListTile(
+                      leading: const Icon(Icons.account_balance_outlined),
+                      title: Text('${account.code} - ${account.name}'),
+                      subtitle: Text(account.accountType.name),
+                      onTap: () => Navigator.of(context).pop(account),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    setState(() {
+      _selectedDepositAccount = selected;
+      _depositAccountId = selected.id;
+      _depositAccountCtrl.text = '${selected.code} - ${selected.name}';
+      _invalidatePreview();
     });
     _schedulePreview();
   }
 
-  void _showError(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
+  void _clearCustomer() {
+    setState(() {
+      _selectedCustomer = null;
+      _customerActivity = null;
+      _invalidatePreview();
+      _customerCtrl.clear();
+    });
   }
 
-  void _goBack() =>
-      context.canPop() ? context.pop() : context.go('/sales/receipts');
-
-  // ── Keyboard shortcuts ────────────────────────────────
-  KeyEventResult _handleKey(FocusNode _, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    final isCtrl =
-        HardwareKeyboard.instance.isControlPressed ||
-        HardwareKeyboard.instance.isMetaPressed;
-
-    if (event.logicalKey == LogicalKeyboardKey.f2) {
-      if (!_saving) _saveAndNew();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.f4) {
-      if (!_saving) _saveAndClose();
-      return KeyEventResult.handled;
-    }
-    if (isCtrl && event.logicalKey == LogicalKeyboardKey.keyP) {
-      _handlePrint();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.escape) {
-      _goBack();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+  void _clearDepositAccount() {
+    setState(() {
+      _selectedDepositAccount = null;
+      _depositAccountId = null;
+      _depositAccountCtrl.clear();
+      _invalidatePreview();
+    });
   }
 
-  // ── Build ─────────────────────────────────────────────
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    final customers = ref
-        .watch(customersProvider)
-        .maybeWhen(
-          data: (items) => items.where((c) => c.isActive).toList(),
-          orElse: () => const <CustomerModel>[],
-        );
-    final accounts = ref
-        .watch(accountsProvider)
-        .maybeWhen(
-          data: (items) => items
-              .where(
-                (a) =>
-                    a.isActive &&
-                    (a.accountType == AccountType.bank ||
-                        a.accountType == AccountType.otherCurrentAsset),
-              )
-              .toList(),
-          orElse: () => const <AccountModel>[],
-        );
-
-    return Focus(
-      autofocus: true,
-      onKeyEvent: _handleKey,
-      child: Scaffold(
-        backgroundColor: cs.surfaceContainerLowest,
-        appBar: _buildAppBar(l10n, theme, cs),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            final showSidebar = constraints.maxWidth >= 1100;
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildMainArea(context, l10n, customers, accounts),
-                ),
-                if (showSidebar) ...[
-                  VerticalDivider(width: 1, color: cs.outlineVariant),
-                  TransactionContextSidebar(
-                    title: _customer?.displayName ?? '',
-                    subtitle:
-                        _customer?.companyName ?? _customer?.primaryContact,
-                    initials: _customer?.initials,
-                    emptyTitle: 'Select a customer',
-                    emptyMessage:
-                        'Choose a customer to see balances, credits, and recent activity.',
-                    metrics: _metrics,
-                    activities: _activities,
-                    warning: _warning,
-                    isLoading: _loadingActivity,
-                    totals: _totals,
-                    notes: _referenceCtrl.text.trim().isEmpty
-                        ? null
-                        : 'Ref: ${_referenceCtrl.text.trim()}',
-                  ),
-                ],
-              ],
-            );
-          },
-        ),
-      ),
-    );
+  void _selectCustomerDirect(CustomerModel customer) {
+    setState(() {
+      _selectedCustomer = customer;
+      _customerActivity = null;
+      _invalidatePreview();
+      _customerCtrl.text = customer.displayName;
+    });
+    _loadCustomerActivity(customer.id);
+    _schedulePreview();
   }
 
-  // ── AppBar ────────────────────────────────────────────
-  PreferredSizeWidget _buildAppBar(
-    AppLocalizations l10n,
-    ThemeData theme,
-    ColorScheme cs,
-  ) {
-    return AppBar(
-      toolbarHeight: 48,
-      backgroundColor: cs.surface,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      titleSpacing: 12,
-      title: Row(
-        children: [
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: _goBack,
-            icon: const Icon(Icons.arrow_back, size: 20),
-            tooltip: 'Back (Esc)',
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.newSalesReceipt,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'Sales / Receipts / New',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      actions: [
-        // Print
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          onPressed: _handlePrint,
-          icon: const Icon(Icons.print_outlined, size: 20),
-          tooltip: 'Print (Ctrl+P)',
-        ),
-        const SizedBox(width: 4),
-        // Clear
-        TextButton.icon(
-          onPressed: _saving ? null : _reset,
-          icon: const Icon(Icons.refresh_outlined, size: 16),
-          label: const Text('Clear'),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-        // Save & New  F2
-        OutlinedButton.icon(
-          onPressed: _saving ? null : _saveAndNew,
-          icon: const Icon(Icons.add_circle_outline, size: 16),
-          label: const Text('Save & New  F2'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            side: BorderSide(color: cs.outlineVariant),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // Save & Close  F4
-        FilledButton.icon(
-          onPressed: _saving ? null : _saveAndClose,
-          icon: _saving
-              ? const SizedBox.square(
-                  dimension: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Icon(Icons.save_outlined, size: 16),
-          label: const Text('Save & Close  F4'),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          onPressed: _goBack,
-          icon: const Icon(Icons.close, size: 20),
-          tooltip: 'Close (Esc)',
-        ),
-        const SizedBox(width: 8),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Divider(height: 1, color: cs.outlineVariant),
-      ),
-    );
-  }
-
-  // ── Main area ─────────────────────────────────────────
-  Widget _buildMainArea(
-    BuildContext context,
-    AppLocalizations l10n,
-    List<CustomerModel> customers,
-    List<AccountModel> accounts,
-  ) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Column(
-      children: [
-        // Header fields card
-        Container(
-          color: cs.surface,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Column(
-            children: [
-              // Row 1: Receipt # | Date | Reference
-              Row(
-                children: [
-                  SizedBox(
-                    width: 130,
-                    child: _FormFieldWrapper(
-                      label: '${l10n.salesReceipt} #',
-                      child: TextFormField(
-                        controller: _numberCtrl,
-                        readOnly: true,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                        decoration: _inputDeco(cs, hint: 'AUTO'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 140,
-                    child: _FormFieldWrapper(
-                      label: l10n.receiptDate,
-                      child: TextFormField(
-                        controller: _dateCtrl,
-                        readOnly: true,
-                        onTap: _pickDate,
-                        style: theme.textTheme.bodySmall,
-                        decoration: _inputDeco(
-                          cs,
-                          hint: 'dd/mm/yyyy',
-                          suffixIcon: Icons.calendar_today_outlined,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _FormFieldWrapper(
-                      label: 'Reference / Memo',
-                      child: TextFormField(
-                        controller: _referenceCtrl,
-                        style: theme.textTheme.bodySmall,
-                        decoration: _inputDeco(cs, hint: 'Optional'),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              // Row 2: Customer | Deposit Account | Payment Method
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _FormFieldWrapper(
-                      label: l10n.customer,
-                      required: true,
-                      child: _CustomerTypeahead(
-                        controller: _customerCtrl,
-                        customers: customers,
-                        selected: _customer,
-                        onSelected: (c) {
-                          setState(() {
-                            _customer = c;
-                            _customerCtrl.text = c.displayName;
-                            _activity = null;
-                            _preview = null;
-                          });
-                          _loadCustomerActivity(c.id);
-                          _schedulePreview();
-                        },
-                        onCleared: () => setState(() {
-                          _customer = null;
-                          _customerCtrl.clear();
-                          _activity = null;
-                          _preview = null;
-                        }),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 3,
-                    child: _FormFieldWrapper(
-                      label: l10n.depositAccount,
-                      required: true,
-                      child: _AccountTypeahead(
-                        controller: _depositCtrl,
-                        accounts: accounts,
-                        selected: _depositAccount,
-                        hint: l10n.selectDepositAccount,
-                        onSelected: (a) {
-                          setState(() {
-                            _depositAccount = a;
-                            _depositCtrl.text = a.name;
-                            _preview = null;
-                          });
-                          _schedulePreview();
-                        },
-                        onCleared: () => setState(() {
-                          _depositAccount = null;
-                          _depositCtrl.clear();
-                          _preview = null;
-                        }),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 160,
-                    child: _FormFieldWrapper(
-                      label: l10n.paymentMethod,
-                      child: DropdownButtonFormField<String>(
-                        value: _paymentMethod,
-                        isDense: true,
-                        decoration: _inputDeco(cs),
-                        style: theme.textTheme.bodySmall,
-                        items: _kPaymentMethods
-                            .map(
-                              (m) => DropdownMenuItem(value: m, child: Text(m)),
-                            )
-                            .toList(),
-                        onChanged: (v) {
-                          if (v == null) return;
-                          setState(() {
-                            _paymentMethod = v;
-                            _preview = null;
-                          });
-                          _schedulePreview();
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Divider(height: 1, color: theme.dividerColor),
-
-        // Add-line toolbar
-        Container(
-          color: cs.surfaceContainerLowest,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-          child: Row(
-            children: [
-              Text(
-                'Products and services',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '\u2022 Tab through cells  \u2022  Enter adds a new line',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: _addLine,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add line'),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Line table + totals
-        Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: TransactionLineTable(
-                    lines: _lines,
-                    priceMode: TransactionLinePriceMode.sales,
-                    fillWidth: true,
-                    compact: true,
-                    showAddLineFooter: false,
-                    onChanged: () {
-                      setState(() => _preview = null);
-                      _schedulePreview();
-                    },
-                  ),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  border: Border(top: BorderSide(color: cs.outlineVariant)),
-                ),
-                child: TransactionTotalsFooter(totals: _totals),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+  void _selectDepositAccountDirect(AccountModel account) {
+    setState(() {
+      _selectedDepositAccount = account;
+      _depositAccountId = account.id;
+      _depositAccountCtrl.text = '${account.code} - ${account.name}';
+      _invalidatePreview();
+    });
+    _schedulePreview();
   }
 
   void _addLine() {
     setState(() {
-      _preview = null;
+      _invalidatePreview();
       _lines.add(TransactionLineEntry());
     });
     _schedulePreview();
   }
 
-  // ── Input decoration ──────────────────────────────────
-  InputDecoration _inputDeco(
-    ColorScheme cs, {
-    String? hint,
-    IconData? suffixIcon,
-  }) => InputDecoration(
-    hintText: hint,
-    isDense: true,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: BorderSide(color: cs.outlineVariant),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: BorderSide(color: cs.outlineVariant),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: BorderSide(color: cs.primary, width: 1.5),
-    ),
-    filled: true,
-    fillColor: cs.surface,
-    suffixIcon: suffixIcon != null
-        ? Icon(suffixIcon, size: 16, color: cs.onSurfaceVariant)
-        : null,
-  );
-}
+  // ignore: unused_element
+  void _clearLines() {
+    if (_lines.length == 1 && _lines.first.itemId == null) return;
+    setState(() {
+      for (final line in _lines) {
+        line.dispose();
+      }
+      _lines
+        ..clear()
+        ..add(TransactionLineEntry());
+      _invalidatePreview();
+    });
+  }
 
-// ─────────────────────────────────────────────────────────
-// Post-Save Dialog
-// ─────────────────────────────────────────────────────────
+  void _onTableChanged() {
+    _lineChangeDebounce?.cancel();
+    _lineChangeDebounce = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      setState(_invalidatePreview);
+      _schedulePreview();
+    });
+  }
 
-class _PostSaveDialog extends StatelessWidget {
-  const _PostSaveDialog({
-    required this.docNumber,
-    required this.onNew,
-    required this.onClose,
-    required this.onPrint,
-  });
+  Future<void> _showCustomerContextDialog() async {
+    if (_selectedCustomer == null) return;
+    final activity = _customerActivity;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_selectedCustomer!.displayName),
+        content: SizedBox(
+          width: 400,
+          child: activity == null
+              ? const Text('Loading...')
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ...activity.recentSalesReceipts.map(
+                      (x) => ListTile(
+                        title: Text('Receipt ${x.number}'),
+                        subtitle: Text(_formatDate(x.date)),
+                        trailing: Text(
+                          '${x.totalAmount.toStringAsFixed(2)} ${activity.currency}',
+                        ),
+                      ),
+                    ),
+                    ...activity.recentInvoices.map(
+                      (x) => ListTile(
+                        title: Text('Invoice ${x.number}'),
+                        subtitle: Text(_formatDate(x.date)),
+                        trailing: Text(
+                          '${x.balanceDue.toStringAsFixed(2)} ${activity.currency}',
+                        ),
+                      ),
+                    ),
+                    ...activity.recentPayments.map(
+                      (x) => ListTile(
+                        title: Text('Payment ${x.number}'),
+                        subtitle: Text(
+                          '${_formatDate(x.paymentDate)} • ${x.paymentMethod}',
+                        ),
+                        trailing: Text(
+                          '${x.amount.toStringAsFixed(2)} ${activity.currency}',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 
-  final String docNumber;
-  final VoidCallback onNew;
-  final VoidCallback onClose;
-  final VoidCallback onPrint;
+  void _cancel() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/sales/receipts');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final customers = ref
+        .watch(customersProvider)
+        .maybeWhen(
+          data: (items) =>
+              items.where((customer) => customer.isActive).toList(),
+          orElse: () => const <CustomerModel>[],
+        );
+    final depositAccounts = ref
+        .watch(accountsProvider)
+        .maybeWhen(
+          data: (items) => items
+              .where(
+                (account) =>
+                    account.isActive &&
+                    (account.accountType == AccountType.bank ||
+                        account.accountType == AccountType.otherCurrentAsset),
+              )
+              .toList(),
+          orElse: () => const <AccountModel>[],
+        );
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SizedBox(
-        width: 340,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 42,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          titleSpacing: 8,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // Success icon
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  shape: BoxShape.circle,
+              TextButton.icon(
+                onPressed: _saving ? null : () => _save(closeAfterSave: true),
+                icon: _saving
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save, size: 18),
+                label: const Text(
+                  'Save & Close',
+                  style: TextStyle(fontSize: 13),
                 ),
-                child: Icon(
-                  Icons.check_circle_outline,
-                  size: 32,
-                  color: cs.primary,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Sales Receipt Saved!',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
+              const SizedBox(width: 4),
+              TextButton.icon(
+                onPressed: _saving ? null : () => _save(closeAfterSave: false),
+                icon: const Icon(Icons.save_outlined, size: 18),
+                label: const Text('Save & New', style: TextStyle(fontSize: 13)),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
-              const SizedBox(height: 6),
-              // Doc number chip
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: _cancel,
+                icon: const Icon(Icons.close, size: 20),
+                tooltip: 'Close',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+        ),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
                   children: [
-                    Icon(Icons.tag, size: 16, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text(
-                      docNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: cs.primary,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                    // ---- Unified Header Card ----
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        border: Border.all(color: cs.outlineVariant),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Row 1: Receipt #, Date, Reference
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final wide = constraints.maxWidth > 500;
+                                return wide
+                                    ? Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 2,
+                                            child: TextField(
+                                              controller: _numberCtrl,
+                                              readOnly: true,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Receipt #',
+                                                isDense: true,
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 2,
+                                            child: TextField(
+                                              controller: _dateCtrl,
+                                              readOnly: true,
+                                              onTap: _pickReceiptDate,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Date',
+                                                isDense: true,
+                                                border: OutlineInputBorder(),
+                                                suffixIcon: Icon(
+                                                  Icons.calendar_today_outlined,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            flex: 3,
+                                            child: TextField(
+                                              controller: _referenceCtrl,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Reference',
+                                                isDense: true,
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Column(
+                                        children: [
+                                          TextField(
+                                            controller: _numberCtrl,
+                                            readOnly: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Receipt #',
+                                              isDense: true,
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          TextField(
+                                            controller: _dateCtrl,
+                                            readOnly: true,
+                                            onTap: _pickReceiptDate,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Date',
+                                              isDense: true,
+                                              border: OutlineInputBorder(),
+                                              suffixIcon: Icon(
+                                                Icons.calendar_today_outlined,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          TextField(
+                                            controller: _referenceCtrl,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Reference',
+                                              isDense: true,
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            // Row 2: Customer
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _CustomerTypeAheadField(
+                                    controller: _customerCtrl,
+                                    customers: customers,
+                                    label: l10n.customer,
+                                    selectedCustomer: _selectedCustomer,
+                                    onSelected: _selectCustomerDirect,
+                                    onClear: _clearCustomer,
+                                    onDetails: _showCustomerContextDialog,
+                                  ),
+                                ),
+                                if (_selectedCustomer != null) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: cs.primaryContainer,
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      'Balance: ${(_customerActivity?.openBalance ?? _selectedCustomer!.balance).toStringAsFixed(2)} ${_selectedCustomer!.currency}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            // Row 3: Deposit & Payment Method
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final wide = constraints.maxWidth > 500;
+                                return wide
+                                    ? Row(
+                                        children: [
+                                          Expanded(
+                                            child: _DepositAccountTypeAheadField(
+                                              controller: _depositAccountCtrl,
+                                              accounts: depositAccounts,
+                                              selectedAccount:
+                                                  _selectedDepositAccount,
+                                              onSelected:
+                                                  _selectDepositAccountDirect,
+                                              onClear: _clearDepositAccount,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child:
+                                                DropdownButtonFormField<String>(
+                                                  value: _paymentMethod,
+                                                  isDense: true,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        labelText:
+                                                            'Payment Method',
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                      ),
+                                                  items: const [
+                                                    DropdownMenuItem(
+                                                      value: 'Cash',
+                                                      child: Text('Cash'),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: 'Check',
+                                                      child: Text('Check'),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: 'BankTransfer',
+                                                      child: Text(
+                                                        'Bank Transfer',
+                                                      ),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: 'CreditCard',
+                                                      child: Text(
+                                                        'Credit Card',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    if (value != null) {
+                                                      setState(() {
+                                                        _paymentMethod = value;
+                                                        _invalidatePreview();
+                                                      });
+                                                      _schedulePreview();
+                                                    }
+                                                  },
+                                                ),
+                                          ),
+                                        ],
+                                      )
+                                    : Column(
+                                        children: [
+                                          _DepositAccountTypeAheadField(
+                                            controller: _depositAccountCtrl,
+                                            accounts: depositAccounts,
+                                            selectedAccount:
+                                                _selectedDepositAccount,
+                                            onSelected:
+                                                _selectDepositAccountDirect,
+                                            onClear: _clearDepositAccount,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          DropdownButtonFormField<String>(
+                                            value: _paymentMethod,
+                                            isDense: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Payment Method',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            items: const [
+                                              DropdownMenuItem(
+                                                value: 'Cash',
+                                                child: Text('Cash'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 'Check',
+                                                child: Text('Check'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 'BankTransfer',
+                                                child: Text('Bank Transfer'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: 'CreditCard',
+                                                child: Text('Credit Card'),
+                                              ),
+                                            ],
+                                            onChanged: (value) {
+                                              if (value != null) {
+                                                setState(() {
+                                                  _paymentMethod = value;
+                                                  _invalidatePreview();
+                                                });
+                                                _schedulePreview();
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Items Header + Add Line
+                    Row(
+                      children: [
+                        Text(
+                          l10n.items,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Chip(label: Text('${_lines.length} lines')),
+                        if (_previewing) ...[
+                          const SizedBox(width: 8),
+                          const Chip(
+                            label: Text('Previewing'),
+                            avatar: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ] else if (_preview != null) ...[
+                          const SizedBox(width: 8),
+                          Chip(
+                            label: const Text('Preview ready'),
+                            avatar: Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ],
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: _addLine,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add line'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Scrollable Items Table + Totals
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: cs.surface,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: cs.outlineVariant),
+                                ),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 800,
+                                    ),
+                                    child: TransactionLineTable(
+                                      lines: _lines,
+                                      priceMode: TransactionLinePriceMode.sales,
+                                      onChanged: _onTableChanged,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Footer
+                          _buildFooter(),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              // Print
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    onPrint();
-                  },
-                  icon: const Icon(Icons.print_outlined, size: 18),
-                  label: const Text('Print'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+            ),
+            // Right Sidebar
+            _buildRightSidebar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return TransactionTotalsFooter(totals: _totals);
+  }
+
+  Widget _buildRightSidebar() {
+    return TransactionSidebar();
+  }
+
+  Widget _buildRedDot() {
+    return Container(
+      width: 6,
+      height: 6,
+      margin: const EdgeInsets.only(left: 4, bottom: 4),
+      decoration: const BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  Widget _buildRibbon() {
+    return Container(
+      color: const Color(0xFFF0F0F0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Ribbon Tabs
+          Container(
+            color: const Color(0xFFE5E5E5),
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                _buildRibbonTab('Main', isActive: true),
+                _buildRibbonTab('Formatting', hasRedDot: true),
+                _buildRibbonTab('Reports', hasRedDot: true),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    size: 16,
+                    color: Colors.black54,
                   ),
+                  onPressed: _cancel,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ),
+          // Ribbon Actions
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFCCCCCC))),
+            ),
+            child: Row(
+              children: [
+                _buildRibbonButton(
+                  Icons.note_add,
+                  'New',
+                  onPressed: () => _save(closeAfterSave: false),
+                ),
+                _buildRibbonButton(
+                  Icons.save,
+                  'Save',
+                  onPressed: () => _save(closeAfterSave: true),
+                ),
+                _buildRibbonButton(
+                  Icons.delete_forever,
+                  'Delete',
+                  hasRedDot: true,
+                ),
+                _buildRibbonButton(
+                  Icons.copy,
+                  'Create a Copy',
+                  hasRedDot: true,
+                ),
+                const SizedBox(width: 16),
+                _buildRibbonButton(Icons.print, 'Print', hasRedDot: true),
+                _buildRibbonButton(Icons.email, 'Email', hasRedDot: true),
+                const SizedBox(width: 16),
+                _buildRibbonButton(
+                  Icons.attach_file,
+                  'Attach\nFile',
+                  hasRedDot: true,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRibbonTab(
+    String text, {
+    bool isActive = false,
+    bool hasRedDot = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFFF0F0F0) : Colors.transparent,
+        border: isActive
+            ? const Border(
+                top: BorderSide(color: Color(0xFFCCCCCC)),
+                left: BorderSide(color: Color(0xFFCCCCCC)),
+                right: BorderSide(color: Color(0xFFCCCCCC)),
+              )
+            : null,
+      ),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: isActive ? Colors.black : Colors.black87,
+            ),
+          ),
+          if (hasRedDot) _buildRedDot(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRibbonButton(
+    IconData icon,
+    String label, {
+    bool isBlue = false,
+    VoidCallback? onPressed,
+    bool hasRedDot = false,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 24,
+                  color: isBlue ? Colors.blue.shade700 : Colors.blue.shade600,
+                ),
+                if (hasRedDot) _buildRedDot(),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: Colors.black87),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBlueBar(
+    List<CustomerModel> customers,
+    List<AccountModel> depositAccounts,
+  ) {
+    return Container(
+      color: const Color(0xFF5B7B9E),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          const Text(
+            'CUSTOMER',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: Container(
+              height: 32,
+              constraints: const BoxConstraints(maxWidth: 250),
+              child: Material(
+                color: Colors.white,
+                child: _CustomerTypeAheadField(
+                  controller: _customerCtrl,
+                  customers: customers,
+                  label: '',
+                  selectedCustomer: _selectedCustomer,
+                  onSelected: _selectCustomerDirect,
+                  onClear: _clearCustomer,
+                  onDetails: _showCustomerContextDialog,
                 ),
               ),
-              const SizedBox(height: 10),
-              Row(
+            ),
+          ),
+          const SizedBox(width: 24),
+          const Text(
+            'DEPOSIT TO',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: Container(
+              height: 32,
+              constraints: const BoxConstraints(maxWidth: 250),
+              child: Material(
+                color: Colors.white,
+                child: _DepositAccountTypeAheadField(
+                  controller: _depositAccountCtrl,
+                  accounts: depositAccounts,
+                  selectedAccount: _selectedDepositAccount,
+                  onSelected: _selectDepositAccountDirect,
+                  onClear: _clearDepositAccount,
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          const Text(
+            'TEMPLATE',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          _buildRedDot(),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 1,
+            child: Container(
+              height: 28,
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              alignment: Alignment.centerLeft,
+              child: const Text(
+                'Custom Sales...',
+                style: TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Title
+          const Text(
+            'Sales Receipt',
+            style: TextStyle(fontSize: 32, color: Color(0xFF4A4A4A)),
+          ),
+          // Fields
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Column 1: Date & NO
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onNew,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('New  F2'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  const Text(
+                    'DATE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Container(
+                    width: 120,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade400),
+                    ),
+                    child: InkWell(
+                      onTap: _pickReceiptDate,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 4),
+                              child: Text(
+                                _dateCtrl.text,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            color: Colors.grey.shade200,
+                            width: 20,
+                            child: const Icon(Icons.calendar_today, size: 12),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onClose,
-                      icon: const Icon(Icons.close, size: 16),
-                      label: const Text('Close'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'SALE NO.',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Container(
+                    width: 120,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade400),
+                    ),
+                    padding: const EdgeInsets.only(left: 4),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _numberCtrl.text,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              // Column 2: Payment Method
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'PAYMENT METH',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Container(
+                    width: 150,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade400),
+                      color: Colors.white,
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _paymentMethod,
+                        isExpanded: true,
+                        icon: Container(
+                          width: 20,
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.arrow_drop_down, size: 16),
                         ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Cash',
+                            child: Padding(
+                              padding: EdgeInsets.only(left: 4),
+                              child: Text(
+                                'Cash',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Check',
+                            child: Padding(
+                              padding: EdgeInsets.only(left: 4),
+                              child: Text(
+                                'Check',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'BankTransfer',
+                            child: Padding(
+                              padding: EdgeInsets.only(left: 4),
+                              child: Text(
+                                'Bank Transfer',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'CreditCard',
+                            child: Padding(
+                              padding: EdgeInsets.only(left: 4),
+                              child: Text(
+                                'Credit Card',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _paymentMethod = val;
+                              _preview = null;
+                            });
+                            _schedulePreview();
+                          }
+                        },
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text(
+                        'CHECK NO.',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildRedDot(),
+                    ],
                   ),
                 ],
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────
-// _FormFieldWrapper
-// ─────────────────────────────────────────────────────────
-
-class _FormFieldWrapper extends StatelessWidget {
-  const _FormFieldWrapper({
-    required this.label,
-    required this.child,
-    this.required = false,
-  });
-  final String label;
-  final Widget child;
-  final bool required;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        RichText(
-          text: TextSpan(
-            text: label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-            children: required
-                ? [
-                    TextSpan(
-                      text: ' *',
-                      style: TextStyle(color: cs.error),
-                    ),
-                  ]
-                : [],
-          ),
-        ),
-        const SizedBox(height: 4),
-        child,
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────
-// _CustomerTypeahead
-// ─────────────────────────────────────────────────────────
-
-class _CustomerTypeahead extends StatelessWidget {
-  const _CustomerTypeahead({
+// ─────────────────────────────────────────────
+// Customer TypeAhead Field
+// ─────────────────────────────────────────────
+class _CustomerTypeAheadField extends StatelessWidget {
+  const _CustomerTypeAheadField({
     required this.controller,
     required this.customers,
-    required this.selected,
+    required this.label,
+    required this.selectedCustomer,
     required this.onSelected,
-    required this.onCleared,
+    required this.onClear,
+    required this.onDetails,
   });
+
   final TextEditingController controller;
   final List<CustomerModel> customers;
-  final CustomerModel? selected;
-  final void Function(CustomerModel) onSelected;
-  final VoidCallback onCleared;
+  final String label;
+  final CustomerModel? selectedCustomer;
+  final ValueChanged<CustomerModel> onSelected;
+  final VoidCallback onClear;
+  final VoidCallback onDetails;
+
+  List<CustomerModel> _matches(String pattern) {
+    final text = pattern.trim().toLowerCase();
+    if (text.isEmpty) return customers.take(8).toList();
+    return customers
+        .where(
+          (customer) =>
+              customer.displayName.toLowerCase().contains(text) ||
+              (customer.companyName?.toLowerCase().contains(text) ?? false) ||
+              (customer.phone?.toLowerCase().contains(text) ?? false) ||
+              (customer.email?.toLowerCase().contains(text) ?? false),
+        )
+        .take(12)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
     return TypeAheadField<CustomerModel>(
       textFieldConfiguration: TextFieldConfiguration(
         controller: controller,
-        style: theme.textTheme.bodySmall,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         decoration: InputDecoration(
-          hintText: 'Search customers...',
+          labelText: label,
           isDense: true,
+          border: const OutlineInputBorder(),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 9,
           ),
-          prefixIcon: const Icon(Icons.person_search_outlined, size: 16),
-          suffixIcon: selected != null
-              ? IconButton(
+          prefixIcon: const Icon(Icons.person_outline, size: 18),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selectedCustomer != null)
+                IconButton(
                   visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  onPressed: onCleared,
-                  icon: const Icon(Icons.close, size: 16),
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: cs.outlineVariant),
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: onClear,
+                  tooltip: 'Clear',
+                ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.info_outline, size: 18),
+                onPressed: selectedCustomer == null ? null : onDetails,
+                tooltip: 'Customer details',
+              ),
+            ],
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: cs.outlineVariant),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: cs.primary, width: 1.5),
-          ),
-          filled: true,
-          fillColor: cs.surface,
         ),
       ),
-      suggestionsCallback: (pattern) {
-        final q = pattern.toLowerCase().trim();
-        return customers
-            .where(
-              (c) =>
-                  q.isEmpty ||
-                  c.displayName.toLowerCase().contains(q) ||
-                  (c.companyName?.toLowerCase().contains(q) ?? false) ||
-                  (c.email?.toLowerCase().contains(q) ?? false),
-            )
-            .take(12)
-            .toList();
-      },
-      itemBuilder: (context, c) => ListTile(
-        dense: true,
-        leading: CircleAvatar(
-          radius: 16,
-          backgroundColor: cs.primaryContainer,
-          child: Text(
-            c.initials,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: cs.onPrimaryContainer,
+      suggestionsCallback: _matches,
+      itemBuilder: (context, customer) {
+        return ListTile(
+          dense: true,
+          leading: CircleAvatar(
+            radius: 14,
+            child: Text(
+              customer.initials,
+              style: const TextStyle(fontSize: 11),
             ),
           ),
-        ),
-        title: Text(
-          c.displayName,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w700,
+          title: Text(
+            customer.displayName,
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
-        ),
-        subtitle: c.companyName != null
-            ? Text(c.companyName!, style: theme.textTheme.labelSmall)
-            : null,
+          subtitle: Text(
+            '${customer.primaryContact} | Balance ${customer.balance.toStringAsFixed(2)} ${customer.currency}',
+          ),
+          trailing: customer.creditBalance == 0
+              ? null
+              : Text(customer.creditBalance.toStringAsFixed(2)),
+        );
+      },
+      onSuggestionSelected: (customer) {
+        controller.text = customer.displayName;
+        onSelected(customer);
+      },
+      noItemsFoundBuilder: (_) => const Padding(
+        padding: EdgeInsets.all(10),
+        child: Text('No matching customers'),
       ),
-      onSuggestionSelected: onSelected,
-      noItemsFoundBuilder: (context) => Padding(
-        padding: const EdgeInsets.all(12),
-        child: Text(
-          'No customers found',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: cs.onSurfaceVariant,
-          ),
-        ),
+      suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+        elevation: 4,
+        constraints: BoxConstraints(maxHeight: 300),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────
-// _AccountTypeahead
-// ─────────────────────────────────────────────────────────
-
-class _AccountTypeahead extends StatelessWidget {
-  const _AccountTypeahead({
+// ─────────────────────────────────────────────
+// Deposit Account TypeAhead Field
+// ─────────────────────────────────────────────
+class _DepositAccountTypeAheadField extends StatelessWidget {
+  const _DepositAccountTypeAheadField({
     required this.controller,
     required this.accounts,
-    required this.selected,
-    required this.hint,
+    required this.selectedAccount,
     required this.onSelected,
-    required this.onCleared,
+    required this.onClear,
   });
+
   final TextEditingController controller;
   final List<AccountModel> accounts;
-  final AccountModel? selected;
-  final String hint;
-  final void Function(AccountModel) onSelected;
-  final VoidCallback onCleared;
+  final AccountModel? selectedAccount;
+  final ValueChanged<AccountModel> onSelected;
+  final VoidCallback onClear;
+
+  List<AccountModel> _matches(String pattern) {
+    final text = pattern.trim().toLowerCase();
+    if (text.isEmpty) return accounts.take(8).toList();
+    return accounts
+        .where(
+          (account) =>
+              account.code.toLowerCase().contains(text) ||
+              account.name.toLowerCase().contains(text) ||
+              account.accountTypeName.toLowerCase().contains(text),
+        )
+        .take(12)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
     return TypeAheadField<AccountModel>(
       textFieldConfiguration: TextFieldConfiguration(
         controller: controller,
-        style: theme.textTheme.bodySmall,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         decoration: InputDecoration(
-          hintText: hint,
+          labelText: 'Deposit Account',
           isDense: true,
+          border: const OutlineInputBorder(),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 9,
           ),
-          prefixIcon: const Icon(Icons.account_balance_outlined, size: 16),
-          suffixIcon: selected != null
-              ? IconButton(
+          prefixIcon: const Icon(Icons.account_balance_outlined, size: 18),
+          suffixIcon: selectedAccount == null
+              ? null
+              : IconButton(
                   visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  onPressed: onCleared,
-                  icon: const Icon(Icons.close, size: 16),
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: cs.outlineVariant),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: cs.outlineVariant),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: cs.primary, width: 1.5),
-          ),
-          filled: true,
-          fillColor: cs.surface,
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: onClear,
+                  tooltip: 'Clear',
+                ),
         ),
       ),
-      suggestionsCallback: (pattern) {
-        final q = pattern.toLowerCase().trim();
-        return accounts
-            .where(
-              (a) =>
-                  q.isEmpty ||
-                  a.name.toLowerCase().contains(q) ||
-                  a.code.toLowerCase().contains(q),
-            )
-            .take(12)
-            .toList();
+      suggestionsCallback: _matches,
+      itemBuilder: (context, account) {
+        return ListTile(
+          dense: true,
+          leading: const Icon(Icons.account_balance_outlined, size: 18),
+          title: Text(
+            '${account.code} - ${account.name}',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            '${account.accountTypeName} | ${account.balance.toStringAsFixed(2)}',
+          ),
+        );
       },
-      itemBuilder: (context, a) => ListTile(
-        dense: true,
-        leading: Icon(
-          Icons.account_balance_outlined,
-          size: 18,
-          color: cs.primary,
-        ),
-        title: Text(
-          a.name,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        subtitle: a.code.isNotEmpty
-            ? Text(a.code, style: theme.textTheme.labelSmall)
-            : null,
+      onSuggestionSelected: (account) {
+        controller.text = '${account.code} - ${account.name}';
+        onSelected(account);
+      },
+      noItemsFoundBuilder: (_) => const Padding(
+        padding: EdgeInsets.all(10),
+        child: Text('No matching deposit accounts'),
       ),
-      onSuggestionSelected: onSelected,
-      noItemsFoundBuilder: (context) => Padding(
-        padding: const EdgeInsets.all(12),
-        child: Text(
-          'No accounts found',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: cs.onSurfaceVariant,
-          ),
-        ),
+      suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+        elevation: 4,
+        constraints: BoxConstraints(maxHeight: 300),
       ),
     );
   }
 }
+
+String _formatDate(DateTime date) =>
+    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';

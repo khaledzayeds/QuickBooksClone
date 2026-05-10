@@ -250,99 +250,403 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.itemDetails,
-            builder: (context, state) => ItemDetailsScreen(id: state.pathParameters['id']!),
+            builder: (context, state) =>
+                ItemDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.itemEdit,
-            builder: (context, state) => ItemFormScreen(id: state.pathParameters['id']!),
+            builder: (context, state) =>
+                ItemFormScreen(id: state.pathParameters['id']!),
           ),
-          GoRoute(path: AppRoutes.vendors, builder: (context, state) => const VendorListScreen()),
-          GoRoute(path: AppRoutes.vendorNew, builder: (context, state) => const VendorFormScreen()),
-          GoRoute(path: AppRoutes.vendorDetails, builder: (context, state) => VendorDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.vendorEdit, builder: (context, state) => VendorFormScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.customers, builder: (context, state) => const CustomerListScreen()),
-          GoRoute(path: AppRoutes.customerNew, builder: (context, state) => const CustomerFormScreen()),
-          GoRoute(path: AppRoutes.customerDetails, builder: (context, state) => CustomerDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.customerEdit, builder: (context, state) => CustomerFormScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.chartOfAccounts, builder: (context, state) => const ChartOfAccountsScreen()),
-          GoRoute(path: AppRoutes.accountNew, builder: (context, state) => const AccountFormScreen()),
-          GoRoute(path: AppRoutes.accountEdit, builder: (context, state) => AccountFormScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.purchaseOrders, builder: (context, state) => const PurchaseOrderListScreen()),
-          GoRoute(path: AppRoutes.purchaseOrderNew, builder: (context, state) => const PurchaseOrderFormScreen()),
-          GoRoute(path: AppRoutes.purchaseOrderEdit, builder: (context, state) => PurchaseOrderFormScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.purchaseOrderDetails, builder: (context, state) => PurchaseOrderDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.receiveInventory, builder: (context, state) => const ReceiveInventoryListScreen()),
-          GoRoute(path: AppRoutes.receiveInventoryNew, builder: (context, state) => ReceiveInventoryFormScreen(purchaseOrderId: state.uri.queryParameters['poId'])),
-          GoRoute(path: AppRoutes.receiveInventoryDetails, builder: (context, state) => ReceiveInventoryDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.purchaseBills, builder: (context, state) => const PurchaseBillListScreen()),
-          GoRoute(path: AppRoutes.purchaseBillNew, builder: (context, state) => PurchaseBillFormScreen(inventoryReceiptId: state.uri.queryParameters['receiptId'])),
-          GoRoute(path: AppRoutes.purchaseBillDetails, builder: (context, state) => PurchaseBillDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.vendorPayments, builder: (context, state) => const VendorPaymentListScreen()),
-          GoRoute(path: AppRoutes.vendorPaymentNew, builder: (context, state) => VendorPaymentFormScreen(billId: state.uri.queryParameters['billId'])),
-          GoRoute(path: AppRoutes.vendorPaymentDetails, builder: (context, state) => VendorPaymentDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.vendorCredits, builder: (context, state) => const VendorCreditListScreen()),
-          GoRoute(path: AppRoutes.vendorCreditNew, builder: (context, state) => VendorCreditFormScreen(billId: state.uri.queryParameters['billId'])),
-          GoRoute(path: AppRoutes.vendorCreditDetails, builder: (context, state) => VendorCreditDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.purchaseReturns, builder: (context, state) => const PurchaseReturnListScreen()),
-          GoRoute(path: AppRoutes.purchaseReturnNew, builder: (context, state) => PurchaseReturnFormScreen(billId: state.uri.queryParameters['billId'])),
-          GoRoute(path: AppRoutes.purchaseReturnDetails, builder: (context, state) => PurchaseReturnDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.estimates, builder: (context, state) => const EstimateListScreen()),
-          GoRoute(path: AppRoutes.estimateNew, builder: (context, state) => const EstimateFormScreen()),
-          GoRoute(path: AppRoutes.estimateDetails, builder: (context, state) => EstimateDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.salesOrders, builder: (context, state) => const SalesOrderListScreen()),
-          GoRoute(path: AppRoutes.salesOrderNew, builder: (context, state) => const SalesOrderFormScreen()),
-          GoRoute(path: AppRoutes.salesOrderDetails, builder: (context, state) => SalesOrderDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.salesReceipts, builder: (context, state) => const SalesReceiptsListPage()),
-          GoRoute(path: AppRoutes.salesReceiptNew, builder: (context, state) => const SalesReceiptFormPageRedesign()),
-          GoRoute(path: AppRoutes.salesReceiptDetails, builder: (context, state) => SalesReceiptDetailsPage(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.invoices, builder: (context, state) => const InvoicesListPage()),
-          GoRoute(path: AppRoutes.invoiceNew, builder: (context, state) => const InvoiceFormPage()),
-          GoRoute(path: AppRoutes.invoiceEdit, builder: (context, state) => InvoiceFormPage(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.invoiceDetails, builder: (context, state) => InvoiceDetailsPage(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.payments, builder: (context, state) => const PaymentListScreen()),
-          GoRoute(path: AppRoutes.paymentNew, builder: (context, state) => const PaymentFormScreen()),
-          GoRoute(path: AppRoutes.paymentDetails, builder: (context, state) => PaymentDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.customerCredits, builder: (context, state) => const CustomerCreditListScreen()),
-          GoRoute(path: AppRoutes.customerCreditNew, builder: (context, state) => const CustomerCreditFormScreen()),
-          GoRoute(path: AppRoutes.customerCreditDetails, builder: (context, state) => CustomerCreditDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.salesReturns, builder: (context, state) => const SalesReturnListScreen()),
-          GoRoute(path: AppRoutes.salesReturnNew, builder: (context, state) => const SalesReturnFormScreen()),
-          GoRoute(path: AppRoutes.salesReturnDetails, builder: (context, state) => SalesReturnDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.inventoryAdjustments, builder: (context, state) => const InventoryAdjustmentListScreen()),
-          GoRoute(path: AppRoutes.inventoryAdjustmentNew, builder: (context, state) => const InventoryAdjustmentFormScreen()),
-          GoRoute(path: AppRoutes.inventoryAdjustmentDetails, builder: (context, state) => InventoryAdjustmentDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: '/accounting/journal-entries', redirect: (context, state) => AppRoutes.journalEntries),
-          GoRoute(path: '/accounting/journal-entries/new', redirect: (context, state) => AppRoutes.journalEntryNew),
-          GoRoute(path: '/accounting/journal-entries/:id', redirect: (context, state) => AppRoutes.journalEntryDetails.replaceFirst(':id', state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.journalEntries, builder: (context, state) => const JournalEntryListScreen()),
-          GoRoute(path: AppRoutes.journalEntryNew, builder: (context, state) => const JournalEntryFormScreen()),
-          GoRoute(path: AppRoutes.journalEntryDetails, builder: (context, state) => JournalEntryDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.reports, builder: (context, state) => const ReportsScreen()),
-          GoRoute(path: AppRoutes.transactions, builder: (context, state) => const TransactionListScreen()),
-          GoRoute(path: AppRoutes.transactionDetails, builder: (context, state) => TransactionDetailsScreen(id: state.pathParameters['id']!)),
-          GoRoute(path: AppRoutes.bankingRegister, builder: (context, state) => const BankRegisterScreen()),
-          GoRoute(path: AppRoutes.bankingTransfers, builder: (context, state) => const BankTransferScreen()),
-          GoRoute(path: AppRoutes.bankingDeposits, builder: (context, state) => const MakeDepositScreen()),
-          GoRoute(path: AppRoutes.bankingChecks, builder: (context, state) => const WriteCheckScreen()),
-          GoRoute(path: AppRoutes.bankingReconcile, builder: (context, state) => const BankReconcileScreen()),
-          GoRoute(path: AppRoutes.settings, builder: (context, state) => const SettingsHomeScreen()),
-          GoRoute(path: AppRoutes.companySettings, builder: (context, state) => const CompanySettingsScreen()),
-          GoRoute(path: AppRoutes.connectionSettings, builder: (context, state) => const ConnectionSettingsScreen()),
-          GoRoute(path: AppRoutes.setupWizard, builder: (context, state) => const SetupWizardScreen()),
-          GoRoute(path: AppRoutes.taxSettings, builder: (context, state) => const TaxSettingsScreen()),
-          GoRoute(path: AppRoutes.backupSettings, builder: (context, state) => const LicenseGate(feature: LicenseFeature.backupRestore, child: BackupSettingsScreen())),
-          GoRoute(path: AppRoutes.printingSettings, builder: (context, state) => const PrintingSettingsScreen()),
-          GoRoute(path: AppRoutes.usersPermissions, builder: (context, state) => const UsersPermissionsScreen()),
-          GoRoute(path: AppRoutes.licenseSettings, builder: (context, state) => const LicenseSettingsScreen()),
-          GoRoute(path: AppRoutes.payroll, builder: (context, state) => const LicenseGate(feature: LicenseFeature.payroll, child: PayrollSetupScreen())),
-          GoRoute(path: AppRoutes.timeTracking, builder: (context, state) => const EnterTimeScreen()),
-          GoRoute(path: AppRoutes.calendar, builder: (context, state) => const CalendarScreen()),
-          GoRoute(path: AppRoutes.snapshots, builder: (context, state) => const SnapshotsScreen()),
-          GoRoute(path: AppRoutes.cashFlowHub, builder: (context, state) => const CashFlowHubScreen()),
-          GoRoute(path: AppRoutes.myCompany, builder: (context, state) => const CompanySettingsScreen()),
-          GoRoute(path: AppRoutes.openWindows, builder: (context, state) => const OpenWindowsScreen()),
-          GoRoute(path: AppRoutes.playgroundTable, builder: (context, state) => const TablePlaygroundScreen()),
-          GoRoute(path: AppRoutes.playgroundForm, builder: (context, state) => const FormPlaygroundScreen()),
+          GoRoute(
+            path: AppRoutes.vendors,
+            builder: (context, state) => const VendorListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorNew,
+            builder: (context, state) => const VendorFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorDetails,
+            builder: (context, state) =>
+                VendorDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorEdit,
+            builder: (context, state) =>
+                VendorFormScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.customers,
+            builder: (context, state) => const CustomerListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.customerNew,
+            builder: (context, state) => const CustomerFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.customerDetails,
+            builder: (context, state) =>
+                CustomerDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.customerEdit,
+            builder: (context, state) =>
+                CustomerFormScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.chartOfAccounts,
+            builder: (context, state) => const ChartOfAccountsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.accountNew,
+            builder: (context, state) => const AccountFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.accountEdit,
+            builder: (context, state) =>
+                AccountFormScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseOrders,
+            builder: (context, state) => const PurchaseOrderListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseOrderNew,
+            builder: (context, state) => const PurchaseOrderFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseOrderEdit,
+            builder: (context, state) =>
+                PurchaseOrderFormScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseOrderDetails,
+            builder: (context, state) =>
+                PurchaseOrderDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.receiveInventory,
+            builder: (context, state) => const ReceiveInventoryListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.receiveInventoryNew,
+            builder: (context, state) => ReceiveInventoryFormScreen(
+              purchaseOrderId: state.uri.queryParameters['poId'],
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.receiveInventoryDetails,
+            builder: (context, state) =>
+                ReceiveInventoryDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseBills,
+            builder: (context, state) => const PurchaseBillListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseBillNew,
+            builder: (context, state) => PurchaseBillFormScreen(
+              inventoryReceiptId: state.uri.queryParameters['receiptId'],
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseBillDetails,
+            builder: (context, state) =>
+                PurchaseBillDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorPayments,
+            builder: (context, state) => const VendorPaymentListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorPaymentNew,
+            builder: (context, state) => VendorPaymentFormScreen(
+              billId: state.uri.queryParameters['billId'],
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorPaymentDetails,
+            builder: (context, state) =>
+                VendorPaymentDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorCredits,
+            builder: (context, state) => const VendorCreditListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorCreditNew,
+            builder: (context, state) => VendorCreditFormScreen(
+              billId: state.uri.queryParameters['billId'],
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.vendorCreditDetails,
+            builder: (context, state) =>
+                VendorCreditDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseReturns,
+            builder: (context, state) => const PurchaseReturnListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseReturnNew,
+            builder: (context, state) => PurchaseReturnFormScreen(
+              billId: state.uri.queryParameters['billId'],
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.purchaseReturnDetails,
+            builder: (context, state) =>
+                PurchaseReturnDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.estimates,
+            builder: (context, state) => const EstimateListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.estimateNew,
+            builder: (context, state) => const EstimateFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.estimateDetails,
+            builder: (context, state) =>
+                EstimateDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.salesOrders,
+            builder: (context, state) => const SalesOrderListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesOrderNew,
+            builder: (context, state) => const SalesOrderFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesOrderDetails,
+            builder: (context, state) =>
+                SalesOrderDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReceipts,
+            builder: (context, state) => const SalesReceiptsListPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReceiptNew,
+            builder: (context, state) => const SalesReceiptFormPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReceiptDetails,
+            builder: (context, state) =>
+                SalesReceiptDetailsPage(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.invoices,
+            builder: (context, state) => const InvoicesListPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.invoiceNew,
+            builder: (context, state) => const InvoiceFormPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.invoiceEdit,
+            builder: (context, state) =>
+                InvoiceFormPage(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.invoiceDetails,
+            builder: (context, state) =>
+                InvoiceDetailsPage(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.payments,
+            builder: (context, state) => const PaymentListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.paymentNew,
+            builder: (context, state) => const PaymentFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.paymentDetails,
+            builder: (context, state) =>
+                PaymentDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.customerCredits,
+            builder: (context, state) => const CustomerCreditListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.customerCreditNew,
+            builder: (context, state) => const CustomerCreditFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.customerCreditDetails,
+            builder: (context, state) =>
+                CustomerCreditDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReturns,
+            builder: (context, state) => const SalesReturnListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReturnNew,
+            builder: (context, state) => const SalesReturnFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.salesReturnDetails,
+            builder: (context, state) =>
+                SalesReturnDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.inventoryAdjustments,
+            builder: (context, state) => const InventoryAdjustmentListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.inventoryAdjustmentNew,
+            builder: (context, state) => const InventoryAdjustmentFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.inventoryAdjustmentDetails,
+            builder: (context, state) => InventoryAdjustmentDetailsScreen(
+              id: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/accounting/journal-entries',
+            redirect: (context, state) => AppRoutes.journalEntries,
+          ),
+          GoRoute(
+            path: '/accounting/journal-entries/new',
+            redirect: (context, state) => AppRoutes.journalEntryNew,
+          ),
+          GoRoute(
+            path: '/accounting/journal-entries/:id',
+            redirect: (context, state) => AppRoutes.journalEntryDetails
+                .replaceFirst(':id', state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.journalEntries,
+            builder: (context, state) => const JournalEntryListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.journalEntryNew,
+            builder: (context, state) => const JournalEntryFormScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.journalEntryDetails,
+            builder: (context, state) =>
+                JournalEntryDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.reports,
+            builder: (context, state) => const ReportsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.transactions,
+            builder: (context, state) => const TransactionListScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.transactionDetails,
+            builder: (context, state) =>
+                TransactionDetailsScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.bankingRegister,
+            builder: (context, state) => const BankRegisterScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.bankingTransfers,
+            builder: (context, state) => const BankTransferScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.bankingDeposits,
+            builder: (context, state) => const MakeDepositScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.bankingChecks,
+            builder: (context, state) => const WriteCheckScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.bankingReconcile,
+            builder: (context, state) => const BankReconcileScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.settings,
+            builder: (context, state) => const SettingsHomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.companySettings,
+            builder: (context, state) => const CompanySettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.connectionSettings,
+            builder: (context, state) => const ConnectionSettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.setupWizard,
+            builder: (context, state) => const SetupWizardScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.taxSettings,
+            builder: (context, state) => const TaxSettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.backupSettings,
+            builder: (context, state) => const LicenseGate(
+              feature: LicenseFeature.backupRestore,
+              child: BackupSettingsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.printingSettings,
+            builder: (context, state) => const PrintingSettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.usersPermissions,
+            builder: (context, state) => const UsersPermissionsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.licenseSettings,
+            builder: (context, state) => const LicenseSettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.payroll,
+            builder: (context, state) => const LicenseGate(
+              feature: LicenseFeature.payroll,
+              child: PayrollSetupScreen(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.timeTracking,
+            builder: (context, state) => const EnterTimeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.calendar,
+            builder: (context, state) => const CalendarScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.snapshots,
+            builder: (context, state) => const SnapshotsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.cashFlowHub,
+            builder: (context, state) => const CashFlowHubScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.myCompany,
+            builder: (context, state) => const CompanySettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.openWindows,
+            builder: (context, state) => const OpenWindowsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.playgroundTable,
+            builder: (context, state) => const TablePlaygroundScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.playgroundForm,
+            builder: (context, state) => const FormPlaygroundScreen(),
+          ),
         ],
       ),
     ],
