@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../features/purchase_orders/data/models/order_line_entry.dart';
 
@@ -158,72 +157,66 @@ class QbGridTextCell extends StatefulWidget {
 
 class _QbGridTextCellState extends State<QbGridTextCell> {
   late final FocusNode _focusNode;
+  bool _committedOnFocusLoss = false;
 
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode()..addListener(_repaintFocus);
+    _focusNode = FocusNode()..addListener(_handleFocusChanged);
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_repaintFocus);
+    _focusNode.removeListener(_handleFocusChanged);
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _repaintFocus() {
+  void _handleFocusChanged() {
+    if (_focusNode.hasFocus) {
+      _committedOnFocusLoss = false;
+    } else if (!_committedOnFocusLoss) {
+      _committedOnFocusLoss = true;
+      widget.onSubmitted?.call();
+    }
     if (mounted) setState(() {});
   }
 
-  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.enter ||
-        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      widget.onSubmitted?.call();
-      return widget.onSubmitted == null ? KeyEventResult.ignored : KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.tab && widget.onSubmitted != null) {
-      widget.onSubmitted?.call();
-      return KeyEventResult.ignored;
-    }
-    return KeyEventResult.ignored;
+  void _commit() {
+    _committedOnFocusLoss = true;
+    widget.onSubmitted?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Focus(
-      focusNode: _focusNode,
-      onKeyEvent: _handleKey,
-      child: DecoratedBox(
-        decoration: _focusNode.hasFocus
-            ? BoxDecoration(border: Border.all(color: cs.primary, width: 1.2))
-            : const BoxDecoration(),
-        child: TextField(
-          focusNode: _focusNode,
-          controller: widget.controller,
-          textAlign: widget.align,
-          keyboardType: widget.numeric
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : null,
-          textInputAction: TextInputAction.next,
-          onSubmitted: (_) => widget.onSubmitted?.call(),
-          onChanged: (_) => widget.onChanged?.call(),
-          style: TextStyle(fontSize: widget.compact ? 11 : 12),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: widget.compact ? 6 : 8,
-              vertical: widget.compact ? 5 : 8,
-            ),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            filled: true,
-            fillColor: Colors.transparent,
+    return DecoratedBox(
+      decoration: _focusNode.hasFocus
+          ? BoxDecoration(border: Border.all(color: cs.primary, width: 1.2))
+          : const BoxDecoration(),
+      child: TextField(
+        focusNode: _focusNode,
+        controller: widget.controller,
+        textAlign: widget.align,
+        keyboardType: widget.numeric
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : null,
+        textInputAction: TextInputAction.next,
+        onSubmitted: (_) => _commit(),
+        onChanged: (_) => widget.onChanged?.call(),
+        style: TextStyle(fontSize: widget.compact ? 11 : 12),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: widget.compact ? 6 : 8,
+            vertical: widget.compact ? 5 : 8,
           ),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: true,
+          fillColor: Colors.transparent,
         ),
       ),
     );
