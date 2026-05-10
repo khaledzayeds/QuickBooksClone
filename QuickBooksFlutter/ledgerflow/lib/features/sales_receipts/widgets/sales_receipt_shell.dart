@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../customers/data/models/customer_model.dart';
+import '../../purchase_orders/data/models/order_line_entry.dart';
 import '../../transactions/widgets/transaction_form_shell.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import 'sales_receipt_body_panel.dart';
@@ -41,7 +42,7 @@ class SalesReceiptShell extends StatelessWidget {
   final Widget customerField;
   final Widget depositAccountField;
   final Widget paymentMethodField;
-  final List<dynamic> lines;
+  final List<TransactionLineEntry> lines;
   final TransactionTotalsUiModel totals;
   final CustomerModel? customer;
   final List<TransactionContextMetric> metrics;
@@ -86,7 +87,7 @@ class SalesReceiptShell extends StatelessWidget {
         customerField: customerField,
         depositAccountField: depositAccountField,
         paymentMethodField: paymentMethodField,
-        lines: lines.cast(),
+        lines: lines,
         totals: totals,
         onAddLine: onAddLine,
         onLinesChanged: onLinesChanged,
