@@ -32,7 +32,7 @@ import '../features/inventory_adjustments/screens/inventory_adjustment_details_s
 import '../features/inventory_adjustments/screens/inventory_adjustment_form_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_list_screen.dart';
 import '../features/invoices/screens/invoice_details_page.dart';
-import '../features/invoices/screens/invoice_form_page.dart';
+import '../features/invoices/screens/invoice_form_page_shell.dart';
 import '../features/invoices/screens/invoices_list_page.dart';
 import '../features/items/screens/item_details_screen.dart';
 import '../features/items/screens/item_form_screen.dart';
@@ -281,8 +281,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.salesReceiptNew, builder: (context, state) => const SalesReceiptFormPageShell()),
           GoRoute(path: AppRoutes.salesReceiptDetails, builder: (context, state) => SalesReceiptDetailsPage(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.invoices, builder: (context, state) => const InvoicesListPage()),
-          GoRoute(path: AppRoutes.invoiceNew, builder: (context, state) => const InvoiceFormPage()),
-          GoRoute(path: AppRoutes.invoiceEdit, builder: (context, state) => InvoiceFormPage(id: state.pathParameters['id']!)),
+          GoRoute(path: AppRoutes.invoiceNew, builder: (context, state) => const InvoiceFormPageShell()),
+          GoRoute(path: AppRoutes.invoiceEdit, builder: (context, state) => InvoiceFormPageShell(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.invoiceDetails, builder: (context, state) => InvoiceDetailsPage(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.payments, builder: (context, state) => const PaymentListScreen()),
           GoRoute(path: AppRoutes.paymentNew, builder: (context, state) => const PaymentFormScreen()),
