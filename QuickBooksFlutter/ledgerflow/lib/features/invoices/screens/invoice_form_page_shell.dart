@@ -11,6 +11,8 @@ import '../../../core/constants/api_enums.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
+import '../../transactions/printing/transaction_print_model.dart';
+import '../../transactions/printing/transaction_print_service.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../data/models/invoice_contracts.dart';
 import '../data/models/sales_preview_contracts.dart';
@@ -391,10 +393,53 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     _schedulePreview();
   }
 
-  void _handlePrint() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Print will be available after saving.')),
+  Future<void> _handlePrint() async {
+    if (_customer == null) {
+      _showError('Select a customer before printing.');
+      return;
+    }
+    final validLines = _validLines();
+    if (validLines.isEmpty) {
+      _showError('Add at least one valid line before printing.');
+      return;
+    }
+
+    final totals = _totals;
+    final model = TransactionPrintModel(
+      documentTitle: 'Invoice',
+      documentNumber: _numberCtrl.text.trim().isEmpty ? 'Preview' : _numberCtrl.text.trim(),
+      documentDate: _invoiceDate,
+      dueDate: _dueDate,
+      partyLabel: 'Customer',
+      partyName: _customer!.displayName,
+      reference: _memoCtrl.text.trim().isEmpty ? null : _memoCtrl.text.trim(),
+      lines: validLines
+          .map(
+            (line) => TransactionPrintLine(
+              itemName: line.itemName.trim().isEmpty ? 'Item' : line.itemName.trim(),
+              description: line.descCtrl.text.trim(),
+              quantity: line.qty,
+              rate: line.rate,
+              amount: line.amount,
+            ),
+          )
+          .toList(),
+      totals: TransactionPrintTotals(
+        subtotal: totals.subtotal,
+        discountTotal: totals.discountTotal,
+        taxTotal: totals.taxTotal,
+        total: totals.total,
+        paid: totals.paid,
+        balanceDue: totals.balanceDue,
+        currency: totals.currency,
+      ),
     );
+
+    try {
+      await const TransactionPrintService().printDocument(model);
+    } catch (e) {
+      _showError('Could not open print preview: $e');
+    }
   }
 
   void _handleVoid() {
