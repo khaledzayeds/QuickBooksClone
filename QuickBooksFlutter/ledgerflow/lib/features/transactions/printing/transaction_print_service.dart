@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -17,20 +20,32 @@ class TransactionPrintService {
   }
 
   Future<List<int>> buildPdf(TransactionPrintModel model) async {
-    final doc = pw.Document();
+    final font = await _loadPdfFont();
+    final boldFont = await _loadPdfBoldFont();
+    final doc = pw.Document(
+      theme: font == null
+          ? null
+          : pw.ThemeData.withFont(
+              base: font,
+              bold: boldFont ?? font,
+              fontFallback: [font],
+            ),
+    );
     final dateFmt = DateFormat('dd/MM/yyyy');
     final moneyFmt = NumberFormat('#,##0.00');
+    final rtl = _modelContainsArabic(model);
 
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(28),
+        textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         build: (context) => [
-          _buildHeader(model, dateFmt),
+          _buildHeader(model, dateFmt, rtl),
           pw.SizedBox(height: 18),
           _buildPartyBlock(model, dateFmt),
           pw.SizedBox(height: 18),
-          _buildLinesTable(model, moneyFmt),
+          _buildLinesTable(model, moneyFmt, rtl),
           pw.SizedBox(height: 16),
           _buildTotals(model, moneyFmt),
         ],
@@ -40,13 +55,88 @@ class TransactionPrintService {
     return doc.save();
   }
 
-  pw.Widget _buildHeader(TransactionPrintModel model, DateFormat dateFmt) {
+  Future<pw.Font?> _loadPdfFont() async {
+    final assetFont = await _tryLoadFirstAssetFont(bold: false);
+    if (assetFont != null) return assetFont;
+
+    try {
+      return await PdfGoogleFonts.notoNaskhArabicRegular();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<pw.Font?> _loadPdfBoldFont() async {
+    final assetFont = await _tryLoadFirstAssetFont(bold: true);
+    if (assetFont != null) return assetFont;
+
+    try {
+      return await PdfGoogleFonts.notoNaskhArabicBold();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<pw.Font?> _tryLoadFirstAssetFont({required bool bold}) async {
+    try {
+      final manifestRaw = await rootBundle.loadString('AssetManifest.json');
+      final manifest = jsonDecode(manifestRaw) as Map<String, dynamic>;
+      final fontPaths = manifest.keys
+          .where((path) =>
+              path.startsWith('assets/fonts/') &&
+              (path.toLowerCase().endsWith('.ttf') || path.toLowerCase().endsWith('.otf')))
+          .toList();
+
+      if (fontPaths.isEmpty) return null;
+
+      int score(String path) {
+        final lower = path.toLowerCase();
+        var value = 0;
+        if (lower.contains('arabic')) value += 50;
+        if (lower.contains('naskh')) value += 45;
+        if (lower.contains('cairo')) value += 40;
+        if (lower.contains('tajawal')) value += 35;
+        if (lower.contains('noto')) value += 30;
+        if (lower.contains('amiri')) value += 25;
+        if (bold && lower.contains('bold')) value += 20;
+        if (!bold && (lower.contains('regular') || lower.contains('medium'))) value += 15;
+        return value;
+      }
+
+      fontPaths.sort((a, b) => score(b).compareTo(score(a)));
+      final data = await rootBundle.load(fontPaths.first);
+      return pw.Font.ttf(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _modelContainsArabic(TransactionPrintModel model) {
+    final buffer = StringBuffer()
+      ..write(model.documentTitle)
+      ..write(model.documentNumber)
+      ..write(model.partyLabel)
+      ..write(model.partyName)
+      ..write(model.reference ?? '')
+      ..write(model.paymentMethod ?? '')
+      ..write(model.totals.currency);
+    for (final line in model.lines) {
+      buffer
+        ..write(line.itemName)
+        ..write(line.description);
+    }
+    return _containsArabic(buffer.toString());
+  }
+
+  bool _containsArabic(String text) => RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+
+  pw.Widget _buildHeader(TransactionPrintModel model, DateFormat dateFmt, bool rtl) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          crossAxisAlignment: rtl ? pw.CrossAxisAlignment.end : pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
               'LedgerFlow',
@@ -57,7 +147,7 @@ class TransactionPrintService {
           ],
         ),
         pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
+          crossAxisAlignment: rtl ? pw.CrossAxisAlignment.start : pw.CrossAxisAlignment.end,
           children: [
             pw.Text(
               model.documentTitle,
@@ -93,7 +183,7 @@ class TransactionPrintService {
     );
   }
 
-  pw.Widget _buildLinesTable(TransactionPrintModel model, NumberFormat moneyFmt) {
+  pw.Widget _buildLinesTable(TransactionPrintModel model, NumberFormat moneyFmt, bool rtl) {
     final data = model.lines
         .map(
           (line) => [
@@ -106,27 +196,30 @@ class TransactionPrintService {
         )
         .toList();
 
-    return pw.TableHelper.fromTextArray(
-      headers: const ['Item', 'Description', 'Qty', 'Rate', 'Amount'],
-      data: data,
-      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
-      cellStyle: const pw.TextStyle(fontSize: 8),
-      cellAlignments: const {
-        0: pw.Alignment.centerLeft,
-        1: pw.Alignment.centerLeft,
-        2: pw.Alignment.centerRight,
-        3: pw.Alignment.centerRight,
-        4: pw.Alignment.centerRight,
-      },
-      columnWidths: const {
-        0: pw.FlexColumnWidth(1.5),
-        1: pw.FlexColumnWidth(2.2),
-        2: pw.FlexColumnWidth(0.7),
-        3: pw.FlexColumnWidth(0.9),
-        4: pw.FlexColumnWidth(1.0),
-      },
+    return pw.Directionality(
+      textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+      child: pw.TableHelper.fromTextArray(
+        headers: const ['Item', 'Description', 'Qty', 'Rate', 'Amount'],
+        data: data,
+        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+        headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+        headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+        cellStyle: const pw.TextStyle(fontSize: 8),
+        cellAlignments: const {
+          0: pw.Alignment.centerLeft,
+          1: pw.Alignment.centerLeft,
+          2: pw.Alignment.centerRight,
+          3: pw.Alignment.centerRight,
+          4: pw.Alignment.centerRight,
+        },
+        columnWidths: const {
+          0: pw.FlexColumnWidth(1.5),
+          1: pw.FlexColumnWidth(2.2),
+          2: pw.FlexColumnWidth(0.7),
+          3: pw.FlexColumnWidth(0.9),
+          4: pw.FlexColumnWidth(1.0),
+        },
+      ),
     );
   }
 
@@ -134,7 +227,7 @@ class TransactionPrintService {
     final totals = model.totals;
     return pw.Align(
       alignment: pw.Alignment.centerRight,
-      child: pw.Container(
+      child: pw.SizedBox(
         width: 220,
         child: pw.Column(
           children: [
@@ -152,17 +245,21 @@ class TransactionPrintService {
   }
 
   pw.Widget _kv(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 4),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(
-            width: 90,
-            child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-          ),
-          pw.Expanded(child: pw.Text(value, style: const pw.TextStyle(fontSize: 10))),
-        ],
+    final direction = _containsArabic('$label $value') ? pw.TextDirection.rtl : pw.TextDirection.ltr;
+    return pw.Directionality(
+      textDirection: direction,
+      child: pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 4),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(
+              width: 90,
+              child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+            ),
+            pw.Expanded(child: pw.Text(value, style: const pw.TextStyle(fontSize: 10))),
+          ],
+        ),
       ),
     );
   }
