@@ -205,8 +205,9 @@ class _MenuButton extends StatelessWidget {
         customButton: _MenuPill(label: label, icon: icon, highlight: highlight),
         items: items
             .map(
-              (action) => DropdownMenuItem<_MenuAction>(
+              (action) => DropdownItem<_MenuAction>(
                 value: action,
+                height: 38,
                 child: _MenuRow(action: action),
               ),
             )
@@ -233,7 +234,6 @@ class _MenuButton extends StatelessWidget {
           ),
         ),
         menuItemStyleData: const MenuItemStyleData(
-          height: 38,
           padding: EdgeInsets.symmetric(horizontal: 8),
         ),
       ),
