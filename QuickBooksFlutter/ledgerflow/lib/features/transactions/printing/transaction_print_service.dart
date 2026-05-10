@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +20,7 @@ class TransactionPrintService {
     );
   }
 
-  Future<List<int>> buildPdf(TransactionPrintModel model) async {
+  Future<Uint8List> buildPdf(TransactionPrintModel model) async {
     final font = await _loadPdfFont();
     final boldFont = await _loadPdfBoldFont();
     final doc = pw.Document(
