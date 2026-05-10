@@ -1,12 +1,9 @@
-// transaction_line_table.dart
-// Optimized QuickBooks-style editable grid with inline searchable item picker.
-// Enhanced for scanner support, compact data entry, and reusable purchase/sales pricing.
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
+
 import '../../features/items/data/models/item_model.dart';
 import '../../features/items/providers/items_provider.dart';
 import '../../features/purchase_orders/data/models/order_line_entry.dart';
@@ -37,23 +34,47 @@ class TransactionLineTable extends ConsumerStatefulWidget {
 }
 
 class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
+  List<ItemModel> _items = const [];
+  bool _itemsLoading = true;
+  String? _itemsError;
+
   @override
   void initState() {
     super.initState();
     if (widget.lines.isEmpty) {
       _addLine(notify: false);
     }
-    // Prefetch items immediately when any form with a line table opens.
-    // This means the user never sees "Loading items..." regardless of
-    // whether they visited the Items screen before.
+    _loadItemsOnce();
+  }
+
+  Future<void> _loadItemsOnce() async {
+    try {
+      final items = await ref.read(itemsProvider.future);
+      if (!mounted) return;
+      setState(() {
+        _items = items.where((x) => x.isActive).toList();
+        _itemsLoading = false;
+        _itemsError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _items = const [];
+        _itemsLoading = false;
+        _itemsError = e.toString();
+      });
+    }
   }
 
   void _addLine({bool notify = true}) {
     setState(() {
       widget.lines.add(TransactionLineEntry());
     });
-    if (notify)
-      WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+    if (notify) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onChanged();
+      });
+    }
   }
 
   void _ensureTrailingBlankLine() {
@@ -79,8 +100,14 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
       final line = widget.lines.removeAt(index);
       line.dispose();
     });
-    if (widget.lines.isEmpty) _addLine(notify: false);
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+
+    if (widget.lines.isEmpty) {
+      _addLine(notify: false);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onChanged();
+    });
   }
 
   double _defaultRateFor(ItemModel item) {
@@ -94,13 +121,16 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
     setState(() {
       final line = widget.lines[index];
       final rate = _defaultRateFor(item);
+
       line.itemId = item.id;
       line.itemName = item.name;
       line.rate = rate;
       line.rateCtrl.text = rate.toStringAsFixed(2);
+
       if (line.descCtrl.text.trim().isEmpty) {
         line.descCtrl.text = item.name;
       }
+
       if (line.qty == 0) {
         line.qty = 1;
         line.qtyCtrl.text = '1';
@@ -110,12 +140,17 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
         widget.lines.add(TransactionLineEntry());
       }
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onChanged();
+    });
   }
 
   void _onLastCellCommit() {
     _ensureTrailingBlankLine();
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onChanged();
+    });
   }
 
   @override
@@ -151,19 +186,23 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
           compact: compact,
           showAddLineFooter: widget.showAddLineFooter,
           lines: widget.lines,
+          items: _items,
+          itemsLoading: _itemsLoading,
+          itemsError: _itemsError,
           priceMode: widget.priceMode,
           onAddLine: _addLine,
           onRemoveLine: _removeLine,
           onItemPicked: _onItemPicked,
           onLastCellCommit: _onLastCellCommit,
           onChanged: widget.onChanged,
+          onRetryLoadItems: _loadItemsOnce,
         );
       },
     );
   }
 }
 
-class _GridShell extends ConsumerWidget {
+class _GridShell extends StatelessWidget {
   const _GridShell({
     required this.width,
     required this.colAction,
@@ -175,12 +214,16 @@ class _GridShell extends ConsumerWidget {
     required this.compact,
     required this.showAddLineFooter,
     required this.lines,
+    required this.items,
+    required this.itemsLoading,
+    required this.itemsError,
     required this.priceMode,
     required this.onAddLine,
     required this.onRemoveLine,
     required this.onItemPicked,
     required this.onLastCellCommit,
     required this.onChanged,
+    required this.onRetryLoadItems,
   });
 
   final double width;
@@ -193,21 +236,24 @@ class _GridShell extends ConsumerWidget {
   final bool compact;
   final bool showAddLineFooter;
   final List<TransactionLineEntry> lines;
+  final List<ItemModel> items;
+  final bool itemsLoading;
+  final String? itemsError;
   final TransactionLinePriceMode priceMode;
   final void Function({bool notify}) onAddLine;
   final void Function(int index) onRemoveLine;
   final void Function(int index, ItemModel item) onItemPicked;
   final VoidCallback onLastCellCommit;
   final VoidCallback onChanged;
+  final Future<void> Function() onRetryLoadItems;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final rowHeight = compact ? 30.0 : 36.0;
     final headerHeight = compact ? 26.0 : 30.0;
-    final itemsAsync = ref.watch(itemsProvider);
 
     return Container(
       width: width,
@@ -265,11 +311,9 @@ class _GridShell extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: i.isEven
                     ? cs.surface
-                    : cs.surfaceContainerHighest.withValues(alpha: 0.42),
+                    : cs.surfaceContainerHighest.withOpacity(0.42),
                 border: Border(
-                  bottom: BorderSide(
-                    color: cs.outlineVariant.withValues(alpha: 0.5),
-                  ),
+                  bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
                 ),
               ),
               child: Row(
@@ -292,11 +336,14 @@ class _GridShell extends ConsumerWidget {
                     child: _InlineItemPicker(
                       key: ValueKey('item_$i'),
                       initialValue: line.itemName,
-                      itemsAsync: itemsAsync,
+                      items: items,
+                      itemsLoading: itemsLoading,
+                      itemsError: itemsError,
                       priceMode: priceMode,
                       compact: compact,
                       onPicked: (item) => onItemPicked(i, item),
                       onKeyboardCommit: isLast ? onLastCellCommit : null,
+                      onRetry: onRetryLoadItems,
                     ),
                   ),
                   SizedBox(
@@ -318,9 +365,9 @@ class _GridShell extends ConsumerWidget {
                       onSubmitted: isLast ? onLastCellCommit : null,
                       onChanged: () {
                         line.qty = double.tryParse(line.qtyCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback(
-                          (_) => onChanged(),
-                        );
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          onChanged();
+                        });
                       },
                     ),
                   ),
@@ -334,9 +381,9 @@ class _GridShell extends ConsumerWidget {
                       onSubmitted: isLast ? onLastCellCommit : null,
                       onChanged: () {
                         line.rate = double.tryParse(line.rateCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback(
-                          (_) => onChanged(),
-                        );
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          onChanged();
+                        });
                       },
                     ),
                   ),
@@ -459,6 +506,7 @@ class _InlineTextFieldState extends State<_InlineTextField> {
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
     if (event.logicalKey == LogicalKeyboardKey.enter ||
         event.logicalKey == LogicalKeyboardKey.numpadEnter) {
       widget.onSubmitted?.call();
@@ -466,11 +514,13 @@ class _InlineTextFieldState extends State<_InlineTextField> {
           ? KeyEventResult.ignored
           : KeyEventResult.handled;
     }
+
     if (event.logicalKey == LogicalKeyboardKey.tab &&
         widget.onSubmitted != null) {
       widget.onSubmitted?.call();
       return KeyEventResult.ignored;
     }
+
     return KeyEventResult.ignored;
   }
 
@@ -511,17 +561,23 @@ class _InlineItemPicker extends StatefulWidget {
   const _InlineItemPicker({
     super.key,
     required this.initialValue,
-    required this.itemsAsync,
+    required this.items,
+    required this.itemsLoading,
+    required this.itemsError,
     required this.onPicked,
     required this.priceMode,
+    required this.onRetry,
     this.onKeyboardCommit,
     this.compact = false,
   });
 
   final String initialValue;
-  final AsyncValue<List<ItemModel>> itemsAsync;
-  final Function(ItemModel) onPicked;
+  final List<ItemModel> items;
+  final bool itemsLoading;
+  final String? itemsError;
+  final void Function(ItemModel) onPicked;
   final TransactionLinePriceMode priceMode;
+  final Future<void> Function() onRetry;
   final VoidCallback? onKeyboardCommit;
   final bool compact;
 
@@ -565,23 +621,29 @@ class _InlineItemPickerState extends State<_InlineItemPicker> {
   Iterable<ItemModel> _matches(List<ItemModel> items, String pattern) {
     final text = pattern.toLowerCase().trim();
     if (text.isEmpty) return items.take(20);
+
     return items
         .where(
           (item) =>
               item.name.toLowerCase().contains(text) ||
-              (item.sku?.toLowerCase().contains(text) ?? false),
+              (item.sku?.toLowerCase().contains(text) ?? false) ||
+              (item.barcode?.toLowerCase().contains(text) ?? false),
         )
         .take(25);
   }
 
   void _submitValue(List<ItemModel> items, String value) {
+    final normalized = value.toLowerCase().trim();
+
     final exact = _matches(items, value)
         .where(
           (item) =>
-              item.name.toLowerCase() == value.toLowerCase().trim() ||
-              item.sku?.toLowerCase() == value.toLowerCase().trim(),
+              item.name.toLowerCase() == normalized ||
+              item.sku?.toLowerCase() == normalized ||
+              item.barcode?.toLowerCase() == normalized,
         )
         .toList();
+
     if (exact.isNotEmpty) {
       widget.onPicked(exact.first);
       return;
@@ -602,24 +664,28 @@ class _InlineItemPickerState extends State<_InlineItemPicker> {
     KeyEvent event,
   ) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
     if (event.logicalKey == LogicalKeyboardKey.enter ||
         event.logicalKey == LogicalKeyboardKey.numpadEnter) {
       _submitValue(items, _controller.text);
       return KeyEventResult.handled;
     }
+
     if (event.logicalKey == LogicalKeyboardKey.tab &&
         widget.onKeyboardCommit != null) {
       widget.onKeyboardCommit?.call();
       return KeyEventResult.ignored;
     }
+
     return KeyEventResult.ignored;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return widget.itemsAsync.when(
-      loading: () => TextField(
+
+    if (widget.itemsLoading) {
+      return TextField(
         enabled: false,
         style: TextStyle(fontSize: widget.compact ? 11 : 12),
         decoration: InputDecoration(
@@ -630,7 +696,7 @@ class _InlineItemPickerState extends State<_InlineItemPicker> {
             vertical: widget.compact ? 6 : 9,
           ),
           border: InputBorder.none,
-          suffixIcon: SizedBox(
+          suffixIcon: const SizedBox(
             width: 14,
             height: 14,
             child: Center(
@@ -641,64 +707,97 @@ class _InlineItemPickerState extends State<_InlineItemPicker> {
             ),
           ),
         ),
-      ),
-      error: (e, _) =>
-          const Icon(Icons.error_outline, color: Colors.red, size: 16),
-      data: (items) => Focus(
-        focusNode: _focusNode,
-        onKeyEvent: (node, event) => _handleKey(items, node, event),
-        child: TypeAheadField<ItemModel>(
-          textFieldConfiguration: TextFieldConfiguration(
-            controller: _controller,
-            focusNode: _focusNode,
-            textInputAction: TextInputAction.next,
-            style: TextStyle(
-              fontSize: widget.compact ? 11 : 12,
-              fontWeight: FontWeight.w600,
-            ),
-            onSubmitted: (value) => _submitValue(items, value),
-            decoration: InputDecoration(
-              hintText: l10n.selectItem,
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: widget.compact ? 6 : 8,
-                vertical: widget.compact ? 6 : 9,
-              ),
-              border: InputBorder.none,
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.blue, width: 1),
-                borderRadius: BorderRadius.zero,
-              ),
-              suffixIcon: Icon(
-                Icons.search,
-                size: widget.compact ? 12 : 14,
-                color: Colors.grey,
+      );
+    }
+
+    if (widget.itemsError != null) {
+      return Row(
+        children: [
+          Expanded(
+            child: TextField(
+              enabled: false,
+              style: TextStyle(fontSize: widget.compact ? 11 : 12),
+              decoration: InputDecoration(
+                hintText: 'Failed to load items',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: widget.compact ? 6 : 8,
+                  vertical: widget.compact ? 6 : 9,
+                ),
+                border: InputBorder.none,
               ),
             ),
           ),
-          suggestionsCallback: (pattern) => _matches(items, pattern).toList(),
-          itemBuilder: (context, item) {
-            return ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              title: Text(
-                item.name,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text(
-                '${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}',
-              ),
-            );
-          },
-          onSuggestionSelected: (item) {
-            _controller.text = item.name;
-            widget.onPicked(item);
-          },
-          noItemsFoundBuilder: (_) => const SizedBox.shrink(),
-          suggestionsBoxDecoration: const SuggestionsBoxDecoration(
-            elevation: 4,
-            constraints: BoxConstraints(maxHeight: 300),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.refresh, size: 16),
+            onPressed: widget.onRetry,
           ),
+        ],
+      );
+    }
+
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: (node, event) => _handleKey(widget.items, node, event),
+      child: TypeAheadField<ItemModel>(
+        textFieldConfiguration: TextFieldConfiguration(
+          controller: _controller,
+          focusNode: _focusNode,
+          textInputAction: TextInputAction.next,
+          style: TextStyle(
+            fontSize: widget.compact ? 11 : 12,
+            fontWeight: FontWeight.w600,
+          ),
+          onSubmitted: (value) => _submitValue(widget.items, value),
+          decoration: InputDecoration(
+            hintText: l10n.selectItem,
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: widget.compact ? 6 : 8,
+              vertical: widget.compact ? 6 : 9,
+            ),
+            border: InputBorder.none,
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue, width: 1),
+              borderRadius: BorderRadius.zero,
+            ),
+            suffixIcon: Icon(
+              Icons.search,
+              size: widget.compact ? 12 : 14,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        suggestionsCallback: (pattern) =>
+            _matches(widget.items, pattern).toList(),
+        itemBuilder: (context, item) {
+          return ListTile(
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            title: Text(
+              item.name,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              '${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}',
+            ),
+          );
+        },
+        onSuggestionSelected: (item) {
+          _controller.text = item.name;
+          widget.onPicked(item);
+        },
+        noItemsFoundBuilder: (_) => Padding(
+          padding: const EdgeInsets.all(8),
+          child: Text(
+            'No items found',
+            style: TextStyle(fontSize: widget.compact ? 11 : 12),
+          ),
+        ),
+        suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+          elevation: 4,
+          constraints: BoxConstraints(maxHeight: 300),
         ),
       ),
     );

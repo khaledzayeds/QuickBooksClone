@@ -1,7 +1,4 @@
-﻿// items_provider.dart
-// items_provider.dart
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../data/datasources/items_remote_datasource.dart';
@@ -27,7 +24,7 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
 
   @override
   Future<List<ItemModel>> build() {
-    ref.keepAlive(); // ← ده اللي اتضاف
+    ref.keepAlive();
     return _fetch();
   }
 
@@ -39,6 +36,7 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
           itemType: _typeFilter,
           includeInactive: _includeInactive,
         );
+
     return result.when(
       success: (data) => data,
       failure: (error) => throw error,
@@ -67,7 +65,9 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
 
   Future<ApiResult<ItemModel>> createItem(Map<String, dynamic> body) async {
     final result = await ref.read(itemsRepositoryProvider).createItem(body);
-    if (result.isSuccess) refresh();
+    if (result.isSuccess) {
+      await refresh();
+    }
     return result;
   }
 
@@ -76,7 +76,9 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
     Map<String, dynamic> body,
   ) async {
     final result = await ref.read(itemsRepositoryProvider).updateItem(id, body);
-    if (result.isSuccess) refresh();
+    if (result.isSuccess) {
+      await refresh();
+    }
     return result;
   }
 
@@ -84,7 +86,9 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
     final result = await ref
         .read(itemsRepositoryProvider)
         .toggleActive(id, isActive);
-    if (result.isSuccess) refresh();
+    if (result.isSuccess) {
+      await refresh();
+    }
     return result;
   }
 }
