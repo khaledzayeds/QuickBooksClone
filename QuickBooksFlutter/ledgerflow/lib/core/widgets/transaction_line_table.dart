@@ -46,9 +46,6 @@ class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
     // Prefetch items immediately when any form with a line table opens.
     // This means the user never sees "Loading items..." regardless of
     // whether they visited the Items screen before.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(itemsProvider.notifier).refresh();
-    });
   }
 
   void _addLine({bool notify = true}) {
