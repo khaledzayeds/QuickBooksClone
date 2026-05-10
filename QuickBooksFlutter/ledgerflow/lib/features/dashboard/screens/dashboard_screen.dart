@@ -2,7 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import '../widgets/dashboard_flowchart.dart';
 import '../widgets/dashboard_insights.dart';
 
@@ -35,37 +38,71 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F9),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(40),
-        child: Container(
-          color: Colors.white,
-          alignment: Alignment.bottomLeft,
-          child: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: Colors.transparent,
-            indicator: const BoxDecoration(
-              color: Color(0xFF0078D4), // QuickBooks Tab Blue
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      backgroundColor: const Color(0xFFF5F7FB),
+      body: Column(
+        children: [
+          Container(
+            height: 46,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(bottom: BorderSide(color: cs.outlineVariant)),
             ),
-            labelColor: Colors.white,
-            unselectedLabelColor: cs.onSurface.withValues(alpha: 0.7),
-            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            tabs: [
-              Tab(text: l10n.homePage),
-              Tab(text: l10n.insights),
-            ],
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: cs.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Icon(PhosphorIconsRegular.houseLine, size: 16, color: cs.primary),
+                ),
+                const Gap(9),
+                Text(
+                  l10n.homePage,
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const Spacer(),
+                Container(
+                  height: 32,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.60),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: cs.outlineVariant),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    dividerColor: Colors.transparent,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicator: BoxDecoration(
+                      color: cs.primary,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    labelColor: cs.onPrimary,
+                    unselectedLabelColor: cs.onSurfaceVariant,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                    tabs: [
+                      SizedBox(width: 96, child: Tab(text: l10n.homePage)),
+                      SizedBox(width: 96, child: Tab(text: l10n.insights)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          DashboardFlowchart(),
-          DashboardInsights(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [
+                DashboardFlowchart(),
+                DashboardInsights(),
+              ],
+            ),
+          ),
         ],
       ),
     );
