@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../providers/open_windows_provider.dart';
 import 'sidebar_menu.dart';
-import 'top_bar.dart';
 import 'top_menu_bar.dart';
 
 class ResponsiveScaffold extends ConsumerStatefulWidget {
@@ -74,7 +75,6 @@ class _ResponsiveScaffoldState extends ConsumerState<ResponsiveScaffold> {
                   Expanded(
                     child: Column(
                       children: [
-                        const TopBar(),
                         _WorkspaceNavigationBar(
                           canGoBack: _backStack.isNotEmpty,
                           canGoForward: _forwardStack.isNotEmpty,
@@ -95,7 +95,10 @@ class _ResponsiveScaffoldState extends ConsumerState<ResponsiveScaffold> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('LedgerFlow')),
+      appBar: AppBar(
+        title: const Text('LedgerFlow'),
+        actions: const [SizedBox(width: 8)],
+      ),
       drawer: const Drawer(child: SidebarMenu()),
       body: Column(
         children: [
@@ -131,50 +134,90 @@ class _WorkspaceNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final label = routeTitle(location);
 
     return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
       ),
       child: Row(
         children: [
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
+          _NavIconButton(
             tooltip: 'Back',
-            onPressed: canGoBack ? onBack : null,
-            icon: const Icon(Icons.arrow_back, size: 18),
+            enabled: canGoBack,
+            onPressed: onBack,
+            icon: PhosphorIconsRegular.arrowLeft,
           ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
+          const Gap(3),
+          _NavIconButton(
             tooltip: 'Forward',
-            onPressed: canGoForward ? onForward : null,
-            icon: const Icon(Icons.arrow_forward, size: 18),
+            enabled: canGoForward,
+            onPressed: onForward,
+            icon: PhosphorIconsRegular.arrowRight,
           ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.folder_open_outlined,
-            size: 16,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 6),
+          const Gap(9),
+          Icon(PhosphorIconsRegular.folderSimple, size: 15, color: cs.primary),
+          const Gap(6),
           Expanded(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
+          Text(
+            location,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _NavIconButton extends StatelessWidget {
+  const _NavIconButton({
+    required this.tooltip,
+    required this.enabled,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final bool enabled;
+  final VoidCallback onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: enabled ? onPressed : null,
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          width: 25,
+          height: 25,
+          child: Icon(
+            icon,
+            size: 15,
+            color: enabled ? cs.onSurfaceVariant : cs.onSurfaceVariant.withValues(alpha: 0.35),
+          ),
+        ),
       ),
     );
   }
