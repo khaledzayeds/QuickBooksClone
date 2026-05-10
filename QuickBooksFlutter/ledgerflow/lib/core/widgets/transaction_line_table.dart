@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../features/purchase_orders/data/models/order_line_entry.dart';
 import 'qb/qb_transaction_line_grid.dart';
+import 'qb/transaction_line_price_mode.dart';
 
-enum TransactionLinePriceMode { purchase, sales }
+export 'qb/transaction_line_price_mode.dart';
 
 class TransactionLineTable extends StatelessWidget {
   const TransactionLineTable({
