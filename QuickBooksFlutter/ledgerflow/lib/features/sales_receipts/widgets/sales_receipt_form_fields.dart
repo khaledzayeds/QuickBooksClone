@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 
-import '../../../core/widgets/transaction_line_table.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../transactions/widgets/transaction_form_shell.dart';
@@ -134,14 +132,13 @@ class SalesReceiptCustomerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     return TypeAheadField<CustomerModel>(
       textFieldConfiguration: TextFieldConfiguration(
         controller: controller,
         decoration: transactionCompactInputDecoration(
           cs,
-          hint: l10n.selectCustomer,
+          hint: 'Select customer',
           suffixIcon: selected == null ? Icons.search : Icons.close,
         ),
       ),
@@ -196,14 +193,13 @@ class SalesReceiptDepositAccountField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     return TypeAheadField<AccountModel>(
       textFieldConfiguration: TextFieldConfiguration(
         controller: controller,
         decoration: transactionCompactInputDecoration(
           cs,
-          hint: l10n.selectDepositAccount,
+          hint: 'Select deposit account',
           suffixIcon: selected == null ? Icons.search : Icons.close,
         ),
       ),
