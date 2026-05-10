@@ -30,5 +30,7 @@ class PaymentsRepository {
 
   Future<ApiResult<PaymentModel>> create(CreatePaymentDto dto) => _datasource.create(dto);
 
+  Future<ApiResult<List<PaymentModel>>> receive(ReceivePaymentDto dto) => _datasource.receive(dto);
+
   Future<ApiResult<PaymentModel>> voidPayment(String id) => _datasource.voidPayment(id);
 }
