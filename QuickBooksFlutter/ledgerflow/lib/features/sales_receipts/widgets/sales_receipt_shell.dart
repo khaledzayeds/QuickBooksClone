@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../customers/data/models/customer_model.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
@@ -61,10 +60,8 @@ class SalesReceiptShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
     return TransactionFormShell(
-      title: l10n.newSalesReceipt,
+      title: 'New Sales Receipt',
       breadcrumb: 'Sales / Receipts / New',
       onBack: onClose,
       shortcuts: TransactionFormShortcutSet(
