@@ -91,3 +91,45 @@ class CreatePaymentDto {
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
+
+class ReceivePaymentAllocationDto {
+  const ReceivePaymentAllocationDto({
+    required this.invoiceId,
+    required this.amount,
+  });
+
+  final String invoiceId;
+  final double amount;
+
+  Map<String, dynamic> toJson() => {
+        'invoiceId': invoiceId,
+        'amount': amount,
+      };
+}
+
+class ReceivePaymentDto {
+  const ReceivePaymentDto({
+    required this.customerId,
+    required this.depositAccountId,
+    required this.paymentDate,
+    required this.paymentMethod,
+    required this.allocations,
+  });
+
+  final String customerId;
+  final String depositAccountId;
+  final DateTime paymentDate;
+  final PaymentMethod paymentMethod;
+  final List<ReceivePaymentAllocationDto> allocations;
+
+  Map<String, dynamic> toJson() => {
+        'customerId': customerId,
+        'depositAccountId': depositAccountId,
+        'paymentDate': _dateOnly(paymentDate),
+        'paymentMethod': paymentMethod.toApiString(),
+        'allocations': allocations.map((allocation) => allocation.toJson()).toList(),
+      };
+
+  static String _dateOnly(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
