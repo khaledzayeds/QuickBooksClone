@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/widgets/transaction_line_table.dart';
+import '../../../core/widgets/qb/qb_transaction_line_grid.dart';
+import '../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../../transactions/widgets/transaction_totals_footer.dart';
@@ -60,7 +61,7 @@ class SalesReceiptLinesPanel extends StatelessWidget {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: TransactionLineTable(
+                    child: QbTransactionLineGrid(
                       lines: lines,
                       priceMode: TransactionLinePriceMode.sales,
                       fillWidth: true,
