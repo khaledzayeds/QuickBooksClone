@@ -1,19 +1,39 @@
-// transaction_line_table.dart
-// Optimized QuickBooks-style editable grid with inline searchable item picker.
-// Enhanced for scanner support, compact data entry, and reusable purchase/sales pricing.
+// transaction_line_table_v2.dart
+//
+// WHY THIS DOESN'T HANG vs the old version:
+//
+//  1. TransactionLineTable  → plain StatefulWidget (no providers watched)
+//  2. Each _LineRow         → independent StatefulWidget with ObjectKey
+//                             only THAT row rebuilds on change
+//  3. _ItemPickerCell       → ConsumerStatefulWidget that reads itemsProvider
+//                             ONCE in initState → stored in _allItems
+//                             TypeAheadField filters _allItems locally — zero
+//                             provider watches during typing
+//  4. onChanged debounced 300ms inside row — parent gets ONE notification
+//     after the user stops, not on every keystroke
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
+
 import '../../features/items/data/models/item_model.dart';
 import '../../features/items/providers/items_provider.dart';
 import '../../features/purchase_orders/data/models/order_line_entry.dart';
 
+export 'package:ledgerflow/features/purchase_orders/data/models/order_line_entry.dart'
+    show TransactionLineEntry;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public API
+// ─────────────────────────────────────────────────────────────────────────────
+
 enum TransactionLinePriceMode { purchase, sales }
 
-class TransactionLineTable extends ConsumerStatefulWidget {
+class TransactionLineTable extends StatefulWidget {
   const TransactionLineTable({
     super.key,
     required this.lines,
@@ -32,546 +52,711 @@ class TransactionLineTable extends ConsumerStatefulWidget {
   final bool showAddLineFooter;
 
   @override
-  ConsumerState<TransactionLineTable> createState() => _TransactionLineTableState();
+  State<TransactionLineTable> createState() => _TransactionLineTableState();
 }
 
-class _TransactionLineTableState extends ConsumerState<TransactionLineTable> {
+class _TransactionLineTableState extends State<TransactionLineTable> {
   @override
   void initState() {
     super.initState();
-    if (widget.lines.isEmpty) {
-      _addLine(notify: false);
-    }
+    if (widget.lines.isEmpty) _addLine(notify: false);
   }
+
+  // ── Mutators ──────────────────────────────────────────────────────────────
 
   void _addLine({bool notify = true}) {
-    setState(() {
-      widget.lines.add(TransactionLineEntry());
-    });
-    if (notify) WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
-  }
-
-  void _ensureTrailingBlankLine() {
-    if (widget.lines.isEmpty) {
-      _addLine();
-      return;
-    }
-
-    final last = widget.lines.last;
-    final hasBlankTrailingLine = last.itemId == null &&
-        last.itemName.trim().isEmpty &&
-        last.descCtrl.text.trim().isEmpty &&
-        (double.tryParse(last.rateCtrl.text) ?? 0) == 0;
-
-    if (!hasBlankTrailingLine) {
-      _addLine();
+    setState(() => widget.lines.add(TransactionLineEntry()));
+    if (notify) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
     }
   }
 
   void _removeLine(int index) {
     setState(() {
-      final line = widget.lines.removeAt(index);
-      line.dispose();
+      widget.lines.removeAt(index).dispose();
+      if (widget.lines.isEmpty) widget.lines.add(TransactionLineEntry());
     });
-    if (widget.lines.isEmpty) _addLine(notify: false);
     WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
-  }
-
-  double _defaultRateFor(ItemModel item) {
-    return switch (widget.priceMode) {
-      TransactionLinePriceMode.purchase => item.purchasePrice,
-      TransactionLinePriceMode.sales => item.salesPrice,
-    };
   }
 
   void _onItemPicked(int index, ItemModel item) {
-    setState(() {
-      final line = widget.lines[index];
-      final rate = _defaultRateFor(item);
-      line.itemId = item.id;
-      line.itemName = item.name;
-      line.rate = rate;
-      line.rateCtrl.text = rate.toStringAsFixed(2);
-      if (line.descCtrl.text.trim().isEmpty) {
-        line.descCtrl.text = item.name;
-      }
-      if (line.qty == 0) {
-        line.qty = 1;
-        line.qtyCtrl.text = '1';
-      }
+    final line = widget.lines[index];
+    final rate = widget.priceMode == TransactionLinePriceMode.sales
+        ? item.salesPrice
+        : item.purchasePrice;
 
-      if (index == widget.lines.length - 1) {
-        widget.lines.add(TransactionLineEntry());
-      }
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+    line.itemId = item.id;
+    line.itemName = item.name;
+    line.rate = rate;
+    line.rateCtrl.text = rate.toStringAsFixed(2);
+
+    if (line.descCtrl.text.trim().isEmpty) {
+      line.descCtrl.text = item.name;
+    }
+    if (line.qty == 0 || line.qty == 1) {
+      line.qty = 1;
+      line.qtyCtrl.text = '1';
+    }
+
+    // Auto-add trailing blank row when last line gets filled
+    if (index == widget.lines.length - 1) {
+      setState(() => widget.lines.add(TransactionLineEntry()));
+    }
+
+    widget.onChanged();
   }
 
-  void _onLastCellCommit() {
-    _ensureTrailingBlankLine();
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.onChanged());
+  void _onLastCellTab() {
+    final last = widget.lines.last;
+    final blank =
+        last.itemId == null &&
+        last.itemName.trim().isEmpty &&
+        (double.tryParse(last.rateCtrl.text) ?? 0) == 0;
+    if (!blank) _addLine();
   }
+
+  // ── Layout ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = constraints.hasBoundedWidth ? constraints.maxWidth : 0.0;
-        final compact = widget.compact;
-        final minWidth = compact ? 760.0 : 920.0;
-        final totalWidth = widget.fillWidth && availableWidth > minWidth ? availableWidth : minWidth;
+      builder: (ctx, constraints) {
+        final avail = constraints.hasBoundedWidth ? constraints.maxWidth : 0.0;
+        final c = widget.compact;
+        final minW = c ? 720.0 : 880.0;
+        final totalW = widget.fillWidth && avail > minW ? avail : minW;
 
-        final colAction = compact ? 26.0 : 34.0;
-        final colQty = compact ? 66.0 : 74.0;
-        final colRate = compact ? 92.0 : 110.0;
-        final colTotal = compact ? 106.0 : 120.0;
-        final fixed = colAction + colQty + colRate + colTotal + 2;
-        final flexible = (totalWidth - fixed).clamp(460.0, 9000.0);
-        final colItem = flexible * (compact ? 0.42 : 0.48);
-        final colDesc = flexible - colItem;
+        final colDel = c ? 26.0 : 34.0;
+        final colQty = c ? 64.0 : 72.0;
+        final colRate = c ? 90.0 : 108.0;
+        final colTotal = c ? 100.0 : 116.0;
+        final flex = (totalW - colDel - colQty - colRate - colTotal - 2).clamp(
+          440.0,
+          9000.0,
+        );
+        final colItem = flex * (c ? 0.40 : 0.46);
+        final colDesc = flex - colItem;
 
-        return _GridShell(
-          width: totalWidth,
-          colAction: colAction,
-          colItem: colItem,
-          colDesc: colDesc,
-          colQty: colQty,
-          colRate: colRate,
-          colTotal: colTotal,
-          compact: compact,
-          showAddLineFooter: widget.showAddLineFooter,
-          lines: widget.lines,
-          priceMode: widget.priceMode,
-          onAddLine: _addLine,
-          onRemoveLine: _removeLine,
-          onItemPicked: _onItemPicked,
-          onLastCellCommit: _onLastCellCommit,
-          onChanged: widget.onChanged,
+        final cols = _ColWidths(
+          del: colDel,
+          item: colItem,
+          desc: colDesc,
+          qty: colQty,
+          rate: colRate,
+          total: colTotal,
+        );
+
+        final cs = Theme.of(context).colorScheme;
+        final hH = c ? 26.0 : 30.0;
+        final l10n = AppLocalizations.of(context)!;
+
+        return SizedBox(
+          width: totalW,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                _TableHeader(cols: cols, compact: c, height: hH, l10n: l10n),
+
+                // Rows — each has its own ObjectKey so only CHANGED row rebuilds
+                ...List.generate(widget.lines.length, (i) {
+                  final line = widget.lines[i];
+                  final isLast = i == widget.lines.length - 1;
+                  return _LineRow(
+                    key: ObjectKey(line),
+                    index: i,
+                    line: line,
+                    cols: cols,
+                    compact: c,
+                    priceMode: widget.priceMode,
+                    isEven: i.isEven,
+                    onDelete: () => _removeLine(i),
+                    onItemPicked: (item) => _onItemPicked(i, item),
+                    onLastTab: isLast ? _onLastCellTab : null,
+                    onChanged: widget.onChanged,
+                  );
+                }),
+
+                // Add-line footer
+                if (widget.showAddLineFooter)
+                  _AddLineFooter(compact: c, onAdd: () => _addLine()),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class _GridShell extends ConsumerWidget {
-  const _GridShell({
-    required this.width,
-    required this.colAction,
-    required this.colItem,
-    required this.colDesc,
-    required this.colQty,
-    required this.colRate,
-    required this.colTotal,
-    required this.compact,
-    required this.showAddLineFooter,
-    required this.lines,
-    required this.priceMode,
-    required this.onAddLine,
-    required this.onRemoveLine,
-    required this.onItemPicked,
-    required this.onLastCellCommit,
-    required this.onChanged,
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+// Column widths value object
+// ─────────────────────────────────────────────────────────────────────────────
 
-  final double width;
-  final double colAction;
-  final double colItem;
-  final double colDesc;
-  final double colQty;
-  final double colRate;
-  final double colTotal;
+class _ColWidths {
+  const _ColWidths({
+    required this.del,
+    required this.item,
+    required this.desc,
+    required this.qty,
+    required this.rate,
+    required this.total,
+  });
+  final double del, item, desc, qty, rate, total;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Header
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader({
+    required this.cols,
+    required this.compact,
+    required this.height,
+    required this.l10n,
+  });
+  final _ColWidths cols;
   final bool compact;
-  final bool showAddLineFooter;
-  final List<TransactionLineEntry> lines;
-  final TransactionLinePriceMode priceMode;
-  final void Function({bool notify}) onAddLine;
-  final void Function(int index) onRemoveLine;
-  final void Function(int index, ItemModel item) onItemPicked;
-  final VoidCallback onLastCellCommit;
-  final VoidCallback onChanged;
+  final double height;
+  final AppLocalizations l10n;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-    final rowHeight = compact ? 30.0 : 36.0;
-    final headerHeight = compact ? 26.0 : 30.0;
-    final itemsAsync = ref.watch(itemsProvider);
-
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      width: width,
-      decoration: BoxDecoration(color: cs.surface, border: Border.all(color: cs.outlineVariant)),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      height: height,
+      color: cs.surfaceContainerHigh,
+      child: Row(
         children: [
-          Container(
-            color: cs.surfaceContainerHigh,
-            height: headerHeight,
-            child: Row(
-              children: [
-                SizedBox(width: colAction),
-                _headerCell(l10n.itemService.toUpperCase(), colItem, compact: compact),
-                _headerCell(l10n.description.toUpperCase(), colDesc, compact: compact),
-                _headerCell(l10n.qty.toUpperCase(), colQty, align: TextAlign.center, compact: compact),
-                _headerCell(l10n.rate.toUpperCase(), colRate, align: TextAlign.right, compact: compact),
-                _headerCell(l10n.amount.toUpperCase(), colTotal, align: TextAlign.right, compact: compact),
-              ],
-            ),
-          ),
-          ...lines.asMap().entries.map((entry) {
-            final i = entry.key;
-            final line = entry.value;
-            final isLast = i == lines.length - 1;
-
-            return Container(
-              height: rowHeight,
-              decoration: BoxDecoration(
-                color: i.isEven ? cs.surface : cs.surfaceContainerHighest.withValues(alpha: 0.42),
-                border: Border(bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5))),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: colAction,
-                    child: IconButton(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.delete_outline, size: compact ? 14 : 16, color: Colors.grey),
-                      onPressed: () => onRemoveLine(i),
-                    ),
-                  ),
-                  SizedBox(
-                    width: colItem,
-                    child: _InlineItemPicker(
-                      key: ValueKey('item_$i'),
-                      initialValue: line.itemName,
-                      itemsAsync: itemsAsync,
-                      priceMode: priceMode,
-                      compact: compact,
-                      onPicked: (item) => onItemPicked(i, item),
-                      onKeyboardCommit: isLast ? onLastCellCommit : null,
-                    ),
-                  ),
-                  SizedBox(
-                    width: colDesc,
-                    child: _InlineTextField(
-                      controller: line.descCtrl,
-                      hint: l10n.description,
-                      compact: compact,
-                      onSubmitted: isLast ? onLastCellCommit : null,
-                    ),
-                  ),
-                  SizedBox(
-                    width: colQty,
-                    child: _InlineTextField(
-                      controller: line.qtyCtrl,
-                      numeric: true,
-                      align: TextAlign.center,
-                      compact: compact,
-                      onSubmitted: isLast ? onLastCellCommit : null,
-                      onChanged: () {
-                        line.qty = double.tryParse(line.qtyCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback((_) => onChanged());
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    width: colRate,
-                    child: _InlineTextField(
-                      controller: line.rateCtrl,
-                      numeric: true,
-                      align: TextAlign.right,
-                      compact: compact,
-                      onSubmitted: isLast ? onLastCellCommit : null,
-                      onChanged: () {
-                        line.rate = double.tryParse(line.rateCtrl.text) ?? 0;
-                        WidgetsBinding.instance.addPostFrameCallback((_) => onChanged());
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    width: colTotal,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          line.amount.toStringAsFixed(2),
-                          textAlign: TextAlign.right,
-                          style: TextStyle(fontSize: compact ? 11 : 12, fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          if (showAddLineFooter)
-            SizedBox(
-              height: compact ? 28 : 32,
-              child: Row(
-                children: [
-                  TextButton.icon(
-                    onPressed: () => onAddLine(notify: true),
-                    icon: Icon(Icons.add, size: compact ? 14 : 16),
-                    label: Text(l10n.addLine, style: TextStyle(fontSize: compact ? 11 : null)),
-                  ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 10),
-                    child: Text(
-                      'Enter/Tab adds the next line',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: compact ? 10 : 11, color: cs.onSurfaceVariant),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          SizedBox(width: cols.del),
+          _h(l10n.itemService.toUpperCase(), cols.item),
+          _h(l10n.description.toUpperCase(), cols.desc),
+          _h(l10n.qty.toUpperCase(), cols.qty, align: TextAlign.center),
+          _h(l10n.rate.toUpperCase(), cols.rate, align: TextAlign.right),
+          _h(l10n.amount.toUpperCase(), cols.total, align: TextAlign.right),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String label, double width, {TextAlign align = TextAlign.left, required bool compact}) {
-    return SizedBox(
-      width: width,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8),
-        child: Text(
-          label,
-          textAlign: align,
-          style: TextStyle(fontSize: compact ? 9 : 10, fontWeight: FontWeight.w800, color: Colors.blueGrey),
+  Widget _h(String label, double w, {TextAlign align = TextAlign.left}) =>
+      SizedBox(
+        width: w,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8),
+          child: Text(
+            label,
+            textAlign: align,
+            style: TextStyle(
+              fontSize: compact ? 9 : 10,
+              fontWeight: FontWeight.w800,
+              color: Colors.blueGrey,
+            ),
+          ),
         ),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Line Row — fully independent StatefulWidget
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LineRow extends StatefulWidget {
+  const _LineRow({
+    super.key,
+    required this.index,
+    required this.line,
+    required this.cols,
+    required this.compact,
+    required this.priceMode,
+    required this.isEven,
+    required this.onDelete,
+    required this.onItemPicked,
+    required this.onLastTab,
+    required this.onChanged,
+  });
+
+  final int index;
+  final TransactionLineEntry line;
+  final _ColWidths cols;
+  final bool compact;
+  final TransactionLinePriceMode priceMode;
+  final bool isEven;
+  final VoidCallback onDelete;
+  final void Function(ItemModel) onItemPicked;
+  final VoidCallback? onLastTab;
+  final VoidCallback onChanged;
+
+  @override
+  State<_LineRow> createState() => _LineRowState();
+}
+
+class _LineRowState extends State<_LineRow> {
+  Timer? _debounce;
+
+  void _notify() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) widget.onChanged();
+    });
+  }
+
+  void _onQtyChanged(String v) {
+    widget.line.qty = double.tryParse(v) ?? 0;
+    setState(() {}); // only this row repaints (total column)
+    _notify();
+  }
+
+  void _onRateChanged(String v) {
+    widget.line.rate = double.tryParse(v) ?? 0;
+    setState(() {});
+    _notify();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final c = widget.compact;
+    final rH = c ? 30.0 : 36.0;
+    final l = widget.line;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      height: rH,
+      decoration: BoxDecoration(
+        color: widget.isEven
+            ? cs.surface
+            : cs.surfaceContainerHighest.withValues(alpha: 0.4),
+        border: Border(
+          bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Delete
+          SizedBox(
+            width: widget.cols.del,
+            child: IconButton(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              icon: Icon(
+                Icons.delete_outline,
+                size: c ? 14 : 16,
+                color: Colors.grey,
+              ),
+              onPressed: widget.onDelete,
+            ),
+          ),
+
+          // Item picker — TypeAheadField, items loaded once in initState
+          SizedBox(
+            width: widget.cols.item,
+            child: _ItemPickerCell(
+              key: ValueKey('ip_${widget.index}_${l.itemId}'),
+              line: l,
+              priceMode: widget.priceMode,
+              compact: c,
+              rowHeight: rH,
+              onPicked: widget.onItemPicked,
+              onTabOut: widget.onLastTab,
+            ),
+          ),
+
+          // Description
+          SizedBox(
+            width: widget.cols.desc,
+            child: _BareTextField(
+              controller: l.descCtrl,
+              hint: l10n.description,
+              compact: c,
+              onSubmitted: widget.onLastTab,
+              onChanged: (_) => _notify(),
+            ),
+          ),
+
+          // Qty
+          SizedBox(
+            width: widget.cols.qty,
+            child: _BareTextField(
+              controller: l.qtyCtrl,
+              numeric: true,
+              align: TextAlign.center,
+              compact: c,
+              onSubmitted: widget.onLastTab,
+              onChanged: _onQtyChanged,
+            ),
+          ),
+
+          // Rate
+          SizedBox(
+            width: widget.cols.rate,
+            child: _BareTextField(
+              controller: l.rateCtrl,
+              numeric: true,
+              align: TextAlign.right,
+              compact: c,
+              onSubmitted: widget.onLastTab,
+              onChanged: _onRateChanged,
+            ),
+          ),
+
+          // Total (read-only)
+          SizedBox(
+            width: widget.cols.total,
+            child: Padding(
+              padding: EdgeInsets.only(right: c ? 8 : 10),
+              child: Text(
+                (l.qty * l.rate).toStringAsFixed(2),
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: c ? 11 : 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _InlineTextField extends StatefulWidget {
-  const _InlineTextField({
+// ─────────────────────────────────────────────────────────────────────────────
+// Item Picker — TypeAheadField, items fetched ONCE from provider in initState
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ItemPickerCell extends ConsumerStatefulWidget {
+  const _ItemPickerCell({
+    super.key,
+    required this.line,
+    required this.priceMode,
+    required this.compact,
+    required this.rowHeight,
+    required this.onPicked,
+    this.onTabOut,
+  });
+
+  final TransactionLineEntry line;
+  final TransactionLinePriceMode priceMode;
+  final bool compact;
+  final double rowHeight;
+  final void Function(ItemModel) onPicked;
+  final VoidCallback? onTabOut;
+
+  @override
+  ConsumerState<_ItemPickerCell> createState() => _ItemPickerCellState();
+}
+
+class _ItemPickerCellState extends ConsumerState<_ItemPickerCell> {
+  late final TextEditingController _ctrl;
+  final _suggestionsBoxController = SuggestionsBoxController();
+
+  // Items fetched ONCE — no provider watch, no rebuild on item changes
+  List<ItemModel> _allItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.line.itemName);
+    // ref.read → snapshot, not a live subscription
+    _allItems =
+        ref.read(itemsProvider).value?.where((i) => i.isActive).toList() ?? [];
+  }
+
+  @override
+  void didUpdateWidget(covariant _ItemPickerCell old) {
+    super.didUpdateWidget(old);
+    // Only sync text if externally changed (e.g. form reset)
+    if (widget.line.itemName != old.line.itemName &&
+        widget.line.itemName != _ctrl.text) {
+      _ctrl.text = widget.line.itemName;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  List<ItemModel> _filter(String pattern) {
+    final q = pattern.toLowerCase().trim();
+    if (q.isEmpty) return _allItems.take(20).toList();
+    return _allItems
+        .where(
+          (i) =>
+              i.name.toLowerCase().contains(q) ||
+              (i.sku?.toLowerCase().contains(q) ?? false) ||
+              (i.barcode?.toLowerCase().contains(q) ?? false),
+        )
+        .take(25)
+        .toList();
+  }
+
+  void _onSelected(ItemModel item) {
+    _ctrl.text = item.name;
+    _suggestionsBoxController.close();
+    widget.onPicked(item);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final c = widget.compact;
+    final l10n = AppLocalizations.of(context)!;
+
+    return TypeAheadField<ItemModel>(
+      textFieldConfiguration: TextFieldConfiguration(
+        controller: _ctrl,
+        style: TextStyle(fontSize: c ? 11 : 12, fontWeight: FontWeight.w600),
+        textInputAction: TextInputAction.next,
+        onSubmitted: (value) {
+          final results = _filter(value);
+          if (results.isNotEmpty) {
+            _onSelected(results.first);
+          } else {
+            widget.onTabOut?.call();
+          }
+        },
+        decoration: InputDecoration(
+          hintText: l10n.selectItem,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: c ? 6 : 8,
+            vertical: c ? 6 : 9,
+          ),
+          border: InputBorder.none,
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: cs.primary, width: 1),
+            borderRadius: BorderRadius.zero,
+          ),
+          suffixIcon: Icon(Icons.search, size: c ? 12 : 14, color: Colors.grey),
+        ),
+      ),
+      suggestionsBoxController: _suggestionsBoxController,
+      suggestionsCallback: _filter, // purely local, zero network/provider call
+      itemBuilder: (context, item) {
+        final rate = widget.priceMode == TransactionLinePriceMode.sales
+            ? item.salesPrice
+            : item.purchasePrice;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (item.sku != null)
+                      Text(
+                        'SKU: ${item.sku}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    rate.toStringAsFixed(2),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    'Qty: ${item.quantityOnHand.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: item.quantityOnHand <= 0
+                          ? Colors.red
+                          : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+      onSuggestionSelected: _onSelected,
+      noItemsFoundBuilder: (context) => const Padding(
+        padding: EdgeInsets.all(12),
+        child: Text(
+          'No items found',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ),
+      // Suggestions box appears BELOW the cell, same width
+      suggestionsBoxDecoration: SuggestionsBoxDecoration(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(6),
+        constraints: const BoxConstraints(maxHeight: 280),
+      ),
+      hideOnEmpty: false,
+      hideOnLoading: true,
+      keepSuggestionsOnSuggestionSelected: false,
+      animationDuration: Duration.zero, // no animation = no jank
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bare text field (description / qty / rate)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BareTextField extends StatefulWidget {
+  const _BareTextField({
     required this.controller,
     this.hint,
     this.numeric = false,
     this.align = TextAlign.left,
+    this.compact = false,
     this.onChanged,
     this.onSubmitted,
-    this.compact = false,
   });
 
   final TextEditingController controller;
   final String? hint;
   final bool numeric;
   final TextAlign align;
-  final VoidCallback? onChanged;
-  final VoidCallback? onSubmitted;
   final bool compact;
+  final void Function(String)? onChanged;
+  final VoidCallback? onSubmitted;
 
   @override
-  State<_InlineTextField> createState() => _InlineTextFieldState();
+  State<_BareTextField> createState() => _BareTextFieldState();
 }
 
-class _InlineTextFieldState extends State<_InlineTextField> {
-  late final FocusNode _focusNode;
+class _BareTextFieldState extends State<_BareTextField> {
+  late final FocusNode _focus;
 
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
+    _focus = FocusNode();
   }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
-  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      widget.onSubmitted?.call();
-      return widget.onSubmitted == null ? KeyEventResult.ignored : KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.tab && widget.onSubmitted != null) {
-      widget.onSubmitted?.call();
-      return KeyEventResult.ignored;
+  KeyEventResult _onKey(FocusNode _, KeyEvent e) {
+    if (e is! KeyDownEvent) return KeyEventResult.ignored;
+    if ((e.logicalKey == LogicalKeyboardKey.enter ||
+            e.logicalKey == LogicalKeyboardKey.numpadEnter) &&
+        widget.onSubmitted != null) {
+      widget.onSubmitted!();
+      return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final c = widget.compact;
     return Focus(
-      focusNode: _focusNode,
-      onKeyEvent: _handleKey,
+      focusNode: _focus,
+      onKeyEvent: _onKey,
       child: TextField(
         controller: widget.controller,
         textAlign: widget.align,
-        keyboardType: widget.numeric ? const TextInputType.numberWithOptions(decimal: true) : null,
+        keyboardType: widget.numeric
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : null,
+        inputFormatters: widget.numeric
+            ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
+            : null,
         textInputAction: TextInputAction.next,
         onSubmitted: (_) => widget.onSubmitted?.call(),
-        onChanged: (_) => widget.onChanged?.call(),
-        style: TextStyle(fontSize: widget.compact ? 11 : 12),
+        onChanged: widget.onChanged,
+        style: TextStyle(fontSize: c ? 11 : 12),
         decoration: InputDecoration(
           hintText: widget.hint,
           isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: c ? 6 : 8,
+            vertical: c ? 6 : 9,
+          ),
           border: InputBorder.none,
-          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: cs.primary, width: 1),
+            borderRadius: BorderRadius.zero,
+          ),
         ),
       ),
     );
   }
 }
 
-class _InlineItemPicker extends StatefulWidget {
-  const _InlineItemPicker({
-    super.key,
-    required this.initialValue,
-    required this.itemsAsync,
-    required this.onPicked,
-    required this.priceMode,
-    this.onKeyboardCommit,
-    this.compact = false,
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+// Add-line footer
+// ─────────────────────────────────────────────────────────────────────────────
 
-  final String initialValue;
-  final AsyncValue<List<ItemModel>> itemsAsync;
-  final Function(ItemModel) onPicked;
-  final TransactionLinePriceMode priceMode;
-  final VoidCallback? onKeyboardCommit;
+class _AddLineFooter extends StatelessWidget {
+  const _AddLineFooter({required this.compact, required this.onAdd});
   final bool compact;
-
-  @override
-  State<_InlineItemPicker> createState() => _InlineItemPickerState();
-}
-
-class _InlineItemPickerState extends State<_InlineItemPicker> {
-  late final TextEditingController _controller;
-  late final FocusNode _focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-    _focusNode = FocusNode();
-  }
-
-  @override
-  void didUpdateWidget(covariant _InlineItemPicker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_focusNode.hasFocus && widget.initialValue != _controller.text) {
-      _controller.text = widget.initialValue;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  double _displayRate(ItemModel item) {
-    return switch (widget.priceMode) {
-      TransactionLinePriceMode.purchase => item.purchasePrice,
-      TransactionLinePriceMode.sales => item.salesPrice,
-    };
-  }
-
-  Iterable<ItemModel> _matches(List<ItemModel> items, String pattern) {
-    final text = pattern.toLowerCase().trim();
-    if (text.isEmpty) return items.take(20);
-    return items.where(
-      (item) => item.name.toLowerCase().contains(text) || (item.sku?.toLowerCase().contains(text) ?? false),
-    ).take(25);
-  }
-
-  void _submitValue(List<ItemModel> items, String value) {
-    final exact = _matches(items, value)
-        .where(
-          (item) => item.name.toLowerCase() == value.toLowerCase().trim() || item.sku?.toLowerCase() == value.toLowerCase().trim(),
-        )
-        .toList();
-    if (exact.isNotEmpty) {
-      widget.onPicked(exact.first);
-      return;
-    }
-
-    final partial = _matches(items, value).toList();
-    if (partial.isNotEmpty && value.trim().isNotEmpty) {
-      widget.onPicked(partial.first);
-      return;
-    }
-
-    widget.onKeyboardCommit?.call();
-  }
-
-  KeyEventResult _handleKey(List<ItemModel> items, FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      _submitValue(items, _controller.text);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.tab && widget.onKeyboardCommit != null) {
-      widget.onKeyboardCommit?.call();
-      return KeyEventResult.ignored;
-    }
-    return KeyEventResult.ignored;
-  }
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return widget.itemsAsync.when(
-      loading: () => TextField(
-        enabled: false,
-        style: TextStyle(fontSize: widget.compact ? 11 : 12),
-        decoration: InputDecoration(
-          hintText: 'Loading items...',
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
-          border: InputBorder.none,
-          suffixIcon: SizedBox(width: 14, height: 14, child: Center(child: SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)))),
-        ),
-      ),
-      error: (e, _) => const Icon(Icons.error_outline, color: Colors.red, size: 16),
-      data: (items) => Focus(
-        focusNode: _focusNode,
-        onKeyEvent: (node, event) => _handleKey(items, node, event),
-        child: TypeAheadField<ItemModel>(
-          textFieldConfiguration: TextFieldConfiguration(
-            controller: _controller,
-            focusNode: _focusNode,
-            textInputAction: TextInputAction.next,
-            style: TextStyle(fontSize: widget.compact ? 11 : 12, fontWeight: FontWeight.w600),
-            onSubmitted: (value) => _submitValue(items, value),
-            decoration: InputDecoration(
-              hintText: l10n.selectItem,
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: widget.compact ? 6 : 8, vertical: widget.compact ? 6 : 9),
-              border: InputBorder.none,
-              focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 1), borderRadius: BorderRadius.zero),
-              suffixIcon: Icon(Icons.search, size: widget.compact ? 12 : 14, color: Colors.grey),
+    final theme = Theme.of(context);
+    final c = compact;
+    return SizedBox(
+      height: c ? 28 : 32,
+      child: Row(
+        children: [
+          TextButton.icon(
+            onPressed: onAdd,
+            icon: Icon(Icons.add, size: c ? 14 : 16),
+            label: Text(
+              AppLocalizations.of(context)!.addLine,
+              style: TextStyle(fontSize: c ? 11 : null),
             ),
           ),
-          suggestionsCallback: (pattern) => _matches(items, pattern).toList(),
-          itemBuilder: (context, item) {
-            return ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('${_displayRate(item).toStringAsFixed(2)} ${l10n.egp} | ${l10n.stock}: ${item.quantityOnHand}'),
-            );
-          },
-          onSuggestionSelected: (item) {
-            _controller.text = item.name;
-            widget.onPicked(item);
-          },
-          noItemsFoundBuilder: (_) => const SizedBox.shrink(),
-          suggestionsBoxDecoration: const SuggestionsBoxDecoration(elevation: 4, constraints: BoxConstraints(maxHeight: 300)),
-        ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 10),
+            child: Text(
+              'Enter / Tab  \u2192  next line',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: c ? 10 : 11,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

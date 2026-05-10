@@ -15,20 +15,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ledgerflow/core/widgets/transaction_line_table.dart';
+import 'package:ledgerflow/features/purchase_orders/data/models/order_line_entry.dart';
 
-import '../../../core/widgets/transaction_line_table_v2.dart';
 import '../../features/transactions/widgets/transaction_context_sidebar.dart';
 import '../../features/transactions/widgets/transaction_models.dart';
 import '../../features/transactions/widgets/transaction_totals_footer.dart';
-
-export '../../../core/widgets/transaction_line_table_v2.dart'
-    show TransactionLineEntry, TransactionLinePriceMode;
-export '../widgets/transaction_models.dart'
-    show
-        TransactionContextMetric,
-        TransactionContextActivity,
-        TransactionTotalsUiModel,
-        TransactionScreenKind;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config passed by each screen
