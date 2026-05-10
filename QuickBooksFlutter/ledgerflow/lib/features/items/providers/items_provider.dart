@@ -16,27 +16,31 @@ final itemsRepositoryProvider = Provider<ItemsRepository>(
   (ref) => ItemsRepository(ref.watch(itemsDatasourceProvider)),
 );
 
-final itemsProvider =
-    AsyncNotifierProvider<ItemsNotifier, List<ItemModel>>(
+final itemsProvider = AsyncNotifierProvider<ItemsNotifier, List<ItemModel>>(
   ItemsNotifier.new,
 );
 
 class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
-  String _search          = '';
-  int?   _typeFilter;
-  bool   _includeInactive = false;
+  String _search = '';
+  int? _typeFilter;
+  bool _includeInactive = false;
 
   @override
-  Future<List<ItemModel>> build() => _fetch();
+  Future<List<ItemModel>> build() {
+    ref.keepAlive(); // ← ده اللي اتضاف
+    return _fetch();
+  }
 
   Future<List<ItemModel>> _fetch() async {
-    final result = await ref.read(itemsRepositoryProvider).getItems(
-          search:          _search,
-          itemType:        _typeFilter,
+    final result = await ref
+        .read(itemsRepositoryProvider)
+        .getItems(
+          search: _search,
+          itemType: _typeFilter,
           includeInactive: _includeInactive,
         );
     return result.when(
-      success: (data)  => data,
+      success: (data) => data,
       failure: (error) => throw error,
     );
   }
@@ -61,37 +65,34 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
     refresh();
   }
 
-  Future<ApiResult<ItemModel>> createItem(
-      Map<String, dynamic> body) async {
-    final result =
-        await ref.read(itemsRepositoryProvider).createItem(body);
+  Future<ApiResult<ItemModel>> createItem(Map<String, dynamic> body) async {
+    final result = await ref.read(itemsRepositoryProvider).createItem(body);
     if (result.isSuccess) refresh();
     return result;
   }
 
   Future<ApiResult<ItemModel>> updateItem(
-      String id, Map<String, dynamic> body) async {
-    final result =
-        await ref.read(itemsRepositoryProvider).updateItem(id, body);
+    String id,
+    Map<String, dynamic> body,
+  ) async {
+    final result = await ref.read(itemsRepositoryProvider).updateItem(id, body);
     if (result.isSuccess) refresh();
     return result;
   }
 
-  Future<ApiResult<ItemModel>> toggleActive(
-      String id, bool isActive) async {
-    final result =
-        await ref.read(itemsRepositoryProvider).toggleActive(id, isActive);
+  Future<ApiResult<ItemModel>> toggleActive(String id, bool isActive) async {
+    final result = await ref
+        .read(itemsRepositoryProvider)
+        .toggleActive(id, isActive);
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final itemDetailProvider =
-    FutureProvider.family<ItemModel, String>((ref, id) async {
-  final result =
-      await ref.read(itemsRepositoryProvider).getItem(id);
-  return result.when(
-    success: (data)  => data,
-    failure: (error) => throw error,
-  );
+final itemDetailProvider = FutureProvider.family<ItemModel, String>((
+  ref,
+  id,
+) async {
+  final result = await ref.read(itemsRepositoryProvider).getItem(id);
+  return result.when(success: (data) => data, failure: (error) => throw error);
 });
