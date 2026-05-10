@@ -24,7 +24,6 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
 
   @override
   Future<List<ItemModel>> build() {
-    ref.keepAlive();
     return _fetch();
   }
 
