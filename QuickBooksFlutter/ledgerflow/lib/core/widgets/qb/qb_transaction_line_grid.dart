@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
@@ -37,19 +35,12 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   List<ItemModel> _items = const [];
   bool _loadingItems = true;
   String? _itemsError;
-  Timer? _changeDebounce;
 
   @override
   void initState() {
     super.initState();
     if (widget.lines.isEmpty) widget.lines.add(TransactionLineEntry());
     _loadItemsOnce();
-  }
-
-  @override
-  void dispose() {
-    _changeDebounce?.cancel();
-    super.dispose();
   }
 
   Future<void> _loadItemsOnce() async {
@@ -75,15 +66,13 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _notifyNow() {
-    _changeDebounce?.cancel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.onChanged();
     });
   }
 
   void _scheduleChanged() {
-    _changeDebounce?.cancel();
-    _changeDebounce = Timer(const Duration(milliseconds: 220), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.onChanged();
     });
   }
@@ -296,7 +285,7 @@ class _DesktopGrid extends StatelessWidget {
                     width: colItem,
                     compact: compact,
                     child: QbItemCell(
-                      key: ValueKey('item_${index}_${line.itemId ?? ''}'),
+                      key: ValueKey('item_$index'),
                       initialValue: line.itemName,
                       items: items,
                       loadingItems: loadingItems,
