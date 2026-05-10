@@ -13,6 +13,8 @@ import '../../customers/providers/customers_provider.dart';
 import '../../invoices/data/models/sales_preview_contracts.dart';
 import '../../invoices/providers/invoices_state.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
+import '../../transactions/printing/transaction_print_model.dart';
+import '../../transactions/printing/transaction_print_service.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
@@ -274,7 +276,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
           TextButton.icon(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              _handlePrint();
+              _handlePrint(documentNumber: docNumber);
             },
             icon: const Icon(Icons.print_outlined),
             label: const Text('Print'),
@@ -300,8 +302,53 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
     );
   }
 
-  void _handlePrint() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Print coming soon…')));
+  Future<void> _handlePrint({String? documentNumber}) async {
+    if (_customer == null) {
+      _showError('Select a customer before printing.');
+      return;
+    }
+    final validLines = _validLines();
+    if (validLines.isEmpty) {
+      _showError('Add at least one valid line before printing.');
+      return;
+    }
+
+    final totals = _totals;
+    final model = TransactionPrintModel(
+      documentTitle: 'Sales Receipt',
+      documentNumber: documentNumber ?? _numberCtrl.text.trim().ifEmpty('Preview'),
+      documentDate: _receiptDate,
+      partyLabel: 'Customer',
+      partyName: _customer!.displayName,
+      reference: _referenceCtrl.text.trim().isEmpty ? null : _referenceCtrl.text.trim(),
+      paymentMethod: _paymentMethod,
+      lines: validLines
+          .map(
+            (line) => TransactionPrintLine(
+              itemName: line.itemName.trim().isEmpty ? 'Item' : line.itemName.trim(),
+              description: line.descCtrl.text.trim(),
+              quantity: line.qty,
+              rate: line.rate,
+              amount: line.amount,
+            ),
+          )
+          .toList(),
+      totals: TransactionPrintTotals(
+        subtotal: totals.subtotal,
+        discountTotal: totals.discountTotal,
+        taxTotal: totals.taxTotal,
+        total: totals.total,
+        paid: totals.paid,
+        balanceDue: totals.balanceDue,
+        currency: totals.currency,
+      ),
+    );
+
+    try {
+      await const TransactionPrintService().printDocument(model);
+    } catch (e) {
+      _showError('Could not open print preview: $e');
+    }
   }
 
   void _reset() {
@@ -480,4 +527,8 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
     });
     _schedulePreview();
   }
+}
+
+extension _EmptyStringFallback on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }
