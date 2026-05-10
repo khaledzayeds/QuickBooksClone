@@ -73,6 +73,12 @@ class PaymentsNotifier extends AsyncNotifier<List<PaymentModel>> {
     return result;
   }
 
+  Future<ApiResult<List<PaymentModel>>> receive(ReceivePaymentDto dto) async {
+    final result = await ref.read(paymentsRepositoryProvider).receive(dto);
+    if (result.isSuccess) refresh();
+    return result;
+  }
+
   Future<ApiResult<PaymentModel>> voidPayment(String id) async {
     final result = await ref.read(paymentsRepositoryProvider).voidPayment(id);
     if (result.isSuccess) refresh();
