@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../core/constants/api_enums.dart';
 import '../../accounts/data/models/account_model.dart';
@@ -202,13 +201,12 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
   }
 
   Future<String?> _save() async {
-    final l10n = AppLocalizations.of(context)!;
     if (_customer == null) {
-      _showError(l10n.selectCustomerFirst);
+      _showError('Select a customer first.');
       return null;
     }
     if (_depositAccount == null) {
-      _showError(l10n.selectDepositAccountFirst);
+      _showError('Select a deposit account first.');
       return null;
     }
     final validLines = _validLines();
@@ -355,7 +353,6 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final customers = ref.watch(customersProvider).maybeWhen(
           data: (items) => items.where((customer) => customer.isActive).toList(),
           orElse: () => const <CustomerModel>[],
@@ -374,11 +371,11 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
 
     return SalesReceiptShell(
       numberField: SalesReceiptFormField(
-        label: '${l10n.salesReceipt} #',
+        label: 'Sales Receipt #',
         child: SalesReceiptReadonlyTextField(controller: _numberCtrl, hint: 'AUTO'),
       ),
       dateField: SalesReceiptFormField(
-        label: l10n.receiptDate,
+        label: 'Receipt Date',
         child: SalesReceiptReadonlyTextField(
           controller: _dateCtrl,
           hint: 'dd/mm/yyyy',
@@ -394,7 +391,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
         ),
       ),
       customerField: SalesReceiptFormField(
-        label: l10n.customer,
+        label: 'Customer',
         required: true,
         child: SalesReceiptCustomerField(
           controller: _customerCtrl,
@@ -419,7 +416,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
         ),
       ),
       depositAccountField: SalesReceiptFormField(
-        label: l10n.depositAccount,
+        label: 'Deposit Account',
         required: true,
         child: SalesReceiptDepositAccountField(
           controller: _depositCtrl,
@@ -441,7 +438,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
         ),
       ),
       paymentMethodField: SalesReceiptFormField(
-        label: l10n.paymentMethod,
+        label: 'Payment Method',
         child: SalesReceiptPaymentMethodField(
           value: _paymentMethod,
           methods: _kPaymentMethods,
