@@ -13,6 +13,7 @@ class QbItemCell extends StatefulWidget {
     required this.compact,
     required this.rateForItem,
     required this.onPicked,
+    this.onSubmittedPick,
     this.onLastCellCommit,
   });
 
@@ -22,6 +23,7 @@ class QbItemCell extends StatefulWidget {
   final bool compact;
   final double Function(ItemModel item) rateForItem;
   final void Function(ItemModel item) onPicked;
+  final VoidCallback? onSubmittedPick;
   final VoidCallback? onLastCellCommit;
 
   @override
@@ -95,10 +97,12 @@ class _QbItemCellState extends State<QbItemCell> {
 
     if (exact.isNotEmpty) {
       _pick(exact.first);
+      widget.onSubmittedPick?.call();
       return;
     }
     if (matches.isNotEmpty && value.trim().isNotEmpty) {
       _pick(matches.first);
+      widget.onSubmittedPick?.call();
       return;
     }
     widget.onLastCellCommit?.call();
