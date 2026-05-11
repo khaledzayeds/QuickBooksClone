@@ -9,66 +9,65 @@ import '../providers/sidebar_provider.dart';
 import '../theme/app_colors.dart';
 
 class SidebarMenu extends ConsumerWidget {
-  const SidebarMenu({super.key});
+  const SidebarMenu({super.key, required this.collapsed});
+
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).uri.toString();
     final l10n = AppLocalizations.of(context)!;
-    final isCollapsed = ref.watch(sidebarCollapsedProvider);
+    final isCollapsed = collapsed;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOutCubic,
-      width: isCollapsed ? 70 : 220,
+    return Container(
       color: AppColors.sidebarBg,
       child: Column(
         children: [
           Container(
-            height: 64,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            height: 48,
+            padding: EdgeInsets.symmetric(horizontal: isCollapsed ? 6 : 10),
             alignment: Alignment.center,
             child: Row(
-              mainAxisAlignment: isCollapsed
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
+              mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(
-                  Icons.account_balance,
-                  color: Colors.white70,
-                  size: 28,
-                ),
-                if (!isCollapsed) ...[
-                  const SizedBox(width: 12),
-                  const Text(
-                    'QB',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                    ),
+                if (!isCollapsed)
+                  Row(
+                    children: const [
+                      Icon(Icons.account_balance, color: Colors.white70, size: 22),
+                      SizedBox(width: 9),
+                      Text(
+                        'QB',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: isCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
+                  icon: AnimatedRotation(
+                    turns: isCollapsed ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 220),
+                    child: const Icon(Icons.chevron_left, color: Colors.white54),
+                  ),
+                  onPressed: () => ref.read(sidebarCollapsedProvider.notifier).state = !isCollapsed,
+                ),
               ],
             ),
           ),
 
           if (!isCollapsed)
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
               child: TextField(
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: InputDecoration(
                   hintText: l10n.searchHelp,
-                  hintStyle: const TextStyle(
-                    color: Colors.white30,
-                    fontSize: 11,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    size: 14,
-                    color: Colors.white54,
-                  ),
+                  hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
+                  prefixIcon: const Icon(Icons.search, size: 14, color: Colors.white54),
                   fillColor: Colors.white.withValues(alpha: 0.1),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -84,7 +83,7 @@ class SidebarMenu extends ConsumerWidget {
 
           if (!isCollapsed)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
               child: Row(
                 children: [
                   Text(
@@ -155,12 +154,10 @@ class SidebarMenu extends ConsumerWidget {
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
-
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(color: Colors.white12, height: 1),
                 ),
-
                 _ShortcutItem(
                   icon: Icons.point_of_sale_outlined,
                   label: l10n.salesReceipts,
@@ -196,12 +193,10 @@ class SidebarMenu extends ConsumerWidget {
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
-
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(color: Colors.white12, height: 1),
                 ),
-
                 _ShortcutItem(
                   icon: Icons.account_balance_outlined,
                   label: 'Bank Register',
@@ -265,38 +260,7 @@ class SidebarMenu extends ConsumerWidget {
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Divider(color: Colors.white12, height: 1),
-                ),
-                _ShortcutItem(
-                  icon: Icons.design_services_outlined,
-                  label: 'Design: Table',
-                  path: AppRoutes.playgroundTable,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.format_paint_outlined,
-                  label: 'Design: Form',
-                  path: AppRoutes.playgroundForm,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
               ],
-            ),
-          ),
-
-          InkWell(
-            onTap: () => ref.read(sidebarCollapsedProvider.notifier).state =
-                !isCollapsed,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              alignment: Alignment.center,
-              child: Icon(
-                isCollapsed ? Icons.chevron_right : Icons.chevron_left,
-                color: Colors.white38,
-              ),
             ),
           ),
         ],
@@ -329,40 +293,41 @@ class _ShortcutItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = _isActive;
 
-    return Material(
-      color: active ? AppColors.sidebarActive : Colors.transparent,
-      child: InkWell(
-        onTap: () => context.go(path),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: isCollapsed ? 12 : 10,
-          ),
-          child: Row(
-            mainAxisAlignment: isCollapsed
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: active ? Colors.white : Colors.white60,
-              ),
-              if (!isCollapsed) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: active ? Colors.white : Colors.white70,
-                      fontSize: 13,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+    return Tooltip(
+      message: isCollapsed ? label : '',
+      child: Material(
+        color: active ? AppColors.sidebarActive : Colors.transparent,
+        child: InkWell(
+          onTap: () => context.go(path),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCollapsed ? 0 : 12,
+              vertical: isCollapsed ? 12 : 10,
+            ),
+            child: Row(
+              mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: active ? Colors.white : Colors.white60,
                 ),
+                if (!isCollapsed) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: active ? Colors.white : Colors.white70,
+                        fontSize: 13,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
