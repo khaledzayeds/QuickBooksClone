@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_enums.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
@@ -19,6 +20,7 @@ import '../../transactions/printing/transaction_print_service.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
+import '../widgets/notes_edit_dialog.dart';
 import '../widgets/sales_receipt_form_fields.dart';
 import '../widgets/sales_receipt_shell.dart';
 
@@ -38,6 +40,8 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
   AccountModel? _depositAccount;
   DateTime _receiptDate = DateTime.now();
   String _paymentMethod = 'Cash';
+  String? _savedReceiptId;
+  String _notes = '';
   bool _saving = false;
   bool _previewing = false;
   bool _loadingActivity = false;
@@ -243,6 +247,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       result.when(
         success: (doc) {
           savedNumber = doc.receiptNumber;
+          _savedReceiptId = doc.id;
           ref.read(salesReceiptsStateProvider.notifier).refresh();
         },
         failure: (error) => _showError(error.message),
@@ -360,6 +365,8 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       _depositAccount = null;
       _receiptDate = DateTime.now();
       _paymentMethod = 'Cash';
+      _savedReceiptId = null;
+      _notes = '';
       _numberCtrl.text = 'AUTO';
       _dateCtrl.text = _fmtDate(_receiptDate);
       _referenceCtrl.clear();
@@ -388,6 +395,39 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       _preview = null;
     });
     _schedulePreview();
+  }
+
+  Future<void> _openNotesDialog() async {
+    final receiptId = _savedReceiptId;
+    if (receiptId == null || receiptId.trim().isEmpty) {
+      _showError('Save the sales receipt before adding notes.');
+      return;
+    }
+
+    try {
+      final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/sales-receipts/$receiptId/notes');
+      final notes = response.data?['notes']?.toString() ?? _notes;
+      if (!mounted) return;
+      setState(() => _notes = notes);
+    } catch (_) {
+      // Keep local notes if fetching fails; save will surface any real error.
+    }
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (_) => NotesEditDialog(
+        initialNotes: _notes,
+        onSave: (newNotes) async {
+          final response = await ApiClient.instance.post<Map<String, dynamic>>(
+            '/api/sales-receipts/$receiptId/notes',
+            data: {'notes': newNotes},
+          );
+          final savedNotes = response.data?['notes']?.toString() ?? newNotes;
+          if (mounted) setState(() => _notes = savedNotes);
+        },
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -518,7 +558,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       activities: _activities,
       loadingActivity: _loadingActivity,
       warning: _warning,
-      referenceText: _referenceCtrl.text,
+      referenceText: _notes.trim().isEmpty ? _referenceCtrl.text : _notes,
       saving: _saving,
       onAddLine: _addLine,
       onLinesChanged: () {
@@ -531,6 +571,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       onSaveAndClose: _saveAndClose,
       onClose: _goBack,
       onViewAll: _customer == null ? null : _openCustomerHistory,
+      onEditNotes: _openNotesDialog,
     );
   }
 
