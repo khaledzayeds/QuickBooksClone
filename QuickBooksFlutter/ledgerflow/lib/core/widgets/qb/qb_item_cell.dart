@@ -13,6 +13,7 @@ class QbItemCell extends StatefulWidget {
     required this.compact,
     required this.rateForItem,
     required this.onPicked,
+    this.focusNode,
     this.onSubmittedPick,
     this.onLastCellCommit,
   });
@@ -23,6 +24,7 @@ class QbItemCell extends StatefulWidget {
   final bool compact;
   final double Function(ItemModel item) rateForItem;
   final void Function(ItemModel item) onPicked;
+  final FocusNode? focusNode;
   final VoidCallback? onSubmittedPick;
   final VoidCallback? onLastCellCommit;
 
@@ -32,19 +34,31 @@ class QbItemCell extends StatefulWidget {
 
 class _QbItemCellState extends State<QbItemCell> {
   late final TextEditingController _controller;
-  late final FocusNode _focusNode;
+  late FocusNode _focusNode;
+  late bool _ownsFocusNode;
   bool _committedOnFocusLoss = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
-    _focusNode = FocusNode()..addListener(_handleFocusChanged);
+    _ownsFocusNode = widget.focusNode == null;
+    _focusNode = widget.focusNode ?? FocusNode();
+    _focusNode.addListener(_handleFocusChanged);
   }
 
   @override
   void didUpdateWidget(covariant QbItemCell oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.focusNode != widget.focusNode) {
+      _focusNode.removeListener(_handleFocusChanged);
+      if (_ownsFocusNode) _focusNode.dispose();
+      _ownsFocusNode = widget.focusNode == null;
+      _focusNode = widget.focusNode ?? FocusNode();
+      _focusNode.addListener(_handleFocusChanged);
+    }
+
     if (!_focusNode.hasFocus && widget.initialValue != _controller.text) {
       _controller.text = widget.initialValue;
     }
@@ -54,7 +68,7 @@ class _QbItemCellState extends State<QbItemCell> {
   void dispose() {
     _focusNode.removeListener(_handleFocusChanged);
     _controller.dispose();
-    _focusNode.dispose();
+    if (_ownsFocusNode) _focusNode.dispose();
     super.dispose();
   }
 
