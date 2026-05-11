@@ -24,6 +24,7 @@ import '../features/customer_credits/screens/customer_credit_list_screen.dart';
 import '../features/customers/screens/customer_details_screen.dart';
 import '../features/customers/screens/customer_form_screen.dart';
 import '../features/customers/screens/customer_list_screen.dart';
+import '../features/customers/screens/customer_transaction_history_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/estimates/screens/estimate_details_screen.dart';
 import '../features/estimates/screens/estimate_form_screen.dart';
@@ -153,6 +154,7 @@ class AppRoutes {
   static const customerNew = '/master/customers/new';
   static const customerDetails = '/master/customers/:id';
   static const customerEdit = '/master/customers/edit/:id';
+  static const customerTransactionHistory = '/master/customers/transaction-history';
   static const chartOfAccounts = '/master/coa';
   static const accountNew = '/master/coa/new';
   static const accountEdit = '/master/coa/edit/:id';
@@ -249,6 +251,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.customerNew, builder: (context, state) => const CustomerFormScreen()),
           GoRoute(path: AppRoutes.customerDetails, builder: (context, state) => CustomerDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.customerEdit, builder: (context, state) => CustomerFormScreen(id: state.pathParameters['id']!)),
+          GoRoute(
+            path: AppRoutes.customerTransactionHistory,
+            builder: (context, state) {
+              final extra = state.extra is Map ? state.extra as Map : const {};
+              return CustomerTransactionHistoryScreen(
+                customerId: extra['customerId']?.toString(),
+                customerName: extra['customerName']?.toString(),
+              );
+            },
+          ),
           GoRoute(path: AppRoutes.chartOfAccounts, builder: (context, state) => const ChartOfAccountsScreen()),
           GoRoute(path: AppRoutes.accountNew, builder: (context, state) => const AccountFormScreen()),
           GoRoute(path: AppRoutes.accountEdit, builder: (context, state) => AccountFormScreen(id: state.pathParameters['id']!)),
