@@ -137,19 +137,22 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
       builder: (context, constraints) {
         final compact = widget.compact;
         final available = constraints.hasBoundedWidth ? constraints.maxWidth : 0.0;
-        final minWidth = compact ? 760.0 : 920.0;
-        final width = widget.fillWidth && available > minWidth ? available : minWidth;
+        final fallbackWidth = compact ? 640.0 : 820.0;
+        final width = widget.fillWidth && available > 0 ? available : fallbackWidth;
 
         final colAction = compact ? 28.0 : 34.0;
-        final colQty = compact ? 68.0 : 76.0;
-        final colRate = compact ? 94.0 : 110.0;
-        final colTotal = compact ? 108.0 : 124.0;
-        final flexible = (width - colAction - colQty - colRate - colTotal).clamp(460.0, 9000.0);
-        final colItem = flexible * (compact ? 0.42 : 0.48);
+        final colQty = compact ? 58.0 : 72.0;
+        final colRate = compact ? 82.0 : 104.0;
+        final colTotal = compact ? 92.0 : 116.0;
+        final fixedWidth = colAction + colQty + colRate + colTotal;
+        final minFlexible = compact ? 300.0 : 400.0;
+        final flexible = width > fixedWidth ? (width - fixedWidth).clamp(minFlexible, 9000.0) : minFlexible;
+        final colItem = flexible * (compact ? 0.40 : 0.46);
         final colDesc = flexible - colItem;
+        final gridWidth = fixedWidth + flexible;
 
         return _DesktopGrid(
-          width: width,
+          width: gridWidth,
           compact: compact,
           lines: widget.lines,
           items: _items,
@@ -258,7 +261,7 @@ class _DesktopGrid extends StatelessWidget {
             final index = entry.key;
             final line = entry.value;
             final lastLine = index == lines.length - 1;
-            final bg = index.isEven ? cs.surface : cs.primaryContainer.withOpacity(0.14);
+            final bg = index.isEven ? cs.surface : cs.primaryContainer.withValues(alpha: 0.14);
 
             return Container(
               height: rowHeight,
@@ -276,7 +279,7 @@ class _DesktopGrid extends StatelessWidget {
                       icon: Icon(
                         Icons.delete_outline,
                         size: compact ? 14 : 16,
-                        color: cs.onSurfaceVariant.withOpacity(0.65),
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.65),
                       ),
                       onPressed: () => onRemoveLine(index),
                     ),
