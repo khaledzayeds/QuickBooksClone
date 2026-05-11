@@ -2,8 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../app/router.dart';
 import '../../payroll/providers/payroll_runs_provider.dart';
 import '../../time_tracking/providers/time_entries_provider.dart';
 import '../data/models/report_models.dart';
@@ -28,6 +30,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _ReportMenuItem(l10n.chartOfAccounts, Icons.balance),
       const _ReportMenuItem('Sales Summary', Icons.point_of_sale_outlined),
       const _ReportMenuItem('Purchases Summary', Icons.shopping_cart_outlined),
+      const _ReportMenuItem('Customer Statement', Icons.person_search_outlined),
+      const _ReportMenuItem('Vendor Statement', Icons.storefront_outlined),
       _ReportMenuItem(l10n.incomeTracker, Icons.groups_outlined),
       _ReportMenuItem(l10n.billTracker, Icons.storefront_outlined),
       _ReportMenuItem(l10n.stock, Icons.inventory_2_outlined),
@@ -116,16 +120,34 @@ class _ReportBody extends ConsumerWidget {
       case 4:
         return _PurchasesSummaryView(report: ref.watch(purchasesSummaryReportProvider));
       case 5:
-        return _AgingView(report: ref.watch(accountsReceivableAgingReportProvider));
+        return const _StatementLauncher(
+          title: 'Customer Statement',
+          subtitle: 'Detailed customer statement with customer, date range, type filters, and A4 PDF printing.',
+          icon: Icons.person_search_outlined,
+          route: AppRoutes.customerTransactionHistory,
+          buttonText: 'Open Customer Statement',
+          chips: ['Customer dropdown', 'Date range', 'Receipts / Payments / Invoices', 'A4 PDF print'],
+        );
       case 6:
-        return _AgingView(report: ref.watch(accountsPayableAgingReportProvider));
+        return const _StatementLauncher(
+          title: 'Vendor Statement',
+          subtitle: 'Detailed vendor statement with vendor, date range, type filters, and A4 PDF printing.',
+          icon: Icons.storefront_outlined,
+          route: AppRoutes.vendorTransactionHistory,
+          buttonText: 'Open Vendor Statement',
+          chips: ['Vendor dropdown', 'Date range', 'Bills / Payments', 'A4 PDF print'],
+        );
       case 7:
-        return _InventoryValuationView(report: ref.watch(inventoryValuationReportProvider));
+        return _AgingView(report: ref.watch(accountsReceivableAgingReportProvider));
       case 8:
-        return _TaxSummaryView(report: ref.watch(taxSummaryReportProvider));
+        return _AgingView(report: ref.watch(accountsPayableAgingReportProvider));
       case 9:
-        return _PayrollSummaryView(report: ref.watch(payrollReportHubProvider));
+        return _InventoryValuationView(report: ref.watch(inventoryValuationReportProvider));
       case 10:
+        return _TaxSummaryView(report: ref.watch(taxSummaryReportProvider));
+      case 11:
+        return _PayrollSummaryView(report: ref.watch(payrollReportHubProvider));
+      case 12:
         return _TimeTrackingSummaryView(report: ref.watch(timeTrackingReportHubProvider));
       default:
         return const SizedBox.shrink();
@@ -300,6 +322,97 @@ class _PurchasesSummaryView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatementLauncher extends StatelessWidget {
+  const _StatementLauncher({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.route,
+    required this.buttonText,
+    required this.chips,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String route;
+  final String buttonText;
+  final List<String> chips;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: cs.primaryContainer.withValues(alpha: 0.55),
+                  child: Icon(icon, color: cs.primary),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                    ],
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: () => context.push(route),
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(buttonText),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: chips
+                  .map((label) => Chip(
+                        avatar: Icon(Icons.check_circle_outline, size: 18, color: cs.primary),
+                        label: Text(label),
+                        side: BorderSide(color: cs.outlineVariant),
+                        backgroundColor: cs.surface,
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+                child: Center(
+                  child: Text(
+                    'This report opens a live statement screen with filters and printing. The same screen can be opened later from related documents and party pages.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

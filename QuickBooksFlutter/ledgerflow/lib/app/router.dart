@@ -93,6 +93,7 @@ import '../features/vendor_payments/screens/vendor_payment_list_screen.dart';
 import '../features/vendors/screens/vendor_details_screen.dart';
 import '../features/vendors/screens/vendor_form_screen.dart';
 import '../features/vendors/screens/vendor_list_screen.dart';
+import '../features/vendors/screens/vendor_transaction_history_screen.dart';
 import '../design_playground/form_playground_screen.dart';
 import '../design_playground/table_playground_screen.dart';
 import '../features/workspace/screens/open_windows_screen.dart';
@@ -150,6 +151,7 @@ class AppRoutes {
   static const vendorNew = '/master/vendors/new';
   static const vendorDetails = '/master/vendors/:id';
   static const vendorEdit = '/master/vendors/edit/:id';
+  static const vendorTransactionHistory = '/master/vendors/transaction-history';
   static const customers = '/master/customers';
   static const customerNew = '/master/customers/new';
   static const customerDetails = '/master/customers/:id';
@@ -247,6 +249,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.vendorNew, builder: (context, state) => const VendorFormScreen()),
           GoRoute(path: AppRoutes.vendorDetails, builder: (context, state) => VendorDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.vendorEdit, builder: (context, state) => VendorFormScreen(id: state.pathParameters['id']!)),
+          GoRoute(
+            path: AppRoutes.vendorTransactionHistory,
+            builder: (context, state) {
+              final extra = state.extra is Map ? state.extra as Map : const {};
+              return VendorTransactionHistoryScreen(
+                vendorId: extra['vendorId']?.toString(),
+                vendorName: extra['vendorName']?.toString(),
+              );
+            },
+          ),
           GoRoute(path: AppRoutes.customers, builder: (context, state) => const CustomerListScreen()),
           GoRoute(path: AppRoutes.customerNew, builder: (context, state) => const CustomerFormScreen()),
           GoRoute(path: AppRoutes.customerDetails, builder: (context, state) => CustomerDetailsScreen(id: state.pathParameters['id']!)),

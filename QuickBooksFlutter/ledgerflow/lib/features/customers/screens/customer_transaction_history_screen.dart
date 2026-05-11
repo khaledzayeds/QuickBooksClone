@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../reports/printing/customer_statement_print_service.dart';
 import '../data/models/customer_model.dart';
 import '../providers/customers_provider.dart';
 
@@ -132,6 +133,43 @@ class _CustomerTransactionHistoryScreenState
   void _clearRange() {
     setState(() => _range = null);
     _fetch();
+  }
+
+  Future<void> _printStatement() async {
+    if (_customerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose a customer before printing.')),
+      );
+      return;
+    }
+
+    final model = CustomerStatementPrintModel(
+      customerName: _customerName,
+      fromDate: _range?.start,
+      toDate: _range?.end,
+      type: _type,
+      currency: 'EGP',
+      lines: _transactions
+          .map(
+            (txn) => CustomerStatementPrintLine(
+              type: txn.type,
+              number: txn.number,
+              date: txn.date,
+              amount: txn.amount,
+              status: txn.status,
+            ),
+          )
+          .toList(),
+    );
+
+    try {
+      await const CustomerStatementPrintService().printStatement(model);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not print customer statement: $e')),
+      );
+    }
   }
 
   @override
