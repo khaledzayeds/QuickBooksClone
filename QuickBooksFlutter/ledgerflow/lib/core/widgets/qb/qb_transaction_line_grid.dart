@@ -33,6 +33,7 @@ class QbTransactionLineGrid extends ConsumerStatefulWidget {
 }
 
 class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
+  final List<FocusNode> _itemFocusNodes = [];
   List<ItemModel> _items = const [];
   bool _loadingItems = true;
   String? _itemsError;
@@ -42,7 +43,27 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   void initState() {
     super.initState();
     if (widget.lines.isEmpty) widget.lines.add(TransactionLineEntry());
+    for (var i = 0; i < widget.lines.length; i++) {
+      _itemFocusNodes.add(FocusNode());
+    }
     _loadItemsOnce();
+  }
+
+  @override
+  void dispose() {
+    for (final node in _itemFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _syncFocusNodes() {
+    while (_itemFocusNodes.length < widget.lines.length) {
+      _itemFocusNodes.add(FocusNode());
+    }
+    while (_itemFocusNodes.length > widget.lines.length) {
+      _itemFocusNodes.removeLast().dispose();
+    }
   }
 
   Future<void> _loadItemsOnce() async {
@@ -82,6 +103,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   void _addLine({bool notify = true}) {
     setState(() {
       widget.lines.add(TransactionLineEntry());
+      _itemFocusNodes.add(FocusNode());
       _selectedIndex = widget.lines.length - 1;
     });
     if (notify) _notifyNow();
@@ -95,6 +117,34 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
       _selectedIndex = index;
     });
     _notifyNow();
+  }
+
+  void _removeLine(int index) {
+    if (widget.lines.length <= 1 || index < 0 || index >= widget.lines.length) {
+      _clearLine(index);
+      return;
+    }
+    setState(() {
+      widget.lines.removeAt(index).dispose();
+      _itemFocusNodes.removeAt(index).dispose();
+      _selectedIndex = _selectedIndex.clamp(0, widget.lines.length - 1);
+    });
+    _notifyNow();
+  }
+
+  void _deleteOrClearLine(int index) {
+    if (index < 0 || index >= widget.lines.length) return;
+    final line = widget.lines[index];
+    final hasData = line.itemId != null ||
+        line.itemName.trim().isNotEmpty ||
+        line.descCtrl.text.trim().isNotEmpty ||
+        (double.tryParse(line.qtyCtrl.text.trim()) ?? 1) != 1 ||
+        (double.tryParse(line.rateCtrl.text.trim()) ?? 0) != 0;
+    if (hasData) {
+      _clearLine(index);
+    } else {
+      _removeLine(index);
+    }
   }
 
   void _ensureTrailingBlankLine() {
@@ -129,7 +179,9 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
       }
       if (index == widget.lines.length - 1) {
         widget.lines.add(TransactionLineEntry());
+        _itemFocusNodes.add(FocusNode());
       }
+      _syncFocusNodes();
     });
     _notifyNow();
   }
@@ -138,11 +190,14 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
     if (index >= widget.lines.length - 1) {
       _addLine(notify: false);
     }
-    setState(() => _selectedIndex = (index + 1).clamp(0, widget.lines.length - 1));
+    final nextIndex = (index + 1).clamp(0, widget.lines.length - 1);
+    setState(() => _selectedIndex = nextIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.onChanged();
-      FocusScope.of(context).nextFocus();
+      if (nextIndex < _itemFocusNodes.length) {
+        _itemFocusNodes[nextIndex].requestFocus();
+      }
     });
   }
 
@@ -153,9 +208,11 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
 
   @override
   Widget build(BuildContext context) {
+    _syncFocusNodes();
     return _DesktopGrid(
       compact: widget.compact,
       lines: widget.lines,
+      itemFocusNodes: _itemFocusNodes,
       items: _items,
       loadingItems: _loadingItems,
       itemsError: _itemsError,
@@ -164,7 +221,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
       rateForItem: _rateForItem,
       onSelectLine: (index) => setState(() => _selectedIndex = index),
       onAddLine: _addLine,
-      onClearLine: _clearLine,
+      onDeleteOrClearLine: _deleteOrClearLine,
       onPickItem: _pickItem,
       onEnterCommit: _commitLineAndMoveNext,
       onLastCellCommit: _commitLastCell,
@@ -178,6 +235,7 @@ class _DesktopGrid extends StatelessWidget {
   const _DesktopGrid({
     required this.compact,
     required this.lines,
+    required this.itemFocusNodes,
     required this.items,
     required this.loadingItems,
     required this.itemsError,
@@ -186,7 +244,7 @@ class _DesktopGrid extends StatelessWidget {
     required this.rateForItem,
     required this.onSelectLine,
     required this.onAddLine,
-    required this.onClearLine,
+    required this.onDeleteOrClearLine,
     required this.onPickItem,
     required this.onEnterCommit,
     required this.onLastCellCommit,
@@ -196,6 +254,7 @@ class _DesktopGrid extends StatelessWidget {
 
   final bool compact;
   final List<TransactionLineEntry> lines;
+  final List<FocusNode> itemFocusNodes;
   final List<ItemModel> items;
   final bool loadingItems;
   final String? itemsError;
@@ -204,7 +263,7 @@ class _DesktopGrid extends StatelessWidget {
   final double Function(ItemModel item) rateForItem;
   final void Function(int index) onSelectLine;
   final void Function({bool notify}) onAddLine;
-  final void Function(int index) onClearLine;
+  final void Function(int index) onDeleteOrClearLine;
   final void Function(int index, ItemModel item) onPickItem;
   final void Function(int index) onEnterCommit;
   final VoidCallback onLastCellCommit;
@@ -270,7 +329,7 @@ class _DesktopGrid extends StatelessWidget {
                     if (event is KeyDownEvent &&
                         event.logicalKey == LogicalKeyboardKey.delete &&
                         HardwareKeyboard.instance.isControlPressed) {
-                      onClearLine(index);
+                      onDeleteOrClearLine(index);
                       return KeyEventResult.handled;
                     }
                     return KeyEventResult.ignored;
@@ -308,6 +367,7 @@ class _DesktopGrid extends StatelessWidget {
                                 loadingItems: loadingItems,
                                 rateForItem: rateForItem,
                                 compact: compact,
+                                focusNode: index < itemFocusNodes.length ? itemFocusNodes[index] : null,
                                 onPicked: (item) => onPickItem(index, item),
                                 onSubmittedPick: () => onEnterCommit(index),
                                 onLastCellCommit: lastLine ? onLastCellCommit : null,
@@ -393,15 +453,15 @@ class _DesktopGrid extends StatelessWidget {
                     label: Text(l10n.addLine, style: TextStyle(fontSize: compact ? 11 : null)),
                   ),
                   TextButton.icon(
-                    onPressed: lines.isEmpty ? null : () => onClearLine(selectedIndex.clamp(0, lines.length - 1)),
+                    onPressed: lines.isEmpty ? null : () => onDeleteOrClearLine(selectedIndex.clamp(0, lines.length - 1)),
                     icon: Icon(Icons.cleaning_services_outlined, size: compact ? 14 : 16),
-                    label: Text('Clear line', style: TextStyle(fontSize: compact ? 11 : null)),
+                    label: Text('Clear/Delete', style: TextStyle(fontSize: compact ? 11 : null)),
                   ),
                   const Spacer(),
                   Padding(
                     padding: const EdgeInsetsDirectional.only(end: 10),
                     child: Text(
-                      'Enter: next item • Tab: qty • Ctrl+Delete: clear line',
+                      'Enter: next item • Tab: qty • Ctrl+Delete: clear/delete',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: compact ? 10 : 11,
                         color: cs.onSurfaceVariant,
