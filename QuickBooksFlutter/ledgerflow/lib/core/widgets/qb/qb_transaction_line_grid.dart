@@ -137,22 +137,19 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
       builder: (context, constraints) {
         final compact = widget.compact;
         final available = constraints.hasBoundedWidth ? constraints.maxWidth : 0.0;
-        final fallbackWidth = compact ? 640.0 : 820.0;
-        final width = widget.fillWidth && available > 0 ? available : fallbackWidth;
+        final width = widget.fillWidth && available > 0 ? available : (compact ? 640.0 : 820.0);
 
         final colAction = compact ? 28.0 : 34.0;
-        final colQty = compact ? 58.0 : 72.0;
-        final colRate = compact ? 82.0 : 104.0;
-        final colTotal = compact ? 92.0 : 116.0;
+        final colQty = compact ? 52.0 : 66.0;
+        final colRate = compact ? 72.0 : 94.0;
+        final colTotal = compact ? 78.0 : 108.0;
         final fixedWidth = colAction + colQty + colRate + colTotal;
-        final minFlexible = compact ? 300.0 : 400.0;
-        final flexible = width > fixedWidth ? (width - fixedWidth).clamp(minFlexible, 9000.0) : minFlexible;
+        final flexible = (width - fixedWidth).clamp(0.0, 9000.0);
         final colItem = flexible * (compact ? 0.40 : 0.46);
         final colDesc = flexible - colItem;
-        final gridWidth = fixedWidth + flexible;
 
         return _DesktopGrid(
-          width: gridWidth,
+          width: width,
           compact: compact,
           lines: widget.lines,
           items: _items,
