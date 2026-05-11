@@ -48,8 +48,8 @@ class TransactionContextSidebar extends StatelessWidget {
       child: isLoading
           ? const Center(child: CircularProgressIndicator())
           : hasParty
-              ? Padding(
-                  padding: const EdgeInsets.all(16),
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -67,41 +67,41 @@ class TransactionContextSidebar extends StatelessWidget {
                         _SummaryCard(totals: totals!),
                       ],
                       const SizedBox(height: 12),
-                      Expanded(
-                        child: DefaultTabController(
-                          length: 2,
-                          child: Column(
-                            children: [
-                              Material(
-                                color: cs.surfaceContainerLowest,
-                                borderRadius: BorderRadius.circular(12),
-                                child: TabBar(
-                                  indicatorSize: TabBarIndicatorSize.tab,
-                                  dividerColor: Colors.transparent,
-                                  tabs: const [
-                                    Tab(text: 'Transactions'),
-                                    Tab(text: 'Notes'),
-                                  ],
-                                ),
+                      DefaultTabController(
+                        length: 2,
+                        child: Column(
+                          children: [
+                            Material(
+                              color: cs.surfaceContainerLowest,
+                              borderRadius: BorderRadius.circular(12),
+                              child: TabBar(
+                                indicatorSize: TabBarIndicatorSize.tab,
+                                dividerColor: Colors.transparent,
+                                tabs: const [
+                                  Tab(text: 'Transactions'),
+                                  Tab(text: 'Notes'),
+                                ],
                               ),
-                              const SizedBox(height: 10),
-                              Expanded(
-                                child: TabBarView(
-                                  children: [
-                                    _ActivityCard(activities: activities, onViewAll: onViewAll),
-                                    _NotesCard(notes: notes, onEditNotes: onEditNotes),
-                                  ],
-                                ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 320,
+                              child: TabBarView(
+                                physics: const ClampingScrollPhysics(),
+                                children: [
+                                  _ActivityCard(activities: activities, onViewAll: onViewAll),
+                                  _NotesCard(notes: notes, onEditNotes: onEditNotes),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 )
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
                   child: _EmptyCard(title: emptyTitle, message: emptyMessage),
                 ),
     );
