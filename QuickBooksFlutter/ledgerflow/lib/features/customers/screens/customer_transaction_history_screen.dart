@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../reports/printing/customer_statement_print_service.dart';
 import '../data/models/customer_model.dart';
 import '../providers/customers_provider.dart';
 
@@ -49,7 +50,7 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
   }
 
   String? get _customerId => _selectedCustomer?.id ?? widget.customerId;
-  String get _customerName => _selectedCustomer?.displayName ?? widget.customerName ?? 'Customer Transaction History';
+  String get _customerName => _selectedCustomer?.displayName ?? widget.customerName ?? 'Customer Statement';
 
   Future<void> _fetch() async {
     final id = _customerId;
@@ -79,10 +80,7 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
       final data = response.data ?? const [];
       if (!mounted) return;
       setState(() {
-        _transactions = data
-            .whereType<Map<String, dynamic>>()
-            .map(CustomerTransactionDto.fromJson)
-            .toList();
+        _transactions = data.whereType<Map<String, dynamic>>().map(CustomerTransactionDto.fromJson).toList();
       });
     } catch (e) {
       if (!mounted) return;
@@ -110,6 +108,39 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
     _fetch();
   }
 
+  Future<void> _printStatement() async {
+    if (_customerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choose a customer before printing.')));
+      return;
+    }
+
+    final model = CustomerStatementPrintModel(
+      customerName: _customerName,
+      fromDate: _range?.start,
+      toDate: _range?.end,
+      type: _type,
+      currency: 'EGP',
+      lines: _transactions
+          .map(
+            (txn) => CustomerStatementPrintLine(
+              type: txn.type,
+              number: txn.number,
+              date: txn.date,
+              amount: txn.amount,
+              status: txn.status,
+            ),
+          )
+          .toList(),
+    );
+
+    try {
+      await const CustomerStatementPrintService().printStatement(model);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not print customer statement: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -123,17 +154,13 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(_customerName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-            Text('Customer Transaction History', style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+            Text('Customer Statement', style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
           ],
         ),
         actions: [
           IconButton(
             tooltip: 'Print',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Print history will be connected to the report print service.')),
-              );
-            },
+            onPressed: _printStatement,
             icon: const Icon(Icons.print_outlined),
           ),
           const SizedBox(width: 8),
@@ -169,10 +196,7 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
                             isDense: true,
                             border: OutlineInputBorder(),
                           ),
-                          items: customers
-                              .where((customer) => customer.isActive)
-                              .map((customer) => DropdownMenuItem(value: customer, child: Text(customer.displayName)))
-                              .toList(),
+                          items: customers.where((customer) => customer.isActive).map((customer) => DropdownMenuItem(value: customer, child: Text(customer.displayName))).toList(),
                           onChanged: (customer) {
                             setState(() => _selectedCustomer = customer);
                             _fetch();
@@ -185,9 +209,7 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
                       onPressed: _pickRange,
                       icon: const Icon(Icons.date_range_outlined, size: 18),
                       label: Text(
-                        _range == null
-                            ? 'Date range'
-                            : '${DateFormat('dd/MM/yyyy').format(_range!.start)} - ${DateFormat('dd/MM/yyyy').format(_range!.end)}',
+                        _range == null ? 'Date range' : '${DateFormat('dd/MM/yyyy').format(_range!.start)} - ${DateFormat('dd/MM/yyyy').format(_range!.end)}',
                       ),
                     ),
                     if (_range != null)
