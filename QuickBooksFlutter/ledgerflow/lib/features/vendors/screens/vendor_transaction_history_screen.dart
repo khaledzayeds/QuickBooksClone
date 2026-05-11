@@ -35,7 +35,7 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
   }
 
   void _hydrateInitialVendor() {
-    final vendors = ref.read(vendorsProvider).valueOrNull ?? const <VendorModel>[];
+    final vendors = ref.read(vendorsProvider).value ?? const <VendorModel>[];
     if (widget.vendorId != null) {
       final match = vendors.where((vendor) => vendor.id == widget.vendorId).toList();
       if (match.isNotEmpty) {
