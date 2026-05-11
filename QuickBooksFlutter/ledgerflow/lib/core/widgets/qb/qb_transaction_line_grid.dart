@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
@@ -86,12 +87,12 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
     if (notify) _notifyNow();
   }
 
-  void _removeLine(int index) {
+  void _clearLine(int index) {
     if (index < 0 || index >= widget.lines.length) return;
     setState(() {
-      widget.lines.removeAt(index).dispose();
-      if (widget.lines.isEmpty) widget.lines.add(TransactionLineEntry());
-      _selectedIndex = _selectedIndex.clamp(0, widget.lines.length - 1);
+      widget.lines[index].dispose();
+      widget.lines[index] = TransactionLineEntry();
+      _selectedIndex = index;
     });
     _notifyNow();
   }
@@ -133,6 +134,18 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
     _notifyNow();
   }
 
+  void _commitLineAndMoveNext(int index) {
+    if (index >= widget.lines.length - 1) {
+      _addLine(notify: false);
+    }
+    setState(() => _selectedIndex = (index + 1).clamp(0, widget.lines.length - 1));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onChanged();
+      FocusScope.of(context).nextFocus();
+    });
+  }
+
   void _commitLastCell() {
     setState(_ensureTrailingBlankLine);
     _notifyNow();
@@ -151,8 +164,9 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
       rateForItem: _rateForItem,
       onSelectLine: (index) => setState(() => _selectedIndex = index),
       onAddLine: _addLine,
-      onRemoveLine: _removeLine,
+      onClearLine: _clearLine,
       onPickItem: _pickItem,
+      onEnterCommit: _commitLineAndMoveNext,
       onLastCellCommit: _commitLastCell,
       onChanged: _scheduleChanged,
       onRetryItems: _loadItemsOnce,
@@ -172,8 +186,9 @@ class _DesktopGrid extends StatelessWidget {
     required this.rateForItem,
     required this.onSelectLine,
     required this.onAddLine,
-    required this.onRemoveLine,
+    required this.onClearLine,
     required this.onPickItem,
+    required this.onEnterCommit,
     required this.onLastCellCommit,
     required this.onChanged,
     required this.onRetryItems,
@@ -189,8 +204,9 @@ class _DesktopGrid extends StatelessWidget {
   final double Function(ItemModel item) rateForItem;
   final void Function(int index) onSelectLine;
   final void Function({bool notify}) onAddLine;
-  final void Function(int index) onRemoveLine;
+  final void Function(int index) onClearLine;
   final void Function(int index, ItemModel item) onPickItem;
+  final void Function(int index) onEnterCommit;
   final VoidCallback onLastCellCommit;
   final VoidCallback onChanged;
   final Future<void> Function() onRetryItems;
@@ -199,20 +215,6 @@ class _DesktopGrid extends StatelessWidget {
   double get _colQty => compact ? 52 : 66;
   double get _colRate => compact ? 72 : 94;
   double get _colTotal => compact ? 78 : 108;
-
-  Future<void> _showRowMenu(BuildContext context, int index, Offset position) async {
-    onSelectLine(index);
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
-      items: const [
-        PopupMenuItem(value: 'add', child: Text('Add line')),
-        PopupMenuItem(value: 'delete', child: Text('Delete line')),
-      ],
-    );
-    if (selected == 'add') onAddLine(notify: true);
-    if (selected == 'delete') onRemoveLine(index);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -263,90 +265,113 @@ class _DesktopGrid extends StatelessWidget {
                         ? cs.surface
                         : cs.primaryContainer.withValues(alpha: 0.14);
 
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => onSelectLine(index),
-                  onSecondaryTapDown: (details) => _showRowMenu(context, index, details.globalPosition),
-                  child: Container(
-                    height: rowHeight,
-                    color: bg,
-                    child: Row(
-                      children: [
-                        QbGridCellFrame(
-                          width: _colAction,
-                          compact: compact,
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              fontSize: compact ? 10 : 11,
-                              fontWeight: FontWeight.w800,
-                              color: cs.onSurfaceVariant,
+                return Focus(
+                  onKeyEvent: (node, event) {
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.delete &&
+                        HardwareKeyboard.instance.isControlPressed) {
+                      onClearLine(index);
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onSelectLine(index),
+                    child: Container(
+                      height: rowHeight,
+                      color: bg,
+                      child: Row(
+                        children: [
+                          QbGridCellFrame(
+                            width: _colAction,
+                            compact: compact,
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: compact ? 10 : 11,
+                                fontWeight: FontWeight.w800,
+                                color: cs.onSurfaceVariant,
+                              ),
                             ),
                           ),
-                        ),
-                        _FlexCell(
-                          compact: compact,
-                          flex: 4,
-                          child: QbItemCell(
-                            key: ValueKey('item_$index'),
-                            initialValue: line.itemName,
-                            items: items,
-                            loadingItems: loadingItems,
-                            rateForItem: rateForItem,
-                            compact: compact,
-                            onPicked: (item) => onPickItem(index, item),
-                            onLastCellCommit: lastLine ? onLastCellCommit : null,
+                          FocusTraversalOrder(
+                            order: NumericFocusOrder(index * 10 + 1),
+                            child: _FlexCell(
+                              compact: compact,
+                              flex: 4,
+                              child: QbItemCell(
+                                key: ValueKey('item_$index'),
+                                initialValue: line.itemName,
+                                items: items,
+                                loadingItems: loadingItems,
+                                rateForItem: rateForItem,
+                                compact: compact,
+                                onPicked: (item) => onPickItem(index, item),
+                                onSubmittedPick: () => onEnterCommit(index),
+                                onLastCellCommit: lastLine ? onLastCellCommit : null,
+                              ),
+                            ),
                           ),
-                        ),
-                        _FlexCell(
-                          compact: compact,
-                          flex: 6,
-                          child: QbGridTextCell(
-                            controller: line.descCtrl,
-                            hint: l10n.description,
-                            compact: compact,
-                            onSubmitted: lastLine ? onLastCellCommit : null,
-                            onChanged: onChanged,
+                          FocusTraversalOrder(
+                            order: NumericFocusOrder(index * 10 + 4),
+                            child: _FlexCell(
+                              compact: compact,
+                              flex: 6,
+                              child: QbGridTextCell(
+                                controller: line.descCtrl,
+                                hint: l10n.description,
+                                compact: compact,
+                                onSubmitted: lastLine ? onLastCellCommit : null,
+                                onChanged: onChanged,
+                              ),
+                            ),
                           ),
-                        ),
-                        QbGridCellFrame(
-                          width: _colQty,
-                          compact: compact,
-                          child: QbGridTextCell(
-                            controller: line.qtyCtrl,
-                            numeric: true,
-                            align: TextAlign.center,
-                            compact: compact,
-                            onSubmitted: lastLine ? onLastCellCommit : null,
-                            onChanged: () {
-                              line.qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
-                              onChanged();
-                            },
+                          FocusTraversalOrder(
+                            order: NumericFocusOrder(index * 10 + 2),
+                            child: QbGridCellFrame(
+                              width: _colQty,
+                              compact: compact,
+                              child: QbGridTextCell(
+                                controller: line.qtyCtrl,
+                                numeric: true,
+                                align: TextAlign.center,
+                                compact: compact,
+                                onSubmitted: lastLine ? onLastCellCommit : null,
+                                onChanged: () {
+                                  line.qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
+                                  onChanged();
+                                },
+                              ),
+                            ),
                           ),
-                        ),
-                        QbGridCellFrame(
-                          width: _colRate,
-                          compact: compact,
-                          child: QbGridTextCell(
-                            controller: line.rateCtrl,
-                            numeric: true,
-                            align: TextAlign.right,
-                            compact: compact,
-                            onSubmitted: lastLine ? onLastCellCommit : null,
-                            onChanged: () {
-                              line.rate = double.tryParse(line.rateCtrl.text.trim()) ?? 0;
-                              onChanged();
-                            },
+                          FocusTraversalOrder(
+                            order: NumericFocusOrder(index * 10 + 3),
+                            child: QbGridCellFrame(
+                              width: _colRate,
+                              compact: compact,
+                              child: QbGridTextCell(
+                                controller: line.rateCtrl,
+                                numeric: true,
+                                align: TextAlign.right,
+                                compact: compact,
+                                onSubmitted: lastLine ? onLastCellCommit : null,
+                                onChanged: () {
+                                  line.rate = double.tryParse(line.rateCtrl.text.trim()) ?? 0;
+                                  onChanged();
+                                },
+                              ),
+                            ),
                           ),
-                        ),
-                        QbGridCellFrame(
-                          width: _colTotal,
-                          compact: compact,
-                          last: true,
-                          child: QbLineAmountCell(line: line, compact: compact),
-                        ),
-                      ],
+                          QbGridCellFrame(
+                            width: _colTotal,
+                            compact: compact,
+                            last: true,
+                            child: QbLineAmountCell(line: line, compact: compact),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -368,15 +393,15 @@ class _DesktopGrid extends StatelessWidget {
                     label: Text(l10n.addLine, style: TextStyle(fontSize: compact ? 11 : null)),
                   ),
                   TextButton.icon(
-                    onPressed: lines.isEmpty ? null : () => onRemoveLine(selectedIndex.clamp(0, lines.length - 1)),
-                    icon: Icon(Icons.delete_outline, size: compact ? 14 : 16),
-                    label: Text('Delete line', style: TextStyle(fontSize: compact ? 11 : null)),
+                    onPressed: lines.isEmpty ? null : () => onClearLine(selectedIndex.clamp(0, lines.length - 1)),
+                    icon: Icon(Icons.cleaning_services_outlined, size: compact ? 14 : 16),
+                    label: Text('Clear line', style: TextStyle(fontSize: compact ? 11 : null)),
                   ),
                   const Spacer(),
                   Padding(
                     padding: const EdgeInsetsDirectional.only(end: 10),
                     child: Text(
-                      'Right-click a row for line actions',
+                      'Enter: next item • Tab: qty • Ctrl+Delete: clear line',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: compact ? 10 : 11,
                         color: cs.onSurfaceVariant,
