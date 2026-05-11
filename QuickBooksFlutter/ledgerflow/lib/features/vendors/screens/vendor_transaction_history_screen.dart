@@ -8,16 +8,22 @@ import '../data/models/vendor_model.dart';
 import '../providers/vendors_provider.dart';
 
 class VendorTransactionHistoryScreen extends ConsumerStatefulWidget {
-  const VendorTransactionHistoryScreen({super.key, this.vendorId, this.vendorName});
+  const VendorTransactionHistoryScreen({
+    super.key,
+    this.vendorId,
+    this.vendorName,
+  });
 
   final String? vendorId;
   final String? vendorName;
 
   @override
-  ConsumerState<VendorTransactionHistoryScreen> createState() => _VendorTransactionHistoryScreenState();
+  ConsumerState<VendorTransactionHistoryScreen> createState() =>
+      _VendorTransactionHistoryScreenState();
 }
 
-class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransactionHistoryScreen> {
+class _VendorTransactionHistoryScreenState
+    extends ConsumerState<VendorTransactionHistoryScreen> {
   final _currencyFmt = NumberFormat('#,##0.00');
   DateTimeRange? _range;
   String _type = 'All';
@@ -31,13 +37,17 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateInitialVendor());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _hydrateInitialVendor(),
+    );
   }
 
   void _hydrateInitialVendor() {
-    final vendors = ref.read(vendorsProvider).valueOrNull ?? const <VendorModel>[];
+    final vendors = ref.read(vendorsProvider).value ?? const <VendorModel>[];
     if (widget.vendorId != null) {
-      final match = vendors.where((vendor) => vendor.id == widget.vendorId).toList();
+      final match = vendors
+          .where((vendor) => vendor.id == widget.vendorId)
+          .toList();
       if (match.isNotEmpty) {
         setState(() => _selectedVendor = match.first);
       }
@@ -46,7 +56,8 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
   }
 
   String? get _vendorId => _selectedVendor?.id ?? widget.vendorId;
-  String get _vendorName => _selectedVendor?.displayName ?? widget.vendorName ?? 'Vendor Statement';
+  String get _vendorName =>
+      _selectedVendor?.displayName ?? widget.vendorName ?? 'Vendor Statement';
 
   Future<void> _fetch() async {
     final id = _vendorId;
@@ -68,15 +79,20 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
       final response = await ApiClient.instance.get<List<dynamic>>(
         '/api/vendors/$id/transactions',
         queryParameters: {
-          if (_range != null) 'from': DateFormat('yyyy-MM-dd').format(_range!.start),
-          if (_range != null) 'to': DateFormat('yyyy-MM-dd').format(_range!.end),
+          if (_range != null)
+            'from': DateFormat('yyyy-MM-dd').format(_range!.start),
+          if (_range != null)
+            'to': DateFormat('yyyy-MM-dd').format(_range!.end),
           if (_type != 'All') 'type': _type,
         },
       );
       final data = response.data ?? const [];
       if (!mounted) return;
       setState(() {
-        _transactions = data.whereType<Map<String, dynamic>>().map(VendorTransactionDto.fromJson).toList();
+        _transactions = data
+            .whereType<Map<String, dynamic>>()
+            .map(VendorTransactionDto.fromJson)
+            .toList();
       });
     } catch (e) {
       if (!mounted) return;
@@ -90,7 +106,12 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
     final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
-      initialDateRange: _range ?? DateTimeRange(start: now.subtract(const Duration(days: 30)), end: now),
+      initialDateRange:
+          _range ??
+          DateTimeRange(
+            start: now.subtract(const Duration(days: 30)),
+            end: now,
+          ),
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
@@ -106,7 +127,9 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
 
   Future<void> _printStatement() async {
     if (_vendorId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choose a vendor before printing.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose a vendor before printing.')),
+      );
       return;
     }
 
@@ -117,7 +140,15 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
       type: _type,
       currency: 'EGP',
       lines: _transactions
-          .map((txn) => VendorStatementPrintLine(type: txn.type, number: txn.number, date: txn.date, amount: txn.amount, status: txn.status))
+          .map(
+            (txn) => VendorStatementPrintLine(
+              type: txn.type,
+              number: txn.number,
+              date: txn.date,
+              amount: txn.amount,
+              status: txn.status,
+            ),
+          )
           .toList(),
     );
 
@@ -125,7 +156,9 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
       await const VendorStatementPrintService().printStatement(model);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not print vendor statement: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not print vendor statement: $e')),
+      );
     }
   }
 
@@ -141,15 +174,32 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_vendorName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-            Text('Vendor Statement', style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+            Text(
+              _vendorName,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              'Vendor Statement',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         actions: [
-          IconButton(tooltip: 'Print', onPressed: _printStatement, icon: const Icon(Icons.print_outlined)),
+          IconButton(
+            tooltip: 'Print',
+            onPressed: _printStatement,
+            icon: const Icon(Icons.print_outlined),
+          ),
           const SizedBox(width: 8),
         ],
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Divider(height: 1, color: cs.outlineVariant)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: cs.outlineVariant),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -158,7 +208,10 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
           children: [
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: cs.outlineVariant)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: cs.outlineVariant),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Wrap(
@@ -172,8 +225,20 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
                         data: (vendors) => DropdownButtonFormField<VendorModel>(
                           value: _selectedVendor,
                           isExpanded: true,
-                          decoration: const InputDecoration(labelText: 'Vendor', isDense: true, border: OutlineInputBorder()),
-                          items: vendors.where((vendor) => vendor.isActive).map((vendor) => DropdownMenuItem(value: vendor, child: Text(vendor.displayName))).toList(),
+                          decoration: const InputDecoration(
+                            labelText: 'Vendor',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                          items: vendors
+                              .where((vendor) => vendor.isActive)
+                              .map(
+                                (vendor) => DropdownMenuItem(
+                                  value: vendor,
+                                  child: Text(vendor.displayName),
+                                ),
+                              )
+                              .toList(),
                           onChanged: (vendor) {
                             setState(() => _selectedVendor = vendor);
                             _fetch();
@@ -185,9 +250,18 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
                     OutlinedButton.icon(
                       onPressed: _pickRange,
                       icon: const Icon(Icons.date_range_outlined, size: 18),
-                      label: Text(_range == null ? 'Date range' : '${DateFormat('dd/MM/yyyy').format(_range!.start)} - ${DateFormat('dd/MM/yyyy').format(_range!.end)}'),
+                      label: Text(
+                        _range == null
+                            ? 'Date range'
+                            : '${DateFormat('dd/MM/yyyy').format(_range!.start)} - ${DateFormat('dd/MM/yyyy').format(_range!.end)}',
+                      ),
                     ),
-                    if (_range != null) IconButton(tooltip: 'Clear date range', onPressed: _clearRange, icon: const Icon(Icons.close)),
+                    if (_range != null)
+                      IconButton(
+                        tooltip: 'Clear date range',
+                        onPressed: _clearRange,
+                        icon: const Icon(Icons.close),
+                      ),
                     for (final type in _types)
                       ChoiceChip(
                         label: Text(type),
@@ -214,22 +288,43 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
     final cs = theme.colorScheme;
 
     if (_vendorId == null) {
-      return const _EmptyState(icon: Icons.storefront_outlined, title: 'Choose a vendor', message: 'Select a vendor to view statement transactions.');
+      return const _EmptyState(
+        icon: Icons.storefront_outlined,
+        title: 'Choose a vendor',
+        message: 'Select a vendor to view statement transactions.',
+      );
     }
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
-      return _EmptyState(icon: Icons.error_outline, title: 'Could not load transactions', message: _error!, action: FilledButton.icon(onPressed: _fetch, icon: const Icon(Icons.refresh), label: const Text('Retry')));
+      return _EmptyState(
+        icon: Icons.error_outline,
+        title: 'Could not load transactions',
+        message: _error!,
+        action: FilledButton.icon(
+          onPressed: _fetch,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+        ),
+      );
     }
     if (_transactions.isEmpty) {
-      return const _EmptyState(icon: Icons.receipt_long_outlined, title: 'No transactions found', message: 'No transactions match the selected filters.');
+      return const _EmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: 'No transactions found',
+        message: 'No transactions match the selected filters.',
+      );
     }
 
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: cs.outlineVariant)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: cs.outlineVariant),
+      ),
       child: ListView.separated(
         itemCount: _transactions.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: cs.outlineVariant),
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, color: cs.outlineVariant),
         itemBuilder: (context, index) {
           final txn = _transactions[index];
           return ListTile(
@@ -237,14 +332,28 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
               backgroundColor: cs.primaryContainer.withValues(alpha: 0.55),
               child: Icon(_iconForType(txn.type), color: cs.primary, size: 20),
             ),
-            title: Text(txn.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text('${DateFormat('dd/MM/yyyy').format(txn.date)} • ${txn.type}'),
+            title: Text(
+              txn.title,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text(
+              '${DateFormat('dd/MM/yyyy').format(txn.date)} • ${txn.type}',
+            ),
             trailing: Wrap(
               spacing: 10,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Chip(label: Text(txn.status), visualDensity: VisualDensity.compact, side: BorderSide(color: cs.outlineVariant)),
-                Text('${_currencyFmt.format(txn.amount)} EGP', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900)),
+                Chip(
+                  label: Text(txn.status),
+                  visualDensity: VisualDensity.compact,
+                  side: BorderSide(color: cs.outlineVariant),
+                ),
+                Text(
+                  '${_currencyFmt.format(txn.amount)} EGP',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
           );
@@ -264,7 +373,14 @@ class _VendorTransactionHistoryScreenState extends ConsumerState<VendorTransacti
 }
 
 class VendorTransactionDto {
-  const VendorTransactionDto({required this.id, required this.type, required this.number, required this.date, required this.amount, required this.status});
+  const VendorTransactionDto({
+    required this.id,
+    required this.type,
+    required this.number,
+    required this.date,
+    required this.amount,
+    required this.status,
+  });
 
   final String id;
   final String type;
@@ -275,18 +391,26 @@ class VendorTransactionDto {
 
   String get title => '$type $number';
 
-  factory VendorTransactionDto.fromJson(Map<String, dynamic> json) => VendorTransactionDto(
-        id: json['id']?.toString() ?? '',
-        type: json['type']?.toString() ?? 'Transaction',
-        number: json['number']?.toString() ?? json['documentNumber']?.toString() ?? '',
-        date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
-        amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0,
-        status: json['status']?.toString() ?? 'Posted',
-      );
+  factory VendorTransactionDto.fromJson(
+    Map<String, dynamic> json,
+  ) => VendorTransactionDto(
+    id: json['id']?.toString() ?? '',
+    type: json['type']?.toString() ?? 'Transaction',
+    number:
+        json['number']?.toString() ?? json['documentNumber']?.toString() ?? '',
+    date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+    amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0,
+    status: json['status']?.toString() ?? 'Posted',
+  );
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.title, required this.message, this.action});
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.action,
+  });
 
   final IconData icon;
   final String title;
@@ -301,13 +425,28 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 34, backgroundColor: cs.surfaceContainerHighest, child: Icon(icon, size: 34, color: cs.outline)),
+          CircleAvatar(
+            radius: 34,
+            backgroundColor: cs.surfaceContainerHighest,
+            child: Icon(icon, size: 34, color: cs.outline),
+          ),
           const SizedBox(height: 14),
-          Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 6),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Text(message, textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
           ),
           if (action != null) ...[const SizedBox(height: 16), action!],
         ],
