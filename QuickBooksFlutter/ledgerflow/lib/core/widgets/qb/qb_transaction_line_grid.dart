@@ -133,63 +133,32 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = widget.compact;
-        final available = constraints.hasBoundedWidth ? constraints.maxWidth : 0.0;
-        final width = widget.fillWidth && available > 0 ? available : (compact ? 640.0 : 820.0);
-
-        final colAction = compact ? 28.0 : 34.0;
-        final colQty = compact ? 52.0 : 66.0;
-        final colRate = compact ? 72.0 : 94.0;
-        final colTotal = compact ? 78.0 : 108.0;
-        final fixedWidth = colAction + colQty + colRate + colTotal;
-        final flexible = (width - fixedWidth).clamp(0.0, 9000.0);
-        final colItem = flexible * (compact ? 0.40 : 0.46);
-        final colDesc = flexible - colItem;
-
-        return _DesktopGrid(
-          width: width,
-          compact: compact,
-          lines: widget.lines,
-          items: _items,
-          loadingItems: _loadingItems,
-          itemsError: _itemsError,
-          showAddLineFooter: widget.showAddLineFooter,
-          colAction: colAction,
-          colItem: colItem,
-          colDesc: colDesc,
-          colQty: colQty,
-          colRate: colRate,
-          colTotal: colTotal,
-          rateForItem: _rateForItem,
-          onAddLine: _addLine,
-          onRemoveLine: _removeLine,
-          onPickItem: _pickItem,
-          onLastCellCommit: _commitLastCell,
-          onChanged: _scheduleChanged,
-          onRetryItems: _loadItemsOnce,
-        );
-      },
+    return _DesktopGrid(
+      compact: widget.compact,
+      lines: widget.lines,
+      items: _items,
+      loadingItems: _loadingItems,
+      itemsError: _itemsError,
+      showAddLineFooter: widget.showAddLineFooter,
+      rateForItem: _rateForItem,
+      onAddLine: _addLine,
+      onRemoveLine: _removeLine,
+      onPickItem: _pickItem,
+      onLastCellCommit: _commitLastCell,
+      onChanged: _scheduleChanged,
+      onRetryItems: _loadItemsOnce,
     );
   }
 }
 
 class _DesktopGrid extends StatelessWidget {
   const _DesktopGrid({
-    required this.width,
     required this.compact,
     required this.lines,
     required this.items,
     required this.loadingItems,
     required this.itemsError,
     required this.showAddLineFooter,
-    required this.colAction,
-    required this.colItem,
-    required this.colDesc,
-    required this.colQty,
-    required this.colRate,
-    required this.colTotal,
     required this.rateForItem,
     required this.onAddLine,
     required this.onRemoveLine,
@@ -199,19 +168,12 @@ class _DesktopGrid extends StatelessWidget {
     required this.onRetryItems,
   });
 
-  final double width;
   final bool compact;
   final List<TransactionLineEntry> lines;
   final List<ItemModel> items;
   final bool loadingItems;
   final String? itemsError;
   final bool showAddLineFooter;
-  final double colAction;
-  final double colItem;
-  final double colDesc;
-  final double colQty;
-  final double colRate;
-  final double colTotal;
   final double Function(ItemModel item) rateForItem;
   final void Function({bool notify}) onAddLine;
   final void Function(int index) onRemoveLine;
@@ -219,6 +181,11 @@ class _DesktopGrid extends StatelessWidget {
   final VoidCallback onLastCellCommit;
   final VoidCallback onChanged;
   final Future<void> Function() onRetryItems;
+
+  double get _colAction => compact ? 28 : 34;
+  double get _colQty => compact ? 52 : 66;
+  double get _colRate => compact ? 72 : 94;
+  double get _colTotal => compact ? 78 : 108;
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +196,7 @@ class _DesktopGrid extends StatelessWidget {
     final headerHeight = compact ? 26.0 : 30.0;
 
     return Container(
-      width: width,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border.all(color: cs.outlineVariant),
@@ -241,12 +208,12 @@ class _DesktopGrid extends StatelessWidget {
             height: headerHeight,
             child: Row(
               children: [
-                QbGridHeaderCell(label: '#', width: colAction, compact: compact, align: TextAlign.center),
-                QbGridHeaderCell(label: l10n.itemService.toUpperCase(), width: colItem, compact: compact),
-                QbGridHeaderCell(label: l10n.description.toUpperCase(), width: colDesc, compact: compact),
-                QbGridHeaderCell(label: l10n.qty.toUpperCase(), width: colQty, compact: compact, align: TextAlign.center),
-                QbGridHeaderCell(label: l10n.rate.toUpperCase(), width: colRate, compact: compact, align: TextAlign.right),
-                QbGridHeaderCell(label: l10n.amount.toUpperCase(), width: colTotal, compact: compact, align: TextAlign.right, last: true),
+                QbGridHeaderCell(label: '#', width: _colAction, compact: compact, align: TextAlign.center),
+                _FlexHeader(label: l10n.itemService.toUpperCase(), compact: compact, flex: 4),
+                _FlexHeader(label: l10n.description.toUpperCase(), compact: compact, flex: 6),
+                QbGridHeaderCell(label: l10n.qty.toUpperCase(), width: _colQty, compact: compact, align: TextAlign.center),
+                QbGridHeaderCell(label: l10n.rate.toUpperCase(), width: _colRate, compact: compact, align: TextAlign.right),
+                QbGridHeaderCell(label: l10n.amount.toUpperCase(), width: _colTotal, compact: compact, align: TextAlign.right, last: true),
               ],
             ),
           ),
@@ -266,7 +233,7 @@ class _DesktopGrid extends StatelessWidget {
               child: Row(
                 children: [
                   QbGridCellFrame(
-                    width: colAction,
+                    width: _colAction,
                     compact: compact,
                     alignment: Alignment.center,
                     child: IconButton(
@@ -281,9 +248,9 @@ class _DesktopGrid extends StatelessWidget {
                       onPressed: () => onRemoveLine(index),
                     ),
                   ),
-                  QbGridCellFrame(
-                    width: colItem,
+                  _FlexCell(
                     compact: compact,
+                    flex: 4,
                     child: QbItemCell(
                       key: ValueKey('item_$index'),
                       initialValue: line.itemName,
@@ -295,9 +262,9 @@ class _DesktopGrid extends StatelessWidget {
                       onLastCellCommit: lastLine ? onLastCellCommit : null,
                     ),
                   ),
-                  QbGridCellFrame(
-                    width: colDesc,
+                  _FlexCell(
                     compact: compact,
+                    flex: 6,
                     child: QbGridTextCell(
                       controller: line.descCtrl,
                       hint: l10n.description,
@@ -307,7 +274,7 @@ class _DesktopGrid extends StatelessWidget {
                     ),
                   ),
                   QbGridCellFrame(
-                    width: colQty,
+                    width: _colQty,
                     compact: compact,
                     child: QbGridTextCell(
                       controller: line.qtyCtrl,
@@ -322,7 +289,7 @@ class _DesktopGrid extends StatelessWidget {
                     ),
                   ),
                   QbGridCellFrame(
-                    width: colRate,
+                    width: _colRate,
                     compact: compact,
                     child: QbGridTextCell(
                       controller: line.rateCtrl,
@@ -337,7 +304,7 @@ class _DesktopGrid extends StatelessWidget {
                     ),
                   ),
                   QbGridCellFrame(
-                    width: colTotal,
+                    width: _colTotal,
                     compact: compact,
                     last: true,
                     child: QbLineAmountCell(line: line, compact: compact),
@@ -375,6 +342,77 @@ class _DesktopGrid extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _FlexHeader extends StatelessWidget {
+  const _FlexHeader({required this.label, required this.compact, required this.flex});
+
+  final String label;
+  final bool compact;
+  final int flex;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Expanded(
+      flex: flex,
+      child: SizedBox.expand(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHigh,
+            border: Border(
+              right: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.7)),
+              bottom: BorderSide(color: cs.outlineVariant),
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8),
+            child: Align(
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: compact ? 9 : 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlexCell extends StatelessWidget {
+  const _FlexCell({required this.child, required this.compact, required this.flex});
+
+  final Widget child;
+  final bool compact;
+  final int flex;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Expanded(
+      flex: flex,
+      child: SizedBox.expand(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(
+              right: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.55)),
+              bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.55)),
+            ),
+          ),
+          child: child,
+        ),
       ),
     );
   }
