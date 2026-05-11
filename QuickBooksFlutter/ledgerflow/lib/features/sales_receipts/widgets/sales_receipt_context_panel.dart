@@ -12,6 +12,8 @@ Widget buildSalesReceiptContextPanel({
   required bool isLoading,
   required String? warning,
   required String? referenceText,
+  VoidCallback? onViewAll,
+  VoidCallback? onEditNotes,
 }) {
   return TransactionContextSidebar(
     title: customer?.displayName ?? '',
@@ -27,5 +29,7 @@ Widget buildSalesReceiptContextPanel({
     notes: referenceText == null || referenceText.trim().isEmpty
         ? null
         : 'Ref: ${referenceText.trim()}',
+    onViewAll: customer == null ? null : onViewAll,
+    onEditNotes: onEditNotes,
   );
 }
