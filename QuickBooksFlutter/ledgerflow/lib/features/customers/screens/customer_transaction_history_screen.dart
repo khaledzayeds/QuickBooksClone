@@ -17,10 +17,12 @@ class CustomerTransactionHistoryScreen extends ConsumerStatefulWidget {
   final String? customerName;
 
   @override
-  ConsumerState<CustomerTransactionHistoryScreen> createState() => _CustomerTransactionHistoryScreenState();
+  ConsumerState<CustomerTransactionHistoryScreen> createState() =>
+      _CustomerTransactionHistoryScreenState();
 }
 
-class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTransactionHistoryScreen> {
+class _CustomerTransactionHistoryScreenState
+    extends ConsumerState<CustomerTransactionHistoryScreen> {
   final _currencyFmt = NumberFormat('#,##0.00');
   DateTimeRange? _range;
   String _type = 'All';
@@ -29,18 +31,30 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
   String? _error;
   List<CustomerTransactionDto> _transactions = const [];
 
-  static const _types = ['All', 'Receipts', 'Payments', 'Invoices', 'Credits', 'Returns'];
+  static const _types = [
+    'All',
+    'Receipts',
+    'Payments',
+    'Invoices',
+    'Credits',
+    'Returns',
+  ];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateInitialCustomer());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _hydrateInitialCustomer(),
+    );
   }
 
   void _hydrateInitialCustomer() {
-    final customers = ref.read(customersProvider).valueOrNull ?? const <CustomerModel>[];
+    final customers =
+        ref.read(customersProvider).value ?? const <CustomerModel>[];
     if (widget.customerId != null) {
-      final match = customers.where((customer) => customer.id == widget.customerId).toList();
+      final match = customers
+          .where((customer) => customer.id == widget.customerId)
+          .toList();
       if (match.isNotEmpty) {
         setState(() => _selectedCustomer = match.first);
       }
@@ -49,7 +63,10 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
   }
 
   String? get _customerId => _selectedCustomer?.id ?? widget.customerId;
-  String get _customerName => _selectedCustomer?.displayName ?? widget.customerName ?? 'Customer Transaction History';
+  String get _customerName =>
+      _selectedCustomer?.displayName ??
+      widget.customerName ??
+      'Customer Transaction History';
 
   Future<void> _fetch() async {
     final id = _customerId;
@@ -71,8 +88,10 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
       final response = await ApiClient.instance.get<List<dynamic>>(
         '/api/customers/$id/transactions',
         queryParameters: {
-          if (_range != null) 'from': DateFormat('yyyy-MM-dd').format(_range!.start),
-          if (_range != null) 'to': DateFormat('yyyy-MM-dd').format(_range!.end),
+          if (_range != null)
+            'from': DateFormat('yyyy-MM-dd').format(_range!.start),
+          if (_range != null)
+            'to': DateFormat('yyyy-MM-dd').format(_range!.end),
           if (_type != 'All') 'type': _type,
         },
       );
@@ -96,7 +115,12 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
     final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
-      initialDateRange: _range ?? DateTimeRange(start: now.subtract(const Duration(days: 30)), end: now),
+      initialDateRange:
+          _range ??
+          DateTimeRange(
+            start: now.subtract(const Duration(days: 30)),
+            end: now,
+          ),
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
@@ -122,8 +146,18 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_customerName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-            Text('Customer Transaction History', style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+            Text(
+              _customerName,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              'Customer Transaction History',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -131,7 +165,11 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
             tooltip: 'Print',
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Print history will be connected to the report print service.')),
+                const SnackBar(
+                  content: Text(
+                    'Print history will be connected to the report print service.',
+                  ),
+                ),
               );
             },
             icon: const Icon(Icons.print_outlined),
@@ -150,7 +188,10 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
           children: [
             Card(
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: cs.outlineVariant)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: cs.outlineVariant),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Wrap(
@@ -161,23 +202,29 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
                     SizedBox(
                       width: 280,
                       child: customersAsync.maybeWhen(
-                        data: (customers) => DropdownButtonFormField<CustomerModel>(
-                          value: _selectedCustomer,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Customer',
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                          ),
-                          items: customers
-                              .where((customer) => customer.isActive)
-                              .map((customer) => DropdownMenuItem(value: customer, child: Text(customer.displayName)))
-                              .toList(),
-                          onChanged: (customer) {
-                            setState(() => _selectedCustomer = customer);
-                            _fetch();
-                          },
-                        ),
+                        data: (customers) =>
+                            DropdownButtonFormField<CustomerModel>(
+                              value: _selectedCustomer,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Customer',
+                                isDense: true,
+                                border: OutlineInputBorder(),
+                              ),
+                              items: customers
+                                  .where((customer) => customer.isActive)
+                                  .map(
+                                    (customer) => DropdownMenuItem(
+                                      value: customer,
+                                      child: Text(customer.displayName),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (customer) {
+                                setState(() => _selectedCustomer = customer);
+                                _fetch();
+                              },
+                            ),
                         orElse: () => const Text('Loading customers...'),
                       ),
                     ),
@@ -234,7 +281,11 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
         icon: Icons.error_outline,
         title: 'Could not load transactions',
         message: _error!,
-        action: FilledButton.icon(onPressed: _fetch, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+        action: FilledButton.icon(
+          onPressed: _fetch,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+        ),
       );
     }
     if (_transactions.isEmpty) {
@@ -247,10 +298,14 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
 
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: cs.outlineVariant)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: cs.outlineVariant),
+      ),
       child: ListView.separated(
         itemCount: _transactions.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: cs.outlineVariant),
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, color: cs.outlineVariant),
         itemBuilder: (context, index) {
           final txn = _transactions[index];
           return ListTile(
@@ -258,8 +313,13 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
               backgroundColor: cs.primaryContainer.withValues(alpha: 0.55),
               child: Icon(_iconForType(txn.type), color: cs.primary, size: 20),
             ),
-            title: Text(txn.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text('${DateFormat('dd/MM/yyyy').format(txn.date)} • ${txn.type}'),
+            title: Text(
+              txn.title,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text(
+              '${DateFormat('dd/MM/yyyy').format(txn.date)} • ${txn.type}',
+            ),
             trailing: Wrap(
               spacing: 10,
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -269,7 +329,12 @@ class _CustomerTransactionHistoryScreenState extends ConsumerState<CustomerTrans
                   visualDensity: VisualDensity.compact,
                   side: BorderSide(color: cs.outlineVariant),
                 ),
-                Text('${_currencyFmt.format(txn.amount)} EGP', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900)),
+                Text(
+                  '${_currencyFmt.format(txn.amount)} EGP',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
           );
@@ -308,14 +373,17 @@ class CustomerTransactionDto {
 
   String get title => '$type $number';
 
-  factory CustomerTransactionDto.fromJson(Map<String, dynamic> json) => CustomerTransactionDto(
-        id: json['id']?.toString() ?? '',
-        type: json['type']?.toString() ?? 'Transaction',
-        number: json['number']?.toString() ?? json['documentNumber']?.toString() ?? '',
-        date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
-        amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0,
-        status: json['status']?.toString() ?? 'Posted',
-      );
+  factory CustomerTransactionDto.fromJson(
+    Map<String, dynamic> json,
+  ) => CustomerTransactionDto(
+    id: json['id']?.toString() ?? '',
+    type: json['type']?.toString() ?? 'Transaction',
+    number:
+        json['number']?.toString() ?? json['documentNumber']?.toString() ?? '',
+    date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+    amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0,
+    status: json['status']?.toString() ?? 'Posted',
+  );
 }
 
 class _EmptyState extends StatelessWidget {
@@ -339,18 +407,30 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 34, backgroundColor: cs.surfaceContainerHighest, child: Icon(icon, size: 34, color: cs.outline)),
+          CircleAvatar(
+            radius: 34,
+            backgroundColor: cs.surfaceContainerHighest,
+            child: Icon(icon, size: 34, color: cs.outline),
+          ),
           const SizedBox(height: 14),
-          Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 6),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Text(message, textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
           ),
-          if (action != null) ...[
-            const SizedBox(height: 16),
-            action!,
-          ],
+          if (action != null) ...[const SizedBox(height: 16), action!],
         ],
       ),
     );
