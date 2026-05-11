@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/open_windows_provider.dart';
+import '../providers/sidebar_provider.dart';
 import 'sidebar_menu.dart';
 import 'top_menu_bar.dart';
 
@@ -59,6 +60,7 @@ class _ResponsiveScaffoldState extends ConsumerState<ResponsiveScaffold> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isWide = width >= ResponsiveScaffold._sidebarBreakpoint;
+    final sidebarCollapsed = ref.watch(sidebarCollapsedProvider);
     _trackLocation(GoRouterState.of(context).uri.toString());
 
     final topMenu = TopMenuBar(
@@ -77,7 +79,12 @@ class _ResponsiveScaffoldState extends ConsumerState<ResponsiveScaffold> {
             Expanded(
               child: Row(
                 children: [
-                  const SidebarMenu(),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    width: sidebarCollapsed ? 56 : 200,
+                    child: SidebarMenu(collapsed: sidebarCollapsed),
+                  ),
                   Expanded(child: widget.child),
                 ],
               ),
@@ -92,7 +99,7 @@ class _ResponsiveScaffoldState extends ConsumerState<ResponsiveScaffold> {
         title: const Text('LedgerFlow'),
         actions: const [SizedBox(width: 8)],
       ),
-      drawer: const Drawer(child: SidebarMenu()),
+      drawer: const Drawer(child: SidebarMenu(collapsed: false)),
       body: widget.child,
     );
   }
