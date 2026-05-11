@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
@@ -398,6 +399,18 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
 
   void _goBack() => context.canPop() ? context.pop() : context.go('/sales/receipts');
 
+  void _openCustomerHistory() {
+    final customer = _customer;
+    if (customer == null) return;
+    context.push(
+      AppRoutes.customerTransactionHistory,
+      extra: {
+        'customerId': customer.id,
+        'customerName': customer.displayName,
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final customers = ref.watch(customersProvider).maybeWhen(
@@ -517,6 +530,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       onSaveAndNew: _saveAndNew,
       onSaveAndClose: _saveAndClose,
       onClose: _goBack,
+      onViewAll: _customer == null ? null : _openCustomerHistory,
     );
   }
 
