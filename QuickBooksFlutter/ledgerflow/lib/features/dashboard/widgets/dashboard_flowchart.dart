@@ -65,8 +65,7 @@ class DashboardFlowchart extends StatelessWidget {
                             _Line(346, 143, 398, 143),
                             _Line(492, 143, 578, 143),
                             _Line(86, 80, 86, 112),
-                            _Line(446, 80, 446, 112),
-                            _Line(446, 143, 446, 172),
+                            _Line(446, 80, 446, 106),
                           ],
                           children: [
                             _node(38, 24, l10n.salesOrders, AppRoutes.salesOrderNew, PhosphorIconsRegular.shoppingCart),
@@ -300,13 +299,13 @@ class _SidePanel extends StatelessWidget {
       title: title,
       height: height,
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
         child: GridView.count(
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.25,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.18,
           children: items.map((item) => _SideButton(action: item)).toList(),
         ),
       ),
@@ -330,28 +329,25 @@ class _SideButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.white.withValues(alpha: 0.76),
-      borderRadius: BorderRadius.circular(7),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: () => context.go(action.path),
-        borderRadius: BorderRadius.circular(7),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: const Color(0xFFB5BEC9)),
-          ),
+        borderRadius: BorderRadius.circular(8),
+        hoverColor: cs.primary.withValues(alpha: 0.06),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(action.icon, size: 19, color: cs.primary),
-              const SizedBox(height: 4),
+              Icon(action.icon, size: 22, color: cs.primary),
+              const SizedBox(height: 6),
               Text(
                 action.label,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 9.8, height: 1.05, fontWeight: FontWeight.w800),
+                style: const TextStyle(fontSize: 10.2, height: 1.05, fontWeight: FontWeight.w800),
               ),
             ],
           ),
