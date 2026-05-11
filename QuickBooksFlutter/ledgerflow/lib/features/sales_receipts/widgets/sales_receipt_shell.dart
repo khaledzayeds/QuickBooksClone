@@ -33,6 +33,8 @@ class SalesReceiptShell extends StatelessWidget {
     required this.onSaveAndNew,
     required this.onSaveAndClose,
     required this.onClose,
+    this.onViewAll,
+    this.onEditNotes,
   });
 
   final Widget numberField;
@@ -57,6 +59,8 @@ class SalesReceiptShell extends StatelessWidget {
   final VoidCallback onSaveAndNew;
   final VoidCallback onSaveAndClose;
   final VoidCallback onClose;
+  final VoidCallback? onViewAll;
+  final VoidCallback? onEditNotes;
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +101,8 @@ class SalesReceiptShell extends StatelessWidget {
         isLoading: loadingActivity,
         warning: warning,
         referenceText: referenceText,
+        onViewAll: onViewAll,
+        onEditNotes: onEditNotes,
       ),
     );
   }
