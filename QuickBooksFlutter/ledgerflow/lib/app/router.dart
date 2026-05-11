@@ -149,14 +149,14 @@ class AppRoutes {
   static const itemEdit = '/master/items/edit/:id';
   static const vendors = '/master/vendors';
   static const vendorNew = '/master/vendors/new';
-  static const vendorDetails = '/master/vendors/:id';
   static const vendorEdit = '/master/vendors/edit/:id';
   static const vendorTransactionHistory = '/master/vendors/transaction-history';
+  static const vendorDetails = '/master/vendors/:id';
   static const customers = '/master/customers';
   static const customerNew = '/master/customers/new';
-  static const customerDetails = '/master/customers/:id';
   static const customerEdit = '/master/customers/edit/:id';
   static const customerTransactionHistory = '/master/customers/transaction-history';
+  static const customerDetails = '/master/customers/:id';
   static const chartOfAccounts = '/master/coa';
   static const accountNew = '/master/coa/new';
   static const accountEdit = '/master/coa/edit/:id';
@@ -247,7 +247,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.itemEdit, builder: (context, state) => ItemFormScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.vendors, builder: (context, state) => const VendorListScreen()),
           GoRoute(path: AppRoutes.vendorNew, builder: (context, state) => const VendorFormScreen()),
-          GoRoute(path: AppRoutes.vendorDetails, builder: (context, state) => VendorDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.vendorEdit, builder: (context, state) => VendorFormScreen(id: state.pathParameters['id']!)),
           GoRoute(
             path: AppRoutes.vendorTransactionHistory,
@@ -259,9 +258,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+          GoRoute(path: AppRoutes.vendorDetails, builder: (context, state) => VendorDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.customers, builder: (context, state) => const CustomerListScreen()),
           GoRoute(path: AppRoutes.customerNew, builder: (context, state) => const CustomerFormScreen()),
-          GoRoute(path: AppRoutes.customerDetails, builder: (context, state) => CustomerDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.customerEdit, builder: (context, state) => CustomerFormScreen(id: state.pathParameters['id']!)),
           GoRoute(
             path: AppRoutes.customerTransactionHistory,
@@ -273,6 +272,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+          GoRoute(path: AppRoutes.customerDetails, builder: (context, state) => CustomerDetailsScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.chartOfAccounts, builder: (context, state) => const ChartOfAccountsScreen()),
           GoRoute(path: AppRoutes.accountNew, builder: (context, state) => const AccountFormScreen()),
           GoRoute(path: AppRoutes.accountEdit, builder: (context, state) => AccountFormScreen(id: state.pathParameters['id']!)),
