@@ -64,7 +64,7 @@ class SalesReceiptLinesPanel extends StatelessWidget {
                     priceMode: TransactionLinePriceMode.sales,
                     fillWidth: true,
                     compact: true,
-                    showAddLineFooter: false,
+                    showAddLineFooter: true,
                     onChanged: onLinesChanged,
                   ),
                 ),
