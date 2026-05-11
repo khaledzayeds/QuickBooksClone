@@ -47,33 +47,63 @@ class TransactionContextSidebar extends StatelessWidget {
       ),
       child: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: hasParty
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _PartyCard(title: title, subtitle: subtitle, initials: initials!),
-                        if (warning != null && warning!.trim().isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _WarningCard(message: warning!),
-                        ],
-                        if (metrics.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _MetricsCard(metrics: metrics),
-                        ],
-                        if (totals != null) ...[
-                          const SizedBox(height: 12),
-                          _SummaryCard(totals: totals!),
-                        ],
+          : hasParty
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _PartyCard(title: title, subtitle: subtitle, initials: initials!),
+                      if (warning != null && warning!.trim().isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        _ActivityCard(activities: activities, onViewAll: onViewAll),
-                        const SizedBox(height: 12),
-                        _NotesCard(notes: notes, onEditNotes: onEditNotes),
+                        _WarningCard(message: warning!),
                       ],
-                    )
-                  : _EmptyCard(title: emptyTitle, message: emptyMessage),
-            ),
+                      if (metrics.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _MetricsCard(metrics: metrics),
+                      ],
+                      if (totals != null) ...[
+                        const SizedBox(height: 12),
+                        _SummaryCard(totals: totals!),
+                      ],
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: DefaultTabController(
+                          length: 2,
+                          child: Column(
+                            children: [
+                              Material(
+                                color: cs.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(12),
+                                child: TabBar(
+                                  indicatorSize: TabBarIndicatorSize.tab,
+                                  dividerColor: Colors.transparent,
+                                  tabs: const [
+                                    Tab(text: 'Transactions'),
+                                    Tab(text: 'Notes'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Expanded(
+                                child: TabBarView(
+                                  children: [
+                                    _ActivityCard(activities: activities, onViewAll: onViewAll),
+                                    _NotesCard(notes: notes, onEditNotes: onEditNotes),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: _EmptyCard(title: emptyTitle, message: emptyMessage),
+                ),
     );
   }
 }
@@ -218,7 +248,12 @@ class _ActivityCard extends StatelessWidget {
           if (activities.isEmpty)
             Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Center(child: Text('No recent transactions found.', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant))))
           else
-            ...activities.take(6).map((activity) => ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(activity.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)), subtitle: Text(activity.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis), trailing: activity.amount == null ? null : Text(activity.amount!, style: const TextStyle(fontWeight: FontWeight.w900)))),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: activities.take(6).map((activity) => ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(activity.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)), subtitle: Text(activity.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis), trailing: activity.amount == null ? null : Text(activity.amount!, style: const TextStyle(fontWeight: FontWeight.w900)))).toList(),
+              ),
+            ),
         ]),
       ),
     );
@@ -242,7 +277,11 @@ class _NotesCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [Expanded(child: Text('Notes', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900))), TextButton(onPressed: onEditNotes, child: const Text('Edit'))]),
-          Text(notes?.trim().isNotEmpty == true ? notes! : 'No notes added.', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Text(notes?.trim().isNotEmpty == true ? notes! : 'No notes added.', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            ),
+          ),
         ]),
       ),
     );
