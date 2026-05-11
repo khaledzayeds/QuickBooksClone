@@ -55,7 +55,7 @@ class TransactionFormShell extends StatefulWidget {
     this.leading,
     this.onBack,
     this.shortcuts = const TransactionFormShortcutSet(),
-    this.showSidebarMinWidth = 1100,
+    this.showSidebarMinWidth = 860,
     this.toolbarHeight = 48,
   });
 
