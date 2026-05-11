@@ -197,12 +197,12 @@ class _DesktopGrid extends StatelessWidget {
 
     return Container(
       width: double.infinity,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border.all(color: cs.outlineVariant),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
             height: headerHeight,
@@ -221,98 +221,104 @@ class _DesktopGrid extends StatelessWidget {
             const LinearProgressIndicator(minHeight: 2)
           else if (itemsError != null)
             QbGridStatusBar(onRetry: onRetryItems),
-          ...lines.asMap().entries.map((entry) {
-            final index = entry.key;
-            final line = entry.value;
-            final lastLine = index == lines.length - 1;
-            final bg = index.isEven ? cs.surface : cs.primaryContainer.withValues(alpha: 0.14);
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemExtent: rowHeight,
+              itemCount: lines.length,
+              itemBuilder: (context, index) {
+                final line = lines[index];
+                final lastLine = index == lines.length - 1;
+                final bg = index.isEven ? cs.surface : cs.primaryContainer.withValues(alpha: 0.14);
 
-            return Container(
-              height: rowHeight,
-              color: bg,
-              child: Row(
-                children: [
-                  QbGridCellFrame(
-                    width: _colAction,
-                    compact: compact,
-                    alignment: Alignment.center,
-                    child: IconButton(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      tooltip: 'Remove line',
-                      icon: Icon(
-                        Icons.delete_outline,
-                        size: compact ? 14 : 16,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+                return Container(
+                  height: rowHeight,
+                  color: bg,
+                  child: Row(
+                    children: [
+                      QbGridCellFrame(
+                        width: _colAction,
+                        compact: compact,
+                        alignment: Alignment.center,
+                        child: IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          tooltip: 'Remove line',
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: compact ? 14 : 16,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+                          ),
+                          onPressed: () => onRemoveLine(index),
+                        ),
                       ),
-                      onPressed: () => onRemoveLine(index),
-                    ),
+                      _FlexCell(
+                        compact: compact,
+                        flex: 4,
+                        child: QbItemCell(
+                          key: ValueKey('item_$index'),
+                          initialValue: line.itemName,
+                          items: items,
+                          loadingItems: loadingItems,
+                          rateForItem: rateForItem,
+                          compact: compact,
+                          onPicked: (item) => onPickItem(index, item),
+                          onLastCellCommit: lastLine ? onLastCellCommit : null,
+                        ),
+                      ),
+                      _FlexCell(
+                        compact: compact,
+                        flex: 6,
+                        child: QbGridTextCell(
+                          controller: line.descCtrl,
+                          hint: l10n.description,
+                          compact: compact,
+                          onSubmitted: lastLine ? onLastCellCommit : null,
+                          onChanged: onChanged,
+                        ),
+                      ),
+                      QbGridCellFrame(
+                        width: _colQty,
+                        compact: compact,
+                        child: QbGridTextCell(
+                          controller: line.qtyCtrl,
+                          numeric: true,
+                          align: TextAlign.center,
+                          compact: compact,
+                          onSubmitted: lastLine ? onLastCellCommit : null,
+                          onChanged: () {
+                            line.qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
+                            onChanged();
+                          },
+                        ),
+                      ),
+                      QbGridCellFrame(
+                        width: _colRate,
+                        compact: compact,
+                        child: QbGridTextCell(
+                          controller: line.rateCtrl,
+                          numeric: true,
+                          align: TextAlign.right,
+                          compact: compact,
+                          onSubmitted: lastLine ? onLastCellCommit : null,
+                          onChanged: () {
+                            line.rate = double.tryParse(line.rateCtrl.text.trim()) ?? 0;
+                            onChanged();
+                          },
+                        ),
+                      ),
+                      QbGridCellFrame(
+                        width: _colTotal,
+                        compact: compact,
+                        last: true,
+                        child: QbLineAmountCell(line: line, compact: compact),
+                      ),
+                    ],
                   ),
-                  _FlexCell(
-                    compact: compact,
-                    flex: 4,
-                    child: QbItemCell(
-                      key: ValueKey('item_$index'),
-                      initialValue: line.itemName,
-                      items: items,
-                      loadingItems: loadingItems,
-                      rateForItem: rateForItem,
-                      compact: compact,
-                      onPicked: (item) => onPickItem(index, item),
-                      onLastCellCommit: lastLine ? onLastCellCommit : null,
-                    ),
-                  ),
-                  _FlexCell(
-                    compact: compact,
-                    flex: 6,
-                    child: QbGridTextCell(
-                      controller: line.descCtrl,
-                      hint: l10n.description,
-                      compact: compact,
-                      onSubmitted: lastLine ? onLastCellCommit : null,
-                      onChanged: onChanged,
-                    ),
-                  ),
-                  QbGridCellFrame(
-                    width: _colQty,
-                    compact: compact,
-                    child: QbGridTextCell(
-                      controller: line.qtyCtrl,
-                      numeric: true,
-                      align: TextAlign.center,
-                      compact: compact,
-                      onSubmitted: lastLine ? onLastCellCommit : null,
-                      onChanged: () {
-                        line.qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
-                        onChanged();
-                      },
-                    ),
-                  ),
-                  QbGridCellFrame(
-                    width: _colRate,
-                    compact: compact,
-                    child: QbGridTextCell(
-                      controller: line.rateCtrl,
-                      numeric: true,
-                      align: TextAlign.right,
-                      compact: compact,
-                      onSubmitted: lastLine ? onLastCellCommit : null,
-                      onChanged: () {
-                        line.rate = double.tryParse(line.rateCtrl.text.trim()) ?? 0;
-                        onChanged();
-                      },
-                    ),
-                  ),
-                  QbGridCellFrame(
-                    width: _colTotal,
-                    compact: compact,
-                    last: true,
-                    child: QbLineAmountCell(line: line, compact: compact),
-                  ),
-                ],
-              ),
-            );
-          }),
+                );
+              },
+            ),
+          ),
           if (showAddLineFooter)
             Container(
               height: compact ? 30 : 34,
