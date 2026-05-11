@@ -44,7 +44,7 @@ class TransactionFormShortcutSet {
   final VoidCallback? onClose;
 }
 
-class TransactionFormShell extends StatelessWidget {
+class TransactionFormShell extends StatefulWidget {
   const TransactionFormShell({
     super.key,
     required this.title,
@@ -71,6 +71,13 @@ class TransactionFormShell extends StatelessWidget {
   final double toolbarHeight;
 
   @override
+  State<TransactionFormShell> createState() => _TransactionFormShellState();
+}
+
+class _TransactionFormShellState extends State<TransactionFormShell> {
+  bool _contextPanelExpanded = true;
+
+  @override
   Widget build(BuildContext context) {
     return Focus(
       autofocus: true,
@@ -80,14 +87,23 @@ class TransactionFormShell extends StatelessWidget {
         appBar: _buildAppBar(context),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final showSidebar = sidebar != null && constraints.maxWidth >= showSidebarMinWidth;
+            final showSidebar = widget.sidebar != null && constraints.maxWidth >= widget.showSidebarMinWidth;
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: body),
+                Expanded(child: widget.body),
                 if (showSidebar) ...[
                   VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
-                  sidebar!,
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    width: _contextPanelExpanded ? 286 : 38,
+                    child: _ContextPanelFrame(
+                      expanded: _contextPanelExpanded,
+                      onToggle: () => setState(() => _contextPanelExpanded = !_contextPanelExpanded),
+                      child: widget.sidebar!,
+                    ),
+                  ),
                 ],
               ],
             );
@@ -101,20 +117,20 @@ class TransactionFormShell extends StatelessWidget {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final isCtrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
 
-    if (event.logicalKey == LogicalKeyboardKey.f2 && shortcuts.onSaveAndNew != null) {
-      shortcuts.onSaveAndNew!.call();
+    if (event.logicalKey == LogicalKeyboardKey.f2 && widget.shortcuts.onSaveAndNew != null) {
+      widget.shortcuts.onSaveAndNew!.call();
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.f4 && shortcuts.onSaveAndClose != null) {
-      shortcuts.onSaveAndClose!.call();
+    if (event.logicalKey == LogicalKeyboardKey.f4 && widget.shortcuts.onSaveAndClose != null) {
+      widget.shortcuts.onSaveAndClose!.call();
       return KeyEventResult.handled;
     }
-    if (isCtrl && event.logicalKey == LogicalKeyboardKey.keyP && shortcuts.onPrint != null) {
-      shortcuts.onPrint!.call();
+    if (isCtrl && event.logicalKey == LogicalKeyboardKey.keyP && widget.shortcuts.onPrint != null) {
+      widget.shortcuts.onPrint!.call();
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.escape && shortcuts.onClose != null) {
-      shortcuts.onClose!.call();
+    if (event.logicalKey == LogicalKeyboardKey.escape && widget.shortcuts.onClose != null) {
+      widget.shortcuts.onClose!.call();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -125,17 +141,17 @@ class TransactionFormShell extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return AppBar(
-      toolbarHeight: toolbarHeight,
+      toolbarHeight: widget.toolbarHeight,
       backgroundColor: cs.surface,
       elevation: 0,
       automaticallyImplyLeading: false,
       titleSpacing: 12,
       title: Row(
         children: [
-          leading ??
+          widget.leading ??
               IconButton(
                 visualDensity: VisualDensity.compact,
-                onPressed: onBack,
+                onPressed: widget.onBack,
                 icon: const Icon(Icons.arrow_back, size: 20),
                 tooltip: 'Back / Close (Esc)',
               ),
@@ -143,20 +159,20 @@ class TransactionFormShell extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              Text(breadcrumb, style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+              Text(widget.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              Text(widget.breadcrumb, style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
             ],
           ),
         ],
       ),
       actions: [
-        for (final action in actions) ...[
+        for (final action in widget.actions) ...[
           _buildAction(context, action),
           const SizedBox(width: 8),
         ],
         IconButton(
           visualDensity: VisualDensity.compact,
-          onPressed: onBack ?? shortcuts.onClose,
+          onPressed: widget.onBack ?? widget.shortcuts.onClose,
           icon: const Icon(Icons.close, size: 20),
           tooltip: 'Close (Esc)',
         ),
@@ -218,6 +234,46 @@ class TransactionFormShell extends StatelessWidget {
   }
 }
 
+class _ContextPanelFrame extends StatelessWidget {
+  const _ContextPanelFrame({
+    required this.expanded,
+    required this.onToggle,
+    required this.child,
+  });
+
+  final bool expanded;
+  final VoidCallback onToggle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Stack(
+      children: [
+        if (expanded) Positioned.fill(child: child),
+        Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            color: cs.surface,
+            child: InkWell(
+              onTap: onToggle,
+              child: SizedBox(
+                width: 38,
+                height: 46,
+                child: AnimatedRotation(
+                  turns: expanded ? 0 : 0.5,
+                  duration: const Duration(milliseconds: 220),
+                  child: const Icon(Icons.chevron_right, size: 20),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class TransactionFormMainPanel extends StatelessWidget {
   const TransactionFormMainPanel({
     super.key,
@@ -227,7 +283,7 @@ class TransactionFormMainPanel extends StatelessWidget {
     required this.totals,
     this.headerPadding = const EdgeInsets.fromLTRB(16, 12, 16, 12),
     this.toolbarPadding = const EdgeInsets.fromLTRB(16, 8, 16, 6),
-    this.linesPadding = const EdgeInsets.fromLTRB(16, 0, 16, 8),
+    this.linesPadding = EdgeInsets.zero,
   });
 
   final Widget header;
@@ -249,7 +305,7 @@ class TransactionFormMainPanel extends StatelessWidget {
         Expanded(
           child: Column(
             children: [
-              Expanded(child: SingleChildScrollView(padding: linesPadding, child: lines)),
+              Expanded(child: Padding(padding: linesPadding, child: lines)),
               Container(
                 decoration: BoxDecoration(color: cs.surface, border: Border(top: BorderSide(color: cs.outlineVariant))),
                 child: totals,
