@@ -59,16 +59,13 @@ class SalesReceiptLinesPanel extends StatelessWidget {
             child: Column(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: QbTransactionLineGrid(
-                      lines: lines,
-                      priceMode: TransactionLinePriceMode.sales,
-                      fillWidth: true,
-                      compact: true,
-                      showAddLineFooter: false,
-                      onChanged: onLinesChanged,
-                    ),
+                  child: QbTransactionLineGrid(
+                    lines: lines,
+                    priceMode: TransactionLinePriceMode.sales,
+                    fillWidth: true,
+                    compact: true,
+                    showAddLineFooter: false,
+                    onChanged: onLinesChanged,
                   ),
                 ),
                 Container(
