@@ -66,6 +66,7 @@ dependencies:
   mobile_scanner: ^5.2.3
   audioplayers: ^5.2.1
   enough_convert: ^1.6.0
+  pluto_grid_plus: ^8.4.14
 
 dev_dependencies:
   flutter_test:

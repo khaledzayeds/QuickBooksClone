@@ -113,6 +113,13 @@ class SidebarMenu extends ConsumerWidget {
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
+                  icon: Icons.table_chart_outlined,
+                  label: 'PlutoGrid Demo',
+                  path: AppRoutes.playgroundPluto,
+                  current: location,
+                  isCollapsed: isCollapsed,
+                ),
+                _ShortcutItem(
                   icon: Icons.business_outlined,
                   label: l10n.myCompany,
                   path: AppRoutes.companySettings,

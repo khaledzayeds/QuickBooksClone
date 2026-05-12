@@ -97,6 +97,7 @@ import '../features/vendors/screens/vendor_transaction_history_screen.dart';
 import '../design_playground/form_playground_screen.dart';
 import '../design_playground/table_playground_screen.dart';
 import '../features/workspace/screens/open_windows_screen.dart';
+import '../core/widgets/qb/pluto_invoice_grid_demo.dart';
 
 class AppRoutes {
   static const dashboard = '/';
@@ -194,6 +195,7 @@ class AppRoutes {
   // Design Playground
   static const playgroundTable = '/playground/table';
   static const playgroundForm = '/playground/form';
+  static const playgroundPluto = '/playground/pluto';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -352,6 +354,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.openWindows, builder: (context, state) => const OpenWindowsScreen()),
           GoRoute(path: AppRoutes.playgroundTable, builder: (context, state) => const TablePlaygroundScreen()),
           GoRoute(path: AppRoutes.playgroundForm, builder: (context, state) => const FormPlaygroundScreen()),
+          GoRoute(path: AppRoutes.playgroundPluto, builder: (context, state) => Scaffold(body: SafeArea(child: Padding(padding: EdgeInsets.all(16), child: const PlutoInvoiceGridDemo())))),
         ],
       ),
     ],
