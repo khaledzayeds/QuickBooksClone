@@ -12,7 +12,7 @@ class InvoiceLinesPanel extends StatelessWidget {
     required this.totals,
     required this.onAddLine,
     required this.onLinesChanged,
-    required this.memoField,
+    this.memoField,
     this.saving = false,
     this.posting = false,
     this.onSaveAndClose,
@@ -24,7 +24,7 @@ class InvoiceLinesPanel extends StatelessWidget {
   final TransactionTotalsUiModel totals;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
-  final Widget memoField;
+  final Widget? memoField;
   final bool saving;
   final bool posting;
   final VoidCallback? onSaveAndClose;
@@ -107,16 +107,16 @@ class InvoiceLinesPanel extends StatelessWidget {
 class _QuickBooksInvoiceFooter extends StatelessWidget {
   const _QuickBooksInvoiceFooter({
     required this.totals,
-    required this.memoField,
     required this.saving,
     required this.posting,
+    this.memoField,
     this.onSaveAndClose,
     this.onSaveAndNew,
     this.onClear,
   });
 
   final TransactionTotalsUiModel totals;
-  final Widget memoField;
+  final Widget? memoField;
   final bool saving;
   final bool posting;
   final VoidCallback? onSaveAndClose;
@@ -127,6 +127,7 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final busy = saving || posting;
+    final memo = memoField ?? _LegacyMemoPlaceholder();
 
     return Container(
       height: 132,
@@ -174,7 +175,7 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                SizedBox(height: 34, child: memoField),
+                SizedBox(height: 34, child: memo),
               ],
             ),
           ),
@@ -237,6 +238,27 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
       side: const BorderSide(color: Color(0xFF8FA1AB)),
+    );
+  }
+}
+
+class _LegacyMemoPlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB7C3CB)),
+      ),
+      child: Text(
+        'Optional',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF7B8B93),
+        ),
+      ),
     );
   }
 }
