@@ -30,15 +30,22 @@ class InvoiceHeaderPanel extends StatelessWidget {
     return Container(
       color: cs.surface,
       child: Column(
+        mainAxisSize: MainAxisSize.min, // ← FIX: no unbounded height
         children: [
-          // ── Row 1: Customer + Template ──────────────────────────
+          // ── Customer + Template row ───────────────────────────
           Container(
-            height: 42,
             color: cs.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
             child: Row(
               children: [
-                SizedBox(width: 320, child: customerField),
+                // FIX: Flexible instead of fixed SizedBox — adapts to width
+                Flexible(
+                  flex: 4,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 380),
+                    child: customerField,
+                  ),
+                ),
                 const SizedBox(width: 18),
                 Text(
                   'Template',
@@ -48,39 +55,44 @@ class InvoiceHeaderPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  height: 30,
-                  constraints: const BoxConstraints(
-                    minWidth: 140,
-                    maxWidth: 200,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: cs.surface,
-                    border: Border.all(color: cs.outlineVariant),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Standard invoice',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
+                Flexible(
+                  flex: 3,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 150,
+                      maxWidth: 240,
                     ),
-                    overflow: TextOverflow.ellipsis,
+                    child: Container(
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        border: Border.all(color: cs.outlineVariant),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Standard invoice',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          // ── Row 2: "Invoice" title + Date + Number ───────────────
+          // ── Invoice title + date + number ─────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 18, 28, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 200,
+                  width: 230,
                   child: Text(
                     'Invoice',
                     style: theme.textTheme.displaySmall?.copyWith(
@@ -91,26 +103,26 @@ class InvoiceHeaderPanel extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Flexible(child: invoiceDateField),
+                SizedBox(width: 142, child: invoiceDateField),
                 const SizedBox(width: 12),
-                SizedBox(width: 120, child: invoiceNumberField),
+                SizedBox(width: 142, child: invoiceNumberField),
               ],
             ),
           ),
 
-          // ── Row 3: Bill To + Due Date + Terms + Memo ─────────────
+          // ── BillTo + due date + terms + memo ──────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                SizedBox(width: 200, child: _BillToBox(customer: customer)),
+                SizedBox(width: 230, child: _BillToBox(customer: customer)),
                 const Spacer(),
-                Flexible(flex: 2, child: dueDateField),
+                SizedBox(width: 140, child: dueDateField),
                 const SizedBox(width: 12),
-                Flexible(flex: 2, child: billingTermsField),
+                SizedBox(width: 130, child: billingTermsField),
                 const SizedBox(width: 12),
-                Flexible(flex: 4, child: memoField),
+                SizedBox(width: 270, child: memoField),
               ],
             ),
           ),

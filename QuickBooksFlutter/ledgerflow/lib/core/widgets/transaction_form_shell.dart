@@ -1,240 +1,121 @@
-// transaction_form_shell.dart
-//
-// THE one shared wrapper for all 8 transaction form screens:
-//   Sales Receipt, Invoice, Sales Order, Estimate,
-//   Purchase Order, Purchase Bill, Credit Note, Receive Inventory
-//
-// Each screen only provides:
-//   1. headerFields  — the unique top fields (Customer/Vendor, dates, etc.)
-//   2. Business logic callbacks (onSave, onClear, metrics, activities…)
-//
-// Everything else (AppBar, layout, table, sidebar, totals, F2, keyboard
-// shortcuts, post-save dialog) lives HERE — written once.
-
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ledgerflow/core/widgets/transaction_line_table.dart';
-import 'package:ledgerflow/features/purchase_orders/data/models/order_line_entry.dart';
 
-import '../../features/transactions/widgets/transaction_context_sidebar.dart';
-import '../../features/transactions/widgets/transaction_models.dart';
-import '../../features/transactions/widgets/transaction_totals_footer.dart';
+enum TransactionFormActionStyle { icon, text, outlined, filled }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Config passed by each screen
-// ─────────────────────────────────────────────────────────────────────────────
-
-class TransactionFormConfig {
-  const TransactionFormConfig({
-    required this.kind,
-    required this.title,
-    required this.breadcrumb,
-    required this.emptyPartyTitle,
-    required this.emptyPartyMessage,
-    this.priceMode = TransactionLinePriceMode.sales,
-    this.saveAndCloseLabel = 'Save & Close',
-    this.saveAndNewLabel = 'Save & New',
-    this.clearLabel = 'Clear',
+class TransactionFormAction {
+  const TransactionFormAction({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.style,
+    this.filled = false,
+    this.enabled = true,
+    this.busy = false,
+    this.tooltip,
   });
 
-  final TransactionScreenKind kind;
-  final String title; // e.g. "New Sales Receipt"
-  final String breadcrumb; // e.g. "Sales / Receipts / New"
-  final String emptyPartyTitle;
-  final String emptyPartyMessage;
-  final TransactionLinePriceMode priceMode;
-  final String saveAndCloseLabel;
-  final String saveAndNewLabel;
-  final String clearLabel;
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final TransactionFormActionStyle? style;
+  final bool filled;
+  final bool enabled;
+  final bool busy;
+  final String? tooltip;
+
+  TransactionFormActionStyle get resolvedStyle {
+    if (style != null) return style!;
+    return filled
+        ? TransactionFormActionStyle.filled
+        : TransactionFormActionStyle.outlined;
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The Shell
-// ─────────────────────────────────────────────────────────────────────────────
+class TransactionFormShortcutSet {
+  const TransactionFormShortcutSet({
+    this.onSaveAndNew,
+    this.onSaveAndClose,
+    this.onPrint,
+    this.onClose,
+  });
+
+  final VoidCallback? onSaveAndNew;
+  final VoidCallback? onSaveAndClose;
+  final VoidCallback? onPrint;
+  final VoidCallback? onClose;
+}
 
 class TransactionFormShell extends StatefulWidget {
   const TransactionFormShell({
     super.key,
-    required this.config,
-    required this.lines,
-    required this.totals,
-    required this.onSaveAndClose,
-    required this.onSaveAndNew,
-    required this.onClear,
-    required this.onBack,
-    required this.onLinesChanged,
-    required this.headerFields,
-    this.partyTitle = '',
-    this.partySubtitle,
-    this.partyInitials,
-    this.metrics = const [],
-    this.activities = const [],
-    this.warning,
-    this.notes,
-    this.isSaving = false,
-    this.isPartyLoading = false,
-    this.onViewAll,
-    this.onEditNotes,
-    this.onPrint,
+    required this.title,
+    required this.breadcrumb,
+    required this.body,
+    this.sidebar,
+    this.actions = const [],
+    this.leading,
+    this.onBack,
+    this.shortcuts = const TransactionFormShortcutSet(),
+    this.showSidebarMinWidth = 860,
+    this.toolbarHeight = 48,
   });
 
-  // Config
-  final TransactionFormConfig config;
-
-  // Lines (owned by parent state)
-  final List<TransactionLineEntry> lines;
-  final TransactionTotalsUiModel totals;
-
-  // Callbacks
-  final Future<String?> Function()
-  onSaveAndClose; // returns doc number or null on error
-  final Future<String?> Function() onSaveAndNew;
-  final VoidCallback onClear;
-  final VoidCallback onBack;
-  final VoidCallback onLinesChanged;
-
-  // Header (unique per screen — just pass the Column/Row of fields)
-  final Widget headerFields;
-
-  // Sidebar
-  final String partyTitle;
-  final String? partySubtitle;
-  final String? partyInitials;
-  final List<TransactionContextMetric> metrics;
-  final List<TransactionContextActivity> activities;
-  final String? warning;
-  final String? notes;
-  final bool isPartyLoading;
-  final VoidCallback? onViewAll;
-  final VoidCallback? onEditNotes;
-
-  // Misc
-  final bool isSaving;
-  final VoidCallback? onPrint;
+  final String title;
+  final String breadcrumb;
+  final Widget body;
+  final Widget? sidebar;
+  final List<TransactionFormAction> actions;
+  final Widget? leading;
+  final VoidCallback? onBack;
+  final TransactionFormShortcutSet shortcuts;
+  final double showSidebarMinWidth;
+  final double toolbarHeight;
 
   @override
   State<TransactionFormShell> createState() => _TransactionFormShellState();
 }
 
 class _TransactionFormShellState extends State<TransactionFormShell> {
-  // ── Post-save state ────────────────────────────────────────────────────────
-  bool _showSavedBanner = false;
-  String? _lastSavedNumber;
-  Timer? _bannerTimer;
+  bool _contextPanelExpanded = true;
 
-  @override
-  void dispose() {
-    _bannerTimer?.cancel();
-    super.dispose();
-  }
-
-  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
-  KeyEventResult _handleKey(FocusNode _, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    final isCtrl =
-        HardwareKeyboard.instance.isControlPressed ||
-        HardwareKeyboard.instance.isMetaPressed;
-
-    // F2 = Save & New
-    if (event.logicalKey == LogicalKeyboardKey.f2) {
-      _doSaveAndNew();
-      return KeyEventResult.handled;
-    }
-    // F4 = Save & Close  (like most ERP systems)
-    if (event.logicalKey == LogicalKeyboardKey.f4) {
-      _doSaveAndClose();
-      return KeyEventResult.handled;
-    }
-    // Ctrl+P = Print
-    if (isCtrl && event.logicalKey == LogicalKeyboardKey.keyP) {
-      widget.onPrint?.call();
-      return KeyEventResult.handled;
-    }
-    // Escape = back (if no changes — let parent decide)
-    if (event.logicalKey == LogicalKeyboardKey.escape) {
-      widget.onBack();
-      return KeyEventResult.handled;
-    }
-
-    return KeyEventResult.ignored;
-  }
-
-  // ── Save actions ───────────────────────────────────────────────────────────
-  Future<void> _doSaveAndClose() async {
-    final num = await widget.onSaveAndClose();
-    if (num != null && mounted) _showPostSaveBanner(num, closeAfter: true);
-  }
-
-  Future<void> _doSaveAndNew() async {
-    final num = await widget.onSaveAndNew();
-    if (num != null && mounted) _showPostSaveBanner(num, closeAfter: false);
-  }
-
-  void _showPostSaveBanner(String docNumber, {required bool closeAfter}) {
-    if (!mounted) return;
-
-    // Show print dialog first
-    _showPrintDialog(docNumber, closeAfter: closeAfter);
-  }
-
-  void _showPrintDialog(String docNumber, {required bool closeAfter}) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => _PostSaveDialog(
-        docNumber: docNumber,
-        config: widget.config,
-        onPrint: widget.onPrint,
-        onNew: () {
-          Navigator.of(ctx).pop();
-          // parent already reset state via onSaveAndNew
-        },
-        onClose: () {
-          Navigator.of(ctx).pop();
-          if (closeAfter) widget.onBack();
-        },
-      ),
-    );
-  }
-
-  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Focus(
       autofocus: true,
       onKeyEvent: _handleKey,
       child: Scaffold(
-        backgroundColor: cs.surfaceContainerLowest,
-        appBar: _buildAppBar(theme, cs),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+        appBar: _buildAppBar(context),
+        // ── الـ actions انتقلت لـ bottom bar ──
+        bottomNavigationBar: widget.actions.isEmpty
+            ? null
+            : _buildBottomBar(context),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final showSidebar = constraints.maxWidth >= 1100;
+            final showSidebar =
+                widget.sidebar != null &&
+                constraints.maxWidth >= widget.showSidebarMinWidth;
             return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: _buildMainArea(theme, cs)),
+                Expanded(child: widget.body),
                 if (showSidebar) ...[
-                  VerticalDivider(width: 1, color: cs.outlineVariant),
-                  TransactionContextSidebar(
-                    title: widget.partyTitle,
-                    subtitle: widget.partySubtitle,
-                    initials: widget.partyInitials,
-                    emptyTitle: widget.config.emptyPartyTitle,
-                    emptyMessage: widget.config.emptyPartyMessage,
-                    metrics: widget.metrics,
-                    activities: widget.activities,
-                    warning: widget.warning,
-                    isLoading: widget.isPartyLoading,
-                    totals: widget.totals,
-                    notes: widget.notes,
-                    onViewAll: widget.onViewAll,
-                    onEditNotes: widget.onEditNotes,
+                  VerticalDivider(
+                    width: 1,
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    width: _contextPanelExpanded ? 286 : 38,
+                    child: _ContextPanelFrame(
+                      expanded: _contextPanelExpanded,
+                      onToggle: () => setState(
+                        () => _contextPanelExpanded = !_contextPanelExpanded,
+                      ),
+                      child: widget.sidebar!,
+                    ),
                   ),
                 ],
               ],
@@ -245,34 +126,68 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
     );
   }
 
-  // ── AppBar ─────────────────────────────────────────────────────────────────
-  PreferredSizeWidget _buildAppBar(ThemeData theme, ColorScheme cs) {
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final isCtrl =
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
+
+    if (event.logicalKey == LogicalKeyboardKey.f2 &&
+        widget.shortcuts.onSaveAndNew != null) {
+      widget.shortcuts.onSaveAndNew!.call();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.f4 &&
+        widget.shortcuts.onSaveAndClose != null) {
+      widget.shortcuts.onSaveAndClose!.call();
+      return KeyEventResult.handled;
+    }
+    if (isCtrl &&
+        event.logicalKey == LogicalKeyboardKey.keyP &&
+        widget.shortcuts.onPrint != null) {
+      widget.shortcuts.onPrint!.call();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape &&
+        widget.shortcuts.onClose != null) {
+      widget.shortcuts.onClose!.call();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  // ── AppBar — title + close only (NO actions) ──────────────────
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return AppBar(
-      toolbarHeight: 48,
+      toolbarHeight: widget.toolbarHeight,
       backgroundColor: cs.surface,
       elevation: 0,
       automaticallyImplyLeading: false,
       titleSpacing: 12,
       title: Row(
         children: [
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: widget.onBack,
-            icon: const Icon(Icons.arrow_back, size: 20),
-            tooltip: 'Back (Esc)',
-          ),
+          widget.leading ??
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back, size: 20),
+                tooltip: 'Back / Close (Esc)',
+              ),
           const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.config.title,
+                widget.title,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
               ),
               Text(
-                widget.config.breadcrumb,
+                widget.breadcrumb,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: cs.onSurfaceVariant,
                 ),
@@ -282,71 +197,9 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
         ],
       ),
       actions: [
-        // Print
-        if (widget.onPrint != null)
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: widget.onPrint,
-            icon: const Icon(Icons.print_outlined, size: 20),
-            tooltip: 'Print (Ctrl+P)',
-          ),
-        const SizedBox(width: 4),
-
-        // Clear
-        TextButton.icon(
-          onPressed: widget.isSaving ? null : widget.onClear,
-          icon: const Icon(Icons.refresh_outlined, size: 16),
-          label: Text(widget.config.clearLabel),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-
-        // Save & New (F2)
-        OutlinedButton.icon(
-          onPressed: widget.isSaving ? null : _doSaveAndNew,
-          icon: const Icon(Icons.add_circle_outline, size: 16),
-          label: Text('${widget.config.saveAndNewLabel}  F2'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            side: BorderSide(color: cs.outlineVariant),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Save & Close (F4)
-        FilledButton.icon(
-          onPressed: widget.isSaving ? null : _doSaveAndClose,
-          icon: widget.isSaving
-              ? const SizedBox.square(
-                  dimension: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Icon(Icons.save_outlined, size: 16),
-          label: Text('${widget.config.saveAndCloseLabel}  F4'),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Close X
         IconButton(
           visualDensity: VisualDensity.compact,
-          onPressed: widget.onBack,
+          onPressed: widget.onBack ?? widget.shortcuts.onClose,
           icon: const Icon(Icons.close, size: 20),
           tooltip: 'Close (Esc)',
         ),
@@ -359,84 +212,114 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
     );
   }
 
-  // ── Main area ──────────────────────────────────────────────────────────────
-  Widget _buildMainArea(ThemeData theme, ColorScheme cs) {
-    return Column(
+  // ── Bottom Bar — زي QB ────────────────────────────────────────
+  Widget _buildBottomBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(top: BorderSide(color: cs.outlineVariant, width: 1)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // Icon-only actions جهة اليسار (Print, etc.)
+          for (final action in widget.actions.where(
+            (a) => a.resolvedStyle == TransactionFormActionStyle.icon,
+          )) ...[_buildAction(context, action), const SizedBox(width: 4)],
+          const Spacer(),
+          // Text / Outlined / Filled actions جهة اليمين
+          for (final action in widget.actions.where(
+            (a) => a.resolvedStyle != TransactionFormActionStyle.icon,
+          )) ...[_buildAction(context, action), const SizedBox(width: 8)],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAction(BuildContext context, TransactionFormAction action) {
+    final cs = Theme.of(context).colorScheme;
+    final enabled = action.enabled && !action.busy;
+    final icon = action.busy
+        ? const SizedBox.square(
+            dimension: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(action.icon, size: 16);
+
+    return switch (action.resolvedStyle) {
+      TransactionFormActionStyle.icon => IconButton(
+        visualDensity: VisualDensity.compact,
+        onPressed: enabled ? action.onPressed : null,
+        icon: Icon(action.icon, size: 20),
+        tooltip: action.tooltip ?? action.label,
+      ),
+      TransactionFormActionStyle.text => TextButton.icon(
+        onPressed: enabled ? action.onPressed : null,
+        icon: icon,
+        label: Text(action.label),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      ),
+      TransactionFormActionStyle.filled => FilledButton.icon(
+        onPressed: enabled ? action.onPressed : null,
+        icon: icon,
+        label: Text(action.label),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      ),
+      TransactionFormActionStyle.outlined => OutlinedButton.icon(
+        onPressed: enabled ? action.onPressed : null,
+        icon: icon,
+        label: Text(action.label),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          side: BorderSide(color: cs.outlineVariant),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      ),
+    };
+  }
+}
+
+class _ContextPanelFrame extends StatelessWidget {
+  const _ContextPanelFrame({
+    required this.expanded,
+    required this.onToggle,
+    required this.child,
+  });
+
+  final bool expanded;
+  final VoidCallback onToggle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Stack(
       children: [
-        // Header fields card (unique per screen)
-        Container(
-          color: cs.surface,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: widget.headerFields,
-        ),
-        Divider(height: 1, color: theme.dividerColor),
-
-        // Lines toolbar
-        Container(
-          color: cs.surfaceContainerLowest,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-          child: Row(
-            children: [
-              Text(
-                'Products and services',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
+        if (expanded) Positioned.fill(child: child),
+        Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            color: cs.surface,
+            child: InkWell(
+              onTap: onToggle,
+              child: SizedBox(
+                width: 38,
+                height: 46,
+                child: AnimatedRotation(
+                  turns: expanded ? 0 : 0.5,
+                  duration: const Duration(milliseconds: 220),
+                  child: const Icon(Icons.chevron_right, size: 20),
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                '\u2022 Tab through cells  \u2022  Enter / F2 adds a new line',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: () {
-                  widget.lines.add(TransactionLineEntry());
-                  widget.onLinesChanged();
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add line'),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Line table + totals
-        Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: TransactionLineTable(
-                    lines: widget.lines,
-                    priceMode: widget.config.priceMode,
-                    fillWidth: true,
-                    compact: true,
-                    showAddLineFooter: false,
-                    onChanged: widget.onLinesChanged,
-                  ),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  border: Border(top: BorderSide(color: cs.outlineVariant)),
-                ),
-                child: TransactionTotalsFooter(totals: widget.totals),
-              ),
-            ],
+            ),
           ),
         ),
       ],
@@ -444,150 +327,50 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Post-Save Dialog
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PostSaveDialog extends StatelessWidget {
-  const _PostSaveDialog({
-    required this.docNumber,
-    required this.config,
-    required this.onNew,
-    required this.onClose,
-    this.onPrint,
+class TransactionFormMainPanel extends StatelessWidget {
+  const TransactionFormMainPanel({
+    super.key,
+    required this.header,
+    required this.toolbar,
+    required this.lines,
+    required this.totals,
+    this.headerPadding = const EdgeInsets.fromLTRB(16, 12, 16, 12),
+    this.toolbarPadding = const EdgeInsets.fromLTRB(16, 8, 16, 6),
+    this.linesPadding = EdgeInsets.zero,
   });
 
-  final String docNumber;
-  final TransactionFormConfig config;
-  final VoidCallback onNew;
-  final VoidCallback onClose;
-  final VoidCallback? onPrint;
+  final Widget header;
+  final Widget toolbar;
+  final Widget lines;
+  final Widget totals;
+  final EdgeInsetsGeometry headerPadding;
+  final EdgeInsetsGeometry toolbarPadding;
+  final EdgeInsetsGeometry linesPadding;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SizedBox(
-        width: 360,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Container(color: cs.surface, padding: headerPadding, child: header),
+        Divider(height: 1, color: Theme.of(context).dividerColor),
+        Container(
+          color: cs.surfaceContainerLowest,
+          padding: toolbarPadding,
+          child: toolbar,
+        ),
+        Expanded(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Success icon
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_circle_outline,
-                  size: 32,
-                  color: cs.primary,
-                ),
+              Expanded(
+                child: Padding(padding: linesPadding, child: lines),
               ),
-              const SizedBox(height: 16),
-
-              // Title
-              Text(
-                '${config.kind.label} Saved!',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Doc number
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.tag, size: 16, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text(
-                      docNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: cs.primary,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Action buttons
-              if (onPrint != null)
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onPrint!();
-                    },
-                    icon: const Icon(Icons.print_outlined, size: 18),
-                    label: const Text('Print'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              if (onPrint != null) const SizedBox(height: 10),
-
-              Row(
-                children: [
-                  // New document
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onNew,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('New  F2'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Close
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onClose,
-                      icon: const Icon(Icons.close, size: 16),
-                      label: const Text('Close'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              Divider(height: 1, color: Theme.of(context).dividerColor),
+              totals,
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

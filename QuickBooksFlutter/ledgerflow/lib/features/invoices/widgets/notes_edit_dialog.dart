@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
+/// Dialog لكتابة وحفظ النوتس — يفتح فوراً بدون الحاجة لـ save أول.
+/// [onSave] بترجع Future — لو حابب تحفظ في الـ backend مرريها هناك،
+///          لو مش محتاج backend (local) خليها void function عادية.
 class NotesEditDialog extends StatefulWidget {
   const NotesEditDialog({
     super.key,
     required this.initialNotes,
     required this.onSave,
+    this.title = 'Notes',
+    this.hint = 'Write internal notes...',
   });
 
   final String initialNotes;
   final Future<void> Function(String notes) onSave;
+  final String title;
+  final String hint;
 
   @override
   State<NotesEditDialog> createState() => _NotesEditDialogState();
@@ -35,6 +42,12 @@ class _NotesEditDialogState extends State<NotesEditDialog> {
     try {
       await widget.onSave(_controller.text.trim());
       if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save notes: $e')));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -43,16 +56,16 @@ class _NotesEditDialogState extends State<NotesEditDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Edit Notes'),
+      title: Text(widget.title),
       content: SizedBox(
-        width: 460,
+        width: 480,
         child: TextField(
           controller: _controller,
-          maxLines: 5,
+          maxLines: 6,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Write internal notes for this sales receipt...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: widget.hint,
+            border: const OutlineInputBorder(),
           ),
         ),
       ),
@@ -68,7 +81,7 @@ class _NotesEditDialogState extends State<NotesEditDialog> {
                   dimension: 14,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.save_outlined),
+              : const Icon(Icons.save_outlined, size: 16),
           label: const Text('Save'),
         ),
       ],
