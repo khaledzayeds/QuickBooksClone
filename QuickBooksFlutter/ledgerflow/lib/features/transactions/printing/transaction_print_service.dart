@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -295,7 +294,6 @@ class TransactionPrintService {
               _moneyRow('Subtotal', totals.subtotal, totals.currency, moneyFmt),
               if (totals.discountTotal != 0) _moneyRow('Discount', totals.discountTotal, totals.currency, moneyFmt),
               if (totals.taxTotal != 0) _moneyRow('Tax', totals.taxTotal, totals.currency, moneyFmt),
-              if (totals.shipping != 0) _moneyRow('Shipping', totals.shipping, totals.currency, moneyFmt),
               pw.Divider(color: PdfColors.grey500),
               _moneyRow('Total', totals.total, totals.currency, moneyFmt, bold: true),
               _moneyRow('Payments applied', totals.paid, totals.currency, moneyFmt),
