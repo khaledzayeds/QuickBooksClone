@@ -32,11 +32,11 @@ class InvoiceShell extends StatelessWidget {
     required this.onLinesChanged,
     required this.onSaveDraft,
     required this.onSave,
-    required this.onSaveAndNew,
+    this.onSaveAndNew,
     required this.onPost,
     required this.onPrint,
     required this.onVoid,
-    required this.onClear,
+    this.onClear,
     required this.onClose,
     this.onViewAll,
     this.onEditNotes,
@@ -63,11 +63,11 @@ class InvoiceShell extends StatelessWidget {
   final VoidCallback onLinesChanged;
   final VoidCallback onSaveDraft;
   final VoidCallback onSave;
-  final VoidCallback onSaveAndNew;
+  final VoidCallback? onSaveAndNew;
   final VoidCallback onPost;
   final VoidCallback onPrint;
   final VoidCallback onVoid;
-  final VoidCallback onClear;
+  final VoidCallback? onClear;
   final VoidCallback onClose;
   final VoidCallback? onViewAll;
   final VoidCallback? onEditNotes;
@@ -76,6 +76,8 @@ class InvoiceShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final busy = saving || posting;
     final cs = Theme.of(context).colorScheme;
+    final clearAction = onClear ?? onClose;
+    final saveAndNewAction = onSaveAndNew ?? onSaveDraft;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8EDF0),
@@ -110,13 +112,13 @@ class InvoiceShell extends StatelessWidget {
                     saving: saving,
                     posting: posting,
                     isEdit: isEdit,
-                    onNew: onClear,
+                    onNew: clearAction,
                     onSaveDraft: onSaveDraft,
                     onSave: onSave,
                     onPost: onPost,
                     onPrint: onPrint,
                     onVoid: onVoid,
-                    onClear: onClear,
+                    onClear: clearAction,
                     onClose: onClose,
                     onEditNotes: onEditNotes,
                   ),
@@ -152,8 +154,8 @@ class InvoiceShell extends StatelessWidget {
                                     saving: saving,
                                     posting: posting,
                                     onSaveAndClose: onSave,
-                                    onSaveAndNew: onSaveAndNew,
-                                    onClear: onClear,
+                                    onSaveAndNew: saveAndNewAction,
+                                    onClear: clearAction,
                                   ),
                                 ),
                               ],
