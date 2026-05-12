@@ -67,7 +67,7 @@ class InvoiceShell extends StatelessWidget {
     final busy = saving || posting;
 
     return TransactionFormShell(
-      title: 'New Invoice',
+      title: 'Invoice',
       breadcrumb: 'Sales / Invoices / New',
       onBack: onClose,
       shortcuts: TransactionFormShortcutSet(
@@ -94,6 +94,7 @@ class InvoiceShell extends StatelessWidget {
         memoField: memoField,
         lines: lines,
         totals: totals,
+        customer: customer,
         onAddLine: onAddLine,
         onLinesChanged: onLinesChanged,
       ),
