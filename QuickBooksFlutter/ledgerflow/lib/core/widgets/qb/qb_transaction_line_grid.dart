@@ -270,25 +270,24 @@ class _DesktopGrid extends StatelessWidget {
   final VoidCallback onChanged;
   final Future<void> Function() onRetryItems;
 
-  double get _colAction => compact ? 28 : 34;
-  double get _colQty => compact ? 52 : 66;
-  double get _colRate => compact ? 72 : 94;
-  double get _colTotal => compact ? 78 : 108;
+  double get _colQty => compact ? 76 : 86;
+  double get _colRate => compact ? 84 : 94;
+  double get _colTotal => compact ? 96 : 108;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final rowHeight = compact ? 30.0 : 36.0;
-    final headerHeight = compact ? 26.0 : 30.0;
+    final rowHeight = compact ? 28.0 : 34.0;
+    final headerHeight = compact ? 24.0 : 28.0;
 
     return Container(
       width: double.infinity,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: cs.surface,
-        border: Border.all(color: cs.outlineVariant),
+        border: Border.all(color: const Color(0xFF9FB0B9)),
       ),
       child: Column(
         children: [
@@ -296,10 +295,9 @@ class _DesktopGrid extends StatelessWidget {
             height: headerHeight,
             child: Row(
               children: [
-                QbGridHeaderCell(label: '#', width: _colAction, compact: compact, align: TextAlign.center),
                 _FlexHeader(label: l10n.itemService.toUpperCase(), compact: compact, flex: 4),
-                _FlexHeader(label: l10n.description.toUpperCase(), compact: compact, flex: 6),
-                QbGridHeaderCell(label: l10n.qty.toUpperCase(), width: _colQty, compact: compact, align: TextAlign.center),
+                QbGridHeaderCell(label: 'QUANTITY', width: _colQty, compact: compact, align: TextAlign.center),
+                _FlexHeader(label: l10n.description.toUpperCase(), compact: compact, flex: 7),
                 QbGridHeaderCell(label: l10n.rate.toUpperCase(), width: _colRate, compact: compact, align: TextAlign.right),
                 QbGridHeaderCell(label: l10n.amount.toUpperCase(), width: _colTotal, compact: compact, align: TextAlign.right, last: true),
               ],
@@ -319,10 +317,10 @@ class _DesktopGrid extends StatelessWidget {
                 final lastLine = index == lines.length - 1;
                 final selected = index == selectedIndex;
                 final bg = selected
-                    ? cs.primary.withValues(alpha: 0.10)
+                    ? const Color(0xFFDDECF1)
                     : index.isEven
-                        ? cs.surface
-                        : cs.primaryContainer.withValues(alpha: 0.14);
+                        ? Colors.white
+                        : const Color(0xFFF2F6F8);
 
                 return Focus(
                   onKeyEvent: (node, event) {
@@ -342,19 +340,6 @@ class _DesktopGrid extends StatelessWidget {
                       color: bg,
                       child: Row(
                         children: [
-                          QbGridCellFrame(
-                            width: _colAction,
-                            compact: compact,
-                            alignment: Alignment.center,
-                            child: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                fontSize: compact ? 10 : 11,
-                                fontWeight: FontWeight.w800,
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
                           FocusTraversalOrder(
                             order: NumericFocusOrder(index * 10 + 1),
                             child: _FlexCell(
@@ -371,20 +356,6 @@ class _DesktopGrid extends StatelessWidget {
                                 onPicked: (item) => onPickItem(index, item),
                                 onSubmittedPick: () => onEnterCommit(index),
                                 onLastCellCommit: lastLine ? onLastCellCommit : null,
-                              ),
-                            ),
-                          ),
-                          FocusTraversalOrder(
-                            order: NumericFocusOrder(index * 10 + 4),
-                            child: _FlexCell(
-                              compact: compact,
-                              flex: 6,
-                              child: QbGridTextCell(
-                                controller: line.descCtrl,
-                                hint: l10n.description,
-                                compact: compact,
-                                onSubmitted: lastLine ? onLastCellCommit : null,
-                                onChanged: onChanged,
                               ),
                             ),
                           ),
@@ -408,6 +379,20 @@ class _DesktopGrid extends StatelessWidget {
                           ),
                           FocusTraversalOrder(
                             order: NumericFocusOrder(index * 10 + 3),
+                            child: _FlexCell(
+                              compact: compact,
+                              flex: 7,
+                              child: QbGridTextCell(
+                                controller: line.descCtrl,
+                                hint: l10n.description,
+                                compact: compact,
+                                onSubmitted: lastLine ? onLastCellCommit : null,
+                                onChanged: onChanged,
+                              ),
+                            ),
+                          ),
+                          FocusTraversalOrder(
+                            order: NumericFocusOrder(index * 10 + 4),
                             child: QbGridCellFrame(
                               width: _colRate,
                               compact: compact,
@@ -486,16 +471,15 @@ class _FlexHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Expanded(
       flex: flex,
       child: SizedBox.expand(
         child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerHigh,
+          decoration: const BoxDecoration(
+            color: Color(0xFFDCE6EA),
             border: Border(
-              right: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.7)),
-              bottom: BorderSide(color: cs.outlineVariant),
+              right: BorderSide(color: Color(0xFF9FB0B9)),
+              bottom: BorderSide(color: Color(0xFF9FB0B9)),
             ),
           ),
           child: Padding(
@@ -508,9 +492,9 @@ class _FlexHeader extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: compact ? 9 : 10,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
-                  color: cs.onSurfaceVariant,
+                  color: const Color(0xFF314A56),
                 ),
               ),
             ),
@@ -530,15 +514,14 @@ class _FlexCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Expanded(
       flex: flex,
       child: SizedBox.expand(
         child: DecoratedBox(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             border: Border(
-              right: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.55)),
-              bottom: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.55)),
+              right: BorderSide(color: Color(0xFFC9D3D8)),
+              bottom: BorderSide(color: Color(0xFFC9D3D8)),
             ),
           ),
           child: child,
