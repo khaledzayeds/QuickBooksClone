@@ -32,9 +32,11 @@ class InvoiceShell extends StatelessWidget {
     required this.onLinesChanged,
     required this.onSaveDraft,
     required this.onSave,
+    required this.onSaveAndNew,
     required this.onPost,
     required this.onPrint,
     required this.onVoid,
+    required this.onClear,
     required this.onClose,
     this.onViewAll,
     this.onEditNotes,
@@ -61,9 +63,11 @@ class InvoiceShell extends StatelessWidget {
   final VoidCallback onLinesChanged;
   final VoidCallback onSaveDraft;
   final VoidCallback onSave;
+  final VoidCallback onSaveAndNew;
   final VoidCallback onPost;
   final VoidCallback onPrint;
   final VoidCallback onVoid;
+  final VoidCallback onClear;
   final VoidCallback onClose;
   final VoidCallback? onViewAll;
   final VoidCallback? onEditNotes;
@@ -106,11 +110,13 @@ class InvoiceShell extends StatelessWidget {
                     saving: saving,
                     posting: posting,
                     isEdit: isEdit,
+                    onNew: onClear,
                     onSaveDraft: onSaveDraft,
                     onSave: onSave,
                     onPost: onPost,
                     onPrint: onPrint,
                     onVoid: onVoid,
+                    onClear: onClear,
                     onClose: onClose,
                     onEditNotes: onEditNotes,
                   ),
@@ -146,8 +152,8 @@ class InvoiceShell extends StatelessWidget {
                                     saving: saving,
                                     posting: posting,
                                     onSaveAndClose: onSave,
-                                    onSaveAndNew: onSaveDraft,
-                                    onClear: onClose,
+                                    onSaveAndNew: onSaveAndNew,
+                                    onClear: onClear,
                                   ),
                                 ),
                               ],
@@ -244,11 +250,13 @@ class _InvoiceCommandBar extends StatelessWidget {
     required this.saving,
     required this.posting,
     required this.isEdit,
+    required this.onNew,
     required this.onSaveDraft,
     required this.onSave,
     required this.onPost,
     required this.onPrint,
     required this.onVoid,
+    required this.onClear,
     required this.onClose,
     this.onEditNotes,
   });
@@ -256,11 +264,13 @@ class _InvoiceCommandBar extends StatelessWidget {
   final bool saving;
   final bool posting;
   final bool isEdit;
+  final VoidCallback onNew;
   final VoidCallback onSaveDraft;
   final VoidCallback onSave;
   final VoidCallback onPost;
   final VoidCallback onPrint;
   final VoidCallback onVoid;
+  final VoidCallback onClear;
   final VoidCallback onClose;
   final VoidCallback? onEditNotes;
 
@@ -277,10 +287,10 @@ class _InvoiceCommandBar extends StatelessWidget {
         children: [
           const SizedBox(width: 8),
           _ToolAction(icon: Icons.search, label: 'Find'),
-          _ToolAction(icon: Icons.note_add_outlined, label: 'New'),
+          _ToolAction(icon: Icons.note_add_outlined, label: 'New', onTap: busy ? null : onNew),
           _ToolAction(icon: Icons.save_outlined, label: saving ? 'Saving' : 'Save', onTap: busy ? null : onSave),
           _ToolAction(icon: Icons.drafts_outlined, label: 'Draft', onTap: busy ? null : onSaveDraft),
-          _ToolAction(icon: Icons.delete_outline, label: isEdit ? 'Void' : 'Clear', onTap: isEdit ? onVoid : onClose),
+          _ToolAction(icon: Icons.delete_outline, label: isEdit ? 'Void' : 'Clear', onTap: isEdit ? onVoid : onClear),
           const _CommandSeparator(),
           _ToolAction(icon: Icons.print_outlined, label: 'Print', onTap: busy ? null : onPrint),
           _ToolAction(icon: Icons.email_outlined, label: 'Email'),
