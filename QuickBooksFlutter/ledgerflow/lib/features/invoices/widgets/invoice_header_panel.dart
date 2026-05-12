@@ -42,89 +42,94 @@ class InvoiceHeaderPanel extends StatelessWidget {
               children: [
                 _StripLabel('CUSTOMER:JOB'),
                 const SizedBox(width: 8),
-                SizedBox(width: 360, height: 30, child: customerField),
-                const SizedBox(width: 22),
+                Expanded(
+                  flex: 5,
+                  child: SizedBox(height: 30, child: customerField),
+                ),
+                const SizedBox(width: 16),
                 _StripLabel('TEMPLATE'),
                 const SizedBox(width: 8),
-                Container(
-                  width: 230,
-                  height: 30,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xFF9BAAB2)),
-                  ),
-                  child: Text(
-                    'Custom Sales Receipt Intuit S...',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF263C46),
-                      fontWeight: FontWeight.w600,
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    height: 30,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    alignment: Alignment.centerLeft,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFF9BAAB2)),
                     ),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'QuickBooks Desktop Style',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: const Color(0xFFDDE8EC),
-                    fontWeight: FontWeight.w700,
+                    child: Text(
+                      'Standard Invoice',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF263C46),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           SizedBox(
-            height: 164,
+            height: 146,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 14, 22, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 220,
-                    child: Text(
-                      'Invoice',
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w300,
-                        color: const Color(0xFF243E4A),
-                        letterSpacing: -1.0,
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 900;
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: compact ? 150 : 210,
+                        child: Text(
+                          'Invoice',
+                          style: theme.textTheme.displaySmall?.copyWith(
+                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFF243E4A),
+                            letterSpacing: -1.0,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 260,
-                    child: Column(
-                      children: [
-                        _HorizontalField(label: 'DATE', child: invoiceDateField),
-                        const SizedBox(height: 8),
-                        _HorizontalField(label: 'INVOICE #', child: invoiceNumberField),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 28),
-                  SizedBox(width: 250, child: _BillToBox(customer: customer)),
-                  const Spacer(),
-                  SizedBox(
-                    width: 300,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
+                      SizedBox(
+                        width: compact ? 230 : 260,
+                        child: Column(
                           children: [
-                            Expanded(child: _StackedField(label: 'P.O. NO.', child: _StaticBox(text: ''))),
-                            const SizedBox(width: 10),
-                            Expanded(child: _StackedField(label: 'TERMS', child: billingTermsField)),
+                            _HorizontalField(label: 'DATE', child: invoiceDateField),
+                            const SizedBox(height: 8),
+                            _HorizontalField(label: 'INVOICE #', child: invoiceNumberField),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        _StackedField(label: 'DUE DATE', child: dueDateField),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        flex: 4,
+                        child: _BillToBox(customer: customer),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(child: _StackedField(label: 'P.O. NO.', child: const _StaticBox(text: ''))),
+                                const SizedBox(width: 10),
+                                Expanded(child: _StackedField(label: 'TERMS', child: billingTermsField)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            _StackedField(label: 'DUE DATE', child: dueDateField),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -249,7 +254,7 @@ class _BillToBox extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Container(
-          height: 104,
+          height: 96,
           width: double.infinity,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
