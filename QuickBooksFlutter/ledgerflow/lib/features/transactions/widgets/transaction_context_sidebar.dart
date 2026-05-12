@@ -183,18 +183,16 @@ class _CustomerPanel extends StatelessWidget {
             ),
             child: const Text('View All'),
           ),
-          child: Expanded(
-            child: activities.isEmpty
-                ? const Center(child: _EmptyLine('No recent transactions.'))
-                : ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: activities.take(8).length,
-                    itemBuilder: (context, index) {
-                      final activity = activities[index];
-                      return _ActivityLine(activity: activity);
-                    },
-                  ),
-          ),
+          child: activities.isEmpty
+              ? const Center(child: _EmptyLine('No recent transactions.'))
+              : ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: activities.take(8).length,
+                  itemBuilder: (context, index) {
+                    final activity = activities[index];
+                    return _ActivityLine(activity: activity);
+                  },
+                ),
           expanded: true,
         ),
         _Section(
@@ -313,10 +311,18 @@ class _Section extends StatelessWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: child,
-          ),
+          if (expanded)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: child,
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: child,
+            ),
         ],
       ),
     );
