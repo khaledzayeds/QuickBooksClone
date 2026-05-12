@@ -96,6 +96,52 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     _dueDateCtrl.text = _fmtDate(_dueDate);
   }
 
+  void _resetForm({bool showSavedMessage = false}) {
+    _previewDebounce?.cancel();
+    for (final line in _lines) {
+      line.dispose();
+    }
+    setState(() {
+      _customer = null;
+      _activity = null;
+      _preview = null;
+      _editingInvoice = null;
+      _savedInvoiceId = null;
+      _notes = '';
+      _invoiceDate = DateTime.now();
+      _dueDate = DateTime.now().add(const Duration(days: 14));
+      _terms = 'Net 14';
+      _saving = false;
+      _posting = false;
+      _loadingActivity = false;
+      _numberCtrl.text = 'AUTO';
+      _customerCtrl.clear();
+      _memoCtrl.clear();
+      _lines
+        ..clear()
+        ..addAll(List.generate(5, (_) => TransactionLineEntry()));
+      _syncDateControllers();
+    });
+
+    if (showSavedMessage && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invoice saved. Ready for a new invoice.')),
+      );
+    }
+  }
+
+  void _handleClearOrNew() {
+    if (_isEdit) {
+      context.go(AppRoutes.invoiceNew);
+      return;
+    }
+    _resetForm();
+  }
+
+  Future<void> _saveAndNew() async {
+    await _saveWithMode(_saveModeForDraft(), resetAfterSave: true);
+  }
+
   double get _localSubtotal => _lines.fold(0, (sum, line) => sum + line.amount);
 
   TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
@@ -302,7 +348,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     _previewDebounce = Timer(const Duration(milliseconds: 550), _runPreview);
   }
 
-  Future<void> _saveWithMode(int saveMode) async {
+  Future<void> _saveWithMode(int saveMode, {bool resetAfterSave = false}) async {
     final l10n = AppLocalizations.of(context)!;
     if (_customer == null) {
       _showError(l10n.selectCustomer);
@@ -353,7 +399,11 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           success: (updated) {
             ref.read(invoicesStateProvider.notifier).refresh();
             ref.invalidate(invoiceDetailsStateProvider(updated.id));
-            context.go('/sales/invoices/${updated.id}');
+            if (resetAfterSave) {
+              context.go(AppRoutes.invoiceNew);
+            } else {
+              context.go('/sales/invoices/${updated.id}');
+            }
           },
           failure: (error) => _showError(error.message),
         );
@@ -371,11 +421,13 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       if (!mounted) return;
       result.when(
         success: (invoice) {
-          setState(
-            () => _savedInvoiceId = invoice.id,
-          ); // ← capture id for notes
           ref.read(invoicesStateProvider.notifier).refresh();
-          context.go('/sales/invoices/${invoice.id}');
+          if (resetAfterSave) {
+            _resetForm(showSavedMessage: true);
+          } else {
+            setState(() => _savedInvoiceId = invoice.id);
+            context.go('/sales/invoices/${invoice.id}');
+          }
         },
         failure: (error) => _showError(error.message),
       );
@@ -661,9 +713,11 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       },
       onSaveDraft: () => _saveWithMode(_saveModeForDraft()),
       onSave: () => _saveWithMode(_saveModeForDraft()),
+      onSaveAndNew: _saveAndNew,
       onPost: () => _saveWithMode(_saveModeForPost()),
       onPrint: _handlePrint,
       onVoid: _handleVoid,
+      onClear: _handleClearOrNew,
       onClose: _goBack,
       onViewAll: _customer == null ? null : _openCustomerHistory,
       onEditNotes: _openNotesDialog,
