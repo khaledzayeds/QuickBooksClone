@@ -27,6 +27,7 @@ class InvoiceShell extends StatelessWidget {
     required this.memoText,
     required this.saving,
     required this.posting,
+    required this.isEdit,
     required this.onAddLine,
     required this.onLinesChanged,
     required this.onSaveDraft,
@@ -35,6 +36,8 @@ class InvoiceShell extends StatelessWidget {
     required this.onPrint,
     required this.onVoid,
     required this.onClose,
+    this.onViewAll,
+    this.onEditNotes,
   });
 
   final Widget customerField;
@@ -53,6 +56,7 @@ class InvoiceShell extends StatelessWidget {
   final String? memoText;
   final bool saving;
   final bool posting;
+  final bool isEdit;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
   final VoidCallback onSaveDraft;
@@ -61,6 +65,8 @@ class InvoiceShell extends StatelessWidget {
   final VoidCallback onPrint;
   final VoidCallback onVoid;
   final VoidCallback onClose;
+  final VoidCallback? onViewAll;
+  final VoidCallback? onEditNotes;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +85,7 @@ class InvoiceShell extends StatelessWidget {
       actions: buildInvoiceFormActions(
         saving: saving,
         posting: posting,
+        isEdit: isEdit,
         onSaveDraft: onSaveDraft,
         onSave: onSave,
         onPost: onPost,
@@ -106,6 +113,8 @@ class InvoiceShell extends StatelessWidget {
         isLoading: loadingActivity,
         warning: warning,
         memoText: memoText,
+        onViewAll: onViewAll,
+        onEditNotes: onEditNotes,
       ),
     );
   }

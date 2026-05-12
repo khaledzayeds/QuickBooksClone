@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_enums.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
@@ -19,8 +20,16 @@ import '../data/models/sales_preview_contracts.dart';
 import '../providers/invoices_state.dart';
 import '../widgets/invoice_form_fields.dart';
 import '../widgets/invoice_shell.dart';
+import '../widgets/notes_edit_dialog.dart';
 
-const _kInvoiceTerms = ['Due on receipt', 'Net 7', 'Net 14', 'Net 30', 'Net 45', 'Net 60'];
+const _kInvoiceTerms = [
+  'Due on receipt',
+  'Net 7',
+  'Net 14',
+  'Net 30',
+  'Net 45',
+  'Net 60',
+];
 
 class InvoiceFormPageShell extends ConsumerStatefulWidget {
   const InvoiceFormPageShell({super.key, this.id});
@@ -28,7 +37,8 @@ class InvoiceFormPageShell extends ConsumerStatefulWidget {
   final String? id;
 
   @override
-  ConsumerState<InvoiceFormPageShell> createState() => _InvoiceFormPageShellState();
+  ConsumerState<InvoiceFormPageShell> createState() =>
+      _InvoiceFormPageShellState();
 }
 
 class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
@@ -44,6 +54,10 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   bool _loadingActivity = false;
   bool _loadingExisting = false;
   Timer? _previewDebounce;
+
+  // ── Notes & saved invoice id ──────────────────────────────────
+  String? _savedInvoiceId;
+  String _notes = '';
 
   bool get _isEdit => widget.id != null && widget.id!.isNotEmpty;
 
@@ -85,17 +99,21 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   double get _localSubtotal => _lines.fold(0, (sum, line) => sum + line.amount);
 
   TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
-        subtotal: _preview?.subtotal ?? _editingInvoice?.subtotal ?? _localSubtotal,
-        discountTotal: _preview?.discountTotal ?? _editingInvoice?.discountAmount ?? 0,
-        taxTotal: _preview?.taxTotal ?? _editingInvoice?.taxAmount ?? 0,
-        total: _preview?.total ?? _editingInvoice?.totalAmount ?? _localSubtotal,
-        paid: _preview?.paidAmount ?? _editingInvoice?.paidAmount ?? 0,
-        balanceDue: _preview?.balanceDue ?? _editingInvoice?.balanceDue ?? _localSubtotal,
-        currency: _activity?.currency ?? _customer?.currency ?? 'EGP',
-      );
+    subtotal: _preview?.subtotal ?? _editingInvoice?.subtotal ?? _localSubtotal,
+    discountTotal:
+        _preview?.discountTotal ?? _editingInvoice?.discountAmount ?? 0,
+    taxTotal: _preview?.taxTotal ?? _editingInvoice?.taxAmount ?? 0,
+    total: _preview?.total ?? _editingInvoice?.totalAmount ?? _localSubtotal,
+    paid: _preview?.paidAmount ?? _editingInvoice?.paidAmount ?? 0,
+    balanceDue:
+        _preview?.balanceDue ?? _editingInvoice?.balanceDue ?? _localSubtotal,
+    currency: _activity?.currency ?? _customer?.currency ?? 'EGP',
+  );
 
   List<TransactionLineEntry> _validLines() {
-    return _lines.where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0).toList();
+    return _lines
+        .where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0)
+        .toList();
   }
 
   List<TransactionContextMetric> get _metrics {
@@ -105,13 +123,15 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       if (_customer != null)
         TransactionContextMetric(
           label: 'Open balance',
-          value: '${fmt.format(_activity?.openBalance ?? _customer!.balance)} $currency',
+          value:
+              '${fmt.format(_activity?.openBalance ?? _customer!.balance)} $currency',
           icon: Icons.receipt_long_outlined,
         ),
       if (_customer != null)
         TransactionContextMetric(
           label: 'Credits',
-          value: '${fmt.format(_activity?.creditBalance ?? _customer!.creditBalance)} $currency',
+          value:
+              '${fmt.format(_activity?.creditBalance ?? _customer!.creditBalance)} $currency',
           icon: Icons.credit_score_outlined,
         ),
       TransactionContextMetric(
@@ -132,39 +152,45 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     final activity = _activity;
     if (activity == null) return const [];
     final rows = <TransactionContextActivity>[];
-    rows.addAll(activity.recentInvoices.map(
-      (invoice) => TransactionContextActivity(
-        title: 'Invoice ${invoice.number}',
-        subtitle: _fmtDate(invoice.date),
-        amount: '${invoice.balanceDue.toStringAsFixed(2)} ${activity.currency}',
-        status: 'Balance',
+    rows.addAll(
+      activity.recentInvoices.map(
+        (invoice) => TransactionContextActivity(
+          title: 'Invoice ${invoice.number}',
+          subtitle: _fmtDate(invoice.date),
+          amount:
+              '${invoice.balanceDue.toStringAsFixed(2)} ${activity.currency}',
+          status: 'Balance',
+        ),
       ),
-    ));
-    rows.addAll(activity.recentSalesReceipts.map(
-      (receipt) => TransactionContextActivity(
-        title: 'Receipt ${receipt.number}',
-        subtitle: _fmtDate(receipt.date),
-        amount: '${receipt.totalAmount.toStringAsFixed(2)} ${activity.currency}',
-        status: 'Paid',
+    );
+    rows.addAll(
+      activity.recentSalesReceipts.map(
+        (receipt) => TransactionContextActivity(
+          title: 'Receipt ${receipt.number}',
+          subtitle: _fmtDate(receipt.date),
+          amount:
+              '${receipt.totalAmount.toStringAsFixed(2)} ${activity.currency}',
+          status: 'Paid',
+        ),
       ),
-    ));
-    rows.addAll(activity.recentPayments.map(
-      (payment) => TransactionContextActivity(
-        title: 'Payment ${payment.number}',
-        subtitle: '${_fmtDate(payment.paymentDate)} • ${payment.paymentMethod}',
-        amount: '${payment.amount.toStringAsFixed(2)} ${activity.currency}',
-        status: 'Payment',
+    );
+    rows.addAll(
+      activity.recentPayments.map(
+        (payment) => TransactionContextActivity(
+          title: 'Payment ${payment.number}',
+          subtitle:
+              '${_fmtDate(payment.paymentDate)} • ${payment.paymentMethod}',
+          amount: '${payment.amount.toStringAsFixed(2)} ${activity.currency}',
+          status: 'Payment',
+        ),
       ),
-    ));
+    );
     return rows.take(8).toList();
   }
 
   String? get _warning {
     if (_customer == null) return 'No customer selected yet.';
-    final warnings = <String>[
-      ...?_activity?.warnings,
-      ...?_preview?.warnings,
-    ];
+    final warnings = <String>[...?_activity?.warnings, ...?_preview?.warnings];
     return warnings.isEmpty ? null : warnings.take(4).join('\n');
   }
 
@@ -202,6 +228,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         }).toList();
         setState(() {
           _editingInvoice = invoice;
+          _savedInvoiceId = invoice.id;
           _invoiceDate = invoice.invoiceDate;
           _dueDate = invoice.dueDate;
           _numberCtrl.text = invoice.invoiceNumber;
@@ -215,7 +242,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           _customerCtrl.text = invoice.customerName;
           _lines
             ..clear()
-            ..addAll(loadedLines.isEmpty ? [TransactionLineEntry()] : loadedLines);
+            ..addAll(
+              loadedLines.isEmpty ? [TransactionLineEntry()] : loadedLines,
+            );
           _preview = null;
           _syncDateControllers();
         });
@@ -227,7 +256,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
 
   Future<void> _loadCustomerActivity(String customerId) async {
     setState(() => _loadingActivity = true);
-    final result = await ref.read(invoicesRepoProvider).getCustomerActivity(customerId, limit: 5);
+    final result = await ref
+        .read(invoicesRepoProvider)
+        .getCustomerActivity(customerId, limit: 5);
     if (!mounted) return;
     setState(() => _loadingActivity = false);
     result.when(
@@ -246,7 +277,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           .map(
             (line) => PreviewSalesLineDto(
               itemId: line.itemId!,
-              description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
+              description: line.descCtrl.text.trim().isEmpty
+                  ? line.itemName
+                  : line.descCtrl.text.trim(),
               quantity: line.qty,
               unitPrice: line.rate,
             ),
@@ -289,7 +322,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         .map(
           (line) => CreateInvoiceLineDto(
             itemId: line.itemId!,
-            description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
+            description: line.descCtrl.text.trim().isEmpty
+                ? line.itemName
+                : line.descCtrl.text.trim(),
             quantity: line.qty,
             unitPrice: line.rate,
           ),
@@ -310,7 +345,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           dueDate: _dueDate,
           lines: lines,
         );
-        final result = await ref.read(invoicesRepoProvider).update(widget.id!, dto);
+        final result = await ref
+            .read(invoicesRepoProvider)
+            .update(widget.id!, dto);
         if (!mounted) return;
         result.when(
           success: (updated) {
@@ -334,6 +371,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       if (!mounted) return;
       result.when(
         success: (invoice) {
+          setState(
+            () => _savedInvoiceId = invoice.id,
+          ); // ← capture id for notes
           ref.read(invoicesStateProvider.notifier).refresh();
           context.go('/sales/invoices/${invoice.id}');
         },
@@ -359,7 +399,8 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     if (picked == null || !mounted) return;
     setState(() {
       _invoiceDate = picked;
-      if (_dueDate.isBefore(_invoiceDate)) _dueDate = _invoiceDate.add(const Duration(days: 14));
+      if (_dueDate.isBefore(_invoiceDate))
+        _dueDate = _invoiceDate.add(const Duration(days: 14));
       _preview = null;
       _editingInvoice = null;
       _syncDateControllers();
@@ -407,7 +448,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     final totals = _totals;
     final model = TransactionPrintModel(
       documentTitle: 'Invoice',
-      documentNumber: _numberCtrl.text.trim().isEmpty ? 'Preview' : _numberCtrl.text.trim(),
+      documentNumber: _numberCtrl.text.trim().isEmpty
+          ? 'Preview'
+          : _numberCtrl.text.trim(),
       documentDate: _invoiceDate,
       dueDate: _dueDate,
       partyLabel: 'Customer',
@@ -416,7 +459,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       lines: validLines
           .map(
             (line) => TransactionPrintLine(
-              itemName: line.itemName.trim().isEmpty ? 'Item' : line.itemName.trim(),
+              itemName: line.itemName.trim().isEmpty
+                  ? 'Item'
+                  : line.itemName.trim(),
               description: line.descCtrl.text.trim(),
               quantity: line.qty,
               rate: line.rate,
@@ -444,14 +489,19 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
 
   void _handleVoid() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Void is available from saved invoice details.')),
+      const SnackBar(
+        content: Text('Void is available from saved invoice details.'),
+      ),
     );
   }
 
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 
@@ -467,12 +517,59 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     }
   }
 
+  // ── Notes dialog ──────────────────────────────────────────────
+  Future<void> _openNotesDialog() async {
+    final invoiceId =
+        _savedInvoiceId ?? (widget.id?.isNotEmpty == true ? widget.id : null);
+    if (invoiceId == null || invoiceId.trim().isEmpty) {
+      _showError('Save the invoice before adding notes.');
+      return;
+    }
+    try {
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/invoices/$invoiceId/notes',
+      );
+      final notes = response.data?['notes']?.toString() ?? _notes;
+      if (!mounted) return;
+      setState(() => _notes = notes);
+    } catch (_) {}
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (_) => NotesEditDialog(
+        initialNotes: _notes,
+        onSave: (newNotes) async {
+          final response = await ApiClient.instance.post<Map<String, dynamic>>(
+            '/api/invoices/$invoiceId/notes',
+            data: {'notes': newNotes},
+          );
+          final saved = response.data?['notes']?.toString() ?? newNotes;
+          if (mounted) setState(() => _notes = saved);
+        },
+      ),
+    );
+  }
+
+  // ── View All customer transactions ────────────────────────────
+  void _openCustomerHistory() {
+    final customer = _customer;
+    if (customer == null) return;
+    context.push(
+      AppRoutes.customerTransactionHistory,
+      extra: {'customerId': customer.id, 'customerName': customer.displayName},
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_loadingExisting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loadingExisting)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final l10n = AppLocalizations.of(context)!;
-    final customers = ref.watch(customersProvider).maybeWhen(
-          data: (items) => items.where((customer) => customer.isActive).toList(),
+    final customers = ref
+        .watch(customersProvider)
+        .maybeWhen(
+          data: (items) =>
+              items.where((customer) => customer.isActive).toList(),
           orElse: () => const <CustomerModel>[],
         );
 
@@ -553,6 +650,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       memoText: _memoCtrl.text,
       saving: _saving,
       posting: _posting,
+      isEdit: _isEdit,
       onAddLine: _addLine,
       onLinesChanged: () {
         setState(() {
@@ -567,6 +665,8 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       onPrint: _handlePrint,
       onVoid: _handleVoid,
       onClose: _goBack,
+      onViewAll: _customer == null ? null : _openCustomerHistory,
+      onEditNotes: _openNotesDialog,
     );
   }
 }

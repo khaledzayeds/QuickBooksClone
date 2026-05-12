@@ -5,11 +5,12 @@ import '../../transactions/widgets/transaction_form_shell.dart';
 List<TransactionFormAction> buildInvoiceFormActions({
   required bool saving,
   required bool posting,
+  required bool isEdit,
   required VoidCallback onSaveDraft,
   required VoidCallback onSave,
   required VoidCallback onPost,
   required VoidCallback onPrint,
-  required VoidCallback onVoid,
+  required VoidCallback? onVoid,
 }) {
   final busy = saving || posting;
 
@@ -22,13 +23,14 @@ List<TransactionFormAction> buildInvoiceFormActions({
       enabled: !busy,
       onPressed: onPrint,
     ),
-    TransactionFormAction(
-      label: 'Void',
-      icon: Icons.block_outlined,
-      style: TransactionFormActionStyle.text,
-      enabled: !busy,
-      onPressed: onVoid,
-    ),
+    if (isEdit)
+      TransactionFormAction(
+        label: 'Void',
+        icon: Icons.block_outlined,
+        style: TransactionFormActionStyle.text,
+        enabled: !busy,
+        onPressed: onVoid,
+      ),
     TransactionFormAction(
       label: 'Save Draft',
       icon: Icons.drafts_outlined,
