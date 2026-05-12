@@ -13,11 +13,11 @@ class InvoiceLinesPanel extends StatelessWidget {
     required this.onAddLine,
     required this.onLinesChanged,
     required this.memoField,
-    required this.saving,
-    required this.posting,
-    required this.onSaveAndClose,
-    required this.onSaveAndNew,
-    required this.onClear,
+    this.saving = false,
+    this.posting = false,
+    this.onSaveAndClose,
+    this.onSaveAndNew,
+    this.onClear,
   });
 
   final List<TransactionLineEntry> lines;
@@ -27,14 +27,13 @@ class InvoiceLinesPanel extends StatelessWidget {
   final Widget memoField;
   final bool saving;
   final bool posting;
-  final VoidCallback onSaveAndClose;
-  final VoidCallback onSaveAndNew;
-  final VoidCallback onClear;
+  final VoidCallback? onSaveAndClose;
+  final VoidCallback? onSaveAndNew;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final busy = saving || posting;
 
     return Column(
       children: [
@@ -111,18 +110,18 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
     required this.memoField,
     required this.saving,
     required this.posting,
-    required this.onSaveAndClose,
-    required this.onSaveAndNew,
-    required this.onClear,
+    this.onSaveAndClose,
+    this.onSaveAndNew,
+    this.onClear,
   });
 
   final TransactionTotalsUiModel totals;
   final Widget memoField;
   final bool saving;
   final bool posting;
-  final VoidCallback onSaveAndClose;
-  final VoidCallback onSaveAndNew;
-  final VoidCallback onClear;
+  final VoidCallback? onSaveAndClose;
+  final VoidCallback? onSaveAndNew;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
