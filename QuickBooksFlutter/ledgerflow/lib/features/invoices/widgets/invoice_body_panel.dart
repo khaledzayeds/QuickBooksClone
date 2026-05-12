@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../customers/data/models/customer_model.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import 'invoice_header_panel.dart';
@@ -16,6 +17,7 @@ class InvoiceBodyPanel extends StatelessWidget {
     required this.memoField,
     required this.lines,
     required this.totals,
+    required this.customer,
     required this.onAddLine,
     required this.onLinesChanged,
   });
@@ -28,6 +30,7 @@ class InvoiceBodyPanel extends StatelessWidget {
   final Widget memoField;
   final List<TransactionLineEntry> lines;
   final TransactionTotalsUiModel totals;
+  final CustomerModel? customer;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
 
@@ -44,6 +47,7 @@ class InvoiceBodyPanel extends StatelessWidget {
           dueDateField: dueDateField,
           billingTermsField: billingTermsField,
           memoField: memoField,
+          customer: customer,
         ),
         Divider(height: 1, color: theme.dividerColor),
         InvoiceLinesPanel(
