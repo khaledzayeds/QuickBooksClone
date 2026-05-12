@@ -25,109 +25,200 @@ class InvoiceHeaderPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
 
     return Container(
-      color: cs.surface,
+      color: Colors.white,
       child: Column(
-        mainAxisSize: MainAxisSize.min, // ← FIX: no unbounded height
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Customer + Template row ───────────────────────────
           Container(
-            color: cs.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF264D5B),
+              border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+            ),
             child: Row(
               children: [
-                // FIX: Flexible instead of fixed SizedBox — adapts to width
-                Flexible(
-                  flex: 4,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 380),
-                    child: customerField,
-                  ),
-                ),
-                const SizedBox(width: 18),
-                Text(
-                  'Template',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                _StripLabel('CUSTOMER:JOB'),
                 const SizedBox(width: 8),
-                Flexible(
-                  flex: 3,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minWidth: 150,
-                      maxWidth: 240,
-                    ),
-                    child: Container(
-                      height: 32,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      alignment: Alignment.centerLeft,
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        border: Border.all(color: cs.outlineVariant),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'Standard invoice',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Invoice title + date + number ─────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 18, 28, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
+                SizedBox(width: 360, height: 30, child: customerField),
+                const SizedBox(width: 22),
+                _StripLabel('TEMPLATE'),
+                const SizedBox(width: 8),
+                Container(
                   width: 230,
+                  height: 30,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFF9BAAB2)),
+                  ),
                   child: Text(
-                    'Invoice',
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      color: cs.onSurface,
-                      letterSpacing: -1.2,
+                    'Custom Sales Receipt Intuit S...',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF263C46),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 const Spacer(),
-                SizedBox(width: 142, child: invoiceDateField),
-                const SizedBox(width: 12),
-                SizedBox(width: 142, child: invoiceNumberField),
+                Text(
+                  'QuickBooks Desktop Style',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFFDDE8EC),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
-
-          // ── BillTo + due date + terms + memo ──────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                SizedBox(width: 230, child: _BillToBox(customer: customer)),
-                const Spacer(),
-                SizedBox(width: 140, child: dueDateField),
-                const SizedBox(width: 12),
-                SizedBox(width: 130, child: billingTermsField),
-                const SizedBox(width: 12),
-                SizedBox(width: 270, child: memoField),
-              ],
+          SizedBox(
+            height: 164,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 14, 22, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 220,
+                    child: Text(
+                      'Invoice',
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w300,
+                        color: const Color(0xFF243E4A),
+                        letterSpacing: -1.0,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 260,
+                    child: Column(
+                      children: [
+                        _HorizontalField(label: 'DATE', child: invoiceDateField),
+                        const SizedBox(height: 8),
+                        _HorizontalField(label: 'INVOICE #', child: invoiceNumberField),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 28),
+                  SizedBox(width: 250, child: _BillToBox(customer: customer)),
+                  const Spacer(),
+                  SizedBox(
+                    width: 300,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: _StackedField(label: 'P.O. NO.', child: _StaticBox(text: ''))),
+                            const SizedBox(width: 10),
+                            Expanded(child: _StackedField(label: 'TERMS', child: billingTermsField)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _StackedField(label: 'DUE DATE', child: dueDateField),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StripLabel extends StatelessWidget {
+  const _StripLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.4,
+          ),
+    );
+  }
+}
+
+class _HorizontalField extends StatelessWidget {
+  const _HorizontalField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 82,
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFF53656E),
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
+        Expanded(child: SizedBox(height: 34, child: child)),
+      ],
+    );
+  }
+}
+
+class _StackedField extends StatelessWidget {
+  const _StackedField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: const Color(0xFF53656E),
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(height: 34, child: child),
+      ],
+    );
+  }
+}
+
+class _StaticBox extends StatelessWidget {
+  const _StaticBox({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB7C3CB)),
+      ),
+      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
 }
@@ -140,12 +231,9 @@ class _BillToBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final lines = <String>[
-      if (customer?.displayName.trim().isNotEmpty == true)
-        customer!.displayName,
-      if (customer?.companyName?.trim().isNotEmpty == true)
-        customer!.companyName!,
+      if (customer?.displayName.trim().isNotEmpty == true) customer!.displayName,
+      if (customer?.companyName?.trim().isNotEmpty == true) customer!.companyName!,
       if (customer?.phone?.trim().isNotEmpty == true) customer!.phone!,
     ];
 
@@ -155,37 +243,37 @@ class _BillToBox extends StatelessWidget {
         Text(
           'BILL TO',
           style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF53656E),
           ),
         ),
         const SizedBox(height: 4),
         Container(
-          height: 86,
+          height: 104,
           width: double.infinity,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: cs.surface,
-            border: Border.all(color: cs.outlineVariant),
-            borderRadius: BorderRadius.circular(4),
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFB7C3CB)),
           ),
           child: lines.isEmpty
               ? Text(
                   'Select a customer',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF7B8B93)),
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: lines
-                      .take(3)
+                      .take(4)
                       .map(
                         (line) => Text(
                           line,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF253C47),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       )
                       .toList(),
