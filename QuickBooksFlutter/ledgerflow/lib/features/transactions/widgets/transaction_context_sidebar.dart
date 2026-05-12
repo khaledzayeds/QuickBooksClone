@@ -36,276 +36,397 @@ class TransactionContextSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final hasParty = initials != null && title.trim().isNotEmpty;
 
     return Container(
-      width: 320,
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(left: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.7))),
-      ),
+      color: const Color(0xFFF4F7F8),
       child: isLoading
           ? const Center(child: CircularProgressIndicator())
           : hasParty
-              ? SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _PartyCard(title: title, subtitle: subtitle, initials: initials!),
-                      if (warning != null && warning!.trim().isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        _WarningCard(message: warning!),
-                      ],
-                      if (metrics.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        _MetricsCard(metrics: metrics),
-                      ],
-                      if (totals != null) ...[
-                        const SizedBox(height: 12),
-                        _SummaryCard(totals: totals!),
-                      ],
-                      const SizedBox(height: 12),
-                      DefaultTabController(
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _PanelHeader(title: title, subtitle: subtitle),
+                    if (warning != null && warning!.trim().isNotEmpty)
+                      _WarningStrip(message: warning!),
+                    Expanded(
+                      child: DefaultTabController(
                         length: 2,
                         child: Column(
                           children: [
-                            Material(
-                              color: cs.surfaceContainerLowest,
-                              borderRadius: BorderRadius.circular(12),
-                              child: TabBar(
+                            Container(
+                              height: 34,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE1E9ED),
+                                border: Border(
+                                  top: BorderSide(color: Color(0xFFB8C6CE)),
+                                  bottom: BorderSide(color: Color(0xFFB8C6CE)),
+                                ),
+                              ),
+                              child: const TabBar(
+                                labelPadding: EdgeInsets.zero,
                                 indicatorSize: TabBarIndicatorSize.tab,
                                 dividerColor: Colors.transparent,
-                                tabs: const [
-                                  Tab(text: 'Transactions'),
-                                  Tab(text: 'Notes'),
+                                tabs: [
+                                  Tab(text: 'Customer'),
+                                  Tab(text: 'Transaction'),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              height: 320,
+                            Expanded(
                               child: TabBarView(
-                                physics: const ClampingScrollPhysics(),
+                                physics: const NeverScrollableScrollPhysics(),
                                 children: [
-                                  _ActivityCard(activities: activities, onViewAll: onViewAll),
-                                  _NotesCard(notes: notes, onEditNotes: onEditNotes),
+                                  _CustomerPanel(
+                                    metrics: metrics,
+                                    activities: activities,
+                                    notes: notes,
+                                    onViewAll: onViewAll,
+                                    onEditNotes: onEditNotes,
+                                  ),
+                                  _TransactionPanel(totals: totals),
                                 ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                  child: _EmptyCard(title: emptyTitle, message: emptyMessage),
-                ),
+              : _EmptyPanel(title: emptyTitle, message: emptyMessage),
     );
   }
 }
 
-class _PartyCard extends StatelessWidget {
-  const _PartyCard({required this.title, required this.initials, this.subtitle});
+class _PanelHeader extends StatelessWidget {
+  const _PanelHeader({required this.title, this.subtitle});
 
   final String title;
-  final String initials;
   final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Card(
-      elevation: 0,
-      color: cs.primaryContainer.withValues(alpha: 0.25),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: cs.primary.withValues(alpha: 0.14))),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: cs.primary,
-              child: Text(initials, style: TextStyle(fontWeight: FontWeight.w900, color: cs.onPrimary, fontSize: 18)),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+      decoration: const BoxDecoration(
+        color: Color(0xFF264D5B),
+        border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
             ),
-            const SizedBox(height: 12),
-            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-            if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(subtitle!, textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricsCard extends StatelessWidget {
-  const _MetricsCard({required this.metrics});
-
-  final List<TransactionContextMetric> metrics;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: cs.outlineVariant)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: metrics
-              .map((metric) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 7),
-                    child: Row(
-                      children: [
-                        CircleAvatar(radius: 17, backgroundColor: cs.primaryContainer.withValues(alpha: 0.45), child: Icon(metric.icon, size: 18, color: cs.primary)),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(metric.label, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant))),
-                        Text(metric.value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900)),
-                      ],
-                    ),
-                  ))
-              .toList(),
-        ),
-      ),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.totals});
-
-  final TransactionTotalsUiModel totals;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: cs.outlineVariant)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Summary', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary)),
-            const Divider(height: 22),
-            _TotalRow('Subtotal', totals.subtotal, totals.currency),
-            _TotalRow('Discount', totals.discountTotal, totals.currency),
-            _TotalRow('Tax', totals.taxTotal, totals.currency),
-            const Divider(height: 18),
-            _TotalRow('Total', totals.total, totals.currency, strong: true),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TotalRow extends StatelessWidget {
-  const _TotalRow(this.label, this.value, this.currency, {this.strong = false});
-
-  final String label;
-  final double value;
-  final String currency;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: strong ? FontWeight.w900 : FontWeight.w600);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [Expanded(child: Text(label, style: style)), Text('${value.toStringAsFixed(2)} $currency', style: style)]),
-    );
-  }
-}
-
-class _ActivityCard extends StatelessWidget {
-  const _ActivityCard({required this.activities, this.onViewAll});
-
-  final List<TransactionContextActivity> activities;
-  final VoidCallback? onViewAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: cs.outlineVariant)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Expanded(child: Text('Recent Transactions', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900))), TextButton(onPressed: onViewAll, child: const Text('View All'))]),
-          if (activities.isEmpty)
-            Padding(padding: const EdgeInsets.symmetric(vertical: 24), child: Center(child: Text('No recent transactions found.', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant))))
-          else
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: activities.take(6).map((activity) => ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(activity.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)), subtitle: Text(activity.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis), trailing: activity.amount == null ? null : Text(activity.amount!, style: const TextStyle(fontWeight: FontWeight.w900)))).toList(),
+          ),
+          if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              subtitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: const Color(0xFFD7E6EB),
+                fontWeight: FontWeight.w600,
               ),
             ),
-        ]),
+          ],
+        ],
       ),
     );
   }
 }
 
-class _NotesCard extends StatelessWidget {
-  const _NotesCard({this.notes, this.onEditNotes});
+class _CustomerPanel extends StatelessWidget {
+  const _CustomerPanel({
+    required this.metrics,
+    required this.activities,
+    this.notes,
+    this.onViewAll,
+    this.onEditNotes,
+  });
 
+  final List<TransactionContextMetric> metrics;
+  final List<TransactionContextActivity> activities;
   final String? notes;
+  final VoidCallback? onViewAll;
   final VoidCallback? onEditNotes;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: cs.outlineVariant)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Expanded(child: Text('Notes', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900))), TextButton(onPressed: onEditNotes, child: const Text('Edit'))]),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(notes?.trim().isNotEmpty == true ? notes! : 'No notes added.', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+    return Column(
+      children: [
+        _Section(
+          title: 'Customer Balance Summary',
+          child: Column(
+            children: metrics.isEmpty
+                ? const [_EmptyLine('No balance data yet.')]
+                : metrics.take(4).map((metric) {
+                    return _InfoRow(label: metric.label, value: metric.value);
+                  }).toList(),
+          ),
+        ),
+        _Section(
+          title: 'Recent Transactions',
+          trailing: TextButton(
+            onPressed: onViewAll,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+            child: const Text('View All'),
+          ),
+          child: Expanded(
+            child: activities.isEmpty
+                ? const Center(child: _EmptyLine('No recent transactions.'))
+                : ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: activities.take(8).length,
+                    itemBuilder: (context, index) {
+                      final activity = activities[index];
+                      return _ActivityLine(activity: activity);
+                    },
+                  ),
+          ),
+          expanded: true,
+        ),
+        _Section(
+          title: 'Notes',
+          trailing: TextButton(
+            onPressed: onEditNotes,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+            child: const Text('Edit'),
+          ),
+          child: Text(
+            notes?.trim().isNotEmpty == true ? notes! : 'No notes added.',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF4E616A),
+              height: 1.25,
             ),
           ),
-        ]),
+        ),
+      ],
+    );
+  }
+}
+
+class _TransactionPanel extends StatelessWidget {
+  const _TransactionPanel({this.totals});
+
+  final TransactionTotalsUiModel? totals;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = totals;
+    return Column(
+      children: [
+        _Section(
+          title: 'Transaction Summary',
+          child: t == null
+              ? const _EmptyLine('No transaction totals yet.')
+              : Column(
+                  children: [
+                    _InfoRow(label: 'Subtotal', value: _money(t.subtotal, t.currency)),
+                    _InfoRow(label: 'Discount', value: _money(t.discountTotal, t.currency)),
+                    _InfoRow(label: 'Tax', value: _money(t.taxTotal, t.currency)),
+                    const Divider(height: 14),
+                    _InfoRow(label: 'Total', value: _money(t.total, t.currency), strong: true),
+                    _InfoRow(label: 'Paid', value: _money(t.paid, t.currency)),
+                    _InfoRow(label: 'Balance Due', value: _money(t.balanceDue, t.currency), strong: true),
+                  ],
+                ),
+        ),
+        const _Section(
+          title: 'Quick Actions',
+          child: Column(
+            children: [
+              _EmptyLine('Receive Payment requires a saved invoice.'),
+              SizedBox(height: 6),
+              _EmptyLine('Email and refund workflows can be connected later.'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _money(double value, String currency) => '${value.toStringAsFixed(2)} $currency';
+}
+
+class _Section extends StatelessWidget {
+  const _Section({
+    required this.title,
+    required this.child,
+    this.trailing,
+    this.expanded = false,
+  });
+
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+  final bool expanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB8C6CE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 30,
+            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE7EEF1),
+              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: const Color(0xFF2D4854),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (trailing != null) trailing!,
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: child,
+          ),
+        ],
+      ),
+    );
+
+    return expanded ? Expanded(child: content) : content;
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value, this.strong = false});
+
+  final String label;
+  final String value;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: const Color(0xFF334A55),
+      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style, overflow: TextOverflow.ellipsis)),
+          Text(value, style: style),
+        ],
       ),
     );
   }
 }
 
-class _WarningCard extends StatelessWidget {
-  const _WarningCard({required this.message});
+class _ActivityLine extends StatelessWidget {
+  const _ActivityLine({required this.activity});
+
+  final TransactionContextActivity activity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE0E6E9))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  activity.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF263E49),
+                  ),
+                ),
+              ),
+              if (activity.amount != null)
+                Text(
+                  activity.amount!,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF263E49),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            activity.subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(color: const Color(0xFF687980)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WarningStrip extends StatelessWidget {
+  const _WarningStrip({required this.message});
 
   final String message;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.errorContainer.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(14), border: Border.all(color: cs.error.withValues(alpha: 0.18))),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(Icons.warning_amber_outlined, color: cs.error, size: 20), const SizedBox(width: 8), Expanded(child: Text(message, style: TextStyle(color: cs.onErrorContainer, fontWeight: FontWeight.w600)))]),
+      padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+      color: const Color(0xFFFFE7C4),
+      child: Text(
+        message,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF714600),
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
 
-class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({required this.title, required this.message});
+class _EmptyPanel extends StatelessWidget {
+  const _EmptyPanel({required this.title, required this.message});
 
   final String title;
   final String message;
@@ -313,17 +434,48 @@ class _EmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return SizedBox(
-      height: 360,
-      child: Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          CircleAvatar(radius: 34, backgroundColor: cs.surfaceContainerHighest, child: Icon(Icons.info_outline, size: 34, color: cs.outline)),
-          const SizedBox(height: 16),
-          Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.person_search_outlined, size: 38, color: Color(0xFF8CA0AA)),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: const Color(0xFF2D4854),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 6),
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Text(message, textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant))),
-        ]),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF667A84),
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyLine extends StatelessWidget {
+  const _EmptyLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: const Color(0xFF667A84),
+        fontWeight: FontWeight.w600,
       ),
     );
   }
