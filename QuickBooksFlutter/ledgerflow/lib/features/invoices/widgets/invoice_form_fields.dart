@@ -19,6 +19,7 @@ class InvoiceFormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (label.trim().isEmpty) return child;
     return TransactionFormFieldLabel(label: label, required: required, child: child);
   }
 }
