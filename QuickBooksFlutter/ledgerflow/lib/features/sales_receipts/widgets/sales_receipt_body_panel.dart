@@ -20,7 +20,12 @@ class SalesReceiptBodyPanel extends StatelessWidget {
     required this.totals,
     required this.onAddLine,
     required this.onLinesChanged,
+    this.customer,
     this.readOnly = false,
+    this.saving = false,
+    this.onSaveAndClose,
+    this.onSaveAndNew,
+    this.onClear,
     this.customers = const <CustomerModel>[],
     this.accounts = const <AccountModel>[],
   });
@@ -35,16 +40,18 @@ class SalesReceiptBodyPanel extends StatelessWidget {
   final TransactionTotalsUiModel totals;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
+  final CustomerModel? customer;
   final bool readOnly;
+  final bool saving;
+  final VoidCallback? onSaveAndClose;
+  final VoidCallback? onSaveAndNew;
+  final VoidCallback? onClear;
 
-  // Kept as optional inputs for future body-level validation/empty states.
   final List<CustomerModel> customers;
   final List<AccountModel> accounts;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Column(
       children: [
         SalesReceiptHeaderPanel(
@@ -54,14 +61,21 @@ class SalesReceiptBodyPanel extends StatelessWidget {
           customerField: customerField,
           depositAccountField: depositAccountField,
           paymentMethodField: paymentMethodField,
+          customer: customer,
         ),
-        Divider(height: 1, color: theme.dividerColor),
-        SalesReceiptLinesPanel(
-          lines: lines,
-          totals: totals,
-          onAddLine: onAddLine,
-          onLinesChanged: onLinesChanged,
-          readOnly: readOnly,
+        Expanded(
+          child: SalesReceiptLinesPanel(
+            lines: lines,
+            totals: totals,
+            referenceField: referenceField,
+            onAddLine: onAddLine,
+            onLinesChanged: onLinesChanged,
+            readOnly: readOnly,
+            saving: saving,
+            onSaveAndClose: onSaveAndClose,
+            onSaveAndNew: onSaveAndNew,
+            onClear: onClear,
+          ),
         ),
       ],
     );
