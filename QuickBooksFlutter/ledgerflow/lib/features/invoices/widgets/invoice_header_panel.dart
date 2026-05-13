@@ -73,43 +73,54 @@ class InvoiceHeaderPanel extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(
-            height: 146,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 166),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final compact = constraints.maxWidth < 900;
+                  final tight = constraints.maxWidth < 760;
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: compact ? 150 : 210,
+                        width: tight
+                            ? 112
+                            : compact
+                            ? 150
+                            : 210,
                         child: Text(
                           'Invoice',
                           style: theme.textTheme.displaySmall?.copyWith(
                             fontWeight: FontWeight.w300,
                             color: const Color(0xFF243E4A),
-                            letterSpacing: -1.0,
                           ),
                         ),
                       ),
                       SizedBox(
-                        width: compact ? 230 : 260,
+                        width: tight
+                            ? 206
+                            : compact
+                            ? 230
+                            : 260,
                         child: Column(
                           children: [
-                            _HorizontalField(label: 'DATE', child: invoiceDateField),
+                            _HorizontalField(
+                              label: 'DATE',
+                              child: invoiceDateField,
+                            ),
                             const SizedBox(height: 8),
-                            _HorizontalField(label: 'INVOICE #', child: invoiceNumberField),
+                            _HorizontalField(
+                              label: 'INVOICE #',
+                              child: invoiceNumberField,
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        flex: 4,
-                        child: _BillToBox(customer: customer),
-                      ),
-                      const SizedBox(width: 20),
+                      SizedBox(width: tight ? 12 : 20),
+                      Expanded(flex: 4, child: _BillToBox(customer: customer)),
+                      SizedBox(width: tight ? 12 : 20),
                       Expanded(
                         flex: 3,
                         child: Column(
@@ -117,13 +128,26 @@ class InvoiceHeaderPanel extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Expanded(child: _StackedField(label: 'P.O. NO.', child: const _StaticBox(text: ''))),
+                                Expanded(
+                                  child: _StackedField(
+                                    label: 'P.O. NO.',
+                                    child: const _StaticBox(text: ''),
+                                  ),
+                                ),
                                 const SizedBox(width: 10),
-                                Expanded(child: _StackedField(label: 'TERMS', child: billingTermsField)),
+                                Expanded(
+                                  child: _StackedField(
+                                    label: 'TERMS',
+                                    child: billingTermsField,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
-                            _StackedField(label: 'DUE DATE', child: dueDateField),
+                            _StackedField(
+                              label: 'DUE DATE',
+                              child: dueDateField,
+                            ),
                           ],
                         ),
                       ),
@@ -149,10 +173,10 @@ class _StripLabel extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.4,
-          ),
+        color: Colors.white,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.4,
+      ),
     );
   }
 }
@@ -168,13 +192,13 @@ class _HorizontalField extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 82,
+          width: 74,
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF53656E),
-                  fontWeight: FontWeight.w900,
-                ),
+              color: const Color(0xFF53656E),
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
         Expanded(child: SizedBox(height: 34, child: child)),
@@ -197,9 +221,9 @@ class _StackedField extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: const Color(0xFF53656E),
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF53656E),
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 4),
         SizedBox(height: 34, child: child),
@@ -237,8 +261,10 @@ class _BillToBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final lines = <String>[
-      if (customer?.displayName.trim().isNotEmpty == true) customer!.displayName,
-      if (customer?.companyName?.trim().isNotEmpty == true) customer!.companyName!,
+      if (customer?.displayName.trim().isNotEmpty == true)
+        customer!.displayName,
+      if (customer?.companyName?.trim().isNotEmpty == true)
+        customer!.companyName!,
       if (customer?.phone?.trim().isNotEmpty == true) customer!.phone!,
     ];
 
@@ -264,7 +290,9 @@ class _BillToBox extends StatelessWidget {
           child: lines.isEmpty
               ? Text(
                   'Select a customer',
-                  style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF7B8B93)),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF7B8B93),
+                  ),
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

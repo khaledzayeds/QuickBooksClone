@@ -18,7 +18,9 @@ import '../data/models/receive_payment_models.dart';
 import '../providers/payments_provider.dart';
 
 class PaymentFormScreen extends ConsumerStatefulWidget {
-  const PaymentFormScreen({super.key});
+  const PaymentFormScreen({super.key, this.invoiceId});
+
+  final String? invoiceId;
 
   @override
   ConsumerState<PaymentFormScreen> createState() => _PaymentFormScreenState();
@@ -30,6 +32,7 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
   PaymentMethod _paymentMethod = PaymentMethod.cash;
   DateTime _paymentDate = DateTime.now();
   bool _saving = false;
+  bool _prefillApplied = false;
   final _customerCtrl = TextEditingController();
   final _depositCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
@@ -58,28 +61,59 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
       .where((allocation) => allocation.selected)
       .fold(0, (sum, allocation) => sum + allocation.amount);
 
-  int get _selectedCount => _allocations.where((allocation) => allocation.selected).length;
+  int get _selectedCount =>
+      _allocations.where((allocation) => allocation.selected).length;
 
-  void _loadCustomerInvoices(List<InvoiceModel> invoices, CustomerModel customer) {
-    final openInvoices = invoices
-        .where(
-          (invoice) =>
-              invoice.customerId == customer.id &&
-              invoice.isCreditInvoice &&
-              !invoice.isVoid &&
-              invoice.postedTransactionId != null &&
-              invoice.balanceDue > 0,
-        )
-        .toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+  void _loadCustomerInvoices(
+    List<InvoiceModel> invoices,
+    CustomerModel customer, {
+    String? selectedInvoiceId,
+  }) {
+    final openInvoices =
+        invoices
+            .where(
+              (invoice) =>
+                  invoice.customerId == customer.id &&
+                  invoice.isCreditInvoice &&
+                  !invoice.isVoid &&
+                  invoice.postedTransactionId != null &&
+                  invoice.balanceDue > 0,
+            )
+            .toList()
+          ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
     setState(() {
       _customer = customer;
       _customerCtrl.text = customer.displayName;
       _allocations
         ..clear()
-        ..addAll(openInvoices.map((invoice) => ReceivePaymentInvoiceAllocation(invoice: invoice)));
+        ..addAll(
+          openInvoices.map(
+            (invoice) => ReceivePaymentInvoiceAllocation(
+              invoice: invoice,
+              selected:
+                  selectedInvoiceId != null && invoice.id == selectedInvoiceId,
+            ),
+          ),
+        );
     });
+  }
+
+  void _applyInvoicePrefill(
+    List<InvoiceModel> invoices,
+    List<CustomerModel> customers,
+  ) {
+    if (_prefillApplied || (widget.invoiceId ?? '').isEmpty) return;
+    final invoice = invoices
+        .where((item) => item.id == widget.invoiceId && item.balanceDue > 0)
+        .firstOrNull;
+    if (invoice == null) return;
+    final customer = customers
+        .where((item) => item.id == invoice.customerId)
+        .firstOrNull;
+    if (customer == null) return;
+    _prefillApplied = true;
+    _loadCustomerInvoices(invoices, customer, selectedInvoiceId: invoice.id);
   }
 
   Future<void> _pickDate() async {
@@ -134,7 +168,9 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
 
     for (final allocation in selected) {
       if (allocation.amount > allocation.balanceDue) {
-        _showError('Payment for invoice ${allocation.invoiceNumber} exceeds balance due.');
+        _showError(
+          'Payment for invoice ${allocation.invoiceNumber} exceeds balance due.',
+        );
         return;
       }
     }
@@ -163,7 +199,9 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
       success: (payments) {
         ref.read(invoicesProvider.notifier).refresh();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Received ${payments.length} payment allocation(s).')),
+          SnackBar(
+            content: Text('Received ${payments.length} payment allocation(s).'),
+          ),
         );
         context.go('/sales/payments');
       },
@@ -174,7 +212,10 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 
@@ -203,6 +244,11 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
       orElse: () => const <AccountModel>[],
     );
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyInvoicePrefill(invoices, customers);
+    });
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       body: SafeArea(
@@ -212,7 +258,9 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
               saving: _saving,
               total: _totalSelected,
               selectedCount: _selectedCount,
-              onClose: () => context.canPop() ? context.pop() : context.go('/sales/payments'),
+              onClose: () => context.canPop()
+                  ? context.pop()
+                  : context.go('/sales/payments'),
               onSave: _save,
             ),
             Expanded(
@@ -232,7 +280,8 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
                           customerController: _customerCtrl,
                           depositController: _depositCtrl,
                           dateController: _dateCtrl,
-                          onCustomerSelected: (customer) => _loadCustomerInvoices(invoices, customer),
+                          onCustomerSelected: (customer) =>
+                              _loadCustomerInvoices(invoices, customer),
                           onCustomerCleared: () {
                             setState(() {
                               _customer = null;
@@ -252,7 +301,8 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
                               _depositCtrl.clear();
                             });
                           },
-                          onPaymentMethodChanged: (method) => setState(() => _paymentMethod = method),
+                          onPaymentMethodChanged: (method) =>
+                              setState(() => _paymentMethod = method),
                           onPickDate: _pickDate,
                         ),
                         _AllocationActions(
@@ -314,13 +364,29 @@ class _ReceivePaymentToolbar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(onPressed: saving ? null : onClose, icon: const Icon(Icons.arrow_back)),
+          IconButton(
+            onPressed: saving ? null : onClose,
+            icon: const Icon(Icons.arrow_back),
+          ),
           const SizedBox(width: 8),
-          Text('Receive Payment', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Receive Payment',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(width: 12),
-          Text('Sales / Payments / New', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+          Text(
+            'Sales / Payments / New',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: cs.onSurfaceVariant,
+            ),
+          ),
           const Spacer(),
-          Text('$selectedCount invoice(s) • ${NumberFormat('#,##0.00').format(total)}', style: theme.textTheme.labelLarge),
+          Text(
+            '$selectedCount invoice(s) • ${NumberFormat('#,##0.00').format(total)}',
+            style: theme.textTheme.labelLarge,
+          ),
           const SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: saving ? null : onClose,
@@ -331,7 +397,11 @@ class _ReceivePaymentToolbar extends StatelessWidget {
           FilledButton.icon(
             onPressed: saving ? null : onSave,
             icon: saving
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.task_alt_outlined, size: 16),
             label: Text(saving ? 'Posting...' : 'Save & Post'),
           ),
@@ -380,17 +450,22 @@ class _HeaderPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final selectedCustomerId = customer?.id;
-    final safeDepositId = depositAccounts.any((account) => account.id == depositAccount?.id) ? depositAccount?.id : null;
+    final safeDepositId =
+        depositAccounts.any((account) => account.id == depositAccount?.id)
+        ? depositAccount?.id
+        : null;
     final customerOpenCount = selectedCustomerId == null
         ? 0
         : invoices
-            .where((invoice) =>
-                invoice.customerId == selectedCustomerId &&
-                invoice.isCreditInvoice &&
-                !invoice.isVoid &&
-                invoice.postedTransactionId != null &&
-                invoice.balanceDue > 0)
-            .length;
+              .where(
+                (invoice) =>
+                    invoice.customerId == selectedCustomerId &&
+                    invoice.isCreditInvoice &&
+                    !invoice.isVoid &&
+                    invoice.postedTransactionId != null &&
+                    invoice.balanceDue > 0,
+              )
+              .length;
 
     return Container(
       color: cs.surface,
@@ -402,7 +477,10 @@ class _HeaderPanel extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: DropdownButtonFormField<String>(
-                  value: customers.any((item) => item.id == selectedCustomerId) ? selectedCustomerId : null,
+                  initialValue:
+                      customers.any((item) => item.id == selectedCustomerId)
+                      ? selectedCustomerId
+                      : null,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     isDense: true,
@@ -411,10 +489,17 @@ class _HeaderPanel extends StatelessWidget {
                     prefixIcon: Icon(Icons.person_search_outlined),
                   ),
                   items: customers
-                      .map((item) => DropdownMenuItem<String>(value: item.id, child: Text(item.displayName)))
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item.id,
+                          child: Text(item.displayName),
+                        ),
+                      )
                       .toList(),
                   onChanged: (id) {
-                    final selected = customers.where((item) => item.id == id).firstOrNull;
+                    final selected = customers
+                        .where((item) => item.id == id)
+                        .firstOrNull;
                     if (selected != null) onCustomerSelected(selected);
                   },
                 ),
@@ -438,7 +523,7 @@ class _HeaderPanel extends StatelessWidget {
               SizedBox(
                 width: 190,
                 child: DropdownButtonFormField<PaymentMethod>(
-                  value: paymentMethod,
+                  initialValue: paymentMethod,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     isDense: true,
@@ -447,10 +532,22 @@ class _HeaderPanel extends StatelessWidget {
                     prefixIcon: Icon(Icons.payments_outlined),
                   ),
                   items: const [
-                    DropdownMenuItem(value: PaymentMethod.cash, child: Text('Cash')),
-                    DropdownMenuItem(value: PaymentMethod.check, child: Text('Check')),
-                    DropdownMenuItem(value: PaymentMethod.bankTransfer, child: Text('Bank Transfer')),
-                    DropdownMenuItem(value: PaymentMethod.creditCard, child: Text('Card')),
+                    DropdownMenuItem(
+                      value: PaymentMethod.cash,
+                      child: Text('Cash'),
+                    ),
+                    DropdownMenuItem(
+                      value: PaymentMethod.check,
+                      child: Text('Check'),
+                    ),
+                    DropdownMenuItem(
+                      value: PaymentMethod.bankTransfer,
+                      child: Text('Bank Transfer'),
+                    ),
+                    DropdownMenuItem(
+                      value: PaymentMethod.creditCard,
+                      child: Text('Card'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value != null) onPaymentMethodChanged(value);
@@ -465,7 +562,7 @@ class _HeaderPanel extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<String>(
-                  value: safeDepositId,
+                  initialValue: safeDepositId,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     isDense: true,
@@ -474,10 +571,17 @@ class _HeaderPanel extends StatelessWidget {
                     prefixIcon: Icon(Icons.account_balance_outlined),
                   ),
                   items: depositAccounts
-                      .map((account) => DropdownMenuItem<String>(value: account.id, child: Text('${account.code} - ${account.name}')))
+                      .map(
+                        (account) => DropdownMenuItem<String>(
+                          value: account.id,
+                          child: Text('${account.code} - ${account.name}'),
+                        ),
+                      )
                       .toList(),
                   onChanged: (id) {
-                    final selected = depositAccounts.where((item) => item.id == id).firstOrNull;
+                    final selected = depositAccounts
+                        .where((item) => item.id == id)
+                        .firstOrNull;
                     if (selected != null) onDepositSelected(selected);
                   },
                 ),
@@ -494,7 +598,9 @@ class _HeaderPanel extends StatelessWidget {
               Expanded(
                 child: _SmallInfoTile(
                   label: 'Customer balance',
-                  value: customer == null ? '-' : NumberFormat('#,##0.00').format(customer!.balance),
+                  value: customer == null
+                      ? '-'
+                      : NumberFormat('#,##0.00').format(customer!.balance),
                   icon: Icons.account_balance_wallet_outlined,
                 ),
               ),
@@ -507,7 +613,11 @@ class _HeaderPanel extends StatelessWidget {
 }
 
 class _SmallInfoTile extends StatelessWidget {
-  const _SmallInfoTile({required this.label, required this.value, required this.icon});
+  const _SmallInfoTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
   final String label;
   final String value;
   final IconData icon;
@@ -532,8 +642,14 @@ class _SmallInfoTile extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
               ],
             ),
           ),
@@ -544,7 +660,11 @@ class _SmallInfoTile extends StatelessWidget {
 }
 
 class _AllocationActions extends StatelessWidget {
-  const _AllocationActions({required this.enabled, required this.onAutoApply, required this.onClear});
+  const _AllocationActions({
+    required this.enabled,
+    required this.onAutoApply,
+    required this.onClear,
+  });
   final bool enabled;
   final VoidCallback onAutoApply;
   final VoidCallback onClear;
@@ -556,13 +676,22 @@ class _AllocationActions extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       decoration: BoxDecoration(
         color: cs.surface,
-        border: Border(top: BorderSide(color: cs.outlineVariant), bottom: BorderSide(color: cs.outlineVariant)),
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant),
+          bottom: BorderSide(color: cs.outlineVariant),
+        ),
       ),
       child: Row(
         children: [
-          const Text('Open invoices', style: TextStyle(fontWeight: FontWeight.w800)),
+          const Text(
+            'Open invoices',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(width: 8),
-          Text('Select invoices and edit payment amount per row.', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          Text(
+            'Select invoices and edit payment amount per row.',
+            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+          ),
           const Spacer(),
           TextButton.icon(
             onPressed: enabled ? onAutoApply : null,
@@ -599,7 +728,10 @@ class _OpenInvoiceAllocationGrid extends StatelessWidget {
       return Center(
         child: Text(
           'Select a customer with posted open credit invoices.',
-          style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       );
     }
@@ -637,7 +769,11 @@ class _GridHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: cs.onSurfaceVariant);
+    final style = TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w900,
+      color: cs.onSurfaceVariant,
+    );
     return Container(
       height: 34,
       color: cs.surfaceContainerHighest,
@@ -658,7 +794,12 @@ class _GridHeader extends StatelessWidget {
 }
 
 class _HeaderCell extends StatelessWidget {
-  const _HeaderCell(this.text, {required this.flex, required this.style, this.right = false});
+  const _HeaderCell(
+    this.text, {
+    required this.flex,
+    required this.style,
+    this.right = false,
+  });
   final String text;
   final int flex;
   final TextStyle style;
@@ -670,7 +811,11 @@ class _HeaderCell extends StatelessWidget {
       flex: flex,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Text(text, textAlign: right ? TextAlign.right : TextAlign.left, style: style),
+        child: Text(
+          text,
+          textAlign: right ? TextAlign.right : TextAlign.left,
+          style: style,
+        ),
       ),
     );
   }
@@ -699,7 +844,9 @@ class _AllocationRowState extends State<_AllocationRow> {
   @override
   void initState() {
     super.initState();
-    _amountCtrl = TextEditingController(text: widget.allocation.amount.toStringAsFixed(2));
+    _amountCtrl = TextEditingController(
+      text: widget.allocation.amount.toStringAsFixed(2),
+    );
   }
 
   @override
@@ -723,7 +870,9 @@ class _AllocationRowState extends State<_AllocationRow> {
     final dateFmt = DateFormat('dd/MM/yyyy');
     return Container(
       height: 42,
-      color: widget.shaded ? cs.primaryContainer.withOpacity(0.10) : cs.surface,
+      color: widget.shaded
+          ? cs.primaryContainer.withValues(alpha: 0.10)
+          : cs.surface,
       child: Row(
         children: [
           SizedBox(
@@ -745,9 +894,18 @@ class _AllocationRowState extends State<_AllocationRow> {
           _Cell(allocation.invoiceNumber, flex: 2),
           _Cell(dateFmt.format(allocation.invoiceDate), flex: 1),
           _Cell(dateFmt.format(allocation.dueDate), flex: 1),
-          _Cell(widget.fmtMoney(allocation.originalAmount), flex: 1, right: true),
+          _Cell(
+            widget.fmtMoney(allocation.originalAmount),
+            flex: 1,
+            right: true,
+          ),
           _Cell(widget.fmtMoney(allocation.paidAmount), flex: 1, right: true),
-          _Cell(widget.fmtMoney(allocation.balanceDue), flex: 1, right: true, bold: true),
+          _Cell(
+            widget.fmtMoney(allocation.balanceDue),
+            flex: 1,
+            right: true,
+            bold: true,
+          ),
           Expanded(
             flex: 1,
             child: Padding(
@@ -756,12 +914,19 @@ class _AllocationRowState extends State<_AllocationRow> {
                 controller: _amountCtrl,
                 textAlign: TextAlign.right,
                 enabled: allocation.selected,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                ],
                 decoration: const InputDecoration(
                   isDense: true,
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                 ),
                 onChanged: (value) {
                   allocation.amount = double.tryParse(value) ?? 0;
@@ -777,7 +942,12 @@ class _AllocationRowState extends State<_AllocationRow> {
 }
 
 class _Cell extends StatelessWidget {
-  const _Cell(this.text, {required this.flex, this.right = false, this.bold = false});
+  const _Cell(
+    this.text, {
+    required this.flex,
+    this.right = false,
+    this.bold = false,
+  });
   final String text;
   final int flex;
   final bool right;
@@ -794,7 +964,10 @@ class _Cell extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: right ? TextAlign.right : TextAlign.left,
-          style: TextStyle(fontSize: 12, fontWeight: bold ? FontWeight.w800 : FontWeight.w500),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -817,7 +990,9 @@ class _SummaryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final selected = allocations.where((allocation) => allocation.selected).toList();
+    final selected = allocations
+        .where((allocation) => allocation.selected)
+        .toList();
     return Container(
       width: 280,
       padding: const EdgeInsets.all(16),
@@ -828,30 +1003,56 @@ class _SummaryPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Summary', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          Text(
+            'Summary',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 16),
           _SummaryRow(label: 'Customer', value: customer?.displayName ?? '-'),
-          _SummaryRow(label: 'Selected invoices', value: selected.length.toString()),
-          _SummaryRow(label: 'Open invoices', value: allocations.length.toString()),
+          _SummaryRow(
+            label: 'Selected invoices',
+            value: selected.length.toString(),
+          ),
+          _SummaryRow(
+            label: 'Open invoices',
+            value: allocations.length.toString(),
+          ),
           const Divider(height: 28),
-          Text('Amount received', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700)),
+          Text(
+            'Amount received',
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 6),
           Text(
             fmtMoney(total),
             textAlign: TextAlign.right,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, color: cs.primary),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: cs.primary,
+            ),
           ),
           const SizedBox(height: 16),
           if (selected.isNotEmpty)
             Expanded(
               child: ListView.separated(
                 itemCount: selected.length,
-                separatorBuilder: (_, __) => Divider(color: cs.outlineVariant),
+                separatorBuilder: (context, index) =>
+                    Divider(color: cs.outlineVariant),
                 itemBuilder: (context, index) {
                   final row = selected[index];
                   return Row(
                     children: [
-                      Expanded(child: Text(row.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w700))),
+                      Expanded(
+                        child: Text(
+                          row.invoiceNumber,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
                       Text(fmtMoney(row.amount)),
                     ],
                   );
@@ -859,7 +1060,10 @@ class _SummaryPanel extends StatelessWidget {
               ),
             )
           else
-            Text('No invoices selected.', style: TextStyle(color: cs.onSurfaceVariant)),
+            Text(
+              'No invoices selected.',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
         ],
       ),
     );
@@ -877,7 +1081,14 @@ class _SummaryRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
         ],
       ),

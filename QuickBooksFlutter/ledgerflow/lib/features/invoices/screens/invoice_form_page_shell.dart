@@ -8,15 +8,15 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
 import '../../../core/api/api_client.dart';
-import '../../../core/constants/api_enums.dart';
+import '../../../core/api/api_result.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
-import '../../transactions/printing/transaction_print_model.dart';
-import '../../transactions/printing/transaction_print_service.dart';
 import '../../transactions/widgets/transaction_models.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../data/models/invoice_contracts.dart';
 import '../data/models/sales_preview_contracts.dart';
+import '../providers/invoices_provider.dart' as invoice_list;
 import '../providers/invoices_state.dart';
 import '../widgets/invoice_form_fields.dart';
 import '../widgets/invoice_shell.dart';
@@ -46,6 +46,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   CustomerSalesActivityModel? _activity;
   SalesPostingPreviewModel? _preview;
   InvoiceModel? _editingInvoice;
+  InvoiceModel? _savedInvoice;
   DateTime _invoiceDate = DateTime.now();
   DateTime _dueDate = DateTime.now().add(const Duration(days: 14));
   String _terms = 'Net 14';
@@ -56,7 +57,6 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   Timer? _previewDebounce;
 
   // ── Notes & saved invoice id ──────────────────────────────────
-  String? _savedInvoiceId;
   String _notes = '';
 
   bool get _isEdit => widget.id != null && widget.id!.isNotEmpty;
@@ -106,7 +106,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       _activity = null;
       _preview = null;
       _editingInvoice = null;
-      _savedInvoiceId = null;
+      _savedInvoice = null;
       _notes = '';
       _invoiceDate = DateTime.now();
       _dueDate = DateTime.now().add(const Duration(days: 14));
@@ -125,7 +125,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
 
     if (showSavedMessage && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invoice saved. Ready for a new invoice.')),
+        const SnackBar(
+          content: Text('Invoice saved. Ready for a new invoice.'),
+        ),
       );
     }
   }
@@ -139,7 +141,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   }
 
   Future<void> _saveAndNew() async {
-    await _saveWithMode(_saveModeForDraft(), resetAfterSave: true);
+    await _saveWithMode(_saveModeForPost(), resetAfterSave: true);
   }
 
   double get _localSubtotal => _lines.fold(0, (sum, line) => sum + line.amount);
@@ -274,7 +276,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         }).toList();
         setState(() {
           _editingInvoice = invoice;
-          _savedInvoiceId = invoice.id;
+          _savedInvoice = invoice;
           _invoiceDate = invoice.invoiceDate;
           _dueDate = invoice.dueDate;
           _numberCtrl.text = invoice.invoiceNumber;
@@ -294,6 +296,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           _preview = null;
           _syncDateControllers();
         });
+        await _loadInvoiceNotes(invoice.id);
         await _loadCustomerActivity(invoice.customerId);
       },
       failure: (error) => _showError(error.message),
@@ -338,6 +341,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       success: (preview) => setState(() {
         _preview = preview;
         _editingInvoice = null;
+        _savedInvoice = null;
       }),
       failure: (_) {},
     );
@@ -348,20 +352,24 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     _previewDebounce = Timer(const Duration(milliseconds: 550), _runPreview);
   }
 
-  Future<void> _saveWithMode(int saveMode, {bool resetAfterSave = false}) async {
+  Future<InvoiceModel?> _saveWithMode(
+    int saveMode, {
+    bool resetAfterSave = false,
+    bool navigateAfterSave = true,
+  }) async {
     final l10n = AppLocalizations.of(context)!;
     if (_customer == null) {
       _showError(l10n.selectCustomer);
-      return;
+      return null;
     }
     if (_dueDate.isBefore(_invoiceDate)) {
       _showError('${l10n.dueDate} < ${l10n.billDate}');
-      return;
+      return null;
     }
     final validLines = _validLines();
     if (validLines.isEmpty) {
       _showError(l10n.minOneQty);
-      return;
+      return null;
     }
 
     final lines = validLines
@@ -394,20 +402,43 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         final result = await ref
             .read(invoicesRepoProvider)
             .update(widget.id!, dto);
-        if (!mounted) return;
-        result.when(
-          success: (updated) {
-            ref.read(invoicesStateProvider.notifier).refresh();
-            ref.invalidate(invoiceDetailsStateProvider(updated.id));
+        if (!mounted) return null;
+        switch (result) {
+          case Success(data: final updated):
+            var target = updated;
+            if (isPosting) {
+              final postResult = await ref
+                  .read(invoicesRepoProvider)
+                  .postInvoice(updated.id);
+              if (!mounted) return null;
+              switch (postResult) {
+                case Success(data: final posted):
+                  target = posted;
+                case Failure(error: final error):
+                  _showError(error.message);
+                  return null;
+              }
+            }
+            _refreshInvoiceLists();
+            ref.invalidate(invoiceDetailsStateProvider(target.id));
+            await _saveInvoiceNotes(target.id);
+            if (!mounted) return null;
             if (resetAfterSave) {
               context.go(AppRoutes.invoiceNew);
+            } else if (navigateAfterSave) {
+              context.go('/sales/invoices/${target.id}');
             } else {
-              context.go('/sales/invoices/${updated.id}');
+              setState(() {
+                _savedInvoice = target;
+                _editingInvoice = target;
+                _numberCtrl.text = target.invoiceNumber;
+              });
             }
-          },
-          failure: (error) => _showError(error.message),
-        );
-        return;
+            return target;
+          case Failure(error: final error):
+            _showError(error.message);
+        }
+        return null;
       }
 
       final dto = CreateInvoiceDto(
@@ -418,19 +449,28 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         lines: lines,
       );
       final result = await ref.read(invoicesRepoProvider).create(dto);
-      if (!mounted) return;
-      result.when(
-        success: (invoice) {
-          ref.read(invoicesStateProvider.notifier).refresh();
+      if (!mounted) return null;
+      switch (result) {
+        case Success(data: final invoice):
+          _refreshInvoiceLists();
+          await _saveInvoiceNotes(invoice.id);
+          if (!mounted) return null;
           if (resetAfterSave) {
             _resetForm(showSavedMessage: true);
-          } else {
-            setState(() => _savedInvoiceId = invoice.id);
+          } else if (navigateAfterSave) {
             context.go('/sales/invoices/${invoice.id}');
+          } else {
+            setState(() {
+              _savedInvoice = invoice;
+              _editingInvoice = invoice;
+              _numberCtrl.text = invoice.invoiceNumber;
+            });
           }
-        },
-        failure: (error) => _showError(error.message),
-      );
+          return invoice;
+        case Failure(error: final error):
+          _showError(error.message);
+          return null;
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -439,6 +479,11 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         });
       }
     }
+  }
+
+  void _refreshInvoiceLists() {
+    ref.read(invoicesStateProvider.notifier).refresh();
+    ref.invalidate(invoice_list.invoicesProvider);
   }
 
   Future<void> _pickInvoiceDate() async {
@@ -451,10 +496,12 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     if (picked == null || !mounted) return;
     setState(() {
       _invoiceDate = picked;
-      if (_dueDate.isBefore(_invoiceDate))
+      if (_dueDate.isBefore(_invoiceDate)) {
         _dueDate = _invoiceDate.add(const Duration(days: 14));
+      }
       _preview = null;
       _editingInvoice = null;
+      _savedInvoice = null;
       _syncDateControllers();
     });
     _schedulePreview();
@@ -472,6 +519,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       _dueDate = picked;
       _preview = null;
       _editingInvoice = null;
+      _savedInvoice = null;
       _syncDateControllers();
     });
     _schedulePreview();
@@ -481,69 +529,73 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     setState(() {
       _preview = null;
       _editingInvoice = null;
+      _savedInvoice = null;
       _lines.add(TransactionLineEntry());
     });
     _schedulePreview();
   }
 
   Future<void> _handlePrint() async {
-    if (_customer == null) {
-      _showError('Select a customer before printing.');
-      return;
-    }
-    final validLines = _validLines();
-    if (validLines.isEmpty) {
-      _showError('Add at least one valid line before printing.');
-      return;
-    }
-
-    final totals = _totals;
-    final model = TransactionPrintModel(
-      documentTitle: 'Invoice',
-      documentNumber: _numberCtrl.text.trim().isEmpty
-          ? 'Preview'
-          : _numberCtrl.text.trim(),
-      documentDate: _invoiceDate,
-      dueDate: _dueDate,
-      partyLabel: 'Customer',
-      partyName: _customer!.displayName,
-      reference: _memoCtrl.text.trim().isEmpty ? null : _memoCtrl.text.trim(),
-      lines: validLines
-          .map(
-            (line) => TransactionPrintLine(
-              itemName: line.itemName.trim().isEmpty
-                  ? 'Item'
-                  : line.itemName.trim(),
-              description: line.descCtrl.text.trim(),
-              quantity: line.qty,
-              rate: line.rate,
-              amount: line.amount,
-            ),
-          )
-          .toList(),
-      totals: TransactionPrintTotals(
-        subtotal: totals.subtotal,
-        discountTotal: totals.discountTotal,
-        taxTotal: totals.taxTotal,
-        total: totals.total,
-        paid: totals.paid,
-        balanceDue: totals.balanceDue,
-        currency: totals.currency,
-      ),
-    );
-
+    final invoice = await _ensurePostedInvoice();
+    if (invoice == null || !mounted) return;
     try {
-      await const TransactionPrintService().printDocument(model);
+      await printDocumentUsingSettings(
+        context: context,
+        ref: ref,
+        documentType: 'invoice',
+        documentId: invoice.id,
+      );
     } catch (e) {
-      _showError('Could not open print preview: $e');
+      _showError('Could not print invoice: $e');
     }
   }
 
-  void _handleVoid() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Void is available from saved invoice details.'),
-      ),
+  Future<void> _handlePayment() async {
+    final invoice = await _ensurePostedInvoice();
+    if (invoice == null || !mounted) return;
+    if (invoice.balanceDue <= 0) {
+      _showError('This invoice has no balance due.');
+      return;
+    }
+    context.go('${AppRoutes.paymentNew}?invoiceId=${invoice.id}');
+  }
+
+  Future<void> _handleRefund() async {
+    final invoice = await _ensurePostedInvoice();
+    if (invoice == null || !mounted) return;
+    context.go('${AppRoutes.salesReturnNew}?invoiceId=${invoice.id}');
+  }
+
+  Future<void> _handleSaveAndPrint() async {
+    await _handlePrint();
+  }
+
+  Future<InvoiceModel?> _ensurePostedInvoice() async {
+    final current = _savedInvoice ?? _editingInvoice;
+    if (current != null && !current.isDraft && current.id.isNotEmpty) {
+      return current;
+    }
+    return _saveWithMode(_saveModeForPost(), navigateAfterSave: false);
+  }
+
+  Future<void> _handleVoid() async {
+    final invoiceId = widget.id ?? _savedInvoice?.id ?? _editingInvoice?.id;
+    if (invoiceId == null || invoiceId.isEmpty) {
+      _handleClearOrNew();
+      return;
+    }
+
+    setState(() => _posting = true);
+    final result = await ref.read(invoicesRepoProvider).voidInvoice(invoiceId);
+    if (!mounted) return;
+    setState(() => _posting = false);
+    result.when(
+      success: (invoice) {
+        _refreshInvoiceLists();
+        ref.invalidate(invoiceDetailsStateProvider(invoice.id));
+        context.go('/sales/invoices/${invoice.id}');
+      },
+      failure: (error) => _showError(error.message),
     );
   }
 
@@ -571,35 +623,46 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
 
   // ── Notes dialog ──────────────────────────────────────────────
   Future<void> _openNotesDialog() async {
-    final invoiceId =
-        _savedInvoiceId ?? (widget.id?.isNotEmpty == true ? widget.id : null);
-    if (invoiceId == null || invoiceId.trim().isEmpty) {
-      _showError('Save the invoice before adding notes.');
-      return;
+    final invoice = _savedInvoice ?? _editingInvoice;
+    if (invoice != null && invoice.id.isNotEmpty) {
+      await _loadInvoiceNotes(invoice.id);
     }
-    try {
-      final response = await ApiClient.instance.get<Map<String, dynamic>>(
-        '/api/invoices/$invoiceId/notes',
-      );
-      final notes = response.data?['notes']?.toString() ?? _notes;
-      if (!mounted) return;
-      setState(() => _notes = notes);
-    } catch (_) {}
     if (!mounted) return;
     await showDialog(
       context: context,
       builder: (_) => NotesEditDialog(
         initialNotes: _notes,
         onSave: (newNotes) async {
-          final response = await ApiClient.instance.post<Map<String, dynamic>>(
-            '/api/invoices/$invoiceId/notes',
-            data: {'notes': newNotes},
-          );
-          final saved = response.data?['notes']?.toString() ?? newNotes;
-          if (mounted) setState(() => _notes = saved);
+          if (!mounted) return;
+          setState(() => _notes = newNotes);
+          final saved = _savedInvoice ?? _editingInvoice;
+          if (saved != null && saved.id.isNotEmpty) {
+            await _saveInvoiceNotes(saved.id);
+          }
         },
       ),
     );
+  }
+
+  Future<void> _loadInvoiceNotes(String invoiceId) async {
+    try {
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/invoices/$invoiceId/notes',
+      );
+      final data = response.data ?? const <String, dynamic>{};
+      final note = data['notes'] ?? data['Notes'];
+      if (mounted) setState(() => _notes = note?.toString() ?? '');
+    } catch (_) {}
+  }
+
+  Future<void> _saveInvoiceNotes(String invoiceId) async {
+    if (_notes.trim().isEmpty) return;
+    try {
+      await ApiClient.instance.post<Map<String, dynamic>>(
+        '/api/invoices/$invoiceId/notes',
+        data: {'notes': _notes.trim()},
+      );
+    } catch (_) {}
   }
 
   // ── View All customer transactions ────────────────────────────
@@ -614,8 +677,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loadingExisting)
+    if (_loadingExisting) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final l10n = AppLocalizations.of(context)!;
     final customers = ref
         .watch(customersProvider)
@@ -640,6 +704,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
               _activity = null;
               _preview = null;
               _editingInvoice = null;
+              _savedInvoice = null;
             });
             _loadCustomerActivity(customer.id);
             _schedulePreview();
@@ -650,6 +715,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
             _activity = null;
             _preview = null;
             _editingInvoice = null;
+            _savedInvoice = null;
           }),
         ),
       ),
@@ -699,7 +765,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       activities: _activities,
       loadingActivity: _loadingActivity,
       warning: _warning,
-      memoText: _memoCtrl.text,
+      memoText: _notes.trim().isNotEmpty ? _notes : _memoCtrl.text,
       saving: _saving,
       posting: _posting,
       isEdit: _isEdit,
@@ -708,14 +774,19 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         setState(() {
           _preview = null;
           _editingInvoice = null;
+          _savedInvoice = null;
         });
         _schedulePreview();
       },
+      onFind: () => context.go(AppRoutes.invoices),
       onSaveDraft: () => _saveWithMode(_saveModeForDraft()),
-      onSave: () => _saveWithMode(_saveModeForDraft()),
+      onSave: () => _saveWithMode(_saveModeForPost()),
+      onSaveAndPrint: _handleSaveAndPrint,
       onSaveAndNew: _saveAndNew,
       onPost: () => _saveWithMode(_saveModeForPost()),
       onPrint: _handlePrint,
+      onPayment: _handlePayment,
+      onRefund: _handleRefund,
       onVoid: _handleVoid,
       onClear: _handleClearOrNew,
       onClose: _goBack,

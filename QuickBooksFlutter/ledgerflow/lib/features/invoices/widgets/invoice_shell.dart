@@ -30,11 +30,15 @@ class InvoiceShell extends StatelessWidget {
     required this.isEdit,
     required this.onAddLine,
     required this.onLinesChanged,
+    required this.onFind,
     required this.onSaveDraft,
     required this.onSave,
+    required this.onSaveAndPrint,
     this.onSaveAndNew,
     required this.onPost,
     required this.onPrint,
+    required this.onPayment,
+    required this.onRefund,
     required this.onVoid,
     this.onClear,
     required this.onClose,
@@ -61,11 +65,15 @@ class InvoiceShell extends StatelessWidget {
   final bool isEdit;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
+  final VoidCallback onFind;
   final VoidCallback onSaveDraft;
   final VoidCallback onSave;
+  final VoidCallback onSaveAndPrint;
   final VoidCallback? onSaveAndNew;
   final VoidCallback onPost;
   final VoidCallback onPrint;
+  final VoidCallback onPayment;
+  final VoidCallback onRefund;
   final VoidCallback onVoid;
   final VoidCallback? onClear;
   final VoidCallback onClose;
@@ -85,23 +93,39 @@ class InvoiceShell extends StatelessWidget {
         child: Shortcuts(
           shortcuts: const <ShortcutActivator, Intent>{
             SingleActivator(LogicalKeyboardKey.escape): _CloseInvoiceIntent(),
-            SingleActivator(LogicalKeyboardKey.keyP, control: true): _PrintInvoiceIntent(),
+            SingleActivator(LogicalKeyboardKey.f2):
+                _SaveAndPrintInvoiceIntent(),
+            SingleActivator(LogicalKeyboardKey.keyP, control: true):
+                _PrintInvoiceIntent(),
             SingleActivator(LogicalKeyboardKey.f4): _SaveInvoiceIntent(),
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
-              _CloseInvoiceIntent: CallbackAction<_CloseInvoiceIntent>(onInvoke: (_) {
-                onClose();
-                return null;
-              }),
-              _PrintInvoiceIntent: CallbackAction<_PrintInvoiceIntent>(onInvoke: (_) {
-                if (!busy) onPrint();
-                return null;
-              }),
-              _SaveInvoiceIntent: CallbackAction<_SaveInvoiceIntent>(onInvoke: (_) {
-                if (!busy) onSave();
-                return null;
-              }),
+              _CloseInvoiceIntent: CallbackAction<_CloseInvoiceIntent>(
+                onInvoke: (_) {
+                  onClose();
+                  return null;
+                },
+              ),
+              _PrintInvoiceIntent: CallbackAction<_PrintInvoiceIntent>(
+                onInvoke: (_) {
+                  if (!busy) onPrint();
+                  return null;
+                },
+              ),
+              _SaveInvoiceIntent: CallbackAction<_SaveInvoiceIntent>(
+                onInvoke: (_) {
+                  if (!busy) onPost();
+                  return null;
+                },
+              ),
+              _SaveAndPrintInvoiceIntent:
+                  CallbackAction<_SaveAndPrintInvoiceIntent>(
+                    onInvoke: (_) {
+                      if (!busy) onSaveAndPrint();
+                      return null;
+                    },
+                  ),
             },
             child: Focus(
               autofocus: true,
@@ -111,11 +135,14 @@ class InvoiceShell extends StatelessWidget {
                     saving: saving,
                     posting: posting,
                     isEdit: isEdit,
+                    onFind: onFind,
                     onNew: clearAction,
                     onSaveDraft: onSaveDraft,
-                    onSave: onSave,
-                    onSaveAndPost: onPost,
+                    onSave: onPost,
+                    onSaveAndPrint: onSaveAndPrint,
                     onPrint: onPrint,
+                    onPayment: onPayment,
+                    onRefund: onRefund,
                     onVoid: onVoid,
                     onClear: clearAction,
                     onClose: onClose,
@@ -130,7 +157,9 @@ class InvoiceShell extends StatelessWidget {
                             margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
                             decoration: BoxDecoration(
                               color: cs.surface,
-                              border: Border.all(color: const Color(0xFFB9C3CA)),
+                              border: Border.all(
+                                color: const Color(0xFFB9C3CA),
+                              ),
                             ),
                             child: Column(
                               children: [
@@ -152,7 +181,7 @@ class InvoiceShell extends StatelessWidget {
                                     memoField: memoField,
                                     saving: saving,
                                     posting: posting,
-                                    onSaveAndClose: onSave,
+                                    onSaveAndClose: onPost,
                                     onSaveAndNew: saveAndNewAction,
                                     onClear: clearAction,
                                   ),
@@ -161,13 +190,7 @@ class InvoiceShell extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Container(
-                          width: 258,
-                          margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-                          decoration: BoxDecoration(
-                            color: cs.surface,
-                            border: Border.all(color: const Color(0xFFB9C3CA)),
-                          ),
+                        _CollapsibleInvoiceContextPanel(
                           child: buildInvoiceContextPanel(
                             customer: customer,
                             metrics: metrics,
@@ -175,7 +198,7 @@ class InvoiceShell extends StatelessWidget {
                             totals: totals,
                             isLoading: loadingActivity,
                             warning: warning,
-                            memoText: memoText,
+                            notesText: memoText,
                             onViewAll: onViewAll,
                             onEditNotes: onEditNotes,
                           ),
@@ -192,11 +215,11 @@ class InvoiceShell extends StatelessWidget {
                       border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
                     ),
                     child: Text(
-                      'Invoice workspace  •  F4 Save  •  Ctrl+P Print  •  Esc Close',
+                      'Invoice workspace  •  F2 Save & Print  •  F4 Save  •  Ctrl+P Print  •  Esc Close',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF33434C),
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: const Color(0xFF33434C),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -209,16 +232,76 @@ class InvoiceShell extends StatelessWidget {
   }
 }
 
+class _CollapsibleInvoiceContextPanel extends StatefulWidget {
+  const _CollapsibleInvoiceContextPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_CollapsibleInvoiceContextPanel> createState() =>
+      _CollapsibleInvoiceContextPanelState();
+}
+
+class _CollapsibleInvoiceContextPanelState
+    extends State<_CollapsibleInvoiceContextPanel> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: _expanded ? 258 : 38,
+      margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border.all(color: const Color(0xFFB9C3CA)),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          if (_expanded) Positioned.fill(child: widget.child),
+          Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              color: const Color(0xFFE6EEF2),
+              child: InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Tooltip(
+                  message: _expanded ? 'Hide side panel' : 'Show side panel',
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      _expanded ? Icons.chevron_right : Icons.chevron_left,
+                      size: 22,
+                      color: const Color(0xFF2B4A56),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InvoiceCommandBar extends StatelessWidget {
   const _InvoiceCommandBar({
     required this.saving,
     required this.posting,
     required this.isEdit,
+    required this.onFind,
     required this.onNew,
     required this.onSaveDraft,
     required this.onSave,
-    required this.onSaveAndPost,
+    required this.onSaveAndPrint,
     required this.onPrint,
+    required this.onPayment,
+    required this.onRefund,
     required this.onVoid,
     required this.onClear,
     required this.onClose,
@@ -228,11 +311,14 @@ class _InvoiceCommandBar extends StatelessWidget {
   final bool saving;
   final bool posting;
   final bool isEdit;
+  final VoidCallback onFind;
   final VoidCallback onNew;
   final VoidCallback onSaveDraft;
   final VoidCallback onSave;
-  final VoidCallback onSaveAndPost;
+  final VoidCallback onSaveAndPrint;
   final VoidCallback onPrint;
+  final VoidCallback onPayment;
+  final VoidCallback onRefund;
   final VoidCallback onVoid;
   final VoidCallback onClear;
   final VoidCallback onClose;
@@ -250,26 +336,62 @@ class _InvoiceCommandBar extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 8),
-          _ToolAction(icon: Icons.search, label: 'Find'),
-          _ToolAction(icon: Icons.note_add_outlined, label: 'New', onTap: busy ? null : onNew),
+          _ToolAction(
+            icon: Icons.search,
+            label: 'Find',
+            onTap: busy ? null : onFind,
+          ),
+          _ToolAction(
+            icon: Icons.note_add_outlined,
+            label: 'New',
+            onTap: busy ? null : onNew,
+          ),
           _SaveToolAction(
             saving: saving,
             posting: posting,
             onSave: onSave,
+            onSaveAndPrint: onSaveAndPrint,
             onSaveDraft: onSaveDraft,
-            onSaveAndPost: onSaveAndPost,
           ),
-          _ToolAction(icon: Icons.drafts_outlined, label: 'Draft', onTap: busy ? null : onSaveDraft),
-          _ToolAction(icon: Icons.delete_outline, label: isEdit ? 'Void' : 'Clear', onTap: isEdit ? onVoid : onClear),
+          _ToolAction(
+            icon: Icons.drafts_outlined,
+            label: 'Draft',
+            onTap: busy ? null : onSaveDraft,
+          ),
+          _ToolAction(
+            icon: Icons.delete_outline,
+            label: isEdit ? 'Void' : 'Clear',
+            onTap: isEdit ? onVoid : onClear,
+          ),
           const _CommandSeparator(),
-          _ToolAction(icon: Icons.print_outlined, label: 'Print', onTap: busy ? null : onPrint),
+          _ToolAction(
+            icon: Icons.print_outlined,
+            label: 'Print',
+            onTap: busy ? null : onPrint,
+          ),
           _ToolAction(icon: Icons.email_outlined, label: 'Email'),
-          _ToolAction(icon: Icons.attach_file, label: 'Attach', onTap: onEditNotes),
+          _ToolAction(
+            icon: Icons.sticky_note_2_outlined,
+            label: 'Notes',
+            onTap: onEditNotes,
+          ),
           const _CommandSeparator(),
-          _ToolAction(icon: Icons.payments_outlined, label: 'Payments'),
-          _ToolAction(icon: Icons.assignment_return_outlined, label: 'Refund'),
+          _ToolAction(
+            icon: Icons.payments_outlined,
+            label: 'Payments',
+            onTap: busy ? null : onPayment,
+          ),
+          _ToolAction(
+            icon: Icons.assignment_return_outlined,
+            label: 'Refund',
+            onTap: busy ? null : onRefund,
+          ),
           const Spacer(),
-          _ToolAction(icon: Icons.close, label: 'Close', onTap: busy ? null : onClose),
+          _ToolAction(
+            icon: Icons.close,
+            label: 'Close',
+            onTap: busy ? null : onClose,
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -277,29 +399,32 @@ class _InvoiceCommandBar extends StatelessWidget {
   }
 }
 
-enum _SaveMenuCommand { save, draft, post }
+enum _SaveMenuCommand { save, saveAndPrint, draft }
 
 class _SaveToolAction extends StatelessWidget {
   const _SaveToolAction({
     required this.saving,
     required this.posting,
     required this.onSave,
+    required this.onSaveAndPrint,
     required this.onSaveDraft,
-    required this.onSaveAndPost,
   });
 
   final bool saving;
   final bool posting;
   final VoidCallback onSave;
+  final VoidCallback onSaveAndPrint;
   final VoidCallback onSaveDraft;
-  final VoidCallback onSaveAndPost;
 
   @override
   Widget build(BuildContext context) {
     final busy = saving || posting;
-    final label = posting ? 'Posting' : saving ? 'Saving' : 'Save';
+    final label = posting
+        ? 'Posting'
+        : saving
+        ? 'Saving'
+        : 'Save';
     final enabledColor = const Color(0xFF234C5D);
-    final disabledColor = const Color(0xFF7D8B93);
 
     if (busy) {
       return SizedBox(
@@ -310,15 +435,18 @@ class _SaveToolAction extends StatelessWidget {
           children: [
             SizedBox.square(
               dimension: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: enabledColor),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: enabledColor,
+              ),
             ),
             const SizedBox(height: 5),
             Text(
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: enabledColor,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: enabledColor,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
         ),
@@ -332,19 +460,24 @@ class _SaveToolAction extends StatelessWidget {
           case _SaveMenuCommand.save:
             onSave();
             break;
+          case _SaveMenuCommand.saveAndPrint:
+            onSaveAndPrint();
+            break;
           case _SaveMenuCommand.draft:
             onSaveDraft();
-            break;
-          case _SaveMenuCommand.post:
-            onSaveAndPost();
             break;
         }
       },
       itemBuilder: (context) => const [
         PopupMenuItem(value: _SaveMenuCommand.save, child: Text('Save')),
-        PopupMenuItem(value: _SaveMenuCommand.draft, child: Text('Save as Draft')),
-        PopupMenuDivider(),
-        PopupMenuItem(value: _SaveMenuCommand.post, child: Text('Save & Post')),
+        PopupMenuItem(
+          value: _SaveMenuCommand.saveAndPrint,
+          child: Text('Save & Print'),
+        ),
+        PopupMenuItem(
+          value: _SaveMenuCommand.draft,
+          child: Text('Save as Draft'),
+        ),
       ],
       child: SizedBox(
         width: 64,
@@ -360,9 +493,9 @@ class _SaveToolAction extends StatelessWidget {
                 Text(
                   'Save',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: enabledColor,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    color: enabledColor,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 Icon(Icons.arrow_drop_down, size: 14, color: enabledColor),
               ],
@@ -392,16 +525,24 @@ class _ToolAction extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22, color: enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93)),
+            Icon(
+              icon,
+              size: 22,
+              color: enabled
+                  ? const Color(0xFF234C5D)
+                  : const Color(0xFF7D8B93),
+            ),
             const SizedBox(height: 5),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: enabled ? const Color(0xFF273A43) : const Color(0xFF7D8B93),
-                    fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
-                  ),
+                color: enabled
+                    ? const Color(0xFF273A43)
+                    : const Color(0xFF7D8B93),
+                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -434,4 +575,8 @@ class _PrintInvoiceIntent extends Intent {
 
 class _SaveInvoiceIntent extends Intent {
   const _SaveInvoiceIntent();
+}
+
+class _SaveAndPrintInvoiceIntent extends Intent {
+  const _SaveAndPrintInvoiceIntent();
 }

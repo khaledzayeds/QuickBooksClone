@@ -11,7 +11,7 @@ Widget buildInvoiceContextPanel({
   required TransactionTotalsUiModel totals,
   required bool isLoading,
   required String? warning,
-  required String? memoText,
+  required String? notesText,
   VoidCallback? onViewAll,
   VoidCallback? onEditNotes,
 }) {
@@ -27,9 +27,9 @@ Widget buildInvoiceContextPanel({
     warning: warning,
     isLoading: isLoading,
     totals: totals,
-    notes: memoText == null || memoText.trim().isEmpty
+    notes: notesText == null || notesText.trim().isEmpty
         ? null
-        : 'Memo: ${memoText.trim()}',
+        : notesText.trim(),
     onViewAll: customer == null ? null : onViewAll,
     onEditNotes: onEditNotes,
   );

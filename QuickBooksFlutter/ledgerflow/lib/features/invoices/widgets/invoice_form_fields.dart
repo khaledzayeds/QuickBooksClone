@@ -46,7 +46,11 @@ class InvoiceReadonlyTextField extends StatelessWidget {
       readOnly: true,
       onTap: onTap,
       style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-      decoration: transactionCompactInputDecoration(cs, hint: hint, suffixIcon: suffixIcon),
+      decoration: transactionCompactInputDecoration(
+        cs,
+        hint: hint,
+        suffixIcon: suffixIcon,
+      ),
     );
   }
 }
@@ -91,11 +95,14 @@ class InvoiceTermsField extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isDense: true,
+      isExpanded: true,
       decoration: transactionCompactInputDecoration(cs),
       style: theme.textTheme.bodySmall,
-      items: terms.map((term) => DropdownMenuItem(value: term, child: Text(term))).toList(),
+      items: terms
+          .map((term) => DropdownMenuItem(value: term, child: Text(term)))
+          .toList(),
       onChanged: (next) {
         if (next != null) onChanged(next);
       },
@@ -122,12 +129,14 @@ class InvoiceCustomerField extends StatelessWidget {
   Iterable<CustomerModel> _matches(String pattern) {
     final q = pattern.toLowerCase().trim();
     if (q.isEmpty) return customers.take(20);
-    return customers.where((customer) {
-      return customer.displayName.toLowerCase().contains(q) ||
-          (customer.companyName?.toLowerCase().contains(q) ?? false) ||
-          (customer.primaryContact?.toLowerCase().contains(q) ?? false) ||
-          (customer.phone?.toLowerCase().contains(q) ?? false);
-    }).take(25);
+    return customers
+        .where((customer) {
+          return customer.displayName.toLowerCase().contains(q) ||
+              (customer.companyName?.toLowerCase().contains(q) ?? false) ||
+              customer.primaryContact.toLowerCase().contains(q) ||
+              (customer.phone?.toLowerCase().contains(q) ?? false);
+        })
+        .take(25);
   }
 
   @override
@@ -147,8 +156,11 @@ class InvoiceCustomerField extends StatelessWidget {
       itemBuilder: (context, customer) => ListTile(
         dense: true,
         visualDensity: VisualDensity.compact,
-        title: Text(customer.displayName, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(customer.companyName ?? customer.primaryContact ?? ''),
+        title: Text(
+          customer.displayName,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(customer.companyName ?? customer.primaryContact),
       ),
       onSuggestionSelected: (customer) {
         controller.text = customer.displayName;

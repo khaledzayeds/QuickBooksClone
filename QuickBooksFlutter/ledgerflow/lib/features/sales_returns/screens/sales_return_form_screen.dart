@@ -27,14 +27,18 @@ class SalesReturnLineState {
   double quantity;
   double discountPercent;
 
-  double get draftAmount => quantity * unitPrice * (1 - (discountPercent / 100));
+  double get draftAmount =>
+      quantity * unitPrice * (1 - (discountPercent / 100));
 }
 
 class SalesReturnFormScreen extends ConsumerStatefulWidget {
-  const SalesReturnFormScreen({super.key});
+  const SalesReturnFormScreen({super.key, this.invoiceId});
+
+  final String? invoiceId;
 
   @override
-  ConsumerState<SalesReturnFormScreen> createState() => _SalesReturnFormScreenState();
+  ConsumerState<SalesReturnFormScreen> createState() =>
+      _SalesReturnFormScreenState();
 }
 
 class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
@@ -42,12 +46,23 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
   final DateTime _returnDate = DateTime.now();
   List<SalesReturnLineState> _lines = [];
   bool _saving = false;
+  bool _prefillApplied = false;
 
-  double get _draftTotal => _lines.fold(0, (sum, line) => sum + line.draftAmount);
+  double get _draftTotal =>
+      _lines.fold(0, (sum, line) => sum + line.draftAmount);
 
   @override
   Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(invoicesProvider);
+    final invoices = invoicesAsync.maybeWhen(
+      data: _returnableInvoices,
+      orElse: () => <InvoiceModel>[],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyInvoicePrefill(invoices);
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -56,7 +71,9 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
           TextButton(
             onPressed: _saving
                 ? null
-                : () => context.canPop() ? context.pop() : context.go(AppRoutes.salesReturns),
+                : () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.salesReturns),
             child: const Text('إلغاء'),
           ),
           const SizedBox(width: 8),
@@ -80,13 +97,14 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
           _InvoiceCard(
             invoiceId: _invoiceId,
             returnDate: _returnDate,
-            invoicesAsync: invoicesAsync,
+            invoices: invoices,
             onInvoiceChanged: _selectInvoice,
           ),
           const SizedBox(height: 24),
           _LinesCard(
             lines: _lines,
-            onQuantityChanged: (index, quantity) => setState(() => _lines[index].quantity = quantity),
+            onQuantityChanged: (index, quantity) =>
+                setState(() => _lines[index].quantity = quantity),
           ),
           const SizedBox(height: 24),
           Align(
@@ -111,7 +129,9 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
           .map(
             (line) => SalesReturnLineState(
               invoiceLineId: line.id,
-              description: line.description.isEmpty ? line.itemId : line.description,
+              description: line.description.isEmpty
+                  ? line.itemId
+                  : line.description,
               originalQuantity: line.quantity,
               unitPrice: line.unitPrice,
               discountPercent: line.discountPercent,
@@ -119,6 +139,28 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
           )
           .toList();
     });
+  }
+
+  List<InvoiceModel> _returnableInvoices(List<InvoiceModel> invoices) {
+    return invoices
+        .where(
+          (invoice) =>
+              invoice.isCreditInvoice &&
+              !invoice.isVoid &&
+              invoice.lines.isNotEmpty &&
+              invoice.postedTransactionId != null,
+        )
+        .toList();
+  }
+
+  void _applyInvoicePrefill(List<InvoiceModel> invoices) {
+    if (_prefillApplied || (widget.invoiceId ?? '').isEmpty) return;
+    final invoice = invoices
+        .where((item) => item.id == widget.invoiceId)
+        .firstOrNull;
+    if (invoice == null) return;
+    _prefillApplied = true;
+    _selectInvoice(invoice);
   }
 
   Future<void> _save() async {
@@ -186,22 +228,20 @@ class _InvoiceCard extends StatelessWidget {
   const _InvoiceCard({
     required this.invoiceId,
     required this.returnDate,
-    required this.invoicesAsync,
+    required this.invoices,
     required this.onInvoiceChanged,
   });
 
   final String? invoiceId;
   final DateTime returnDate;
-  final AsyncValue<List<InvoiceModel>> invoicesAsync;
+  final List<InvoiceModel> invoices;
   final ValueChanged<InvoiceModel?> onInvoiceChanged;
 
   @override
   Widget build(BuildContext context) {
-    final invoices = invoicesAsync.maybeWhen(
-      data: (data) => data.where((invoice) => !invoice.isVoid && invoice.lines.isNotEmpty).toList(),
-      orElse: () => <InvoiceModel>[],
-    );
-    final selected = invoices.where((invoice) => invoice.id == invoiceId).firstOrNull;
+    final selected = invoices
+        .where((invoice) => invoice.id == invoiceId)
+        .firstOrNull;
 
     return Card(
       child: Padding(
@@ -226,7 +266,9 @@ class _InvoiceCard extends StatelessWidget {
                   )
                   .toList(),
               onChanged: (value) {
-                final invoice = invoices.where((item) => item.id == value).firstOrNull;
+                final invoice = invoices
+                    .where((item) => item.id == value)
+                    .firstOrNull;
                 onInvoiceChanged(invoice);
               },
             ),
@@ -280,12 +322,12 @@ class _LinesCard extends StatelessWidget {
             ),
             const Divider(),
             ...lines.asMap().entries.map(
-                  (entry) => _LineRow(
-                    index: entry.key,
-                    line: entry.value,
-                    onQuantityChanged: onQuantityChanged,
-                  ),
-                ),
+              (entry) => _LineRow(
+                index: entry.key,
+                line: entry.value,
+                onQuantityChanged: onQuantityChanged,
+              ),
+            ),
           ],
         ),
       ),
@@ -316,10 +358,18 @@ class _LineRow extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: TextFormField(
-                initialValue: line.quantity == 0 ? '' : line.quantity.toString(),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-                onChanged: (value) => onQuantityChanged(index, double.tryParse(value) ?? 0),
+                initialValue: line.quantity == 0
+                    ? ''
+                    : line.quantity.toString(),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (value) =>
+                    onQuantityChanged(index, double.tryParse(value) ?? 0),
               ),
             ),
           ),
@@ -349,10 +399,16 @@ class _DraftTotalCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Draft return total', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Draft return total',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   Text(
                     total.toStringAsFixed(2),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: cs.primary),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                    ),
                   ),
                 ],
               ),

@@ -26,7 +26,9 @@ class TransactionFormAction {
 
   TransactionFormActionStyle get resolvedStyle {
     if (style != null) return style!;
-    return filled ? TransactionFormActionStyle.filled : TransactionFormActionStyle.outlined;
+    return filled
+        ? TransactionFormActionStyle.filled
+        : TransactionFormActionStyle.outlined;
   }
 }
 
@@ -87,20 +89,27 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
         appBar: _buildAppBar(context),
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final showSidebar = widget.sidebar != null && constraints.maxWidth >= widget.showSidebarMinWidth;
+            final showSidebar =
+                widget.sidebar != null &&
+                constraints.maxWidth >= widget.showSidebarMinWidth;
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(child: widget.body),
                 if (showSidebar) ...[
-                  VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                  VerticalDivider(
+                    width: 1,
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeInOut,
                     width: _contextPanelExpanded ? 286 : 38,
                     child: _ContextPanelFrame(
                       expanded: _contextPanelExpanded,
-                      onToggle: () => setState(() => _contextPanelExpanded = !_contextPanelExpanded),
+                      onToggle: () => setState(
+                        () => _contextPanelExpanded = !_contextPanelExpanded,
+                      ),
                       child: widget.sidebar!,
                     ),
                   ),
@@ -115,21 +124,28 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    final isCtrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+    final isCtrl =
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
 
-    if (event.logicalKey == LogicalKeyboardKey.f2 && widget.shortcuts.onSaveAndNew != null) {
+    if (event.logicalKey == LogicalKeyboardKey.f2 &&
+        widget.shortcuts.onSaveAndNew != null) {
       widget.shortcuts.onSaveAndNew!.call();
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.f4 && widget.shortcuts.onSaveAndClose != null) {
+    if (event.logicalKey == LogicalKeyboardKey.f4 &&
+        widget.shortcuts.onSaveAndClose != null) {
       widget.shortcuts.onSaveAndClose!.call();
       return KeyEventResult.handled;
     }
-    if (isCtrl && event.logicalKey == LogicalKeyboardKey.keyP && widget.shortcuts.onPrint != null) {
+    if (isCtrl &&
+        event.logicalKey == LogicalKeyboardKey.keyP &&
+        widget.shortcuts.onPrint != null) {
       widget.shortcuts.onPrint!.call();
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.escape && widget.shortcuts.onClose != null) {
+    if (event.logicalKey == LogicalKeyboardKey.escape &&
+        widget.shortcuts.onClose != null) {
       widget.shortcuts.onClose!.call();
       return KeyEventResult.handled;
     }
@@ -159,8 +175,18 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              Text(widget.breadcrumb, style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+              Text(
+                widget.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                widget.breadcrumb,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ],
@@ -197,39 +223,39 @@ class _TransactionFormShellState extends State<TransactionFormShell> {
 
     return switch (action.resolvedStyle) {
       TransactionFormActionStyle.icon => IconButton(
-          visualDensity: VisualDensity.compact,
-          onPressed: enabled ? action.onPressed : null,
-          icon: Icon(action.icon, size: 20),
-          tooltip: action.tooltip ?? action.label,
-        ),
+        visualDensity: VisualDensity.compact,
+        onPressed: enabled ? action.onPressed : null,
+        icon: Icon(action.icon, size: 20),
+        tooltip: action.tooltip ?? action.label,
+      ),
       TransactionFormActionStyle.text => TextButton.icon(
-          onPressed: enabled ? action.onPressed : null,
-          icon: icon,
-          label: Text(action.label),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          ),
+        onPressed: enabled ? action.onPressed : null,
+        icon: icon,
+        label: Text(action.label),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
+      ),
       TransactionFormActionStyle.filled => FilledButton.icon(
-          onPressed: enabled ? action.onPressed : null,
-          icon: icon,
-          label: Text(action.label),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          ),
+        onPressed: enabled ? action.onPressed : null,
+        icon: icon,
+        label: Text(action.label),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
+      ),
       TransactionFormActionStyle.outlined => OutlinedButton.icon(
-          onPressed: enabled ? action.onPressed : null,
-          icon: icon,
-          label: Text(action.label),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            side: BorderSide(color: cs.outlineVariant),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          ),
+        onPressed: enabled ? action.onPressed : null,
+        icon: icon,
+        label: Text(action.label),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          side: BorderSide(color: cs.outlineVariant),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
+      ),
     };
   }
 }
@@ -301,13 +327,22 @@ class TransactionFormMainPanel extends StatelessWidget {
       children: [
         Container(color: cs.surface, padding: headerPadding, child: header),
         Divider(height: 1, color: Theme.of(context).dividerColor),
-        Container(color: cs.surfaceContainerLowest, padding: toolbarPadding, child: toolbar),
+        Container(
+          color: cs.surfaceContainerLowest,
+          padding: toolbarPadding,
+          child: toolbar,
+        ),
         Expanded(
           child: Column(
             children: [
-              Expanded(child: Padding(padding: linesPadding, child: lines)),
+              Expanded(
+                child: Padding(padding: linesPadding, child: lines),
+              ),
               Container(
-                decoration: BoxDecoration(color: cs.surface, border: Border(top: BorderSide(color: cs.outlineVariant))),
+                decoration: BoxDecoration(
+                  color: cs.surface,
+                  border: Border(top: BorderSide(color: cs.outlineVariant)),
+                ),
                 child: totals,
               ),
             ],
@@ -341,10 +376,17 @@ class TransactionFormFieldLabel extends StatelessWidget {
           padding: const EdgeInsetsDirectional.only(start: 2, bottom: 4),
           child: RichText(
             text: TextSpan(
-              style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
               children: [
                 TextSpan(text: label),
-                if (required) TextSpan(text: ' *', style: TextStyle(color: cs.error)),
+                if (required)
+                  TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: cs.error),
+                  ),
               ],
             ),
           ),
@@ -364,7 +406,7 @@ InputDecoration transactionCompactInputDecoration(
   return InputDecoration(
     hintText: hint,
     isDense: true,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(6),
       borderSide: BorderSide(color: cs.outlineVariant),
@@ -379,7 +421,13 @@ InputDecoration transactionCompactInputDecoration(
     ),
     filled: true,
     fillColor: cs.surface,
-    prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 16, color: cs.onSurfaceVariant),
-    suffixIcon: suffixIcon == null ? null : Icon(suffixIcon, size: 16, color: cs.onSurfaceVariant),
+    prefixIcon: prefixIcon == null
+        ? null
+        : Icon(prefixIcon, size: 16, color: cs.onSurfaceVariant),
+    prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+    suffixIcon: suffixIcon == null
+        ? null
+        : Icon(suffixIcon, size: 16, color: cs.onSurfaceVariant),
+    suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
   );
 }

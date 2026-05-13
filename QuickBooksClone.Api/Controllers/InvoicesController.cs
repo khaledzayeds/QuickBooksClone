@@ -6,6 +6,7 @@ using QuickBooksClone.Api.Services;
 using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Common;
 using QuickBooksClone.Core.Customers;
+using QuickBooksClone.Core.Documents;
 using QuickBooksClone.Core.Invoices;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.Settings;
@@ -28,6 +29,7 @@ public sealed class InvoicesController : ControllerBase
     private readonly IDocumentNumberService _documentNumbers;
     private readonly ICompanySettingsRepository _companySettings;
     private readonly ITaxCodeRepository _taxCodes;
+    private readonly IDocumentMetadataService _metadata;
 
     public InvoicesController(
         IInvoiceRepository invoices,
@@ -39,7 +41,8 @@ public sealed class InvoicesController : ControllerBase
         SalesActivityService activityService,
         IDocumentNumberService documentNumbers,
         ICompanySettingsRepository companySettings,
-        ITaxCodeRepository taxCodes)
+        ITaxCodeRepository taxCodes,
+        IDocumentMetadataService metadata)
     {
         _invoices = invoices;
         _customers = customers;
@@ -51,6 +54,7 @@ public sealed class InvoicesController : ControllerBase
         _documentNumbers = documentNumbers;
         _companySettings = companySettings;
         _taxCodes = taxCodes;
+        _metadata = metadata;
     }
 
     [HttpGet]
@@ -98,6 +102,52 @@ public sealed class InvoicesController : ControllerBase
         }
 
         return Ok(await ToDtoAsync(invoice, cancellationToken));
+    }
+
+    [HttpGet("{id:guid}/notes")]
+    [ProducesResponseType(typeof(InvoiceNotesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InvoiceNotesResponse>> GetNotes(Guid id, CancellationToken cancellationToken = default)
+    {
+        var invoice = await _invoices.GetByIdAsync(id, cancellationToken);
+        if (invoice is null || invoice.PaymentMode != InvoicePaymentMode.Credit)
+        {
+            return NotFound();
+        }
+
+        var metadata = await _metadata.GetOrCreateAsync("invoice", id, cancellationToken);
+        return Ok(new InvoiceNotesResponse(metadata.InternalNote ?? string.Empty));
+    }
+
+    [HttpPost("{id:guid}/notes")]
+    [ProducesResponseType(typeof(InvoiceNotesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InvoiceNotesResponse>> SaveNotes(Guid id, SaveInvoiceNotesRequest request, CancellationToken cancellationToken = default)
+    {
+        var invoice = await _invoices.GetByIdAsync(id, cancellationToken);
+        if (invoice is null || invoice.PaymentMode != InvoicePaymentMode.Credit)
+        {
+            return NotFound();
+        }
+
+        var current = await _metadata.GetOrCreateAsync("invoice", id, cancellationToken);
+        var updated = await _metadata.UpdateAsync(
+            "invoice",
+            id,
+            current.PublicMemo,
+            request.Notes,
+            current.ExternalReference,
+            current.TemplateName,
+            current.ShipToName,
+            current.ShipToAddressLine1,
+            current.ShipToAddressLine2,
+            current.ShipToCity,
+            current.ShipToRegion,
+            current.ShipToPostalCode,
+            current.ShipToCountry,
+            cancellationToken);
+
+        return Ok(new InvoiceNotesResponse(updated.InternalNote ?? string.Empty));
     }
 
     [HttpPost("preview")]
@@ -388,4 +438,7 @@ public sealed class InvoicesController : ControllerBase
     }
 
     private sealed record TaxLineCalculation(Guid? TaxCodeId, decimal RatePercent, decimal TaxAmount, decimal NetUnitPrice);
+
+    public sealed record InvoiceNotesResponse(string Notes);
+    public sealed record SaveInvoiceNotesRequest(string Notes);
 }

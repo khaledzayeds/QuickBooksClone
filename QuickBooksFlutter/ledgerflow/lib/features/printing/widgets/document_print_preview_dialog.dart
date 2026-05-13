@@ -26,6 +26,45 @@ Future<void> showDocumentPrintPreviewDialog({
   );
 }
 
+Future<void> printDocumentUsingSettings({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String documentType,
+  required String documentId,
+}) async {
+  final settings = ref.read(printingSettingsProvider).settings;
+  if (settings.printPreviewBeforePrint ||
+      settings.printMode == PrintMode.both) {
+    return showDocumentPrintPreviewDialog(
+      context: context,
+      ref: ref,
+      documentType: documentType,
+      documentId: documentId,
+    );
+  }
+
+  final request = DocumentPrintDataRequest(
+    documentType: documentType,
+    documentId: documentId,
+  );
+  final data = await ref.read(documentPrintDataProvider(request).future);
+  switch (settings.printMode) {
+    case PrintMode.a4:
+      await Printing.layoutPdf(
+        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        onLayout: (_) => const A4DocumentPdfService().build(data, settings),
+      );
+    case PrintMode.thermal:
+      await Printing.layoutPdf(
+        name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        onLayout: (_) =>
+            const ThermalDocumentPdfService().build(data, settings),
+      );
+    case PrintMode.both:
+      break;
+  }
+}
+
 class DocumentPrintPreviewDialog extends ConsumerWidget {
   const DocumentPrintPreviewDialog({
     super.key,
