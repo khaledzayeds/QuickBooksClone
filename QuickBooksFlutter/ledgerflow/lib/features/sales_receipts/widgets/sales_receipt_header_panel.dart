@@ -134,13 +134,7 @@ class SalesReceiptHeaderPanel extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(child: _StackedField(label: 'PAYMENT', child: paymentMethodField)),
-                            const SizedBox(width: 10),
-                            Expanded(child: _StackedField(label: 'REF / MEMO', child: referenceField)),
-                          ],
-                        ),
+                        _StackedField(label: 'PAYMENT METHOD', child: paymentMethodField),
                         const SizedBox(height: 8),
                         _StackedField(label: 'DEPOSIT ACCOUNT', child: depositAccountField),
                       ],
