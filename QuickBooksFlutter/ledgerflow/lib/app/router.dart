@@ -342,12 +342,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.purchaseOrderEdit,
             builder: (context, state) =>
-                PurchaseOrderWorkspaceScreen(id: state.pathParameters['id']!),
+                PurchaseOrderWorkspaceScreen(id: state.pathParameters['id']),
           ),
           GoRoute(
             path: AppRoutes.purchaseOrderDetails,
             builder: (context, state) =>
-                PurchaseOrderWorkspaceScreen(id: state.pathParameters['id']!),
+                PurchaseOrderWorkspaceScreen(id: state.pathParameters['id']),
           ),
           GoRoute(
             path: AppRoutes.receiveInventory,

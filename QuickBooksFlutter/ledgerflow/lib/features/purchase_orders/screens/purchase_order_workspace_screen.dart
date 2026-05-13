@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/router.dart';
-import '../../../../core/widgets/transaction_line_table.dart';
+import '../../../../core/widgets/qb/qb_transaction_line_grid.dart';
+import '../../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../../../core/widgets/transaction_vendor_picker.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../vendors/data/models/vendor_model.dart';
@@ -322,17 +323,16 @@ class _PurchaseOrderWorkspaceScreenState extends ConsumerState<PurchaseOrderWork
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                              child: IgnorePointer(
-                                ignoring: _readOnly,
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: TransactionLineTable(
-                                    lines: _lines,
-                                    onChanged: () {
-                                      if (!_readOnly) setState(() {});
-                                    },
-                                  ),
-                                ),
+                              child: QbTransactionLineGrid(
+                                lines: _lines,
+                                priceMode: TransactionLinePriceMode.purchase,
+                                fillWidth: true,
+                                compact: true,
+                                showAddLineFooter: false,
+                                readOnly: _readOnly,
+                                onChanged: () {
+                                  if (!_readOnly) setState(() {});
+                                },
                               ),
                             ),
                           ),
