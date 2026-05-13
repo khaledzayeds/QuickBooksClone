@@ -19,6 +19,7 @@ class PurchaseOrderListScreen extends ConsumerStatefulWidget {
 class _PurchaseOrderListScreenState
     extends ConsumerState<PurchaseOrderListScreen> {
   PurchaseOrderStatus? _selectedStatus;
+  final _queryCtrl = TextEditingController();
 
   // ignore: unused_field
   static const _filters = [
@@ -28,168 +29,304 @@ class _PurchaseOrderListScreenState
     (PurchaseOrderStatus.closed, 'مغلق | Closed'),
     (PurchaseOrderStatus.cancelled, 'ملغي | Cancelled'),
   ];
+
+  @override
+  void dispose() {
+    _queryCtrl.dispose();
+    super.dispose();
+  }
+
+  List<PurchaseOrderModel> _filtered(List<PurchaseOrderModel> orders) {
+    final query = _queryCtrl.text.trim().toLowerCase();
+    return orders.where((order) {
+      final matchesText =
+          query.isEmpty ||
+          order.orderNumber.toLowerCase().contains(query) ||
+          order.vendorName.toLowerCase().contains(query);
+      final matchesStatus =
+          _selectedStatus == null || order.status == _selectedStatus;
+      return matchesText && matchesStatus;
+    }).toList()..sort((a, b) => b.orderDate.compareTo(a.orderDate));
+  }
+
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(purchaseOrdersProvider);
-    final l10n        = AppLocalizations.of(context)!;
-    final cs          = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.purchaseOrders),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(purchaseOrdersProvider.notifier).refresh(),
-          ),
-        ],
-      ),
-
+      backgroundColor: const Color(0xFFE8EDF0),
       body: Column(
         children: [
-          // ── Filter Chips ──────────────────────────────────────────
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Container(
+            height: 72,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF3F6F7),
+              border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+            ),
+            child: Row(
               children: [
-                (null, l10n.all),
-                (PurchaseOrderStatus.draft, l10n.statusDraft),
-                (PurchaseOrderStatus.open, l10n.statusOpen),
-                (PurchaseOrderStatus.closed, l10n.statusClosed),
-                (PurchaseOrderStatus.cancelled, l10n.statusCancelled),
-              ].map((f) {
-                final isSelected = _selectedStatus == f.$1;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(f.$2),
-                    selected: isSelected,
-                    onSelected: (_) {
-                      setState(() => _selectedStatus = f.$1);
+                _ListTool(
+                  icon: Icons.note_add_outlined,
+                  label: l10n.newText,
+                  onTap: () => context.go(AppRoutes.purchaseOrderNew),
+                ),
+                _ListTool(
+                  icon: Icons.refresh,
+                  label: 'Refresh',
+                  onTap: () =>
+                      ref.read(purchaseOrdersProvider.notifier).refresh(),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: _queryCtrl,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Search by number or vendor',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 180,
+                  child: DropdownButtonFormField<PurchaseOrderStatus?>(
+                    value: _selectedStatus,
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    items: [
+                      DropdownMenuItem(value: null, child: Text(l10n.all)),
+                      DropdownMenuItem(
+                        value: PurchaseOrderStatus.draft,
+                        child: Text(l10n.statusDraft),
+                      ),
+                      DropdownMenuItem(
+                        value: PurchaseOrderStatus.open,
+                        child: Text(l10n.statusOpen),
+                      ),
+                      DropdownMenuItem(
+                        value: PurchaseOrderStatus.closed,
+                        child: Text(l10n.statusClosed),
+                      ),
+                      DropdownMenuItem(
+                        value: PurchaseOrderStatus.cancelled,
+                        child: Text(l10n.statusCancelled),
+                      ),
+                    ],
+                    onChanged: (status) {
+                      setState(() => _selectedStatus = status);
                       ref
                           .read(purchaseOrdersProvider.notifier)
-                          .setStatusFilter(f.$1);
+                          .setStatusFilter(status);
                     },
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
           ),
 
-          // ── List ───────────────────────────────────────────────────
           Expanded(
             child: ordersAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.error_outline,
-                        size: 48, color: cs.error),
+                    Icon(Icons.error_outline, size: 48, color: cs.error),
                     const SizedBox(height: 12),
-                    Text(e.toString(),
-                        style: TextStyle(color: cs.error)),
+                    Text(e.toString(), style: TextStyle(color: cs.error)),
                     const SizedBox(height: 12),
                     TextButton.icon(
                       icon: const Icon(Icons.refresh),
                       label: Text(l10n.retry),
-                      onPressed: () => ref
-                          .read(purchaseOrdersProvider.notifier)
-                          .refresh(),
+                      onPressed: () =>
+                          ref.read(purchaseOrdersProvider.notifier).refresh(),
                     ),
                   ],
                 ),
               ),
-              data: (orders) => orders.isEmpty
-                  ? _EmptyState(
-                      onNew: () => context.push(AppRoutes.purchaseOrderNew))
-                  : RefreshIndicator(
-                      onRefresh: () => ref
-                          .read(purchaseOrdersProvider.notifier)
-                          .refresh(),
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: orders.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 8),
-                        itemBuilder: (_, i) => _PoCard(
-                          order: orders[i],
-                          onTap: () => context.push(
-                              AppRoutes.purchaseOrderDetails
-                                  .replaceFirst(':id', orders[i].id)),
+              data: (orders) {
+                final filtered = _filtered(orders);
+                return filtered.isEmpty
+                    ? _EmptyState(
+                        onNew: () => context.go(AppRoutes.purchaseOrderNew),
+                      )
+                    : _PurchaseOrderTable(
+                        orders: filtered,
+                        onOpen: (order) => context.go(
+                          AppRoutes.purchaseOrderDetails.replaceFirst(
+                            ':id',
+                            order.id,
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+              },
             ),
           ),
         ],
-      ),
-
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: Text(l10n.newText),
-        onPressed: () => context.push(AppRoutes.purchaseOrderNew),
       ),
     );
   }
 }
 
-// ─── PO Card ──────────────────────────────────────────────────────────
-class _PoCard extends StatelessWidget {
-  const _PoCard({required this.order, required this.onTap});
-  final PurchaseOrderModel order;
-  final VoidCallback        onTap;
+class _ListTool extends StatelessWidget {
+  const _ListTool({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: ListTile(
+    return Tooltip(
+      message: label,
+      child: InkWell(
         onTap: onTap,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(Icons.receipt_long_outlined,
-              color: theme.colorScheme.primary, size: 20),
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(order.orderNumber,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600)),
-            ),
-            _StatusBadge(status: order.status),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(order.vendorName,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.textTheme.bodyMedium?.color
-                        ?.withValues(alpha: 0.7))),
-            const SizedBox(height: 2),
-            Text(
-              '${order.totalAmount.toStringAsFixed(2)} ج.م',
-              style: theme.textTheme.titleSmall?.copyWith(
+        child: SizedBox(
+          width: 68,
+          height: 62,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: const Color(0xFF1F5163)),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF1F5163),
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.primary),
-            ),
-          ],
+                ),
+              ),
+            ],
+          ),
         ),
-        trailing: const Icon(Icons.chevron_right),
+      ),
+    );
+  }
+}
+
+class _PurchaseOrderTable extends StatelessWidget {
+  const _PurchaseOrderTable({required this.orders, required this.onOpen});
+
+  final List<PurchaseOrderModel> orders;
+  final ValueChanged<PurchaseOrderModel> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = MaterialLocalizations.of(context);
+    return Container(
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB9C3CA)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 34,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            color: const Color(0xFFE8F0F4),
+            child: const Row(
+              children: [
+                Expanded(flex: 2, child: _TableHeader('DATE')),
+                Expanded(flex: 2, child: _TableHeader('TYPE')),
+                Expanded(flex: 3, child: _TableHeader('NUM')),
+                Expanded(flex: 4, child: _TableHeader('NAME')),
+                Expanded(flex: 2, child: _TableHeader('STATUS')),
+                Expanded(
+                  flex: 2,
+                  child: _TableHeader('AMOUNT', alignEnd: true),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                final bg = index.isEven
+                    ? Colors.white
+                    : const Color(0xFFF4F7F9);
+                return InkWell(
+                  onTap: () => onOpen(order),
+                  child: Container(
+                    height: 38,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    color: bg,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Text(fmt.formatShortDate(order.orderDate)),
+                        ),
+                        const Expanded(flex: 2, child: Text('Purchase Order')),
+                        Expanded(flex: 3, child: Text(order.orderNumber)),
+                        Expanded(
+                          flex: 4,
+                          child: Text(
+                            order.vendorName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: _StatusBadge(status: order.status),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            order.totalAmount.toStringAsFixed(2),
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader(this.text, {this.alignEnd = false});
+
+  final String text;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+      style: const TextStyle(
+        color: Color(0xFF607D8B),
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
       ),
     );
   }
@@ -203,10 +340,19 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (Color bg, Color fg) = switch (status) {
-      PurchaseOrderStatus.draft     => (Colors.grey.shade200, Colors.grey.shade700),
-      PurchaseOrderStatus.open      => (Colors.green.shade100, Colors.green.shade800),
-      PurchaseOrderStatus.closed    => (Colors.blue.shade100, Colors.blue.shade800),
-      PurchaseOrderStatus.cancelled => (Colors.red.shade100, Colors.red.shade800),
+      PurchaseOrderStatus.draft => (Colors.grey.shade200, Colors.grey.shade700),
+      PurchaseOrderStatus.open => (
+        Colors.green.shade100,
+        Colors.green.shade800,
+      ),
+      PurchaseOrderStatus.closed => (
+        Colors.blue.shade100,
+        Colors.blue.shade800,
+      ),
+      PurchaseOrderStatus.cancelled => (
+        Colors.red.shade100,
+        Colors.red.shade800,
+      ),
     };
 
     return Container(
@@ -230,27 +376,28 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.receipt_long_outlined,
-                size: 64,
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            const Text('لا توجد أوامر شراء | No purchase orders',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            const Text('ابدأ بإنشاء أمر شراء جديد'),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('أمر جديد | New Order'),
-              onPressed: onNew,
-            ),
-          ],
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.receipt_long_outlined,
+          size: 64,
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         ),
-      );
+        const SizedBox(height: 16),
+        const Text(
+          'لا توجد أوامر شراء | No purchase orders',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        const Text('ابدأ بإنشاء أمر شراء جديد'),
+        const SizedBox(height: 24),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.add),
+          label: const Text('أمر جديد | New Order'),
+          onPressed: onNew,
+        ),
+      ],
+    ),
+  );
 }

@@ -47,7 +47,6 @@ import '../features/payroll/screens/payroll_setup_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_details_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
-import '../features/purchase_orders/screens/purchase_order_details_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_form_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_list_screen.dart';
 import '../features/purchase_returns/screens/purchase_return_details_screen.dart';
@@ -348,7 +347,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.purchaseOrderDetails,
             builder: (context, state) =>
-                PurchaseOrderDetailsScreen(id: state.pathParameters['id']!),
+                PurchaseOrderFormScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.receiveInventory,

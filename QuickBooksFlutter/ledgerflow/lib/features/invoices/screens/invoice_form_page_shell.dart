@@ -73,7 +73,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   bool get _financialReadOnly {
     final invoice = _editingInvoice ?? _savedInvoice;
     if (invoice == null) return false;
-    return invoice.isVoid || _hasAppliedActivity;
+    return invoice.isVoid || _hasAppliedActivity || !invoice.isDraft;
   }
 
   bool get _canSaveDraft {
@@ -341,8 +341,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     final invoices = ref
         .read(invoicesStateProvider)
         .maybeWhen(
-          data: (items) => [...items]
-            ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate)),
+          data: (items) =>
+              [...items]
+                ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate)),
           orElse: () => const <InvoiceModel>[],
         );
     final index = invoices.indexWhere((invoice) => invoice.id == currentId);
@@ -359,8 +360,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     final invoices = ref
         .watch(invoicesStateProvider)
         .maybeWhen(
-          data: (items) => [...items]
-            ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate)),
+          data: (items) =>
+              [...items]
+                ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate)),
           orElse: () => const <InvoiceModel>[],
         );
     final index = invoices.indexWhere((invoice) => invoice.id == currentId);
@@ -396,7 +398,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     if (invoice.isDraft) {
       return 'Draft invoice. Save posts it to accounting.';
     }
-    return 'Open invoice. Balance due $balance $currency.';
+    return 'Open posted invoice. Balance due $balance $currency. Use Payments, Refund, Print, or Notes.';
   }
 
   Color get _statusColor {
@@ -719,10 +721,19 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(_friendlyErrorMessage(message)),
         backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
+  }
+
+  String _friendlyErrorMessage(String message) {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('expected to affect 1 row') ||
+        normalized.contains('optimistic concurrency')) {
+      return 'This invoice changed after it was loaded. Reopen it before saving, or use the available posted-invoice actions.';
+    }
+    return message;
   }
 
   void _goBack() {
