@@ -109,8 +109,14 @@ For each document screen:
 - [x] Invoice list/search upgraded to filtered result table.
 - [x] Invoice payment/refund/print/notes/void actions wired to backend or
   deliberately disabled where service is missing.
+- [x] Sales Receipt opens saved rows in the receipt workspace instead of a
+  static review page.
+- [x] Sales Receipt list/search upgraded to the same local filter pattern:
+  text search, status filter, date range, and row go-to behavior.
+- [x] Sales Receipt workspace uses read-only accounting state for saved/voided
+  receipts, with print, notes, and void actions kept in the document workspace.
 - [ ] Extract Invoice workspace pieces into reusable templates.
-- [ ] Apply templates to Sales Receipt.
+- [x] Apply the first unified workspace/list behavior to Sales Receipt.
 - [ ] Apply templates to Estimate.
 - [ ] Apply templates to Customer Credit.
 - [ ] Continue through the remaining priority list one screen at a time.
