@@ -1,27 +1,25 @@
 // transaction_vendor_picker.dart
-// Reusable vendor/customer selector with search dialog — used in PO, Bills, Payments, etc.
+// Reusable compact vendor selector with search dialog.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../features/vendors/data/models/vendor_model.dart';
 import '../../features/vendors/providers/vendors_provider.dart';
 
-/// Drop-in field that opens a search dialog to pick a vendor.
-/// [value] is the currently selected vendor (nullable).
-/// [onChanged] fires with the newly selected vendor.
 class VendorPickerField extends ConsumerStatefulWidget {
   const VendorPickerField({
     super.key,
     required this.onChanged,
     this.value,
-    this.label = 'المورد | Vendor',
+    this.label = 'Vendor',
     this.required = true,
   });
 
-  final VendorModel?           value;
+  final VendorModel? value;
   final ValueChanged<VendorModel> onChanged;
-  final String                 label;
-  final bool                   required;
+  final String label;
+  final bool required;
 
   @override
   ConsumerState<VendorPickerField> createState() => _VendorPickerFieldState();
@@ -38,78 +36,49 @@ class _VendorPickerFieldState extends ConsumerState<VendorPickerField> {
 
   @override
   Widget build(BuildContext context) {
-    final theme    = Theme.of(context);
-    final cs       = theme.colorScheme;
+    final theme = Theme.of(context);
     final selected = widget.value;
 
-    return GestureDetector(
-      onTap: _openPicker,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: selected == null && widget.required
-                ? cs.outline
-                : cs.outline,
+    return SizedBox(
+      height: 30,
+      child: InkWell(
+        onTap: _openPicker,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFB7C3CB)),
           ),
-          borderRadius: BorderRadius.circular(8),
-          color: cs.surfaceContainerLowest,
-        ),
-        child: Row(
-          children: [
-            if (selected != null) ...[
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: cs.primaryContainer,
+          child: Row(
+            children: [
+              const Icon(Icons.search, size: 16, color: Color(0xFF53656E)),
+              const SizedBox(width: 6),
+              Expanded(
                 child: Text(
-                  selected.initials,
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onPrimaryContainer),
+                  selected?.displayName ?? 'Select vendor',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: selected == null ? const Color(0xFF7B8B93) : const Color(0xFF253C47),
+                    fontWeight: selected == null ? FontWeight.w600 : FontWeight.w800,
+                  ),
                 ),
               ),
-              const SizedBox(width: 10),
-            ] else
-              Icon(Icons.person_search_outlined, color: cs.outline, size: 20),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.label,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: cs.outline),
-                  ),
-                  Text(
-                    selected?.displayName ?? 'اختر موردًا...',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: selected != null
-                          ? FontWeight.w700
-                          : FontWeight.normal,
-                      color: selected != null ? null : cs.outline,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_drop_down, color: cs.outline),
-          ],
+              const Icon(Icons.arrow_drop_down, size: 18, color: Color(0xFF53656E)),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Internal Search Dialog ──────────────────────────────────────────────
 class _VendorSearchDialog extends ConsumerStatefulWidget {
   const _VendorSearchDialog();
 
   @override
-  ConsumerState<_VendorSearchDialog> createState() =>
-      _VendorSearchDialogState();
+  ConsumerState<_VendorSearchDialog> createState() => _VendorSearchDialogState();
 }
 
 class _VendorSearchDialogState extends ConsumerState<_VendorSearchDialog> {
@@ -126,100 +95,85 @@ class _VendorSearchDialogState extends ConsumerState<_VendorSearchDialog> {
         height: 520,
         child: Column(
           children: [
-            // ── Header ────────────────────────────────────────────────
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+              height: 46,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3F6F7),
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.people_outline),
+                  const Icon(Icons.people_outline, size: 18),
                   const SizedBox(width: 8),
-                  Text('اختر موردًا | Select Vendor',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    'Select Vendor',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+                  ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, size: 18),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-
-            // ── Search ─────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(12),
               child: TextField(
                 autofocus: true,
-                onChanged: (v) => setState(() => _query = v.toLowerCase()),
+                onChanged: (value) => setState(() => _query = value.toLowerCase().trim()),
                 decoration: const InputDecoration(
-                  hintText: 'بحث... | Search...',
+                  hintText: 'Search...',
                   prefixIcon: Icon(Icons.search, size: 18),
                   border: OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                      vertical: 10, horizontal: 12),
+                  contentPadding: EdgeInsets.symmetric(vertical: 9, horizontal: 10),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
             const Divider(height: 1),
-
-            // ── List ───────────────────────────────────────────────────
             Expanded(
               child: vendorsAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text(e.toString())),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(error.toString())),
                 data: (vendors) {
-                  final filtered = vendors
-                      .where((v) =>
-                          v.isActive &&
-                          (v.displayName.toLowerCase().contains(_query) ||
-                              (v.companyName
-                                      ?.toLowerCase()
-                                      .contains(_query) ??
-                                  false)))
-                      .toList();
+                  final filtered = vendors.where((vendor) {
+                    return vendor.isActive &&
+                        (vendor.displayName.toLowerCase().contains(_query) ||
+                            (vendor.companyName?.toLowerCase().contains(_query) ?? false));
+                  }).toList();
 
                   if (filtered.isEmpty) {
-                    return const Center(
-                        child: Text('لا توجد نتائج | No results'));
+                    return const Center(child: Text('No vendors found'));
                   }
 
                   return ListView.builder(
                     itemCount: filtered.length,
-                    itemBuilder: (_, i) {
-                      final v = filtered[i];
+                    itemBuilder: (context, index) {
+                      final vendor = filtered[index];
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .primaryContainer,
-                          child: Text(v.initials,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700)),
+                        dense: true,
+                        title: Text(
+                          vendor.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                        title: Text(v.displayName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600)),
-                        subtitle: v.companyName != null
-                            ? Text(v.companyName!)
-                            : null,
-                        trailing: v.balance != 0
-                            ? Text(
-                                v.balance.toStringAsFixed(2),
-                                style: TextStyle(
-                                    color: v.balance > 0
-                                        ? Colors.orange
-                                        : Colors.green,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12),
-                              )
-                            : null,
-                        onTap: () => Navigator.pop(context, v),
+                        subtitle: vendor.companyName == null
+                            ? null
+                            : Text(
+                                vendor.companyName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                        trailing: vendor.balance == 0
+                            ? null
+                            : Text(
+                                vendor.balance.toStringAsFixed(2),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                        onTap: () => Navigator.pop(context, vendor),
                       );
                     },
                   );
