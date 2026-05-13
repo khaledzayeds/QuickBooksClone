@@ -60,6 +60,31 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   String _notes = '';
 
   bool get _isEdit => widget.id != null && widget.id!.isNotEmpty;
+  bool get _hasAppliedActivity {
+    final invoice = _editingInvoice ?? _savedInvoice;
+    if (invoice == null) return false;
+    return invoice.paidAmount > 0 ||
+        invoice.creditAppliedAmount > 0 ||
+        invoice.returnedAmount > 0 ||
+        invoice.isPartiallyPaid ||
+        invoice.isPaid;
+  }
+
+  bool get _financialReadOnly {
+    final invoice = _editingInvoice ?? _savedInvoice;
+    if (invoice == null) return false;
+    return invoice.isVoid || _hasAppliedActivity;
+  }
+
+  bool get _canSaveDraft {
+    final invoice = _editingInvoice ?? _savedInvoice;
+    return !_financialReadOnly && (invoice == null || invoice.isDraft);
+  }
+
+  bool get _canVoid {
+    final invoice = _editingInvoice ?? _savedInvoice;
+    return invoice != null && !invoice.isVoid;
+  }
 
   final _numberCtrl = TextEditingController(text: 'AUTO');
   final _dateCtrl = TextEditingController();
@@ -254,11 +279,6 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     setState(() => _loadingExisting = false);
     result.when(
       success: (invoice) async {
-        if (!invoice.isDraft) {
-          _showError('Only draft invoices can be edited.');
-          context.go('/sales/invoices/${invoice.id}');
-          return;
-        }
         for (final line in _lines) {
           line.dispose();
         }
@@ -553,6 +573,10 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   Future<void> _handlePayment() async {
     final invoice = await _ensurePostedInvoice();
     if (invoice == null || !mounted) return;
+    if (invoice.isVoid) {
+      _showError('Void invoices cannot receive payments.');
+      return;
+    }
     if (invoice.balanceDue <= 0) {
       _showError('This invoice has no balance due.');
       return;
@@ -563,6 +587,10 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   Future<void> _handleRefund() async {
     final invoice = await _ensurePostedInvoice();
     if (invoice == null || !mounted) return;
+    if (invoice.isVoid) {
+      _showError('Void invoices cannot be refunded.');
+      return;
+    }
     context.go('${AppRoutes.salesReturnNew}?invoiceId=${invoice.id}');
   }
 
@@ -611,7 +639,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
 
   void _goBack() {
     if (_isEdit && widget.id != null) {
-      context.go('/sales/invoices/${widget.id}');
+      context.go(AppRoutes.invoices);
       return;
     }
     if (context.canPop()) {
@@ -681,6 +709,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final l10n = AppLocalizations.of(context)!;
+    final financialReadOnly = _financialReadOnly;
+    final canSaveDraft = _canSaveDraft;
+    final canVoid = _canVoid;
     final customers = ref
         .watch(customersProvider)
         .maybeWhen(
@@ -697,6 +728,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           controller: _customerCtrl,
           customers: customers,
           selected: _customer,
+          enabled: !financialReadOnly,
           onSelected: (customer) {
             setState(() {
               _customer = customer;
@@ -729,6 +761,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           controller: _dateCtrl,
           hint: 'dd/mm/yyyy',
           suffixIcon: Icons.calendar_today_outlined,
+          enabled: !financialReadOnly,
           onTap: _pickInvoiceDate,
         ),
       ),
@@ -738,6 +771,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           controller: _dueDateCtrl,
           hint: 'dd/mm/yyyy',
           suffixIcon: Icons.event_available_outlined,
+          enabled: !financialReadOnly,
           onTap: _pickDueDate,
         ),
       ),
@@ -746,6 +780,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         child: InvoiceTermsField(
           value: _terms,
           terms: _kInvoiceTerms,
+          enabled: !financialReadOnly,
           onChanged: (terms) {
             setState(() => _terms = terms);
           },
@@ -769,8 +804,10 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       saving: _saving,
       posting: _posting,
       isEdit: _isEdit,
+      readOnly: financialReadOnly,
       onAddLine: _addLine,
       onLinesChanged: () {
+        if (financialReadOnly) return;
         setState(() {
           _preview = null;
           _editingInvoice = null;
@@ -779,15 +816,21 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         _schedulePreview();
       },
       onFind: () => context.go(AppRoutes.invoices),
-      onSaveDraft: () => _saveWithMode(_saveModeForDraft()),
-      onSave: () => _saveWithMode(_saveModeForPost()),
+      onSaveDraft: canSaveDraft
+          ? () => _saveWithMode(_saveModeForDraft())
+          : null,
+      onSave: financialReadOnly
+          ? null
+          : () => _saveWithMode(_saveModeForPost()),
       onSaveAndPrint: _handleSaveAndPrint,
-      onSaveAndNew: _saveAndNew,
-      onPost: () => _saveWithMode(_saveModeForPost()),
+      onSaveAndNew: financialReadOnly ? null : _saveAndNew,
+      onPost: financialReadOnly
+          ? null
+          : () => _saveWithMode(_saveModeForPost()),
       onPrint: _handlePrint,
       onPayment: _handlePayment,
       onRefund: _handleRefund,
-      onVoid: _handleVoid,
+      onVoid: canVoid ? _handleVoid : null,
       onClear: _handleClearOrNew,
       onClose: _goBack,
       onViewAll: _customer == null ? null : _openCustomerHistory,

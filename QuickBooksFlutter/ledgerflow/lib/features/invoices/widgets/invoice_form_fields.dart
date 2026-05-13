@@ -30,12 +30,14 @@ class InvoiceReadonlyTextField extends StatelessWidget {
     this.hint,
     this.onTap,
     this.suffixIcon,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
   final String? hint;
   final VoidCallback? onTap;
   final IconData? suffixIcon;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,8 @@ class InvoiceReadonlyTextField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       readOnly: true,
-      onTap: onTap,
+      enabled: enabled,
+      onTap: enabled ? onTap : null,
       style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
       decoration: transactionCompactInputDecoration(
         cs,
@@ -60,10 +63,12 @@ class InvoiceMemoField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onChanged,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +76,7 @@ class InvoiceMemoField extends StatelessWidget {
     final cs = theme.colorScheme;
     return TextFormField(
       controller: controller,
+      enabled: enabled,
       style: theme.textTheme.bodySmall,
       decoration: transactionCompactInputDecoration(cs, hint: 'Optional'),
       onChanged: onChanged,
@@ -84,11 +90,13 @@ class InvoiceTermsField extends StatelessWidget {
     required this.value,
     required this.terms,
     required this.onChanged,
+    this.enabled = true,
   });
 
   final String value;
   final List<String> terms;
   final ValueChanged<String> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +111,11 @@ class InvoiceTermsField extends StatelessWidget {
       items: terms
           .map((term) => DropdownMenuItem(value: term, child: Text(term)))
           .toList(),
-      onChanged: (next) {
-        if (next != null) onChanged(next);
-      },
+      onChanged: enabled
+          ? (next) {
+              if (next != null) onChanged(next);
+            }
+          : null,
     );
   }
 }
@@ -118,6 +128,7 @@ class InvoiceCustomerField extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.onCleared,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
@@ -125,6 +136,7 @@ class InvoiceCustomerField extends StatelessWidget {
   final CustomerModel? selected;
   final ValueChanged<CustomerModel> onSelected;
   final VoidCallback onCleared;
+  final bool enabled;
 
   Iterable<CustomerModel> _matches(String pattern) {
     final q = pattern.toLowerCase().trim();
@@ -146,6 +158,7 @@ class InvoiceCustomerField extends StatelessWidget {
     return TypeAheadField<CustomerModel>(
       textFieldConfiguration: TextFieldConfiguration(
         controller: controller,
+        enabled: enabled,
         decoration: transactionCompactInputDecoration(
           cs,
           hint: l10n.selectCustomer,

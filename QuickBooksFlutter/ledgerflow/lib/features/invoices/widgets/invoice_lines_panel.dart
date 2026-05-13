@@ -15,6 +15,7 @@ class InvoiceLinesPanel extends StatelessWidget {
     this.memoField,
     this.saving = false,
     this.posting = false,
+    this.readOnly = false,
     this.onSaveAndClose,
     this.onSaveAndNew,
     this.onClear,
@@ -27,6 +28,7 @@ class InvoiceLinesPanel extends StatelessWidget {
   final Widget? memoField;
   final bool saving;
   final bool posting;
+  final bool readOnly;
   final VoidCallback? onSaveAndClose;
   final VoidCallback? onSaveAndNew;
   final VoidCallback? onClear;
@@ -66,12 +68,15 @@ class InvoiceLinesPanel extends StatelessWidget {
               ),
               const Spacer(),
               TextButton.icon(
-                onPressed: onAddLine,
+                onPressed: readOnly ? null : onAddLine,
                 icon: const Icon(Icons.add, size: 15),
                 label: const Text('Add Line'),
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                 ),
               ),
             ],
@@ -86,6 +91,7 @@ class InvoiceLinesPanel extends StatelessWidget {
               fillWidth: true,
               compact: true,
               showAddLineFooter: false,
+              readOnly: readOnly,
               onChanged: onLinesChanged,
             ),
           ),
@@ -98,6 +104,7 @@ class InvoiceLinesPanel extends StatelessWidget {
           onSaveAndClose: onSaveAndClose,
           onSaveAndNew: onSaveAndNew,
           onClear: onClear,
+          readOnly: readOnly,
         ),
       ],
     );
@@ -109,6 +116,7 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
     required this.totals,
     required this.saving,
     required this.posting,
+    required this.readOnly,
     this.memoField,
     this.onSaveAndClose,
     this.onSaveAndNew,
@@ -119,6 +127,7 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
   final Widget? memoField;
   final bool saving;
   final bool posting;
+  final bool readOnly;
   final VoidCallback? onSaveAndClose;
   final VoidCallback? onSaveAndNew;
   final VoidCallback? onClear;
@@ -184,11 +193,22 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
             width: 310,
             child: Column(
               children: [
-                _TotalRow(label: 'TOTAL', value: totals.total, currency: totals.currency),
-                _TotalRow(label: 'PAYMENTS APPLIED', value: totals.paid, currency: totals.currency),
+                _TotalRow(
+                  label: 'TOTAL',
+                  value: totals.total,
+                  currency: totals.currency,
+                ),
+                _TotalRow(
+                  label: 'PAYMENTS APPLIED',
+                  value: totals.paid,
+                  currency: totals.currency,
+                ),
                 Container(
                   margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE7F1F4),
                     border: Border.all(color: const Color(0xFF9DB2BC)),
@@ -206,13 +226,13 @@ class _QuickBooksInvoiceFooter extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
-                      onPressed: busy ? null : onSaveAndClose,
+                      onPressed: busy || readOnly ? null : onSaveAndClose,
                       style: _buttonStyle(),
                       child: Text(saving ? 'Saving...' : 'Save & Close'),
                     ),
                     const SizedBox(width: 6),
                     OutlinedButton(
-                      onPressed: busy ? null : onSaveAndNew,
+                      onPressed: busy || readOnly ? null : onSaveAndNew,
                       style: _buttonStyle(),
                       child: const Text('Save & New'),
                     ),
@@ -255,9 +275,9 @@ class _LegacyMemoPlaceholder extends StatelessWidget {
       ),
       child: Text(
         'Optional',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: const Color(0xFF7B8B93),
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: const Color(0xFF7B8B93)),
       ),
     );
   }

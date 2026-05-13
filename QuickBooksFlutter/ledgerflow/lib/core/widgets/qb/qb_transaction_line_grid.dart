@@ -19,6 +19,7 @@ class QbTransactionLineGrid extends ConsumerStatefulWidget {
     required this.fillWidth,
     required this.compact,
     required this.showAddLineFooter,
+    this.readOnly = false,
   });
 
   final List<TransactionLineEntry> lines;
@@ -27,9 +28,11 @@ class QbTransactionLineGrid extends ConsumerStatefulWidget {
   final bool fillWidth;
   final bool compact;
   final bool showAddLineFooter;
+  final bool readOnly;
 
   @override
-  ConsumerState<QbTransactionLineGrid> createState() => _QbTransactionLineGridState();
+  ConsumerState<QbTransactionLineGrid> createState() =>
+      _QbTransactionLineGridState();
 }
 
 class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
@@ -101,6 +104,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _addLine({bool notify = true}) {
+    if (widget.readOnly) return;
     setState(() {
       widget.lines.add(TransactionLineEntry());
       _itemFocusNodes.add(FocusNode());
@@ -110,6 +114,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _clearLine(int index) {
+    if (widget.readOnly) return;
     if (index < 0 || index >= widget.lines.length) return;
     setState(() {
       widget.lines[index].dispose();
@@ -120,6 +125,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _removeLine(int index) {
+    if (widget.readOnly) return;
     if (widget.lines.length <= 1 || index < 0 || index >= widget.lines.length) {
       _clearLine(index);
       return;
@@ -133,9 +139,11 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _deleteOrClearLine(int index) {
+    if (widget.readOnly) return;
     if (index < 0 || index >= widget.lines.length) return;
     final line = widget.lines[index];
-    final hasData = line.itemId != null ||
+    final hasData =
+        line.itemId != null ||
         line.itemName.trim().isNotEmpty ||
         line.descCtrl.text.trim().isNotEmpty ||
         (double.tryParse(line.qtyCtrl.text.trim()) ?? 1) != 1 ||
@@ -149,7 +157,8 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
 
   void _ensureTrailingBlankLine() {
     final last = widget.lines.last;
-    final isBlank = last.itemId == null &&
+    final isBlank =
+        last.itemId == null &&
         last.itemName.trim().isEmpty &&
         last.descCtrl.text.trim().isEmpty &&
         (double.tryParse(last.rateCtrl.text.trim()) ?? 0) == 0;
@@ -164,6 +173,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _pickItem(int index, ItemModel item) {
+    if (widget.readOnly) return;
     setState(() {
       _selectedIndex = index;
       final line = widget.lines[index];
@@ -187,6 +197,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _commitLineAndMoveNext(int index) {
+    if (widget.readOnly) return;
     if (index >= widget.lines.length - 1) {
       _addLine(notify: false);
     }
@@ -202,6 +213,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   void _commitLastCell() {
+    if (widget.readOnly) return;
     setState(_ensureTrailingBlankLine);
     _notifyNow();
   }
@@ -217,6 +229,7 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
       loadingItems: _loadingItems,
       itemsError: _itemsError,
       showAddLineFooter: widget.showAddLineFooter,
+      readOnly: widget.readOnly,
       selectedIndex: _selectedIndex,
       rateForItem: _rateForItem,
       onSelectLine: (index) => setState(() => _selectedIndex = index),
@@ -240,6 +253,7 @@ class _DesktopGrid extends StatelessWidget {
     required this.loadingItems,
     required this.itemsError,
     required this.showAddLineFooter,
+    required this.readOnly,
     required this.selectedIndex,
     required this.rateForItem,
     required this.onSelectLine,
@@ -259,6 +273,7 @@ class _DesktopGrid extends StatelessWidget {
   final bool loadingItems;
   final String? itemsError;
   final bool showAddLineFooter;
+  final bool readOnly;
   final int selectedIndex;
   final double Function(ItemModel item) rateForItem;
   final void Function(int index) onSelectLine;
@@ -295,11 +310,35 @@ class _DesktopGrid extends StatelessWidget {
             height: headerHeight,
             child: Row(
               children: [
-                _FlexHeader(label: l10n.itemService.toUpperCase(), compact: compact, flex: 4),
-                QbGridHeaderCell(label: 'QUANTITY', width: _colQty, compact: compact, align: TextAlign.center),
-                _FlexHeader(label: l10n.description.toUpperCase(), compact: compact, flex: 7),
-                QbGridHeaderCell(label: l10n.rate.toUpperCase(), width: _colRate, compact: compact, align: TextAlign.right),
-                QbGridHeaderCell(label: l10n.amount.toUpperCase(), width: _colTotal, compact: compact, align: TextAlign.right, last: true),
+                _FlexHeader(
+                  label: l10n.itemService.toUpperCase(),
+                  compact: compact,
+                  flex: 4,
+                ),
+                QbGridHeaderCell(
+                  label: 'QUANTITY',
+                  width: _colQty,
+                  compact: compact,
+                  align: TextAlign.center,
+                ),
+                _FlexHeader(
+                  label: l10n.description.toUpperCase(),
+                  compact: compact,
+                  flex: 7,
+                ),
+                QbGridHeaderCell(
+                  label: l10n.rate.toUpperCase(),
+                  width: _colRate,
+                  compact: compact,
+                  align: TextAlign.right,
+                ),
+                QbGridHeaderCell(
+                  label: l10n.amount.toUpperCase(),
+                  width: _colTotal,
+                  compact: compact,
+                  align: TextAlign.right,
+                  last: true,
+                ),
               ],
             ),
           ),
@@ -319,8 +358,8 @@ class _DesktopGrid extends StatelessWidget {
                 final bg = selected
                     ? const Color(0xFFDDECF1)
                     : index.isEven
-                        ? Colors.white
-                        : const Color(0xFFF2F6F8);
+                    ? Colors.white
+                    : const Color(0xFFF2F6F8);
 
                 return Focus(
                   onKeyEvent: (node, event) {
@@ -334,7 +373,7 @@ class _DesktopGrid extends StatelessWidget {
                   },
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => onSelectLine(index),
+                    onTap: readOnly ? null : () => onSelectLine(index),
                     child: Container(
                       height: rowHeight,
                       color: bg,
@@ -352,10 +391,15 @@ class _DesktopGrid extends StatelessWidget {
                                 loadingItems: loadingItems,
                                 rateForItem: rateForItem,
                                 compact: compact,
-                                focusNode: index < itemFocusNodes.length ? itemFocusNodes[index] : null,
+                                focusNode: index < itemFocusNodes.length
+                                    ? itemFocusNodes[index]
+                                    : null,
                                 onPicked: (item) => onPickItem(index, item),
                                 onSubmittedPick: () => onEnterCommit(index),
-                                onLastCellCommit: lastLine ? onLastCellCommit : null,
+                                onLastCellCommit: lastLine
+                                    ? onLastCellCommit
+                                    : null,
+                                readOnly: readOnly,
                               ),
                             ),
                           ),
@@ -371,9 +415,15 @@ class _DesktopGrid extends StatelessWidget {
                                 compact: compact,
                                 onSubmitted: lastLine ? onLastCellCommit : null,
                                 onChanged: () {
-                                  line.qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
+                                  if (readOnly) return;
+                                  line.qty =
+                                      double.tryParse(
+                                        line.qtyCtrl.text.trim(),
+                                      ) ??
+                                      0;
                                   onChanged();
                                 },
+                                readOnly: readOnly,
                               ),
                             ),
                           ),
@@ -388,6 +438,7 @@ class _DesktopGrid extends StatelessWidget {
                                 compact: compact,
                                 onSubmitted: lastLine ? onLastCellCommit : null,
                                 onChanged: onChanged,
+                                readOnly: readOnly,
                               ),
                             ),
                           ),
@@ -403,9 +454,15 @@ class _DesktopGrid extends StatelessWidget {
                                 compact: compact,
                                 onSubmitted: lastLine ? onLastCellCommit : null,
                                 onChanged: () {
-                                  line.rate = double.tryParse(line.rateCtrl.text.trim()) ?? 0;
+                                  if (readOnly) return;
+                                  line.rate =
+                                      double.tryParse(
+                                        line.rateCtrl.text.trim(),
+                                      ) ??
+                                      0;
                                   onChanged();
                                 },
+                                readOnly: readOnly,
                               ),
                             ),
                           ),
@@ -413,7 +470,10 @@ class _DesktopGrid extends StatelessWidget {
                             width: _colTotal,
                             compact: compact,
                             last: true,
-                            child: QbLineAmountCell(line: line, compact: compact),
+                            child: QbLineAmountCell(
+                              line: line,
+                              compact: compact,
+                            ),
                           ),
                         ],
                       ),
@@ -433,14 +493,27 @@ class _DesktopGrid extends StatelessWidget {
               child: Row(
                 children: [
                   TextButton.icon(
-                    onPressed: () => onAddLine(notify: true),
+                    onPressed: readOnly ? null : () => onAddLine(notify: true),
                     icon: Icon(Icons.add, size: compact ? 14 : 16),
-                    label: Text(l10n.addLine, style: TextStyle(fontSize: compact ? 11 : null)),
+                    label: Text(
+                      l10n.addLine,
+                      style: TextStyle(fontSize: compact ? 11 : null),
+                    ),
                   ),
                   TextButton.icon(
-                    onPressed: lines.isEmpty ? null : () => onDeleteOrClearLine(selectedIndex.clamp(0, lines.length - 1)),
-                    icon: Icon(Icons.cleaning_services_outlined, size: compact ? 14 : 16),
-                    label: Text('Clear/Delete', style: TextStyle(fontSize: compact ? 11 : null)),
+                    onPressed: readOnly || lines.isEmpty
+                        ? null
+                        : () => onDeleteOrClearLine(
+                            selectedIndex.clamp(0, lines.length - 1),
+                          ),
+                    icon: Icon(
+                      Icons.cleaning_services_outlined,
+                      size: compact ? 14 : 16,
+                    ),
+                    label: Text(
+                      'Clear/Delete',
+                      style: TextStyle(fontSize: compact ? 11 : null),
+                    ),
                   ),
                   const Spacer(),
                   Padding(
@@ -463,7 +536,11 @@ class _DesktopGrid extends StatelessWidget {
 }
 
 class _FlexHeader extends StatelessWidget {
-  const _FlexHeader({required this.label, required this.compact, required this.flex});
+  const _FlexHeader({
+    required this.label,
+    required this.compact,
+    required this.flex,
+  });
 
   final String label;
   final bool compact;
@@ -506,7 +583,11 @@ class _FlexHeader extends StatelessWidget {
 }
 
 class _FlexCell extends StatelessWidget {
-  const _FlexCell({required this.child, required this.compact, required this.flex});
+  const _FlexCell({
+    required this.child,
+    required this.compact,
+    required this.flex,
+  });
 
   final Widget child;
   final bool compact;

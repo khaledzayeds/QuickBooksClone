@@ -32,7 +32,6 @@ import '../features/estimates/screens/estimate_list_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_details_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_form_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_list_screen.dart';
-import '../features/invoices/screens/invoice_details_page.dart';
 import '../features/invoices/screens/invoice_form_page_shell.dart';
 import '../features/invoices/screens/invoices_list_page.dart';
 import '../features/items/screens/item_details_screen.dart';
@@ -482,7 +481,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.invoiceDetails,
             builder: (context, state) =>
-                InvoiceDetailsPage(id: state.pathParameters['id']!),
+                InvoiceFormPageShell(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.payments,

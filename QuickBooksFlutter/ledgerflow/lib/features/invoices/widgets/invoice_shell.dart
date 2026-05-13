@@ -28,18 +28,21 @@ class InvoiceShell extends StatelessWidget {
     required this.saving,
     required this.posting,
     required this.isEdit,
+    required this.readOnly,
     required this.onAddLine,
     required this.onLinesChanged,
     required this.onFind,
-    required this.onSaveDraft,
-    required this.onSave,
+    this.onPrevious,
+    this.onNext,
+    this.onSaveDraft,
+    this.onSave,
     required this.onSaveAndPrint,
     this.onSaveAndNew,
-    required this.onPost,
+    this.onPost,
     required this.onPrint,
     required this.onPayment,
     required this.onRefund,
-    required this.onVoid,
+    this.onVoid,
     this.onClear,
     required this.onClose,
     this.onViewAll,
@@ -63,18 +66,21 @@ class InvoiceShell extends StatelessWidget {
   final bool saving;
   final bool posting;
   final bool isEdit;
+  final bool readOnly;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
   final VoidCallback onFind;
-  final VoidCallback onSaveDraft;
-  final VoidCallback onSave;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+  final VoidCallback? onSaveDraft;
+  final VoidCallback? onSave;
   final VoidCallback onSaveAndPrint;
   final VoidCallback? onSaveAndNew;
-  final VoidCallback onPost;
+  final VoidCallback? onPost;
   final VoidCallback onPrint;
   final VoidCallback onPayment;
   final VoidCallback onRefund;
-  final VoidCallback onVoid;
+  final VoidCallback? onVoid;
   final VoidCallback? onClear;
   final VoidCallback onClose;
   final VoidCallback? onViewAll;
@@ -115,7 +121,7 @@ class InvoiceShell extends StatelessWidget {
               ),
               _SaveInvoiceIntent: CallbackAction<_SaveInvoiceIntent>(
                 onInvoke: (_) {
-                  if (!busy) onPost();
+                  if (!busy) onPost?.call();
                   return null;
                 },
               ),
@@ -135,7 +141,10 @@ class InvoiceShell extends StatelessWidget {
                     saving: saving,
                     posting: posting,
                     isEdit: isEdit,
+                    readOnly: readOnly,
                     onFind: onFind,
+                    onPrevious: onPrevious,
+                    onNext: onNext,
                     onNew: clearAction,
                     onSaveDraft: onSaveDraft,
                     onSave: onPost,
@@ -181,6 +190,7 @@ class InvoiceShell extends StatelessWidget {
                                     memoField: memoField,
                                     saving: saving,
                                     posting: posting,
+                                    readOnly: readOnly,
                                     onSaveAndClose: onPost,
                                     onSaveAndNew: saveAndNewAction,
                                     onClear: clearAction,
@@ -294,15 +304,18 @@ class _InvoiceCommandBar extends StatelessWidget {
     required this.saving,
     required this.posting,
     required this.isEdit,
+    required this.readOnly,
     required this.onFind,
+    this.onPrevious,
+    this.onNext,
     required this.onNew,
-    required this.onSaveDraft,
-    required this.onSave,
+    this.onSaveDraft,
+    this.onSave,
     required this.onSaveAndPrint,
     required this.onPrint,
     required this.onPayment,
     required this.onRefund,
-    required this.onVoid,
+    this.onVoid,
     required this.onClear,
     required this.onClose,
     this.onEditNotes,
@@ -311,15 +324,18 @@ class _InvoiceCommandBar extends StatelessWidget {
   final bool saving;
   final bool posting;
   final bool isEdit;
+  final bool readOnly;
   final VoidCallback onFind;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
   final VoidCallback onNew;
-  final VoidCallback onSaveDraft;
-  final VoidCallback onSave;
+  final VoidCallback? onSaveDraft;
+  final VoidCallback? onSave;
   final VoidCallback onSaveAndPrint;
   final VoidCallback onPrint;
   final VoidCallback onPayment;
   final VoidCallback onRefund;
-  final VoidCallback onVoid;
+  final VoidCallback? onVoid;
   final VoidCallback onClear;
   final VoidCallback onClose;
   final VoidCallback? onEditNotes;
@@ -336,6 +352,16 @@ class _InvoiceCommandBar extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 8),
+          _ToolAction(
+            icon: Icons.arrow_back,
+            label: 'Prev',
+            onTap: busy ? null : onPrevious,
+          ),
+          _ToolAction(
+            icon: Icons.arrow_forward,
+            label: 'Next',
+            onTap: busy ? null : onNext,
+          ),
           _ToolAction(
             icon: Icons.search,
             label: 'Find',
@@ -361,7 +387,11 @@ class _InvoiceCommandBar extends StatelessWidget {
           _ToolAction(
             icon: Icons.delete_outline,
             label: isEdit ? 'Void' : 'Clear',
-            onTap: isEdit ? onVoid : onClear,
+            onTap: busy
+                ? null
+                : isEdit
+                ? onVoid
+                : onClear,
           ),
           const _CommandSeparator(),
           _ToolAction(
@@ -412,19 +442,22 @@ class _SaveToolAction extends StatelessWidget {
 
   final bool saving;
   final bool posting;
-  final VoidCallback onSave;
+  final VoidCallback? onSave;
   final VoidCallback onSaveAndPrint;
-  final VoidCallback onSaveDraft;
+  final VoidCallback? onSaveDraft;
 
   @override
   Widget build(BuildContext context) {
     final busy = saving || posting;
+    final enabled = !busy && onSave != null;
     final label = posting
         ? 'Posting'
         : saving
         ? 'Saving'
         : 'Save';
-    final enabledColor = const Color(0xFF234C5D);
+    final enabledColor = enabled
+        ? const Color(0xFF234C5D)
+        : const Color(0xFF7D8B93);
 
     if (busy) {
       return SizedBox(
@@ -455,16 +488,17 @@ class _SaveToolAction extends StatelessWidget {
 
     return PopupMenuButton<_SaveMenuCommand>(
       tooltip: 'Save options',
+      enabled: enabled,
       onSelected: (command) {
         switch (command) {
           case _SaveMenuCommand.save:
-            onSave();
+            onSave?.call();
             break;
           case _SaveMenuCommand.saveAndPrint:
             onSaveAndPrint();
             break;
           case _SaveMenuCommand.draft:
-            onSaveDraft();
+            onSaveDraft?.call();
             break;
         }
       },
@@ -479,28 +513,34 @@ class _SaveToolAction extends StatelessWidget {
           child: Text('Save as Draft'),
         ),
       ],
-      child: SizedBox(
-        width: 64,
-        height: 74,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.save_outlined, size: 22, color: enabledColor),
-            const SizedBox(height: 5),
-            Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          hoverColor: enabled ? const Color(0xFFDCEBF0) : Colors.transparent,
+          child: SizedBox(
+            width: 64,
+            height: 74,
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Save',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: enabledColor,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Icon(Icons.save_outlined, size: 22, color: enabledColor),
+                const SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Save',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: enabledColor,
+                        fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down, size: 14, color: enabledColor),
+                  ],
                 ),
-                Icon(Icons.arrow_drop_down, size: 14, color: enabledColor),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -517,34 +557,43 @@ class _ToolAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        width: 64,
-        height: 74,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: enabled
-                  ? const Color(0xFF234C5D)
-                  : const Color(0xFF7D8B93),
+    return Tooltip(
+      message: label,
+      waitDuration: const Duration(milliseconds: 450),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          hoverColor: enabled ? const Color(0xFFDCEBF0) : Colors.transparent,
+          splashColor: enabled ? const Color(0xFFBFD7E0) : Colors.transparent,
+          child: SizedBox(
+            width: 64,
+            height: 74,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 22,
+                  color: enabled
+                      ? const Color(0xFF234C5D)
+                      : const Color(0xFF7D8B93),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: enabled
+                        ? const Color(0xFF273A43)
+                        : const Color(0xFF7D8B93),
+                    fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: enabled
-                    ? const Color(0xFF273A43)
-                    : const Color(0xFF7D8B93),
-                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

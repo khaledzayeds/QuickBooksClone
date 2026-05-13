@@ -30,7 +30,7 @@ class QbGridHeaderCell extends StatelessWidget {
           border: Border(
             right: last
                 ? BorderSide.none
-                : BorderSide(color: cs.outlineVariant.withOpacity(0.7)),
+                : BorderSide(color: cs.outlineVariant.withValues(alpha: 0.7)),
             bottom: BorderSide(color: cs.outlineVariant),
           ),
         ),
@@ -84,11 +84,15 @@ class QbGridCellFrame extends StatelessWidget {
           border: Border(
             right: last
                 ? BorderSide.none
-                : BorderSide(color: cs.outlineVariant.withOpacity(0.55)),
-            bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.55)),
+                : BorderSide(color: cs.outlineVariant.withValues(alpha: 0.55)),
+            bottom: BorderSide(
+              color: cs.outlineVariant.withValues(alpha: 0.55),
+            ),
           ),
         ),
-        child: alignment == null ? child : Align(alignment: alignment!, child: child),
+        child: alignment == null
+            ? child
+            : Align(alignment: alignment!, child: child),
       ),
     );
   }
@@ -106,7 +110,7 @@ class QbGridStatusBar extends StatelessWidget {
       onTap: onRetry,
       child: Container(
         height: 28,
-        color: cs.errorContainer.withOpacity(0.55),
+        color: cs.errorContainer.withValues(alpha: 0.55),
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: Row(
           children: [
@@ -141,6 +145,7 @@ class QbGridTextCell extends StatefulWidget {
     this.align = TextAlign.left,
     this.onChanged,
     this.onSubmitted,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
@@ -150,6 +155,7 @@ class QbGridTextCell extends StatefulWidget {
   final TextAlign align;
   final VoidCallback? onChanged;
   final VoidCallback? onSubmitted;
+  final bool readOnly;
 
   @override
   State<QbGridTextCell> createState() => _QbGridTextCellState();
@@ -197,13 +203,14 @@ class _QbGridTextCellState extends State<QbGridTextCell> {
       child: TextField(
         focusNode: _focusNode,
         controller: widget.controller,
+        readOnly: widget.readOnly,
         textAlign: widget.align,
         keyboardType: widget.numeric
             ? const TextInputType.numberWithOptions(decimal: true)
             : null,
         textInputAction: TextInputAction.next,
         onSubmitted: (_) => _commit(),
-        onChanged: (_) => widget.onChanged?.call(),
+        onChanged: widget.readOnly ? null : (_) => widget.onChanged?.call(),
         style: TextStyle(fontSize: widget.compact ? 11 : 12),
         decoration: InputDecoration(
           hintText: widget.hint,
@@ -224,7 +231,11 @@ class _QbGridTextCellState extends State<QbGridTextCell> {
 }
 
 class QbLineAmountCell extends StatefulWidget {
-  const QbLineAmountCell({super.key, required this.line, required this.compact});
+  const QbLineAmountCell({
+    super.key,
+    required this.line,
+    required this.compact,
+  });
 
   final TransactionLineEntry line;
   final bool compact;

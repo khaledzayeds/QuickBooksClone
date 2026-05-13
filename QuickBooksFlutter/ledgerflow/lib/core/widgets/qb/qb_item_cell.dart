@@ -16,6 +16,7 @@ class QbItemCell extends StatefulWidget {
     this.focusNode,
     this.onSubmittedPick,
     this.onLastCellCommit,
+    this.readOnly = false,
   });
 
   final String initialValue;
@@ -27,6 +28,7 @@ class QbItemCell extends StatefulWidget {
   final FocusNode? focusNode;
   final VoidCallback? onSubmittedPick;
   final VoidCallback? onLastCellCommit;
+  final bool readOnly;
 
   @override
   State<QbItemCell> createState() => _QbItemCellState();
@@ -86,20 +88,24 @@ class _QbItemCellState extends State<QbItemCell> {
     final text = pattern.toLowerCase().trim();
     if (text.isEmpty) return widget.items.take(20);
 
-    return widget.items.where((item) {
-      return item.name.toLowerCase().contains(text) ||
-          (item.sku?.toLowerCase().contains(text) ?? false) ||
-          (item.barcode?.toLowerCase().contains(text) ?? false);
-    }).take(25);
+    return widget.items
+        .where((item) {
+          return item.name.toLowerCase().contains(text) ||
+              (item.sku?.toLowerCase().contains(text) ?? false) ||
+              (item.barcode?.toLowerCase().contains(text) ?? false);
+        })
+        .take(25);
   }
 
   void _pick(ItemModel item) {
+    if (widget.readOnly) return;
     _committedOnFocusLoss = true;
     _controller.text = item.name;
     widget.onPicked(item);
   }
 
   void _submit(String value) {
+    if (widget.readOnly) return;
     _committedOnFocusLoss = true;
     final normalized = value.toLowerCase().trim();
     final matches = _matches(value).toList();
@@ -137,6 +143,7 @@ class _QbItemCellState extends State<QbItemCell> {
         textFieldConfiguration: TextFieldConfiguration(
           controller: _controller,
           focusNode: _focusNode,
+          enabled: !widget.readOnly,
           textInputAction: TextInputAction.next,
           onSubmitted: _submit,
           style: TextStyle(
@@ -158,11 +165,12 @@ class _QbItemCellState extends State<QbItemCell> {
             suffixIcon: Icon(
               Icons.search,
               size: widget.compact ? 12 : 14,
-              color: cs.onSurfaceVariant.withOpacity(0.7),
+              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
         ),
-        suggestionsCallback: (pattern) => _matches(pattern).toList(),
+        suggestionsCallback: (pattern) =>
+            widget.readOnly ? const <ItemModel>[] : _matches(pattern).toList(),
         itemBuilder: (context, item) => ListTile(
           dense: true,
           visualDensity: VisualDensity.compact,
