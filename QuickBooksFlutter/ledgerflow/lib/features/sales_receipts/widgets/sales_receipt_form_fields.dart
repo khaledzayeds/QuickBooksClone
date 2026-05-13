@@ -19,11 +19,7 @@ class SalesReceiptFormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TransactionFormFieldLabel(
-      label: label,
-      required: required,
-      child: child,
-    );
+    return child;
   }
 }
 
