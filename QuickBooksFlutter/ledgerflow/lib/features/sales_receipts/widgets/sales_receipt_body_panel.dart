@@ -20,6 +20,7 @@ class SalesReceiptBodyPanel extends StatelessWidget {
     required this.totals,
     required this.onAddLine,
     required this.onLinesChanged,
+    this.readOnly = false,
     this.customers = const <CustomerModel>[],
     this.accounts = const <AccountModel>[],
   });
@@ -34,6 +35,7 @@ class SalesReceiptBodyPanel extends StatelessWidget {
   final TransactionTotalsUiModel totals;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
+  final bool readOnly;
 
   // Kept as optional inputs for future body-level validation/empty states.
   final List<CustomerModel> customers;
@@ -59,6 +61,7 @@ class SalesReceiptBodyPanel extends StatelessWidget {
           totals: totals,
           onAddLine: onAddLine,
           onLinesChanged: onLinesChanged,
+          readOnly: readOnly,
         ),
       ],
     );

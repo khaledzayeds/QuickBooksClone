@@ -26,12 +26,16 @@ class SalesReceiptShell extends StatelessWidget {
     required this.warning,
     required this.referenceText,
     required this.saving,
+    required this.isEdit,
+    required this.readOnly,
     required this.onAddLine,
     required this.onLinesChanged,
+    required this.onFind,
     required this.onPrint,
+    this.onVoid,
     required this.onClear,
-    required this.onSaveAndNew,
-    required this.onSaveAndClose,
+    this.onSaveAndNew,
+    this.onSaveAndClose,
     required this.onClose,
     this.onViewAll,
     this.onEditNotes,
@@ -52,12 +56,16 @@ class SalesReceiptShell extends StatelessWidget {
   final String? warning;
   final String? referenceText;
   final bool saving;
+  final bool isEdit;
+  final bool readOnly;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
+  final VoidCallback onFind;
   final VoidCallback onPrint;
+  final VoidCallback? onVoid;
   final VoidCallback onClear;
-  final VoidCallback onSaveAndNew;
-  final VoidCallback onSaveAndClose;
+  final VoidCallback? onSaveAndNew;
+  final VoidCallback? onSaveAndClose;
   final VoidCallback onClose;
   final VoidCallback? onViewAll;
   final VoidCallback? onEditNotes;
@@ -65,18 +73,23 @@ class SalesReceiptShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TransactionFormShell(
-      title: 'New Sales Receipt',
-      breadcrumb: 'Sales / Receipts / New',
+      title: isEdit ? 'Sales Receipt' : 'New Sales Receipt',
+      breadcrumb: isEdit
+          ? 'Sales / Receipts / Workspace'
+          : 'Sales / Receipts / New',
       onBack: onClose,
       shortcuts: TransactionFormShortcutSet(
-        onSaveAndNew: saving ? null : onSaveAndNew,
-        onSaveAndClose: saving ? null : onSaveAndClose,
+        onSaveAndNew: saving || readOnly ? null : onSaveAndNew,
+        onSaveAndClose: saving || readOnly ? null : onSaveAndClose,
         onPrint: onPrint,
         onClose: onClose,
       ),
       actions: buildSalesReceiptFormActions(
         saving: saving,
+        readOnly: readOnly,
+        onFind: onFind,
         onPrint: onPrint,
+        onVoid: onVoid,
         onClear: onClear,
         onSaveAndNew: onSaveAndNew,
         onSaveAndClose: onSaveAndClose,
@@ -92,6 +105,7 @@ class SalesReceiptShell extends StatelessWidget {
         totals: totals,
         onAddLine: onAddLine,
         onLinesChanged: onLinesChanged,
+        readOnly: readOnly,
       ),
       sidebar: buildSalesReceiptContextPanel(
         customer: customer,

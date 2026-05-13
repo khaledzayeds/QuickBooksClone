@@ -8,16 +8,17 @@ import 'package:intl/intl.dart';
 import '../../../app/router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_enums.dart';
+import '../../../core/api/api_result.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../invoices/data/models/sales_preview_contracts.dart';
 import '../../invoices/providers/invoices_state.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
-import '../../transactions/printing/transaction_print_model.dart';
-import '../../transactions/printing/transaction_print_service.dart';
 import '../../transactions/widgets/transaction_models.dart';
+import '../../transactions/widgets/void_confirmation_dialog.dart';
 import '../data/models/sales_receipt_contracts.dart';
 import '../providers/sales_receipts_state.dart';
 import '../widgets/notes_edit_dialog.dart';
@@ -27,24 +28,29 @@ import '../widgets/sales_receipt_shell.dart';
 const _kPaymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Check', 'Other'];
 
 class SalesReceiptFormPageShell extends ConsumerStatefulWidget {
-  const SalesReceiptFormPageShell({super.key});
+  const SalesReceiptFormPageShell({super.key, this.id});
+
+  final String? id;
 
   @override
-  ConsumerState<SalesReceiptFormPageShell> createState() => _SalesReceiptFormPageShellState();
+  ConsumerState<SalesReceiptFormPageShell> createState() =>
+      _SalesReceiptFormPageShellState();
 }
 
-class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPageShell> {
+class _SalesReceiptFormPageShellState
+    extends ConsumerState<SalesReceiptFormPageShell> {
   CustomerModel? _customer;
   CustomerSalesActivityModel? _activity;
   SalesPostingPreviewModel? _preview;
+  SalesReceiptModel? _currentReceipt;
   AccountModel? _depositAccount;
   DateTime _receiptDate = DateTime.now();
   String _paymentMethod = 'Cash';
   String? _savedReceiptId;
   String _notes = '';
   bool _saving = false;
-  bool _previewing = false;
   bool _loadingActivity = false;
+  bool _loadingExisting = false;
   Timer? _previewDebounce;
 
   final _numberCtrl = TextEditingController(text: 'AUTO');
@@ -58,6 +64,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
   void initState() {
     super.initState();
     _dateCtrl.text = _fmtDate(_receiptDate);
+    _loadExistingReceipt();
   }
 
   @override
@@ -76,20 +83,26 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
 
   String _fmtDate(DateTime date) => DateFormat('dd/MM/yyyy').format(date);
 
+  bool get _isEdit => widget.id != null && widget.id!.isNotEmpty;
+  bool get _readOnly => _currentReceipt != null;
+
   double get _localSubtotal => _lines.fold(0, (sum, line) => sum + line.amount);
 
   TransactionTotalsUiModel get _totals => TransactionTotalsUiModel(
-        subtotal: _preview?.subtotal ?? _localSubtotal,
-        discountTotal: _preview?.discountTotal ?? 0,
-        taxTotal: _preview?.taxTotal ?? 0,
-        total: _preview?.total ?? _localSubtotal,
-        paid: _preview?.paidAmount ?? _localSubtotal,
-        balanceDue: _preview?.balanceDue ?? 0,
-        currency: _activity?.currency ?? _customer?.currency ?? 'EGP',
-      );
+    subtotal: _preview?.subtotal ?? _currentReceipt?.subtotal ?? _localSubtotal,
+    discountTotal:
+        _preview?.discountTotal ?? _currentReceipt?.discountAmount ?? 0,
+    taxTotal: _preview?.taxTotal ?? _currentReceipt?.taxAmount ?? 0,
+    total: _preview?.total ?? _currentReceipt?.totalAmount ?? _localSubtotal,
+    paid: _preview?.paidAmount ?? _currentReceipt?.paidAmount ?? _localSubtotal,
+    balanceDue: _preview?.balanceDue ?? _currentReceipt?.balanceDue ?? 0,
+    currency: _activity?.currency ?? _customer?.currency ?? 'EGP',
+  );
 
   List<TransactionLineEntry> _validLines() {
-    return _lines.where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0).toList();
+    return _lines
+        .where((line) => line.itemId != null && line.qty > 0 && line.rate >= 0)
+        .toList();
   }
 
   List<TransactionContextMetric> get _metrics {
@@ -99,13 +112,15 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       if (_customer != null)
         TransactionContextMetric(
           label: 'Open balance',
-          value: '${fmt.format(_activity?.openBalance ?? _customer!.balance)} $currency',
+          value:
+              '${fmt.format(_activity?.openBalance ?? _customer!.balance)} $currency',
           icon: Icons.account_balance_wallet_outlined,
         ),
       if (_customer != null)
         TransactionContextMetric(
           label: 'Credits available',
-          value: '${fmt.format(_activity?.creditBalance ?? _customer!.creditBalance)} $currency',
+          value:
+              '${fmt.format(_activity?.creditBalance ?? _customer!.creditBalance)} $currency',
           icon: Icons.credit_score_outlined,
         ),
       TransactionContextMetric(
@@ -130,7 +145,8 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
         (receipt) => TransactionContextActivity(
           title: 'Receipt ${receipt.number}',
           subtitle: _fmtDate(receipt.date),
-          amount: '${NumberFormat('#,##0.00').format(receipt.totalAmount)} ${activity.currency}',
+          amount:
+              '${NumberFormat('#,##0.00').format(receipt.totalAmount)} ${activity.currency}',
           status: 'Receipt',
         ),
       ),
@@ -138,15 +154,18 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
         (invoice) => TransactionContextActivity(
           title: 'Invoice ${invoice.number}',
           subtitle: _fmtDate(invoice.date),
-          amount: '${NumberFormat('#,##0.00').format(invoice.balanceDue)} ${activity.currency}',
+          amount:
+              '${NumberFormat('#,##0.00').format(invoice.balanceDue)} ${activity.currency}',
           status: 'Invoice',
         ),
       ),
       ...activity.recentPayments.map(
         (payment) => TransactionContextActivity(
           title: 'Payment ${payment.number}',
-          subtitle: '${_fmtDate(payment.paymentDate)} • ${payment.paymentMethod}',
-          amount: '${NumberFormat('#,##0.00').format(payment.amount)} ${activity.currency}',
+          subtitle:
+              '${_fmtDate(payment.paymentDate)} • ${payment.paymentMethod}',
+          amount:
+              '${NumberFormat('#,##0.00').format(payment.amount)} ${activity.currency}',
           status: 'Payment',
         ),
       ),
@@ -158,14 +177,84 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
     final warnings = <String>[
       ...?_activity?.warnings,
       ...?_preview?.warnings,
-      if (_depositAccount == null) 'Select a deposit account.',
+      if (!_readOnly && _depositAccount == null) 'Select a deposit account.',
+      if (_currentReceipt?.isVoid == true)
+        'This sales receipt is void and cannot be changed.',
+      if (_readOnly && _currentReceipt?.isVoid != true)
+        'Saved sales receipts are read-only. Use Void to reverse them.',
     ];
     return warnings.isEmpty ? null : warnings.join('\n');
   }
 
+  Future<void> _loadExistingReceipt() async {
+    final id = widget.id;
+    if (id == null || id.isEmpty) return;
+    setState(() => _loadingExisting = true);
+    final result = await ref.read(salesReceiptsRepoProvider).getById(id);
+    if (!mounted) return;
+    setState(() => _loadingExisting = false);
+    result.when(
+      success: (receipt) async {
+        for (final line in _lines) {
+          line.dispose();
+        }
+        final loadedLines = receipt.lines.map((line) {
+          final entry = TransactionLineEntry(
+            itemId: line.itemId,
+            itemName: line.description,
+            qty: line.quantity,
+            rate: line.unitPrice,
+          );
+          entry.descCtrl.text = line.description;
+          entry.qtyCtrl.text = line.quantity.toString();
+          entry.rateCtrl.text = line.unitPrice.toString();
+          return entry;
+        }).toList();
+        setState(() {
+          _currentReceipt = receipt;
+          _savedReceiptId = receipt.id;
+          _receiptDate = receipt.receiptDate;
+          _paymentMethod = receipt.paymentMethod ?? 'Cash';
+          _numberCtrl.text = receipt.receiptNumber;
+          _dateCtrl.text = _fmtDate(receipt.receiptDate);
+          _customer = CustomerModel(
+            id: receipt.customerId,
+            displayName: receipt.customerName,
+            isActive: true,
+            balance: 0,
+            creditBalance: 0,
+          );
+          _customerCtrl.text = receipt.customerName;
+          _depositAccount = receipt.depositAccountId == null
+              ? null
+              : AccountModel(
+                  id: receipt.depositAccountId!,
+                  code: '',
+                  name: receipt.depositAccountName ?? 'Deposit account',
+                  accountType: AccountType.bank,
+                  balance: 0,
+                  isActive: true,
+                );
+          _depositCtrl.text = receipt.depositAccountName ?? '';
+          _lines
+            ..clear()
+            ..addAll(
+              loadedLines.isEmpty ? [TransactionLineEntry()] : loadedLines,
+            );
+          _preview = null;
+        });
+        await _loadReceiptNotes(receipt.id);
+        await _loadCustomerActivity(receipt.customerId);
+      },
+      failure: (error) => _showError(error.message),
+    );
+  }
+
   Future<void> _loadCustomerActivity(String customerId) async {
     setState(() => _loadingActivity = true);
-    final result = await ref.read(invoicesRepoProvider).getCustomerActivity(customerId, limit: 5);
+    final result = await ref
+        .read(invoicesRepoProvider)
+        .getCustomerActivity(customerId, limit: 5);
     if (!mounted) return;
     setState(() => _loadingActivity = false);
     result.when(
@@ -175,8 +264,10 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
   }
 
   Future<void> _runPreview() async {
-    if (_customer == null || _depositAccount == null || _validLines().isEmpty) return;
-    setState(() => _previewing = true);
+    if (_readOnly) return;
+    if (_customer == null || _depositAccount == null || _validLines().isEmpty) {
+      return;
+    }
     final dto = PreviewSalesReceiptDto(
       customerId: _customer!.id,
       receiptDate: _receiptDate,
@@ -186,7 +277,9 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
           .map(
             (line) => PreviewSalesLineDto(
               itemId: line.itemId!,
-              description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
+              description: line.descCtrl.text.trim().isEmpty
+                  ? line.itemName
+                  : line.descCtrl.text.trim(),
               quantity: line.qty,
               unitPrice: line.rate,
             ),
@@ -195,7 +288,6 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
     );
     final result = await ref.read(salesReceiptsRepoProvider).preview(dto);
     if (!mounted) return;
-    setState(() => _previewing = false);
     result.when(
       success: (data) => setState(() => _preview = data),
       failure: (_) {},
@@ -207,7 +299,8 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
     _previewDebounce = Timer(const Duration(milliseconds: 550), _runPreview);
   }
 
-  Future<String?> _save() async {
+  Future<SalesReceiptModel?> _save() async {
+    if (_readOnly) return _currentReceipt;
     if (_customer == null) {
       _showError('Select a customer first.');
       return null;
@@ -232,7 +325,9 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
           .map(
             (line) => CreateSalesReceiptLineDto(
               itemId: line.itemId!,
-              description: line.descCtrl.text.trim().isEmpty ? line.itemName : line.descCtrl.text.trim(),
+              description: line.descCtrl.text.trim().isEmpty
+                  ? line.itemName
+                  : line.descCtrl.text.trim(),
               quantity: line.qty,
               unitPrice: line.rate,
             ),
@@ -240,14 +335,16 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
           .toList(),
     );
 
-    String? savedNumber;
+    SalesReceiptModel? savedReceipt;
     try {
       final result = await ref.read(salesReceiptsRepoProvider).create(dto);
       if (!mounted) return null;
       result.when(
         success: (doc) {
-          savedNumber = doc.receiptNumber;
+          savedReceipt = doc;
+          _currentReceipt = doc;
           _savedReceiptId = doc.id;
+          _numberCtrl.text = doc.receiptNumber;
           ref.read(salesReceiptsStateProvider.notifier).refresh();
         },
         failure: (error) => _showError(error.message),
@@ -255,19 +352,24 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-    return savedNumber;
+    if (savedReceipt != null) {
+      await _saveReceiptNotes(savedReceipt!.id);
+    }
+    return savedReceipt;
   }
 
   Future<void> _saveAndClose() async {
-    final number = await _save();
-    if (number != null && mounted) _showPostSaveDialog(number, closeAfter: true);
+    final receipt = await _save();
+    if (receipt != null && mounted) {
+      _showPostSaveDialog(receipt.receiptNumber, closeAfter: true);
+    }
   }
 
   Future<void> _saveAndNew() async {
-    final number = await _save();
-    if (number != null && mounted) {
+    final receipt = await _save();
+    if (receipt != null && mounted) {
       _reset();
-      _showPostSaveDialog(number, closeAfter: false);
+      _showPostSaveDialog(receipt.receiptNumber, closeAfter: false);
     }
   }
 
@@ -309,51 +411,48 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
   }
 
   Future<void> _handlePrint({String? documentNumber}) async {
-    if (_customer == null) {
-      _showError('Select a customer before printing.');
-      return;
-    }
-    final validLines = _validLines();
-    if (validLines.isEmpty) {
-      _showError('Add at least one valid line before printing.');
-      return;
-    }
-
-    final totals = _totals;
-    final model = TransactionPrintModel(
-      documentTitle: 'Sales Receipt',
-      documentNumber: documentNumber ?? _numberCtrl.text.trim().ifEmpty('Preview'),
-      documentDate: _receiptDate,
-      partyLabel: 'Customer',
-      partyName: _customer!.displayName,
-      reference: _referenceCtrl.text.trim().isEmpty ? null : _referenceCtrl.text.trim(),
-      paymentMethod: _paymentMethod,
-      lines: validLines
-          .map(
-            (line) => TransactionPrintLine(
-              itemName: line.itemName.trim().isEmpty ? 'Item' : line.itemName.trim(),
-              description: line.descCtrl.text.trim(),
-              quantity: line.qty,
-              rate: line.rate,
-              amount: line.amount,
-            ),
-          )
-          .toList(),
-      totals: TransactionPrintTotals(
-        subtotal: totals.subtotal,
-        discountTotal: totals.discountTotal,
-        taxTotal: totals.taxTotal,
-        total: totals.total,
-        paid: totals.paid,
-        balanceDue: totals.balanceDue,
-        currency: totals.currency,
-      ),
-    );
-
+    final receipt = await _ensureSavedReceipt();
+    if (receipt == null || !mounted) return;
     try {
-      await const TransactionPrintService().printDocument(model);
+      await printDocumentUsingSettings(
+        context: context,
+        ref: ref,
+        documentType: 'sales-receipt',
+        documentId: receipt.id,
+      );
     } catch (e) {
-      _showError('Could not open print preview: $e');
+      _showError('Could not print sales receipt: $e');
+    }
+  }
+
+  Future<SalesReceiptModel?> _ensureSavedReceipt() async {
+    if (_currentReceipt != null) return _currentReceipt;
+    return _save();
+  }
+
+  Future<void> _handleVoid() async {
+    final receipt = _currentReceipt;
+    if (receipt == null || receipt.isVoid) return;
+    final confirmed = await showVoidConfirmationDialog(
+      context: context,
+      documentLabel: 'sales receipt ${receipt.receiptNumber}',
+      warning: 'Voiding will reverse this cash sale and linked payment.',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _saving = true);
+    final result = await ref
+        .read(salesReceiptsRepoProvider)
+        .voidReceipt(receipt.id);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    switch (result) {
+      case Success(data: final updated):
+        setState(() => _currentReceipt = updated);
+        ref.read(salesReceiptsStateProvider.notifier).refresh();
+        ref.invalidate(salesReceiptDetailsStateProvider(updated.id));
+      case Failure(error: final error):
+        _showError(error.message);
     }
   }
 
@@ -362,6 +461,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       _customer = null;
       _activity = null;
       _preview = null;
+      _currentReceipt = null;
       _depositAccount = null;
       _receiptDate = DateTime.now();
       _paymentMethod = 'Cash';
@@ -382,6 +482,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
   }
 
   Future<void> _pickDate() async {
+    if (_readOnly) return;
     final picked = await showDatePicker(
       context: context,
       initialDate: _receiptDate,
@@ -399,18 +500,8 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
 
   Future<void> _openNotesDialog() async {
     final receiptId = _savedReceiptId;
-    if (receiptId == null || receiptId.trim().isEmpty) {
-      _showError('Save the sales receipt before adding notes.');
-      return;
-    }
-
-    try {
-      final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/sales-receipts/$receiptId/notes');
-      final notes = response.data?['notes']?.toString() ?? _notes;
-      if (!mounted) return;
-      setState(() => _notes = notes);
-    } catch (_) {
-      // Keep local notes if fetching fails; save will surface any real error.
+    if (receiptId != null && receiptId.trim().isNotEmpty) {
+      await _loadReceiptNotes(receiptId);
     }
 
     if (!mounted) return;
@@ -419,45 +510,82 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       builder: (_) => NotesEditDialog(
         initialNotes: _notes,
         onSave: (newNotes) async {
-          final response = await ApiClient.instance.post<Map<String, dynamic>>(
-            '/api/sales-receipts/$receiptId/notes',
-            data: {'notes': newNotes},
-          );
-          final savedNotes = response.data?['notes']?.toString() ?? newNotes;
-          if (mounted) setState(() => _notes = savedNotes);
+          if (!mounted) return;
+          setState(() => _notes = newNotes);
+          final savedId = _savedReceiptId;
+          if (savedId != null && savedId.trim().isNotEmpty) {
+            await _saveReceiptNotes(savedId);
+          }
         },
       ),
     );
   }
 
+  Future<void> _loadReceiptNotes(String receiptId) async {
+    try {
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/sales-receipts/$receiptId/notes',
+      );
+      final data = response.data ?? const <String, dynamic>{};
+      final notes = data['notes'] ?? data['Notes'];
+      if (mounted) setState(() => _notes = notes?.toString() ?? '');
+    } catch (_) {}
+  }
+
+  Future<void> _saveReceiptNotes(String receiptId) async {
+    if (_notes.trim().isEmpty) return;
+    try {
+      await ApiClient.instance.post<Map<String, dynamic>>(
+        '/api/sales-receipts/$receiptId/notes',
+        data: {'notes': _notes.trim()},
+      );
+    } catch (_) {}
+  }
+
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Theme.of(context).colorScheme.error),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 
-  void _goBack() => context.canPop() ? context.pop() : context.go('/sales/receipts');
+  void _goBack() => context.go(AppRoutes.salesReceipts);
+
+  void _handleClearOrNew() {
+    if (_isEdit) {
+      context.go(AppRoutes.salesReceiptNew);
+    } else {
+      _reset();
+    }
+  }
 
   void _openCustomerHistory() {
     final customer = _customer;
     if (customer == null) return;
     context.push(
       AppRoutes.customerTransactionHistory,
-      extra: {
-        'customerId': customer.id,
-        'customerName': customer.displayName,
-      },
+      extra: {'customerId': customer.id, 'customerName': customer.displayName},
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final customers = ref.watch(customersProvider).maybeWhen(
-          data: (items) => items.where((customer) => customer.isActive).toList(),
+    if (_loadingExisting) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final customers = ref
+        .watch(customersProvider)
+        .maybeWhen(
+          data: (items) =>
+              items.where((customer) => customer.isActive).toList(),
           orElse: () => const <CustomerModel>[],
         );
-    final accounts = ref.watch(accountsProvider).maybeWhen(
+    final accounts = ref
+        .watch(accountsProvider)
+        .maybeWhen(
           data: (items) => items
               .where(
                 (account) =>
@@ -472,7 +600,10 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
     return SalesReceiptShell(
       numberField: SalesReceiptFormField(
         label: 'Sales Receipt #',
-        child: SalesReceiptReadonlyTextField(controller: _numberCtrl, hint: 'AUTO'),
+        child: SalesReceiptReadonlyTextField(
+          controller: _numberCtrl,
+          hint: 'AUTO',
+        ),
       ),
       dateField: SalesReceiptFormField(
         label: 'Receipt Date',
@@ -480,6 +611,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
           controller: _dateCtrl,
           hint: 'dd/mm/yyyy',
           suffixIcon: Icons.calendar_today_outlined,
+          enabled: !_readOnly,
           onTap: _pickDate,
         ),
       ),
@@ -487,6 +619,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
         label: 'Reference / Memo',
         child: SalesReceiptMemoField(
           controller: _referenceCtrl,
+          enabled: !_readOnly,
           onChanged: (_) => setState(() {}),
         ),
       ),
@@ -497,6 +630,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
           controller: _customerCtrl,
           customers: customers,
           selected: _customer,
+          enabled: !_readOnly,
           onSelected: (customer) {
             setState(() {
               _customer = customer;
@@ -522,6 +656,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
           controller: _depositCtrl,
           accounts: accounts,
           selected: _depositAccount,
+          enabled: !_readOnly,
           onSelected: (account) {
             setState(() {
               _depositAccount = account;
@@ -542,6 +677,7 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
         child: SalesReceiptPaymentMethodField(
           value: _paymentMethod,
           methods: _kPaymentMethods,
+          enabled: !_readOnly,
           onChanged: (method) {
             setState(() {
               _paymentMethod = method;
@@ -560,15 +696,22 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
       warning: _warning,
       referenceText: _notes.trim().isEmpty ? _referenceCtrl.text : _notes,
       saving: _saving,
+      isEdit: _isEdit,
+      readOnly: _readOnly,
       onAddLine: _addLine,
       onLinesChanged: () {
+        if (_readOnly) return;
         setState(() => _preview = null);
         _schedulePreview();
       },
+      onFind: () => context.go(AppRoutes.salesReceipts),
       onPrint: _handlePrint,
-      onClear: _reset,
-      onSaveAndNew: _saveAndNew,
-      onSaveAndClose: _saveAndClose,
+      onVoid: _currentReceipt != null && !_currentReceipt!.isVoid
+          ? _handleVoid
+          : null,
+      onClear: _handleClearOrNew,
+      onSaveAndNew: _readOnly ? null : _saveAndNew,
+      onSaveAndClose: _readOnly ? null : _saveAndClose,
       onClose: _goBack,
       onViewAll: _customer == null ? null : _openCustomerHistory,
       onEditNotes: _openNotesDialog,
@@ -576,14 +719,11 @@ class _SalesReceiptFormPageShellState extends ConsumerState<SalesReceiptFormPage
   }
 
   void _addLine() {
+    if (_readOnly) return;
     setState(() {
       _preview = null;
       _lines.add(TransactionLineEntry());
     });
     _schedulePreview();
   }
-}
-
-extension _EmptyStringFallback on String {
-  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }

@@ -60,7 +60,6 @@ import '../features/reports/screens/reports_screen.dart';
 import '../features/sales_orders/screens/sales_order_form_screen.dart';
 import '../features/sales_orders/screens/sales_order_details_screen.dart';
 import '../features/sales_orders/screens/sales_order_list_screen.dart';
-import '../features/sales_receipts/screens/sales_receipt_details_page.dart';
 import '../features/sales_receipts/screens/sales_receipt_form_page_shell.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
@@ -463,7 +462,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.salesReceiptDetails,
             builder: (context, state) =>
-                SalesReceiptDetailsPage(id: state.pathParameters['id']!),
+                SalesReceiptFormPageShell(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.invoices,

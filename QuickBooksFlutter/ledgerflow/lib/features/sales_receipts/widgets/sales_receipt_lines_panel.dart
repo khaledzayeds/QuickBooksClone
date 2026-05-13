@@ -13,12 +13,14 @@ class SalesReceiptLinesPanel extends StatelessWidget {
     required this.totals,
     required this.onAddLine,
     required this.onLinesChanged,
+    this.readOnly = false,
   });
 
   final List<TransactionLineEntry> lines;
   final TransactionTotalsUiModel totals;
   final VoidCallback onAddLine;
   final VoidCallback onLinesChanged;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -35,21 +37,30 @@ class SalesReceiptLinesPanel extends StatelessWidget {
               children: [
                 Text(
                   'Products and services',
-                  style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '• Tab through cells  • Enter adds a new line',
-                  style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: onAddLine,
+                  onPressed: readOnly ? null : onAddLine,
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text('Add line'),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   ),
                 ),
               ],
@@ -65,6 +76,7 @@ class SalesReceiptLinesPanel extends StatelessWidget {
                     fillWidth: true,
                     compact: true,
                     showAddLineFooter: true,
+                    readOnly: readOnly,
                     onChanged: onLinesChanged,
                   ),
                 ),

@@ -19,7 +19,11 @@ class SalesReceiptFormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TransactionFormFieldLabel(label: label, required: required, child: child);
+    return TransactionFormFieldLabel(
+      label: label,
+      required: required,
+      child: child,
+    );
   }
 }
 
@@ -30,12 +34,14 @@ class SalesReceiptReadonlyTextField extends StatelessWidget {
     this.hint,
     this.onTap,
     this.suffixIcon,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
   final String? hint;
   final VoidCallback? onTap;
   final IconData? suffixIcon;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +50,14 @@ class SalesReceiptReadonlyTextField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       readOnly: true,
-      onTap: onTap,
+      enabled: enabled,
+      onTap: enabled ? onTap : null,
       style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-      decoration: transactionCompactInputDecoration(cs, hint: hint, suffixIcon: suffixIcon),
+      decoration: transactionCompactInputDecoration(
+        cs,
+        hint: hint,
+        suffixIcon: suffixIcon,
+      ),
     );
   }
 }
@@ -56,10 +67,12 @@ class SalesReceiptMemoField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onChanged,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +80,7 @@ class SalesReceiptMemoField extends StatelessWidget {
     final cs = theme.colorScheme;
     return TextFormField(
       controller: controller,
+      enabled: enabled,
       style: theme.textTheme.bodySmall,
       decoration: transactionCompactInputDecoration(cs, hint: 'Optional'),
       onChanged: onChanged,
@@ -80,25 +94,31 @@ class SalesReceiptPaymentMethodField extends StatelessWidget {
     required this.value,
     required this.methods,
     required this.onChanged,
+    this.enabled = true,
   });
 
   final String value;
   final List<String> methods;
   final ValueChanged<String> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isDense: true,
       decoration: transactionCompactInputDecoration(cs),
       style: theme.textTheme.bodySmall,
-      items: methods.map((method) => DropdownMenuItem(value: method, child: Text(method))).toList(),
-      onChanged: (next) {
-        if (next != null) onChanged(next);
-      },
+      items: methods
+          .map((method) => DropdownMenuItem(value: method, child: Text(method)))
+          .toList(),
+      onChanged: enabled
+          ? (next) {
+              if (next != null) onChanged(next);
+            }
+          : null,
     );
   }
 }
@@ -111,6 +131,7 @@ class SalesReceiptCustomerField extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.onCleared,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
@@ -118,16 +139,19 @@ class SalesReceiptCustomerField extends StatelessWidget {
   final CustomerModel? selected;
   final ValueChanged<CustomerModel> onSelected;
   final VoidCallback onCleared;
+  final bool enabled;
 
   Iterable<CustomerModel> _matches(String pattern) {
     final q = pattern.toLowerCase().trim();
     if (q.isEmpty) return customers.take(20);
-    return customers.where((customer) {
-      return customer.displayName.toLowerCase().contains(q) ||
-          (customer.companyName?.toLowerCase().contains(q) ?? false) ||
-          (customer.primaryContact?.toLowerCase().contains(q) ?? false) ||
-          (customer.phone?.toLowerCase().contains(q) ?? false);
-    }).take(25);
+    return customers
+        .where((customer) {
+          return customer.displayName.toLowerCase().contains(q) ||
+              (customer.companyName?.toLowerCase().contains(q) ?? false) ||
+              customer.primaryContact.toLowerCase().contains(q) ||
+              (customer.phone?.toLowerCase().contains(q) ?? false);
+        })
+        .take(25);
   }
 
   @override
@@ -136,18 +160,23 @@ class SalesReceiptCustomerField extends StatelessWidget {
     return TypeAheadField<CustomerModel>(
       textFieldConfiguration: TextFieldConfiguration(
         controller: controller,
+        enabled: enabled,
         decoration: transactionCompactInputDecoration(
           cs,
           hint: 'Select customer',
           suffixIcon: selected == null ? Icons.search : Icons.close,
         ),
       ),
-      suggestionsCallback: (pattern) => _matches(pattern).toList(),
+      suggestionsCallback: (pattern) =>
+          enabled ? _matches(pattern).toList() : const <CustomerModel>[],
       itemBuilder: (context, customer) => ListTile(
         dense: true,
         visualDensity: VisualDensity.compact,
-        title: Text(customer.displayName, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(customer.companyName ?? customer.primaryContact ?? ''),
+        title: Text(
+          customer.displayName,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(customer.companyName ?? customer.primaryContact),
       ),
       onSuggestionSelected: (customer) {
         controller.text = customer.displayName;
@@ -173,6 +202,7 @@ class SalesReceiptDepositAccountField extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.onCleared,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
@@ -180,15 +210,18 @@ class SalesReceiptDepositAccountField extends StatelessWidget {
   final AccountModel? selected;
   final ValueChanged<AccountModel> onSelected;
   final VoidCallback onCleared;
+  final bool enabled;
 
   Iterable<AccountModel> _matches(String pattern) {
     final q = pattern.toLowerCase().trim();
     if (q.isEmpty) return accounts.take(20);
-    return accounts.where((account) {
-      return account.name.toLowerCase().contains(q) ||
-          account.code.toLowerCase().contains(q) ||
-          account.accountType.name.toLowerCase().contains(q);
-    }).take(25);
+    return accounts
+        .where((account) {
+          return account.name.toLowerCase().contains(q) ||
+              account.code.toLowerCase().contains(q) ||
+              account.accountType.name.toLowerCase().contains(q);
+        })
+        .take(25);
   }
 
   @override
@@ -197,17 +230,22 @@ class SalesReceiptDepositAccountField extends StatelessWidget {
     return TypeAheadField<AccountModel>(
       textFieldConfiguration: TextFieldConfiguration(
         controller: controller,
+        enabled: enabled,
         decoration: transactionCompactInputDecoration(
           cs,
           hint: 'Select deposit account',
           suffixIcon: selected == null ? Icons.search : Icons.close,
         ),
       ),
-      suggestionsCallback: (pattern) => _matches(pattern).toList(),
+      suggestionsCallback: (pattern) =>
+          enabled ? _matches(pattern).toList() : const <AccountModel>[],
       itemBuilder: (context, account) => ListTile(
         dense: true,
         visualDensity: VisualDensity.compact,
-        title: Text(account.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(
+          account.name,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         subtitle: Text('${account.code} • ${account.accountType.name}'),
       ),
       onSuggestionSelected: (account) {
