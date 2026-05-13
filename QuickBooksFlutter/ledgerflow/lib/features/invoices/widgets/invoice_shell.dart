@@ -24,6 +24,9 @@ class InvoiceShell extends StatelessWidget {
     required this.activities,
     required this.loadingActivity,
     required this.warning,
+    this.statusBadgeText,
+    this.statusMessage,
+    this.statusColor,
     required this.memoText,
     required this.saving,
     required this.posting,
@@ -62,6 +65,9 @@ class InvoiceShell extends StatelessWidget {
   final List<TransactionContextActivity> activities;
   final bool loadingActivity;
   final String? warning;
+  final String? statusBadgeText;
+  final String? statusMessage;
+  final Color? statusColor;
   final String? memoText;
   final bool saving;
   final bool posting;
@@ -157,6 +163,12 @@ class InvoiceShell extends StatelessWidget {
                     onClose: onClose,
                     onEditNotes: onEditNotes,
                   ),
+                  if (statusMessage != null && statusBadgeText != null)
+                    _InvoiceStatusStrip(
+                      badgeText: statusBadgeText!,
+                      message: statusMessage!,
+                      color: statusColor ?? const Color(0xFF546E7A),
+                    ),
                   Expanded(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -291,6 +303,64 @@ class _CollapsibleInvoiceContextPanelState
                   ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InvoiceStatusStrip extends StatelessWidget {
+  const _InvoiceStatusStrip({
+    required this.badgeText,
+    required this.message,
+    required this.color,
+  });
+
+  final String badgeText;
+  final String message;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.10),
+        border: Border(
+          bottom: BorderSide(color: color.withOpacity(0.35)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 20,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              badgeText,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
           ),
         ],

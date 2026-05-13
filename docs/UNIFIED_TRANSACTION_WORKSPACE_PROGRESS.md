@@ -115,6 +115,8 @@ For each document screen:
   text search, status filter, date range, and row go-to behavior.
 - [x] Sales Receipt workspace uses read-only accounting state for saved/voided
   receipts, with print, notes, and void actions kept in the document workspace.
+- [x] Invoice and Sales Receipt now show document-state strips for saved records
+  and use active previous/next navigation inside the workspace.
 - [ ] Extract Invoice workspace pieces into reusable templates.
 - [x] Apply the first unified workspace/list behavior to Sales Receipt.
 - [ ] Apply templates to Estimate.

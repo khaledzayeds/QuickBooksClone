@@ -101,6 +101,17 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   }
 
   @override
+  void didUpdateWidget(covariant InvoiceFormPageShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.id == widget.id) return;
+    if (_isEdit) {
+      Future.microtask(_loadExistingInvoice);
+    } else {
+      _resetForm();
+    }
+  }
+
+  @override
   void dispose() {
     _previewDebounce?.cancel();
     _numberCtrl.dispose();
@@ -139,6 +150,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       _saving = false;
       _posting = false;
       _loadingActivity = false;
+      _loadingExisting = false;
       _numberCtrl.text = 'AUTO';
       _customerCtrl.clear();
       _memoCtrl.clear();
@@ -275,7 +287,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     if (id == null || id.isEmpty) return;
     setState(() => _loadingExisting = true);
     final result = await ref.read(invoicesRepoProvider).getById(id);
-    if (!mounted) return;
+    if (!mounted || widget.id != id) return;
     setState(() => _loadingExisting = false);
     result.when(
       success: (invoice) async {
@@ -321,6 +333,82 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       },
       failure: (error) => _showError(error.message),
     );
+  }
+
+  void _openAdjacentInvoice(int direction) {
+    final currentId = widget.id;
+    if (currentId == null || currentId.isEmpty) return;
+    final invoices = ref
+        .read(invoicesStateProvider)
+        .maybeWhen(
+          data: (items) => [...items]
+            ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate)),
+          orElse: () => const <InvoiceModel>[],
+        );
+    final index = invoices.indexWhere((invoice) => invoice.id == currentId);
+    final targetIndex = index + direction;
+    if (index < 0 || targetIndex < 0 || targetIndex >= invoices.length) return;
+    context.go(
+      AppRoutes.invoiceDetails.replaceFirst(':id', invoices[targetIndex].id),
+    );
+  }
+
+  bool _hasAdjacentInvoice(int direction) {
+    final currentId = widget.id;
+    if (currentId == null || currentId.isEmpty) return false;
+    final invoices = ref
+        .watch(invoicesStateProvider)
+        .maybeWhen(
+          data: (items) => [...items]
+            ..sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate)),
+          orElse: () => const <InvoiceModel>[],
+        );
+    final index = invoices.indexWhere((invoice) => invoice.id == currentId);
+    final targetIndex = index + direction;
+    return index >= 0 && targetIndex >= 0 && targetIndex < invoices.length;
+  }
+
+  String? get _statusBadgeText {
+    final invoice = _editingInvoice ?? _savedInvoice;
+    if (invoice == null) return null;
+    if (invoice.isVoid) return 'VOID';
+    if (invoice.isPaid) return 'PAID';
+    if (invoice.isPartiallyPaid || invoice.paidAmount > 0) return 'PARTIAL';
+    if (invoice.isDraft) return 'DRAFT';
+    return 'OPEN';
+  }
+
+  String? get _statusMessage {
+    final invoice = _editingInvoice ?? _savedInvoice;
+    if (invoice == null) return null;
+    final currency = _activity?.currency ?? _customer?.currency ?? 'EGP';
+    final balance = NumberFormat('#,##0.00').format(invoice.balanceDue);
+    final paid = NumberFormat('#,##0.00').format(invoice.paidAmount);
+    if (invoice.isVoid) {
+      return 'This invoice is void. Accounting movement was reversed.';
+    }
+    if (invoice.isPaid) {
+      return 'This invoice is paid in full. Balance due 0.00 $currency.';
+    }
+    if (invoice.isPartiallyPaid || invoice.paidAmount > 0) {
+      return 'Partial payment applied: $paid $currency paid, $balance $currency still due.';
+    }
+    if (invoice.isDraft) {
+      return 'Draft invoice. Save posts it to accounting.';
+    }
+    return 'Open invoice. Balance due $balance $currency.';
+  }
+
+  Color get _statusColor {
+    final invoice = _editingInvoice ?? _savedInvoice;
+    if (invoice == null) return const Color(0xFF546E7A);
+    if (invoice.isVoid) return const Color(0xFFC62828);
+    if (invoice.isPaid) return const Color(0xFF2E7D32);
+    if (invoice.isPartiallyPaid || invoice.paidAmount > 0) {
+      return const Color(0xFFEF6C00);
+    }
+    if (invoice.isDraft) return const Color(0xFF607D8B);
+    return const Color(0xFFC62828);
   }
 
   Future<void> _loadCustomerActivity(String customerId) async {
@@ -800,6 +888,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       activities: _activities,
       loadingActivity: _loadingActivity,
       warning: _warning,
+      statusBadgeText: _statusBadgeText,
+      statusMessage: _statusMessage,
+      statusColor: _statusColor,
       memoText: _notes.trim().isNotEmpty ? _notes : _memoCtrl.text,
       saving: _saving,
       posting: _posting,
@@ -816,6 +907,10 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         _schedulePreview();
       },
       onFind: () => context.go(AppRoutes.invoices),
+      onPrevious: _hasAdjacentInvoice(-1)
+          ? () => _openAdjacentInvoice(-1)
+          : null,
+      onNext: _hasAdjacentInvoice(1) ? () => _openAdjacentInvoice(1) : null,
       onSaveDraft: canSaveDraft
           ? () => _saveWithMode(_saveModeForDraft())
           : null,

@@ -68,6 +68,17 @@ class _SalesReceiptFormPageShellState
   }
 
   @override
+  void didUpdateWidget(covariant SalesReceiptFormPageShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.id == widget.id) return;
+    if (_isEdit) {
+      Future.microtask(_loadExistingReceipt);
+    } else {
+      _reset();
+    }
+  }
+
+  @override
   void dispose() {
     _previewDebounce?.cancel();
     _numberCtrl.dispose();
@@ -191,7 +202,7 @@ class _SalesReceiptFormPageShellState
     if (id == null || id.isEmpty) return;
     setState(() => _loadingExisting = true);
     final result = await ref.read(salesReceiptsRepoProvider).getById(id);
-    if (!mounted) return;
+    if (!mounted || widget.id != id) return;
     setState(() => _loadingExisting = false);
     result.when(
       success: (receipt) async {
@@ -248,6 +259,34 @@ class _SalesReceiptFormPageShellState
       },
       failure: (error) => _showError(error.message),
     );
+  }
+
+  String? get _statusBadgeText {
+    final receipt = _currentReceipt;
+    if (receipt == null) return null;
+    if (receipt.isVoid) return 'VOID';
+    return 'PAID';
+  }
+
+  String? get _statusMessage {
+    final receipt = _currentReceipt;
+    if (receipt == null) return null;
+    final currency = _activity?.currency ?? _customer?.currency ?? 'EGP';
+    final total = NumberFormat('#,##0.00').format(receipt.totalAmount);
+    final deposit = receipt.depositAccountName?.trim();
+    if (receipt.isVoid) {
+      return 'This sales receipt is void. Accounting movement was reversed.';
+    }
+    if (deposit != null && deposit.isNotEmpty) {
+      return 'Paid sales receipt: $total $currency deposited to $deposit.';
+    }
+    return 'Paid sales receipt: $total $currency received.';
+  }
+
+  Color get _statusColor {
+    final receipt = _currentReceipt;
+    if (receipt?.isVoid == true) return const Color(0xFFC62828);
+    return const Color(0xFF2E7D32);
   }
 
   Future<void> _loadCustomerActivity(String customerId) async {
@@ -467,6 +506,7 @@ class _SalesReceiptFormPageShellState
       _paymentMethod = 'Cash';
       _savedReceiptId = null;
       _notes = '';
+      _loadingExisting = false;
       _numberCtrl.text = 'AUTO';
       _dateCtrl.text = _fmtDate(_receiptDate);
       _referenceCtrl.clear();
@@ -732,6 +772,9 @@ class _SalesReceiptFormPageShellState
       activities: _activities,
       loadingActivity: _loadingActivity,
       warning: _warning,
+      statusBadgeText: _statusBadgeText,
+      statusMessage: _statusMessage,
+      statusColor: _statusColor,
       referenceText: _notes.trim().isEmpty ? _referenceCtrl.text : _notes,
       saving: _saving,
       isEdit: _isEdit,
