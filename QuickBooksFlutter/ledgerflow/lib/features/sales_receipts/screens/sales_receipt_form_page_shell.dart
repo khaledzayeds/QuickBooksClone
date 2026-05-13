@@ -562,6 +562,44 @@ class _SalesReceiptFormPageShellState
     }
   }
 
+  void _openAdjacentReceipt(int direction) {
+    final currentId = widget.id;
+    if (currentId == null || currentId.isEmpty) return;
+    final receipts = ref
+        .read(salesReceiptsStateProvider)
+        .maybeWhen(
+          data: (items) =>
+              [...items]
+                ..sort((a, b) => b.receiptDate.compareTo(a.receiptDate)),
+          orElse: () => const <SalesReceiptModel>[],
+        );
+    final index = receipts.indexWhere((receipt) => receipt.id == currentId);
+    final targetIndex = index + direction;
+    if (index < 0 || targetIndex < 0 || targetIndex >= receipts.length) return;
+    context.go(
+      AppRoutes.salesReceiptDetails.replaceFirst(
+        ':id',
+        receipts[targetIndex].id,
+      ),
+    );
+  }
+
+  bool _hasAdjacentReceipt(int direction) {
+    final currentId = widget.id;
+    if (currentId == null || currentId.isEmpty) return false;
+    final receipts = ref
+        .watch(salesReceiptsStateProvider)
+        .maybeWhen(
+          data: (items) =>
+              [...items]
+                ..sort((a, b) => b.receiptDate.compareTo(a.receiptDate)),
+          orElse: () => const <SalesReceiptModel>[],
+        );
+    final index = receipts.indexWhere((receipt) => receipt.id == currentId);
+    final targetIndex = index + direction;
+    return index >= 0 && targetIndex >= 0 && targetIndex < receipts.length;
+  }
+
   void _openCustomerHistory() {
     final customer = _customer;
     if (customer == null) return;
@@ -705,6 +743,10 @@ class _SalesReceiptFormPageShellState
         _schedulePreview();
       },
       onFind: () => context.go(AppRoutes.salesReceipts),
+      onPrevious: _hasAdjacentReceipt(-1)
+          ? () => _openAdjacentReceipt(-1)
+          : null,
+      onNext: _hasAdjacentReceipt(1) ? () => _openAdjacentReceipt(1) : null,
       onPrint: _handlePrint,
       onVoid: _currentReceipt != null && !_currentReceipt!.isVoid
           ? _handleVoid
