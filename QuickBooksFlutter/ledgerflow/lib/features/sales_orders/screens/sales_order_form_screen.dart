@@ -434,15 +434,7 @@ class _SalesOrderHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  SizedBox(
-                    width: 240,
-                    child: _DateBox(
-                      value: expectedDate,
-                      onChanged: onExpectedDateChanged,
-                    ),
-                  ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 18),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,6 +459,21 @@ class _SalesOrderHeader extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 18),
+                  SizedBox(
+                    width: 240,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _FieldLabel('EXPECTED DATE'),
+                        const SizedBox(height: 4),
+                        _DateBox(
+                          value: expectedDate,
+                          onChanged: onExpectedDateChanged,
                         ),
                       ],
                     ),

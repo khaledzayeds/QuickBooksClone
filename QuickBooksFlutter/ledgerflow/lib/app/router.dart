@@ -26,7 +26,6 @@ import '../features/customers/screens/customer_form_screen.dart';
 import '../features/customers/screens/customer_list_screen.dart';
 import '../features/customers/screens/customer_transaction_history_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
-import '../features/estimates/screens/estimate_details_screen.dart';
 import '../features/estimates/screens/estimate_form_screen.dart';
 import '../features/estimates/screens/estimate_list_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_details_screen.dart';
@@ -433,7 +432,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.estimateDetails,
             builder: (context, state) =>
-                EstimateDetailsScreen(id: state.pathParameters['id']!),
+                EstimateFormScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.salesOrders,

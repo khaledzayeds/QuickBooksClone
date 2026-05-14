@@ -5,189 +5,320 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
-import '../../../../app/router.dart';
+import '../../../app/router.dart';
 import '../data/models/estimate_model.dart';
 import '../providers/estimates_provider.dart';
 
-class EstimateListScreen extends ConsumerWidget {
+class EstimateListScreen extends ConsumerStatefulWidget {
   const EstimateListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final estimatesAsync = ref.watch(estimatesProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.estimates),
-        actions: [
-          IconButton(
-            tooltip: l10n.retry,
-            onPressed: () => ref.read(estimatesProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 12),
-            child: FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.estimateNew),
-              icon: const Icon(Icons.add),
-              label: Text('${l10n.newText} ${l10n.estimates}'),
-            ),
-          ),
-        ],
-      ),
-      body: estimatesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: error.toString(),
-          onRetry: () => ref.read(estimatesProvider.notifier).refresh(),
-        ),
-        data: (estimates) {
-          if (estimates.isEmpty) return const _EmptyState();
-
-          return RefreshIndicator(
-            onRefresh: () => ref.read(estimatesProvider.notifier).refresh(),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: estimates.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) =>
-                  _EstimateCard(estimate: estimates[index]),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  ConsumerState<EstimateListScreen> createState() => _EstimateListScreenState();
 }
 
-class _EstimateCard extends StatelessWidget {
-  const _EstimateCard({required this.estimate});
+class _EstimateListScreenState extends ConsumerState<EstimateListScreen> {
+  final _searchCtrl = TextEditingController();
+  String _status = 'all';
 
-  final EstimateModel estimate;
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final estimatesAsync = ref.watch(estimatesProvider);
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
 
-    final statusLabel = estimate.isCancelled
-        ? l10n.statusCancelled
-        : estimate.isAccepted
-        ? l10n.statusOpen
-        : estimate.isDeclined
-        ? l10n.statusClosed
-        : estimate.sentAt != null
-        ? l10n.statusPosted
-        : l10n.statusDraft;
-
-    final statusColor = estimate.isCancelled || estimate.isDeclined
-        ? cs.error
-        : cs.primary;
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(
-          AppRoutes.estimateDetails.replaceFirst(':id', estimate.id),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: estimate.isCancelled || estimate.isDeclined
-                    ? cs.errorContainer
-                    : cs.primaryContainer,
-                child: Icon(
-                  estimate.isCancelled || estimate.isDeclined
-                      ? Icons.block
-                      : Icons.request_quote_outlined,
-                  color: estimate.isCancelled || estimate.isDeclined
-                      ? cs.onErrorContainer
-                      : cs.onPrimaryContainer,
-                ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8EDF0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: 74,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3F6F7),
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      estimate.estimateNumber.isEmpty
-                          ? '-'
-                          : estimate.estimateNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(estimate.customerName ?? '-'),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_date(estimate.estimateDate)} • ${l10n.dueDate}: ${_date(estimate.expirationDate)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child: Row(
                 children: [
-                  Text(
-                    '${estimate.totalAmount.toStringAsFixed(2)} ${l10n.egp}',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
+                  const SizedBox(width: 8),
+                  _Tool(
+                    icon: Icons.search,
+                    label: 'Find',
+                    onTap: () => FocusScope.of(context).nextFocus(),
+                  ),
+                  _Tool(
+                    icon: Icons.note_add_outlined,
+                    label: 'New',
+                    onTap: () => context.push(AppRoutes.estimateNew),
+                  ),
+                  _Tool(
+                    icon: Icons.refresh,
+                    label: 'Refresh',
+                    onTap: () => ref.read(estimatesProvider.notifier).refresh(),
+                  ),
+                  const Spacer(),
+                  _Tool(
+                    icon: Icons.close,
+                    label: 'Close',
+                    onTap: () => context.go(AppRoutes.dashboard),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 190,
+                    child: Text(
+                      'Estimates',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: const Color(0xFF243E4A),
+                            fontWeight: FontWeight.w300,
+                          ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    statusLabel,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: Icon(Icons.search, size: 18),
+                        hintText: 'Search estimate #, customer, amount...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 170,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _status,
+                      isDense: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('All')),
+                        DropdownMenuItem(value: 'sent', child: Text('Sent')),
+                        DropdownMenuItem(
+                          value: 'accepted',
+                          child: Text('Accepted'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'declined',
+                          child: Text('Declined'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'cancelled',
+                          child: Text('Cancelled'),
+                        ),
+                        DropdownMenuItem(value: 'draft', child: Text('Draft')),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _status = value ?? 'all'),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: estimatesAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(error.toString())),
+                data: (estimates) {
+                  final filtered = _filter(estimates);
+                  if (filtered.isEmpty) {
+                    return Center(child: Text(l10n.noRecentTransactions));
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFF9EADB6)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 30,
+                            color: const Color(0xFFDDE8ED),
+                            child: const Row(
+                              children: [
+                                _HeaderCell('DATE', flex: 2),
+                                _HeaderCell('TYPE', flex: 2),
+                                _HeaderCell('NUM', flex: 2),
+                                _HeaderCell('NAME', flex: 4),
+                                _HeaderCell('EXPIRATION', flex: 3),
+                                _HeaderCell('AMOUNT', flex: 2, right: true),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final estimate = filtered[index];
+                                final shaded = index.isEven;
+                                return InkWell(
+                                  onTap: () => context.push(
+                                    AppRoutes.estimateDetails.replaceFirst(
+                                      ':id',
+                                      estimate.id,
+                                    ),
+                                  ),
+                                  child: Container(
+                                    height: 34,
+                                    color: shaded
+                                        ? const Color(0xFFDDEFF4)
+                                        : Colors.white,
+                                    child: Row(
+                                      children: [
+                                        _Cell(
+                                          _date(estimate.estimateDate),
+                                          flex: 2,
+                                        ),
+                                        _Cell(_statusText(estimate), flex: 2),
+                                        _Cell(
+                                          estimate.estimateNumber.isEmpty
+                                              ? 'Estimate'
+                                              : estimate.estimateNumber,
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          estimate.customerName ?? '',
+                                          flex: 4,
+                                        ),
+                                        _Cell(
+                                          _date(estimate.expirationDate),
+                                          flex: 3,
+                                        ),
+                                        _Cell(
+                                          estimate.totalAmount.toStringAsFixed(
+                                            2,
+                                          ),
+                                          flex: 2,
+                                          right: true,
+                                          strong: true,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              height: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD4DDE3),
+                border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
+              ),
+              child: Text(
+                'Estimates search  •  Enter opens estimate workspace  •  Esc Close',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFF33434C),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  List<EstimateModel> _filter(List<EstimateModel> estimates) {
+    final query = _searchCtrl.text.trim().toLowerCase();
+    return estimates.where((estimate) {
+      final matchesStatus = switch (_status) {
+        'accepted' => estimate.isAccepted,
+        'declined' => estimate.isDeclined,
+        'cancelled' => estimate.isCancelled,
+        'sent' => estimate.sentAt != null,
+        'draft' =>
+          estimate.sentAt == null &&
+              !estimate.isAccepted &&
+              !estimate.isDeclined &&
+              !estimate.isCancelled,
+        _ => true,
+      };
+      if (!matchesStatus) return false;
+      if (query.isEmpty) return true;
+      return estimate.estimateNumber.toLowerCase().contains(query) ||
+          (estimate.customerName ?? '').toLowerCase().contains(query) ||
+          estimate.totalAmount.toStringAsFixed(2).contains(query);
+    }).toList()..sort((a, b) => b.estimateDate.compareTo(a.estimateDate));
   }
 
   static String _date(DateTime date) =>
-      '${date.day}/${date.month}/${date.year}';
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+  static String _statusText(EstimateModel estimate) {
+    if (estimate.isCancelled) return 'Cancelled';
+    if (estimate.isDeclined) return 'Declined';
+    if (estimate.isAccepted) return 'Accepted';
+    if (estimate.sentAt != null) return 'Sent';
+    return 'Draft';
+  }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+class _Tool extends StatelessWidget {
+  const _Tool({required this.icon, required this.label, this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    final enabled = onTap != null;
+    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 66,
+        height: 74,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.request_quote_outlined, size: 56),
-            const SizedBox(height: 16),
-            Text(l10n.estimates, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(l10n.underDevelopment, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.estimateNew),
-              icon: const Icon(Icons.add),
-              label: Text('${l10n.newText} ${l10n.estimates}'),
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -196,38 +327,59 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
+  final String text;
+  final int flex;
+  final bool right;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.retry),
-            ),
-          ],
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _Cell extends StatelessWidget {
+  const _Cell(
+    this.text, {
+    required this.flex,
+    this.right = false,
+    this.strong = false,
+  });
+  final String text;
+  final int flex;
+  final bool right;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: Text(
+        text,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+          color: const Color(0xFF273F4B),
+        ),
+      ),
+    ),
+  );
 }
