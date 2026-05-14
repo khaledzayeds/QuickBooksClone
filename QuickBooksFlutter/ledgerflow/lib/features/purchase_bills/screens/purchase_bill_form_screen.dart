@@ -8,13 +8,15 @@ import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/app/router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
-import '../../../../core/widgets/transaction_line_table.dart';
-import '../../../../core/widgets/transaction_sidebar.dart';
-import '../../../../core/widgets/transaction_vendor_picker.dart';
+import '../../../../core/widgets/qb/qb_transaction_line_grid.dart';
+import '../../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
 import '../../receive_inventory/data/models/receive_inventory_model.dart';
 import '../../receive_inventory/providers/receive_inventory_provider.dart';
+import '../../transactions/widgets/transaction_context_sidebar.dart';
+import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
+import '../../vendors/providers/vendors_provider.dart';
 import '../data/models/billing_plan_model.dart';
 import '../data/models/create_purchase_bill_dto.dart';
 import '../providers/purchase_bills_provider.dart';
@@ -274,182 +276,788 @@ class _PurchaseBillFormScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final vendors = ref
+        .watch(vendorsProvider)
+        .maybeWhen(
+          data: (items) => items.where((vendor) => vendor.isActive).toList(),
+          orElse: () => const <VendorModel>[],
+        );
 
     if (_loadingInitialReceipt) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${l10n.enterBills} | ${l10n.purchases}'),
-        actions: [
-          IconButton(
-            onPressed: _saving || _loadingPlan ? null : _save,
-            icon: const Icon(Icons.check),
-            tooltip: l10n.save,
-          ),
-        ],
-      ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: const Color(0xFFE8EDF0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _BillCommandBar(
+              saving: _saving || _loadingPlan,
+              onFind: () => context.go(AppRoutes.purchaseBills),
+              onNew: () => context.go(AppRoutes.purchaseBillNew),
+              onSave: _saving || _loadingPlan ? null : _save,
+              onClear: () {
+                setState(() {
+                  _selectedVendor = null;
+                  _selectedReceipt = null;
+                  _activePlan = null;
+                  _billDate = DateTime.now();
+                  _dueDate = DateTime.now().add(const Duration(days: 30));
+                  _memoCtrl.clear();
+                  _clearLines();
+                  _lines.add(TransactionLineEntry());
+                });
+              },
+              onClose: () => context.go(AppRoutes.purchaseBills),
+            ),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (_selectedReceipt != null)
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.inventory_2_outlined),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Billing inventory receipt ${_selectedReceipt!.receiptNumber.isEmpty ? _selectedReceipt!.id.substring(0, 8) : _selectedReceipt!.receiptNumber}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                            if (_activePlan != null)
-                              Chip(
-                                label: Text(
-                                  'Remaining ${_activePlan!.totalRemainingQuantity.toStringAsFixed(2)}',
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: VendorPickerField(
-                          value: _selectedVendor,
-                          onChanged: _onVendorChanged,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 2,
-                        child: _ReceiptPicker(
-                          vendorId: _selectedVendor?.id,
-                          value: _selectedReceipt,
-                          onChanged: _onReceiptChanged,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DatePickerField(
-                          label: l10n.billDate,
-                          value: _billDate,
-                          onChanged: (d) => setState(() => _billDate = d),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _DatePickerField(
-                          label: l10n.dueDate,
-                          value: _dueDate,
-                          onChanged: (d) => setState(() => _dueDate = d),
-                        ),
-                      ),
-                      const Spacer(),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  if (_loadingPlan)
-                    const Center(child: CircularProgressIndicator())
-                  else
-                    Container(
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: cs.outlineVariant),
+                        border: Border.all(color: const Color(0xFFB9C3CA)),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: TransactionLineTable(
-                          lines: _lines,
-                          onChanged: () => setState(() {}),
-                        ),
+                      child: Column(
+                        children: [
+                          _BillHeader(
+                            l10n: l10n,
+                            vendors: vendors,
+                            selectedVendor: _selectedVendor,
+                            selectedReceipt: _selectedReceipt,
+                            billDate: _billDate,
+                            dueDate: _dueDate,
+                            onVendorChanged: _onVendorChanged,
+                            onReceiptChanged: _onReceiptChanged,
+                            onBillDateChanged: (d) =>
+                                setState(() => _billDate = d),
+                            onDueDateChanged: (d) =>
+                                setState(() => _dueDate = d),
+                          ),
+                          _LinesHeader(
+                            loading: _loadingPlan,
+                            onAddLine: () => setState(
+                              () => _lines.add(TransactionLineEntry()),
+                            ),
+                          ),
+                          Expanded(
+                            child: _loadingPlan
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      8,
+                                      8,
+                                      8,
+                                      0,
+                                    ),
+                                    child: QbTransactionLineGrid(
+                                      lines: _lines,
+                                      onChanged: () => setState(() {}),
+                                      priceMode:
+                                          TransactionLinePriceMode.purchase,
+                                      fillWidth: true,
+                                      compact: true,
+                                      showAddLineFooter: false,
+                                    ),
+                                  ),
+                          ),
+                          _BillFooter(
+                            l10n: l10n,
+                            lines: _lines,
+                            memoCtrl: _memoCtrl,
+                            saving: _saving,
+                            onSave: _saving || _loadingPlan ? null : _save,
+                          ),
+                        ],
                       ),
                     ),
-                  const SizedBox(height: 32),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: TextField(
-                          controller: _memoCtrl,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            labelText: l10n.memoInternal,
-                            border: const OutlineInputBorder(),
-                            alignLabelWithHint: true,
+                  ),
+                  _CollapsibleBillPanel(
+                    child: _BillContextPanel(
+                      vendor: _selectedVendor,
+                      receipt: _selectedReceipt,
+                      total: _lines.fold<double>(
+                        0,
+                        (sum, line) => sum + line.amount,
+                      ),
+                      notes: _memoCtrl.text,
+                      onViewAll: _selectedVendor == null
+                          ? null
+                          : () => context.go(AppRoutes.purchaseBills),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const _BillShortcutStrip(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BillCommandBar extends StatelessWidget {
+  const _BillCommandBar({
+    required this.saving,
+    required this.onFind,
+    required this.onNew,
+    required this.onClear,
+    required this.onClose,
+    this.onSave,
+  });
+
+  final bool saving;
+  final VoidCallback onFind;
+  final VoidCallback onNew;
+  final VoidCallback onClear;
+  final VoidCallback onClose;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 74,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF3F6F7),
+        border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          const _Tool(icon: Icons.arrow_back, label: 'Prev'),
+          const _Tool(icon: Icons.arrow_forward, label: 'Next'),
+          _Tool(
+            icon: Icons.search,
+            label: 'Find',
+            onTap: saving ? null : onFind,
+          ),
+          _Tool(
+            icon: Icons.note_add_outlined,
+            label: 'New',
+            onTap: saving ? null : onNew,
+          ),
+          _Tool(
+            icon: saving ? Icons.hourglass_top : Icons.save_outlined,
+            label: saving ? 'Saving' : 'Save',
+            onTap: onSave,
+          ),
+          _Tool(
+            icon: Icons.delete_outline,
+            label: 'Clear',
+            onTap: saving ? null : onClear,
+          ),
+          const _Separator(),
+          const _Tool(icon: Icons.print_outlined, label: 'Print'),
+          const _Tool(icon: Icons.mail_outline, label: 'Email'),
+          const Spacer(),
+          _Tool(
+            icon: Icons.close,
+            label: 'Close',
+            onTap: saving ? null : onClose,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _BillHeader extends StatelessWidget {
+  const _BillHeader({
+    required this.l10n,
+    required this.vendors,
+    required this.selectedVendor,
+    required this.selectedReceipt,
+    required this.billDate,
+    required this.dueDate,
+    required this.onVendorChanged,
+    required this.onReceiptChanged,
+    required this.onBillDateChanged,
+    required this.onDueDateChanged,
+  });
+
+  final AppLocalizations l10n;
+  final List<VendorModel> vendors;
+  final VendorModel? selectedVendor;
+  final ReceiveInventoryModel? selectedReceipt;
+  final DateTime billDate;
+  final DateTime dueDate;
+  final ValueChanged<VendorModel> onVendorChanged;
+  final ValueChanged<ReceiveInventoryModel?> onReceiptChanged;
+  final ValueChanged<DateTime> onBillDateChanged;
+  final ValueChanged<DateTime> onDueDateChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF264D5B),
+              border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+            ),
+            child: Row(
+              children: [
+                const _StripLabel('VENDOR'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 5,
+                  child: _InlineVendorField(
+                    vendors: vendors,
+                    selected: selectedVendor,
+                    onSelected: (vendor) {
+                      if (vendor != null) onVendorChanged(vendor);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const _StripLabel('RECEIPT'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: _ReceiptPicker(
+                    vendorId: selectedVendor?.id,
+                    value: selectedReceipt,
+                    onChanged: onReceiptChanged,
+                    compact: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 146,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 260,
+                    child: Text(
+                      'Enter Bills',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w300,
+                        color: const Color(0xFF243E4A),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 260,
+                    child: Column(
+                      children: [
+                        _HorizontalField(
+                          label: 'DATE',
+                          child: _DatePickerField(
+                            label: '',
+                            value: billDate,
+                            onChanged: onBillDateChanged,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 48),
-                      Expanded(
-                        flex: 2,
-                        child: _TotalsCard(lines: _lines, l10n: l10n),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        const _HorizontalField(
+                          label: 'BILL #',
+                          child: _StaticBox(text: 'AUTO'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  SizedBox(
+                    width: 240,
+                    child: _DatePickerField(
+                      label: 'DUE DATE',
+                      value: dueDate,
+                      onChanged: onDueDateChanged,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _FieldLabel('VENDOR / BILL FROM'),
+                        const SizedBox(height: 4),
+                        Container(
+                          height: 96,
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFB7C3CB)),
+                          ),
+                          child: Text(
+                            selectedVendor?.displayName ?? 'Select a vendor',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: selectedVendor == null
+                                  ? const Color(0xFF7B8B93)
+                                  : const Color(0xFF253C47),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          TransactionSidebar(vendorId: _selectedVendor?.id),
         ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: cs.outlineVariant)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            OutlinedButton(
-              onPressed: () => context.pop(),
-              child: Text(l10n.cancel),
+    );
+  }
+}
+
+class _InlineVendorField extends StatelessWidget {
+  const _InlineVendorField({
+    required this.vendors,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<VendorModel> vendors;
+  final VendorModel? selected;
+  final ValueChanged<VendorModel?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<VendorModel>(
+      key: ValueKey(selected?.id ?? 'bill-vendor'),
+      displayStringForOption: (vendor) => vendor.displayName,
+      initialValue: TextEditingValue(text: selected?.displayName ?? ''),
+      optionsBuilder: (value) {
+        final query = value.text.trim().toLowerCase();
+        if (query.isEmpty) return vendors.take(20);
+        return vendors
+            .where((vendor) => vendor.displayName.toLowerCase().contains(query))
+            .take(20);
+      },
+      onSelected: onSelected,
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return SizedBox(
+          height: 30,
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: const InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.search, size: 16),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              border: OutlineInputBorder(),
+              hintText: 'Select vendor',
             ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: _saving || _loadingPlan ? null : _save,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save),
-              label: Text(l10n.save),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LinesHeader extends StatelessWidget {
+  const _LinesHeader({required this.loading, required this.onAddLine});
+
+  final bool loading;
+  final VoidCallback onAddLine;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFE9EFF2),
+        border: Border(
+          top: BorderSide(color: Color(0xFFB7C3CB)),
+          bottom: BorderSide(color: Color(0xFFB7C3CB)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Products and Services',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF233F4C),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Tab moves across cells • Enter commits row',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF596B74),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: loading ? null : onAddLine,
+            icon: const Icon(Icons.add, size: 15),
+            label: const Text('Add Line'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BillFooter extends StatelessWidget {
+  const _BillFooter({
+    required this.l10n,
+    required this.lines,
+    required this.memoCtrl,
+    required this.saving,
+    this.onSave,
+  });
+
+  final AppLocalizations l10n;
+  final List<TransactionLineEntry> lines;
+  final TextEditingController memoCtrl;
+  final bool saving;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF6F8F9),
+        border: Border(top: BorderSide(color: Color(0xFFB7C3CB))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _FieldLabel('MEMO'),
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: 34,
+                  child: TextField(
+                    controller: memoCtrl,
+                    decoration: const InputDecoration(
+                      hintText: 'Optional',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 18),
+          SizedBox(
+            width: 310,
+            child: Column(
+              children: [
+                _TotalsCard(lines: lines, l10n: l10n),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: onSave,
+                      style: _smallButton(),
+                      child: Text(saving ? 'Saving...' : 'Save & Close'),
+                    ),
+                    const SizedBox(width: 6),
+                    OutlinedButton(
+                      onPressed: null,
+                      style: _smallButton(),
+                      child: const Text('Save & New'),
+                    ),
+                    const SizedBox(width: 6),
+                    OutlinedButton(
+                      onPressed: null,
+                      style: _smallButton(),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ButtonStyle _smallButton() => OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+    side: const BorderSide(color: Color(0xFF8FA1AB)),
+  );
+}
+
+class _CollapsibleBillPanel extends StatefulWidget {
+  const _CollapsibleBillPanel({required this.child});
+  final Widget child;
+
+  @override
+  State<_CollapsibleBillPanel> createState() => _CollapsibleBillPanelState();
+}
+
+class _CollapsibleBillPanelState extends State<_CollapsibleBillPanel> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: _expanded ? 258 : 38,
+      margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: const Color(0xFFB9C3CA)),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          if (_expanded) Positioned.fill(child: widget.child),
+          Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              color: const Color(0xFFE6EEF2),
+              child: InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Icon(
+                    _expanded ? Icons.chevron_right : Icons.chevron_left,
+                    size: 22,
+                    color: const Color(0xFF2B4A56),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BillContextPanel extends StatelessWidget {
+  const _BillContextPanel({
+    required this.vendor,
+    required this.receipt,
+    required this.total,
+    required this.notes,
+    this.onViewAll,
+  });
+
+  final VendorModel? vendor;
+  final ReceiveInventoryModel? receipt;
+  final double total;
+  final String notes;
+  final VoidCallback? onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = vendor;
+    return TransactionContextSidebar(
+      title: v?.displayName ?? '',
+      subtitle: v?.companyName,
+      initials: v == null ? null : _initials(v.displayName),
+      emptyTitle: 'Select a vendor',
+      emptyMessage: 'Choose a vendor to see open bills and recent activity.',
+      partyTabLabel: 'Vendor',
+      warning: v == null
+          ? null
+          : receipt == null
+          ? 'Standalone vendor bill.'
+          : 'Billing receipt ${receipt!.receiptNumber.isEmpty ? receipt!.id.substring(0, 8) : receipt!.receiptNumber}.',
+      metrics: [
+        TransactionContextMetric(
+          label: 'Bill value',
+          value: '${total.toStringAsFixed(2)} EGP',
+          icon: Icons.receipt_long_outlined,
+        ),
+        TransactionContextMetric(
+          label: 'Receipt',
+          value: receipt?.receiptNumber.isNotEmpty == true
+              ? receipt!.receiptNumber
+              : 'Standalone',
+          icon: Icons.inventory_2_outlined,
+        ),
+      ],
+      activities: [
+        if (receipt != null)
+          TransactionContextActivity(
+            title: receipt!.receiptNumber.isEmpty
+                ? receipt!.id.substring(0, 8)
+                : receipt!.receiptNumber,
+            subtitle: 'Inventory receipt',
+            amount: '${receipt!.totalAmount.toStringAsFixed(2)} EGP',
+          ),
+      ],
+      notes: notes,
+      totals: TransactionTotalsUiModel(
+        subtotal: total,
+        total: total,
+        paid: 0,
+        balanceDue: total,
+        currency: 'EGP',
+      ),
+      onViewAll: onViewAll,
+    );
+  }
+
+  static String _initials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'V';
+    final parts = trimmed.split(RegExp(r'\s+'));
+    return parts.take(2).map((part) => part[0].toUpperCase()).join();
+  }
+}
+
+class _BillShortcutStrip extends StatelessWidget {
+  const _BillShortcutStrip();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 24,
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    alignment: Alignment.centerLeft,
+    decoration: const BoxDecoration(
+      color: Color(0xFFD4DDE3),
+      border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
+    ),
+    child: Text(
+      'Enter bills workspace  •  Save & Close  •  Ctrl+P Print  •  Esc Close',
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: const Color(0xFF33434C),
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
+
+class _Tool extends StatelessWidget {
+  const _Tool({required this.icon, required this.label, this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 64,
+        height: 74,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _Separator extends StatelessWidget {
+  const _Separator();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 48,
+    margin: const EdgeInsets.symmetric(horizontal: 8),
+    color: const Color(0xFFC4D0D6),
+  );
+}
+
+class _StripLabel extends StatelessWidget {
+  const _StripLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: const Color(0xFF53656E),
+      fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _StaticBox extends StatelessWidget {
+  const _StaticBox({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 34,
+    alignment: Alignment.centerLeft,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFB7C3CB)),
+    ),
+    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+  );
+}
+
+class _HorizontalField extends StatelessWidget {
+  const _HorizontalField({required this.label, required this.child});
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      SizedBox(width: 82, child: _FieldLabel(label)),
+      Expanded(child: child),
+    ],
+  );
 }
 
 class _DatePickerField extends StatelessWidget {
@@ -487,10 +1095,16 @@ class _DatePickerField extends StatelessWidget {
 }
 
 class _ReceiptPicker extends ConsumerWidget {
-  const _ReceiptPicker({this.vendorId, this.value, required this.onChanged});
+  const _ReceiptPicker({
+    this.vendorId,
+    this.value,
+    required this.onChanged,
+    this.compact = false,
+  });
   final String? vendorId;
   final ReceiveInventoryModel? value;
   final ValueChanged<ReceiveInventoryModel?> onChanged;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -501,8 +1115,13 @@ class _ReceiptPicker extends ConsumerWidget {
           opacity: 0.5,
           child: DropdownButtonFormField<String>(
             decoration: InputDecoration(
-              labelText: l10n.linkToRI,
+              labelText: compact ? null : l10n.linkToRI,
               border: const OutlineInputBorder(),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 7,
+              ),
             ),
             items: const [],
             onChanged: (_) {},
@@ -533,8 +1152,13 @@ class _ReceiptPicker extends ConsumerWidget {
         if (uniqueReceipts.isEmpty) {
           return InputDecorator(
             decoration: InputDecoration(
-              labelText: l10n.linkToRI,
+              labelText: compact ? null : l10n.linkToRI,
               border: const OutlineInputBorder(),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 7,
+              ),
             ),
             child: Text(
               l10n.noPendingRI,
@@ -551,9 +1175,14 @@ class _ReceiptPicker extends ConsumerWidget {
         return DropdownButtonFormField<String?>(
           initialValue: selectedReceiptId,
           decoration: InputDecoration(
-            labelText: l10n.linkToRI,
+            labelText: compact ? null : l10n.linkToRI,
             border: const OutlineInputBorder(),
-            prefixIcon: const Icon(Icons.link),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 7,
+            ),
+            prefixIcon: compact ? null : const Icon(Icons.link),
           ),
           hint: Text(l10n.selectRI),
           items: [
@@ -600,7 +1229,11 @@ class _TotalsCard extends StatelessWidget {
           children: [
             _AmountRow(label: 'Draft subtotal', amount: draftSubtotal),
             const Divider(height: 24),
-            _AmountRow(label: 'Draft total', amount: draftSubtotal, isTotal: true),
+            _AmountRow(
+              label: 'Draft total',
+              amount: draftSubtotal,
+              isTotal: true,
+            ),
             const SizedBox(height: 10),
             const Text(
               'Official bill totals, taxes, and posting amounts are recalculated by the backend after save.',
