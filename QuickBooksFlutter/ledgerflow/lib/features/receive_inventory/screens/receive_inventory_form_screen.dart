@@ -4,10 +4,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:ledgerflow/app/router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
-import '../../../../core/widgets/transaction_sidebar.dart';
 import '../../items/data/models/item_model.dart';
 import '../../items/providers/items_provider.dart';
 import '../../purchase_orders/data/models/purchase_order_model.dart';
@@ -35,7 +35,10 @@ class _ReceiveInventoryFormScreenState
 
   DateTime _receiptDate = DateTime.now();
   final _notesCtrl = TextEditingController();
-  final List<_ManualReceiveLine> _manualLines = [_ManualReceiveLine()];
+  final List<_ManualReceiveLine> _manualLines = List.generate(
+    5,
+    (_) => _ManualReceiveLine(),
+  );
   bool _saving = false;
   bool _initialised = false;
 
@@ -262,6 +265,21 @@ class _ReceiveInventoryFormScreenState
     });
   }
 
+  void _clear() {
+    for (final line in _manualLines) {
+      line.dispose();
+    }
+    setState(() {
+      _selectedVendor = null;
+      _selectedOrder = null;
+      _receiptDate = DateTime.now();
+      _notesCtrl.clear();
+      _manualLines
+        ..clear()
+        ..addAll(List.generate(5, (_) => _ManualReceiveLine()));
+    });
+  }
+
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -365,11 +383,16 @@ class _ReceiveInventoryFormScreenState
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(openPurchaseOrdersProvider);
     final l10n = AppLocalizations.of(context)!;
+    final vendors = ref
+        .watch(vendorsProvider)
+        .maybeWhen(
+          data: (items) => items.where((vendor) => vendor.isActive).toList(),
+          orElse: () => const <VendorModel>[],
+        );
+    final fmt = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${l10n.newReceipt} | ${l10n.inventoryReceipts}'),
-      ),
+      backgroundColor: const Color(0xFFE8EDF0),
       body: ordersAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(e.toString())),
@@ -390,126 +413,111 @@ class _ReceiveInventoryFormScreenState
                   seenOrderIds.contains(_selectedOrder!.id)
               ? _selectedOrder!.id
               : null;
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _VendorCard(
-                      vendor: _selectedVendor,
-                      onSelect: _selectVendor,
-                      onClear: () {
-                        setState(() {
-                          _selectedVendor = null;
-                          _selectedOrder = null;
-                        });
-                        _clearPoLinkedLines();
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedOrderId,
-                      decoration: InputDecoration(
-                        labelText: 'Optional Purchase Order',
-                        prefixIcon: const Icon(Icons.receipt_long_outlined),
-                        border: const OutlineInputBorder(),
-                        helperText:
-                            'Select PO to fill lines. You can still edit/add manual lines.',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Standalone receive — no PO'),
-                        ),
-                        ...uniqueVendorOrders.map(
-                          (o) => DropdownMenuItem<String?>(
-                            value: o.id,
-                            child: Text('${o.orderNumber} — ${o.vendorName}'),
+          return SafeArea(
+            child: Column(
+              children: [
+                _ReceiveCommandBar(
+                  saving: _saving,
+                  onFind: () => context.go(AppRoutes.receiveInventory),
+                  onNew: () => context.go(AppRoutes.receiveInventoryNew),
+                  onSave: _saving || _loadingPlan ? null : _save,
+                  onClear: _clear,
+                  onClose: () => context.go(AppRoutes.receiveInventory),
+                ),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFB9C3CA)),
+                          ),
+                          child: Column(
+                            children: [
+                              _ReceiveHeader(
+                                l10n: l10n,
+                                fmt: fmt,
+                                vendors: vendors,
+                                selectedVendor: _selectedVendor,
+                                selectedOrderId: selectedOrderId,
+                                orders: uniqueVendorOrders,
+                                receiptDate: _receiptDate,
+                                onVendorSelected: (vendor) {
+                                  setState(() {
+                                    _selectedVendor = vendor;
+                                    _selectedOrder = null;
+                                  });
+                                  _clearPoLinkedLines();
+                                },
+                                onOrderChanged: (id) {
+                                  final order = id == null
+                                      ? null
+                                      : uniqueVendorOrders
+                                            .where((order) => order.id == id)
+                                            .firstOrNull;
+                                  _selectOrder(order);
+                                },
+                                onDateTap: () async {
+                                  final d = await showDatePicker(
+                                    context: context,
+                                    initialDate: _receiptDate,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2035),
+                                  );
+                                  if (d != null) {
+                                    setState(() => _receiptDate = d);
+                                  }
+                                },
+                              ),
+                              _ReceiveLinesHeader(
+                                loading: _loadingPlan,
+                                onAddLine: _addManualLine,
+                              ),
+                              Expanded(
+                                child: _loadingPlan
+                                    ? const Center(
+                                        child: CircularProgressIndicator(),
+                                      )
+                                    : _ReceiveLinesTable(
+                                        lines: _manualLines,
+                                        onSelectItem: _selectManualItem,
+                                        onRemoveLine: _removeManualLine,
+                                        onChanged: () => setState(() {}),
+                                      ),
+                              ),
+                              _ReceiveFooter(
+                                l10n: l10n,
+                                lines: _manualLines,
+                                notesCtrl: _notesCtrl,
+                                saving: _saving,
+                                onSave: _saving || _loadingPlan ? null : _save,
+                                onClear: _clear,
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                      onChanged: (id) {
-                        final order = id == null
-                            ? null
-                            : uniqueVendorOrders
-                                  .where((order) => order.id == id)
-                                  .firstOrNull;
-                        _selectOrder(order);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    InkWell(
-                      onTap: () async {
-                        final d = await showDatePicker(
-                          context: context,
-                          initialDate: _receiptDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
-                        );
-                        if (d != null) setState(() => _receiptDate = d);
-                      },
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: l10n.receiptDate,
-                          prefixIcon: const Icon(Icons.calendar_today_outlined),
-                          border: const OutlineInputBorder(),
-                        ),
-                        child: Text(
-                          '${_receiptDate.day}/${_receiptDate.month}/${_receiptDate.year}',
+                      ),
+                      _CollapsibleReceivePanel(
+                        child: _ReceiveContextPanel(
+                          vendor: _selectedVendor,
+                          order: _selectedOrder,
+                          total: _manualLines.fold<double>(
+                            0,
+                            (sum, line) => sum + line.draftAmount,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_loadingPlan)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    else
-                      _buildEditableReceiveLines(context),
-                    const SizedBox(height: 16),
-                    _ReceiveDraftTotalsCard(lines: _manualLines),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _notesCtrl,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: l10n.notes,
-                        hintText: '${l10n.notes}...',
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 80),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              TransactionSidebar(vendorId: _selectedVendor?.id),
-            ],
+                const _ReceiveShortcutStrip(),
+              ],
+            ),
           );
         },
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            icon: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: Text(_saving ? l10n.saving : l10n.saveReceipt),
-            onPressed: _saving || _loadingPlan ? null : _save,
-          ),
-        ),
       ),
     );
   }
@@ -663,6 +671,1110 @@ class _ReceiveInventoryFormScreenState
   }
 }
 
+class _ReceiveCommandBar extends StatelessWidget {
+  const _ReceiveCommandBar({
+    required this.saving,
+    required this.onFind,
+    required this.onNew,
+    required this.onClear,
+    required this.onClose,
+    this.onSave,
+  });
+
+  final bool saving;
+  final VoidCallback onFind;
+  final VoidCallback onNew;
+  final VoidCallback? onSave;
+  final VoidCallback onClear;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 74,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF3F6F7),
+        border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          _Tool(icon: Icons.arrow_back, label: 'Prev'),
+          _Tool(icon: Icons.arrow_forward, label: 'Next'),
+          _Tool(
+            icon: Icons.search,
+            label: 'Find',
+            onTap: saving ? null : onFind,
+          ),
+          _Tool(
+            icon: Icons.note_add_outlined,
+            label: 'New',
+            onTap: saving ? null : onNew,
+          ),
+          _SaveTool(saving: saving, onSave: onSave),
+          _Tool(
+            icon: Icons.delete_outline,
+            label: 'Clear',
+            onTap: saving ? null : onClear,
+          ),
+          const _Separator(),
+          const _Tool(icon: Icons.print_outlined, label: 'Print'),
+          const _Tool(icon: Icons.mail_outline, label: 'Email'),
+          const Spacer(),
+          _Tool(
+            icon: Icons.close,
+            label: 'Close',
+            onTap: saving ? null : onClose,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiveHeader extends StatelessWidget {
+  const _ReceiveHeader({
+    required this.l10n,
+    required this.fmt,
+    required this.vendors,
+    required this.selectedVendor,
+    required this.selectedOrderId,
+    required this.orders,
+    required this.receiptDate,
+    required this.onVendorSelected,
+    required this.onOrderChanged,
+    required this.onDateTap,
+  });
+
+  final AppLocalizations l10n;
+  final DateFormat fmt;
+  final List<VendorModel> vendors;
+  final VendorModel? selectedVendor;
+  final String? selectedOrderId;
+  final List<PurchaseOrderModel> orders;
+  final DateTime receiptDate;
+  final ValueChanged<VendorModel?> onVendorSelected;
+  final ValueChanged<String?> onOrderChanged;
+  final VoidCallback onDateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF264D5B),
+              border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+            ),
+            child: Row(
+              children: [
+                const _StripLabel('VENDOR'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 5,
+                  child: _InlineVendorField(
+                    vendors: vendors,
+                    selected: selectedVendor,
+                    onSelected: onVendorSelected,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const _StripLabel('P.O.'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: _PoDropdown(
+                    selectedOrderId: selectedOrderId,
+                    orders: orders,
+                    onChanged: onOrderChanged,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 146,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 260,
+                    child: Text(
+                      'Receive Inventory',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w300,
+                        color: const Color(0xFF243E4A),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 260,
+                    child: Column(
+                      children: [
+                        _HorizontalField(
+                          label: 'DATE',
+                          child: _DateBox(
+                            text: fmt.format(receiptDate),
+                            onTap: onDateTap,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const _HorizontalField(
+                          label: 'RECEIPT #',
+                          child: _StaticBox(text: 'AUTO'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _FieldLabel('VENDOR / SHIP FROM'),
+                        const SizedBox(height: 4),
+                        Container(
+                          height: 96,
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFB7C3CB)),
+                          ),
+                          child: Text(
+                            selectedVendor?.displayName ?? 'Select a vendor',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: selectedVendor == null
+                                  ? const Color(0xFF7B8B93)
+                                  : const Color(0xFF253C47),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineVendorField extends StatelessWidget {
+  const _InlineVendorField({
+    required this.vendors,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<VendorModel> vendors;
+  final VendorModel? selected;
+  final ValueChanged<VendorModel?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<VendorModel>(
+      key: ValueKey(selected?.id ?? 'receive-vendor'),
+      displayStringForOption: (vendor) => vendor.displayName,
+      initialValue: TextEditingValue(text: selected?.displayName ?? ''),
+      optionsBuilder: (value) {
+        final query = value.text.trim().toLowerCase();
+        if (query.isEmpty) return vendors.take(20);
+        return vendors
+            .where((vendor) => vendor.displayName.toLowerCase().contains(query))
+            .take(20);
+      },
+      onSelected: onSelected,
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return SizedBox(
+          height: 30,
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onChanged: (value) {
+              if (value.trim().isEmpty && selected != null) onSelected(null);
+            },
+            decoration: const InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.search, size: 16),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              border: OutlineInputBorder(),
+              hintText: 'Select vendor',
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PoDropdown extends StatelessWidget {
+  const _PoDropdown({
+    required this.selectedOrderId,
+    required this.orders,
+    required this.onChanged,
+  });
+
+  final String? selectedOrderId;
+  final List<PurchaseOrderModel> orders;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String?>(
+      initialValue: selectedOrderId,
+      isDense: true,
+      decoration: const InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      ),
+      items: [
+        const DropdownMenuItem<String?>(
+          value: null,
+          child: Text('Standalone receive'),
+        ),
+        ...orders.map(
+          (order) => DropdownMenuItem<String?>(
+            value: order.id,
+            child: Text(order.orderNumber),
+          ),
+        ),
+      ],
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _ReceiveLinesHeader extends StatelessWidget {
+  const _ReceiveLinesHeader({required this.loading, required this.onAddLine});
+
+  final bool loading;
+  final VoidCallback onAddLine;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFE9EFF2),
+        border: Border(
+          top: BorderSide(color: Color(0xFFB7C3CB)),
+          bottom: BorderSide(color: Color(0xFFB7C3CB)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Products and Services',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF233F4C),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Tab moves across cells • Enter commits row',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF596B74),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: loading ? null : onAddLine,
+            icon: const Icon(Icons.add, size: 15),
+            label: const Text('Add Line'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiveLinesTable extends StatelessWidget {
+  const _ReceiveLinesTable({
+    required this.lines,
+    required this.onSelectItem,
+    required this.onRemoveLine,
+    required this.onChanged,
+  });
+
+  final List<_ManualReceiveLine> lines;
+  final ValueChanged<_ManualReceiveLine> onSelectItem;
+  final ValueChanged<_ManualReceiveLine> onRemoveLine;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF9EADB6)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 28,
+            color: const Color(0xFFDDE8ED),
+            child: const Row(
+              children: [
+                _HeaderCell('ITEM / SERVICE', flex: 3),
+                _HeaderCell('QUANTITY', flex: 1),
+                _HeaderCell('DESCRIPTION', flex: 4),
+                _HeaderCell('RATE', flex: 1),
+                _HeaderCell('AMOUNT', flex: 1, right: true),
+                SizedBox(width: 34),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: lines.length,
+              itemBuilder: (context, index) {
+                final line = lines[index];
+                final shaded = index.isEven;
+                return Container(
+                  height: 34,
+                  color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: InkWell(
+                          onTap: () => onSelectItem(line),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    line.itemName.isEmpty
+                                        ? 'Select an item...'
+                                        : line.itemName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
+                                const Icon(Icons.search, size: 14),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      _CellTextField(
+                        controller: line.qtyCtrl,
+                        flex: 1,
+                        onChanged: onChanged,
+                      ),
+                      _CellTextField(
+                        controller: line.descriptionCtrl,
+                        flex: 4,
+                        onChanged: onChanged,
+                      ),
+                      _CellTextField(
+                        controller: line.costCtrl,
+                        flex: 1,
+                        onChanged: onChanged,
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            line.draftAmount.toStringAsFixed(2),
+                            textAlign: TextAlign.end,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 34,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          iconSize: 18,
+                          onPressed: lines.length == 1
+                              ? null
+                              : () => onRemoveLine(line),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CellTextField extends StatelessWidget {
+  const _CellTextField({
+    required this.controller,
+    required this.flex,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final int flex;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: flex,
+      child: TextField(
+        controller: controller,
+        onChanged: (_) => onChanged(),
+        decoration: const InputDecoration(
+          isDense: true,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
+  }
+}
+
+class _ReceiveFooter extends StatelessWidget {
+  const _ReceiveFooter({
+    required this.l10n,
+    required this.lines,
+    required this.notesCtrl,
+    required this.saving,
+    required this.onClear,
+    this.onSave,
+  });
+
+  final AppLocalizations l10n;
+  final List<_ManualReceiveLine> lines;
+  final TextEditingController notesCtrl;
+  final bool saving;
+  final VoidCallback? onSave;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = lines.fold<double>(0, (sum, line) => sum + line.draftAmount);
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF6F8F9),
+        border: Border(top: BorderSide(color: Color(0xFFB7C3CB))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _FieldLabel('MEMO'),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: notesCtrl,
+                  minLines: 1,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Optional',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 18),
+          SizedBox(
+            width: 310,
+            child: Column(
+              children: [
+                _TotalRow(label: 'TOTAL', value: total, currency: l10n.egp),
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE7F1F4),
+                    border: Border.all(color: const Color(0xFF9DB2BC)),
+                  ),
+                  child: _TotalRow(
+                    label: 'RECEIPT VALUE',
+                    value: total,
+                    currency: l10n.egp,
+                    strong: true,
+                    noPadding: true,
+                  ),
+                ),
+                const Spacer(),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    OutlinedButton(
+                      onPressed: onSave,
+                      style: _smallButton(),
+                      child: Text(saving ? 'Saving...' : 'Save & Close'),
+                    ),
+                    OutlinedButton(
+                      onPressed: saving ? null : onClear,
+                      style: _smallButton(),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ButtonStyle _smallButton() => OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+    side: const BorderSide(color: Color(0xFF8FA1AB)),
+  );
+}
+
+class _CollapsibleReceivePanel extends StatefulWidget {
+  const _CollapsibleReceivePanel({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_CollapsibleReceivePanel> createState() =>
+      _CollapsibleReceivePanelState();
+}
+
+class _CollapsibleReceivePanelState extends State<_CollapsibleReceivePanel> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: _expanded ? 258 : 38,
+      margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border.all(color: const Color(0xFFB9C3CA)),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          if (_expanded) Positioned.fill(child: widget.child),
+          Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              color: const Color(0xFFE6EEF2),
+              child: InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Tooltip(
+                  message: _expanded ? 'Hide side panel' : 'Show side panel',
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      _expanded ? Icons.chevron_right : Icons.chevron_left,
+                      size: 22,
+                      color: const Color(0xFF2B4A56),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiveContextPanel extends StatelessWidget {
+  const _ReceiveContextPanel({
+    required this.vendor,
+    required this.order,
+    required this.total,
+  });
+
+  final VendorModel? vendor;
+  final PurchaseOrderModel? order;
+  final double total;
+
+  @override
+  Widget build(BuildContext context) {
+    if (vendor == null) return const _EmptySidePanel();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          color: const Color(0xFF264D5B),
+          child: Text(
+            vendor!.displayName,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(8),
+          color: const Color(0xFFFFE7C4),
+          child: Text(
+            order == null
+                ? 'Standalone inventory receipt.'
+                : 'Receiving against ${order!.orderNumber}.',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF714600),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const _SideTabBar(),
+        _SideSection(
+          title: 'Vendor Summary',
+          children: [
+            _InfoRow(
+              label: 'Receipt value',
+              value: '${total.toStringAsFixed(2)} EGP',
+            ),
+            _InfoRow(
+              label: 'Purchase order',
+              value: order?.orderNumber ?? 'Standalone',
+            ),
+            _InfoRow(
+              label: 'Can receive',
+              value: order?.canReceive == true ? 'Yes' : 'Manual',
+            ),
+          ],
+        ),
+        const Spacer(),
+        _SideSection(
+          title: 'Notes',
+          children: const [_MutedText('No notes added.')],
+        ),
+      ],
+    );
+  }
+}
+
+class _ReceiveShortcutStrip extends StatelessWidget {
+  const _ReceiveShortcutStrip();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 24,
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    alignment: Alignment.centerLeft,
+    decoration: const BoxDecoration(
+      color: Color(0xFFD4DDE3),
+      border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
+    ),
+    child: Text(
+      'Receive inventory workspace  •  Save & Close  •  Ctrl+P Print  •  Esc Close',
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: const Color(0xFF33434C),
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
+
+class _SaveTool extends StatelessWidget {
+  const _SaveTool({required this.saving, this.onSave});
+
+  final bool saving;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = !saving && onSave != null;
+    return _Tool(
+      icon: saving ? Icons.hourglass_top : Icons.save_outlined,
+      label: saving ? 'Saving' : 'Save',
+      onTap: enabled ? onSave : null,
+    );
+  }
+}
+
+class _Tool extends StatelessWidget {
+  const _Tool({required this.icon, required this.label, this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: 64,
+          height: 74,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 22, color: color),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Separator extends StatelessWidget {
+  const _Separator();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 52,
+    margin: const EdgeInsets.symmetric(horizontal: 6),
+    color: const Color(0xFFC7D0D6),
+  );
+}
+
+class _StripLabel extends StatelessWidget {
+  const _StripLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w900,
+      letterSpacing: 0.4,
+    ),
+  );
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: const Color(0xFF53656E),
+      fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _StaticBox extends StatelessWidget {
+  const _StaticBox({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 30,
+    alignment: Alignment.centerLeft,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFB7C3CB)),
+    ),
+    child: Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.bodySmall,
+    ),
+  );
+}
+
+class _DateBox extends StatelessWidget {
+  const _DateBox({required this.text, required this.onTap});
+
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Container(
+      height: 34,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB7C3CB)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          const Icon(Icons.calendar_today_outlined, size: 15),
+        ],
+      ),
+    ),
+  );
+}
+
+class _HorizontalField extends StatelessWidget {
+  const _HorizontalField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      SizedBox(width: 82, child: _FieldLabel(label)),
+      Expanded(child: child),
+    ],
+  );
+}
+
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
+
+  final String text;
+  final int flex;
+  final bool right;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ),
+  );
+}
+
+class _TotalRow extends StatelessWidget {
+  const _TotalRow({
+    required this.label,
+    required this.value,
+    required this.currency,
+    this.strong = false,
+    this.noPadding = false,
+  });
+
+  final String label;
+  final double value;
+  final String currency;
+  final bool strong;
+  final bool noPadding;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(vertical: noPadding ? 0 : 3),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+            ),
+          ),
+        ),
+        Text(
+          '${value.toStringAsFixed(2)} $currency',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SideTabBar extends StatelessWidget {
+  const _SideTabBar();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 34,
+    alignment: Alignment.center,
+    color: const Color(0xFFE1E9ED),
+    child: Text(
+      'Vendor     Transaction',
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        fontWeight: FontWeight.w900,
+        color: const Color(0xFF2D4854),
+      ),
+    ),
+  );
+}
+
+class _SideSection extends StatelessWidget {
+  const _SideSection({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFB8C6CE)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          alignment: Alignment.centerLeft,
+          color: const Color(0xFFE7EEF1),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF2D4854),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(children: children),
+        ),
+      ],
+    ),
+  );
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ],
+    ),
+  );
+}
+
+class _MutedText extends StatelessWidget {
+  const _MutedText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: const Color(0xFF667A84),
+      fontWeight: FontWeight.w600,
+    ),
+  );
+}
+
+class _EmptySidePanel extends StatelessWidget {
+  const _EmptySidePanel();
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.storefront_outlined,
+          size: 38,
+          color: Color(0xFF8CA0AA),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Select a vendor',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: const Color(0xFF2D4854),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Choose a vendor to see open purchase orders and receiving status.',
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: const Color(0xFF667A84)),
+        ),
+      ],
+    ),
+  );
+}
+
 class _VendorCard extends StatelessWidget {
   const _VendorCard({
     required this.vendor,
@@ -735,10 +1847,16 @@ class _ReceiveDraftTotalsCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Draft receipt value', style: TextStyle(fontWeight: FontWeight.w800)),
+                    const Text(
+                      'Draft receipt value',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
                     Text(
                       total.toStringAsFixed(2),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: cs.primary),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: cs.primary,
+                      ),
                     ),
                   ],
                 ),
