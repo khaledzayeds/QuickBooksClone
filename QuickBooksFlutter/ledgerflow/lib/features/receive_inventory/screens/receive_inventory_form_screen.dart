@@ -350,7 +350,7 @@ class _ReceiveInventoryFormScreenState
     for (final line in _manualLines) {
       final qty = double.tryParse(line.qtyCtrl.text.trim()) ?? 0;
       final cost = double.tryParse(line.costCtrl.text.trim()) ?? 0;
-      if (line.itemId == null && qty <= 0 && cost <= 0) continue;
+      if (line.isBlank) continue;
       if (line.itemId == null) {
         _showError('Select item for every receive line.');
         return null;
@@ -1174,10 +1174,17 @@ class _CellTextField extends StatelessWidget {
           controller: controller,
           onChanged: (_) => onChanged(),
           textAlign: textAlign,
+          cursorHeight: 14,
           decoration: const InputDecoration(
             isDense: true,
+            filled: false,
             border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           ),
           style: Theme.of(context).textTheme.bodySmall,
         ),
