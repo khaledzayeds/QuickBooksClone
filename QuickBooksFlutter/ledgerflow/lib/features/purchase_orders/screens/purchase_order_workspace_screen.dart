@@ -6,9 +6,9 @@ import 'package:intl/intl.dart';
 import '../../../../app/router.dart';
 import '../../../../core/widgets/qb/qb_transaction_line_grid.dart';
 import '../../../../core/widgets/qb/transaction_line_price_mode.dart';
-import '../../../../core/widgets/transaction_vendor_picker.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../vendors/data/models/vendor_model.dart';
+import '../../vendors/providers/vendors_provider.dart';
 import '../data/models/order_line_entry.dart';
 import '../data/models/purchase_order_model.dart';
 import '../providers/purchase_orders_provider.dart';
@@ -29,7 +29,10 @@ class _PurchaseOrderWorkspaceScreenState
   PurchaseOrderModel? _editingOrder;
   DateTime _orderDate = DateTime.now();
   DateTime _expectedDate = DateTime.now().add(const Duration(days: 7));
-  final List<TransactionLineEntry> _lines = [TransactionLineEntry()];
+  final List<TransactionLineEntry> _lines = List.generate(
+    5,
+    (_) => TransactionLineEntry(),
+  );
   bool _saving = false;
   bool _loadingExisting = false;
 
@@ -45,6 +48,17 @@ class _PurchaseOrderWorkspaceScreenState
   void initState() {
     super.initState();
     if (_isEdit) Future.microtask(_loadExistingOrder);
+  }
+
+  @override
+  void didUpdateWidget(covariant PurchaseOrderWorkspaceScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.id == widget.id) return;
+    if (_isEdit) {
+      Future.microtask(_loadExistingOrder);
+    } else {
+      _clear();
+    }
   }
 
   @override
@@ -95,7 +109,13 @@ class _PurchaseOrderWorkspaceScreenState
           _lines
             ..clear()
             ..addAll(
-              loadedLines.isEmpty ? [TransactionLineEntry()] : loadedLines,
+              loadedLines.isEmpty
+                  ? List.generate(5, (_) => TransactionLineEntry())
+                  : [
+                      ...loadedLines,
+                      for (var i = loadedLines.length; i < 5; i++)
+                        TransactionLineEntry(),
+                    ],
             );
         });
       },
@@ -225,8 +245,44 @@ class _PurchaseOrderWorkspaceScreenState
       _expectedDate = DateTime.now().add(const Duration(days: 7));
       _lines
         ..clear()
-        ..add(TransactionLineEntry());
+        ..addAll(List.generate(5, (_) => TransactionLineEntry()));
     });
+  }
+
+  void _openAdjacentOrder(int direction) {
+    final currentId = widget.id;
+    if (currentId == null || currentId.isEmpty) return;
+    final orders = ref
+        .read(purchaseOrdersProvider)
+        .maybeWhen(
+          data: (items) =>
+              [...items]..sort((a, b) => b.orderDate.compareTo(a.orderDate)),
+          orElse: () => const <PurchaseOrderModel>[],
+        );
+    final index = orders.indexWhere((order) => order.id == currentId);
+    final targetIndex = index + direction;
+    if (index < 0 || targetIndex < 0 || targetIndex >= orders.length) return;
+    context.go(
+      AppRoutes.purchaseOrderDetails.replaceFirst(
+        ':id',
+        orders[targetIndex].id,
+      ),
+    );
+  }
+
+  bool _hasAdjacentOrder(int direction) {
+    final currentId = widget.id;
+    if (currentId == null || currentId.isEmpty) return false;
+    final orders = ref
+        .watch(purchaseOrdersProvider)
+        .maybeWhen(
+          data: (items) =>
+              [...items]..sort((a, b) => b.orderDate.compareTo(a.orderDate)),
+          orElse: () => const <PurchaseOrderModel>[],
+        );
+    final index = orders.indexWhere((order) => order.id == currentId);
+    final targetIndex = index + direction;
+    return index >= 0 && targetIndex >= 0 && targetIndex < orders.length;
   }
 
   void _receiveInventory() {
@@ -283,6 +339,12 @@ class _PurchaseOrderWorkspaceScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final fmt = DateFormat('dd/MM/yyyy');
+    final vendors = ref
+        .watch(vendorsProvider)
+        .maybeWhen(
+          data: (items) => items.where((vendor) => vendor.isActive).toList(),
+          orElse: () => const <VendorModel>[],
+        );
 
     if (_loadingExisting) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -295,6 +357,10 @@ class _PurchaseOrderWorkspaceScreenState
           children: [
             _PoCommandBar(
               saving: _saving,
+              onPrevious: _hasAdjacentOrder(-1)
+                  ? () => _openAdjacentOrder(-1)
+                  : null,
+              onNext: _hasAdjacentOrder(1) ? () => _openAdjacentOrder(1) : null,
               onFind: () => context.go(AppRoutes.purchaseOrders),
               onNew: () => context.go(AppRoutes.purchaseOrderNew),
               onSaveDraft: _canSaveDraft ? () => _save(SaveMode.draft) : null,
@@ -326,6 +392,7 @@ class _PurchaseOrderWorkspaceScreenState
                             l10n: l10n,
                             fmt: fmt,
                             vendor: _vendor,
+                            vendors: vendors,
                             readOnly: _readOnly,
                             orderDate: _orderDate,
                             expectedDate: _expectedDate,
@@ -397,6 +464,7 @@ class _PoHeader extends StatelessWidget {
     required this.l10n,
     required this.fmt,
     required this.vendor,
+    required this.vendors,
     required this.readOnly,
     required this.orderDate,
     required this.expectedDate,
@@ -409,6 +477,7 @@ class _PoHeader extends StatelessWidget {
   final AppLocalizations l10n;
   final DateFormat fmt;
   final VendorModel? vendor;
+  final List<VendorModel> vendors;
   final bool readOnly;
   final DateTime orderDate;
   final DateTime expectedDate;
@@ -439,10 +508,10 @@ class _PoHeader extends StatelessWidget {
                   flex: 5,
                   child: readOnly
                       ? _StaticBox(text: vendor?.displayName ?? 'Select vendor')
-                      : VendorPickerField(
-                          value: vendor,
-                          onChanged: onVendorChanged,
-                          label: l10n.vendor,
+                      : _InlineVendorField(
+                          vendors: vendors,
+                          selected: vendor,
+                          onSelected: onVendorChanged,
                         ),
                 ),
                 const SizedBox(width: 16),
@@ -703,21 +772,21 @@ class _PoFooter extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
                     OutlinedButton(
                       onPressed: saving || readOnly ? null : onSaveDraft,
                       style: _smallButton(),
                       child: Text(saving ? 'Saving...' : 'Save Draft'),
                     ),
-                    const SizedBox(width: 6),
                     OutlinedButton(
                       onPressed: saving || readOnly ? null : onSaveOpen,
                       style: _smallButton(),
                       child: const Text('Save & Open'),
                     ),
-                    const SizedBox(width: 6),
                     OutlinedButton(
                       onPressed: saving ? null : onClear,
                       style: _smallButton(),
@@ -741,6 +810,92 @@ class _PoFooter extends StatelessWidget {
   );
 }
 
+class _InlineVendorField extends StatelessWidget {
+  const _InlineVendorField({
+    required this.vendors,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<VendorModel> vendors;
+  final VendorModel? selected;
+  final ValueChanged<VendorModel?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<VendorModel>(
+      key: ValueKey(selected?.id ?? 'empty-vendor'),
+      displayStringForOption: (vendor) => vendor.displayName,
+      initialValue: TextEditingValue(text: selected?.displayName ?? ''),
+      optionsBuilder: (value) {
+        final query = value.text.trim().toLowerCase();
+        if (query.isEmpty) return vendors.take(20);
+        return vendors
+            .where((vendor) => vendor.displayName.toLowerCase().contains(query))
+            .take(20);
+      },
+      onSelected: onSelected,
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        if (selected != null && controller.text.isEmpty) {
+          controller.text = selected!.displayName;
+        }
+        return SizedBox(
+          height: 30,
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onChanged: (value) {
+              if (value.trim().isEmpty && selected != null) {
+                onSelected(null);
+              }
+            },
+            decoration: const InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.search, size: 16),
+              suffixIcon: Icon(Icons.close, size: 16),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              border: OutlineInputBorder(),
+              hintText: 'Select vendor',
+            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF253C47),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        );
+      },
+      optionsViewBuilder: (context, onSelectedOption, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420, maxHeight: 260),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final vendor = options.elementAt(index);
+                  return ListTile(
+                    dense: true,
+                    title: Text(vendor.displayName),
+                    subtitle: vendor.companyName == null
+                        ? null
+                        : Text(vendor.companyName!),
+                    onTap: () => onSelectedOption(vendor),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _PoCommandBar extends StatelessWidget {
   const _PoCommandBar({
     required this.saving,
@@ -748,11 +903,15 @@ class _PoCommandBar extends StatelessWidget {
     required this.onNew,
     required this.onClear,
     required this.onClose,
+    this.onPrevious,
+    this.onNext,
     this.onSaveDraft,
     this.onSaveOpen,
     this.onReceive,
   });
   final bool saving;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
   final VoidCallback onFind;
   final VoidCallback onNew;
   final VoidCallback? onSaveDraft;
@@ -772,6 +931,16 @@ class _PoCommandBar extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 8),
+          _Tool(
+            icon: Icons.arrow_back,
+            label: 'Prev',
+            onTap: saving ? null : onPrevious,
+          ),
+          _Tool(
+            icon: Icons.arrow_forward,
+            label: 'Next',
+            onTap: saving ? null : onNext,
+          ),
           _Tool(
             icon: Icons.search,
             label: 'Find',
