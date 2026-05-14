@@ -481,15 +481,43 @@ class _PaymentHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
-                    width: 270,
-                    child: Text(
-                      'Receive Payment',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w300,
-                        color: const Color(0xFF243E4A),
-                      ),
+                    width: 310,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Receive Payment',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFF243E4A),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          height: 62,
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFB7C3CB)),
+                          ),
+                          child: Text(
+                            customer == null
+                                ? 'Received from: select a customer'
+                                : '${customer!.displayName}\n${customer!.primaryContact}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: customer == null
+                                  ? const Color(0xFF7B8B93)
+                                  : const Color(0xFF253C47),
+                              fontWeight: FontWeight.w600,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(width: 18),
                   SizedBox(
                     width: 260,
                     child: Column(
@@ -518,40 +546,8 @@ class _PaymentHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 18),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _FieldLabel('RECEIVED FROM'),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 100,
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(9),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFB7C3CB)),
-                          ),
-                          child: Text(
-                            customer == null
-                                ? 'Select a customer'
-                                : '${customer!.displayName}\n${customer!.primaryContact}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: customer == null
-                                  ? const Color(0xFF7B8B93)
-                                  : const Color(0xFF253C47),
-                              fontWeight: FontWeight.w600,
-                              height: 1.35,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  SizedBox(
-                    width: 260,
                     child: Column(
                       children: [
                         _PaymentStat(
