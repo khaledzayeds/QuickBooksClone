@@ -8,180 +8,301 @@ import '../../../app/router.dart';
 import '../data/models/payment_model.dart';
 import '../providers/payments_provider.dart';
 
-class PaymentListScreen extends ConsumerWidget {
+class PaymentListScreen extends ConsumerStatefulWidget {
   const PaymentListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final paymentsAsync = ref.watch(paymentsProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('تحصيلات العملاء'),
-        actions: [
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: () => ref.read(paymentsProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 12),
-            child: FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.paymentNew),
-              icon: const Icon(Icons.add),
-              label: const Text('تحصيل جديد'),
-            ),
-          ),
-        ],
-      ),
-      body: paymentsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: error.toString(),
-          onRetry: () => ref.read(paymentsProvider.notifier).refresh(),
-        ),
-        data: (payments) {
-          if (payments.isEmpty) {
-            return const _EmptyState();
-          }
-          return RefreshIndicator(
-            onRefresh: () => ref.read(paymentsProvider.notifier).refresh(),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: payments.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) =>
-                  _PaymentCard(payment: payments[index]),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  ConsumerState<PaymentListScreen> createState() => _PaymentListScreenState();
 }
 
-class _PaymentCard extends StatelessWidget {
-  const _PaymentCard({required this.payment});
-  final PaymentModel payment;
+class _PaymentListScreenState extends ConsumerState<PaymentListScreen> {
+  final _searchCtrl = TextEditingController();
+  String _status = 'all';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final paymentsAsync = ref.watch(paymentsProvider);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(
-          AppRoutes.paymentDetails.replaceFirst(':id', payment.id),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: payment.isVoid
-                    ? cs.errorContainer
-                    : cs.primaryContainer,
-                child: Icon(
-                  payment.isVoid ? Icons.block : Icons.payments_outlined,
-                  color: payment.isVoid
-                      ? cs.onErrorContainer
-                      : cs.onPrimaryContainer,
-                ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8EDF0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: 74,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3F6F7),
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      payment.paymentNumber.isEmpty
-                          ? 'تحصيل بدون رقم'
-                          : payment.paymentNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(payment.customerName ?? 'عميل غير محدد'),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_date(payment.paymentDate)} • ${payment.invoiceNumber ?? 'فاتورة'} • ${payment.paymentMethod}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                    if (payment.depositAccountName != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'إيداع في: ${payment.depositAccountName}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child: Row(
                 children: [
-                  Text(
-                    '${payment.amount.toStringAsFixed(2)} ج.م',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
+                  const SizedBox(width: 8),
+                  _Tool(
+                    icon: Icons.search,
+                    label: 'Find',
+                    onTap: () => FocusScope.of(context).nextFocus(),
+                  ),
+                  _Tool(
+                    icon: Icons.note_add_outlined,
+                    label: 'New',
+                    onTap: () => context.push(AppRoutes.paymentNew),
+                  ),
+                  _Tool(
+                    icon: Icons.refresh,
+                    label: 'Refresh',
+                    onTap: () => ref.read(paymentsProvider.notifier).refresh(),
+                  ),
+                  const Spacer(),
+                  _Tool(
+                    icon: Icons.close,
+                    label: 'Close',
+                    onTap: () => context.go(AppRoutes.dashboard),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 210,
+                    child: Text(
+                      'Receive Payments',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: const Color(0xFF243E4A),
+                            fontWeight: FontWeight.w300,
+                          ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    payment.isVoid ? 'ملغي' : 'مرحل',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: payment.isVoid ? cs.error : cs.primary,
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: Icon(Icons.search, size: 18),
+                        hintText: 'Search payment #, customer, invoice...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 150,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _status,
+                      isDense: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('All')),
+                        DropdownMenuItem(
+                          value: 'posted',
+                          child: Text('Posted'),
+                        ),
+                        DropdownMenuItem(value: 'void', child: Text('Void')),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _status = value ?? 'all'),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: paymentsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(error.toString())),
+                data: (payments) {
+                  final filtered = _filter(payments);
+                  if (filtered.isEmpty) {
+                    return const Center(child: Text('No payments found.'));
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFF9EADB6)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 30,
+                            color: const Color(0xFFDDE8ED),
+                            child: const Row(
+                              children: [
+                                _HeaderCell('DATE', flex: 2),
+                                _HeaderCell('TYPE', flex: 2),
+                                _HeaderCell('NUM', flex: 2),
+                                _HeaderCell('NAME', flex: 4),
+                                _HeaderCell('INVOICE', flex: 3),
+                                _HeaderCell('DEPOSIT TO', flex: 3),
+                                _HeaderCell('AMOUNT', flex: 2, right: true),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final payment = filtered[index];
+                                final shaded = index.isEven;
+                                return InkWell(
+                                  onTap: () => context.push(
+                                    AppRoutes.paymentDetails.replaceFirst(
+                                      ':id',
+                                      payment.id,
+                                    ),
+                                  ),
+                                  child: Container(
+                                    height: 34,
+                                    color: shaded
+                                        ? const Color(0xFFDDEFF4)
+                                        : Colors.white,
+                                    child: Row(
+                                      children: [
+                                        _Cell(
+                                          _date(payment.paymentDate),
+                                          flex: 2,
+                                        ),
+                                        _Cell(_statusText(payment), flex: 2),
+                                        _Cell(
+                                          payment.paymentNumber.isEmpty
+                                              ? 'Payment'
+                                              : payment.paymentNumber,
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          payment.customerName ?? '',
+                                          flex: 4,
+                                        ),
+                                        _Cell(
+                                          payment.invoiceNumber ?? '',
+                                          flex: 3,
+                                        ),
+                                        _Cell(
+                                          payment.depositAccountName ?? '',
+                                          flex: 3,
+                                        ),
+                                        _Cell(
+                                          payment.amount.toStringAsFixed(2),
+                                          flex: 2,
+                                          right: true,
+                                          strong: true,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              height: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD4DDE3),
+                border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
+              ),
+              child: Text(
+                'Receive payments search  •  New opens allocation workspace  •  Esc Close',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFF33434C),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  List<PaymentModel> _filter(List<PaymentModel> payments) {
+    final query = _searchCtrl.text.trim().toLowerCase();
+    return payments.where((payment) {
+      final matchesStatus = switch (_status) {
+        'posted' => !payment.isVoid,
+        'void' => payment.isVoid,
+        _ => true,
+      };
+      if (!matchesStatus) return false;
+      if (query.isEmpty) return true;
+      return payment.paymentNumber.toLowerCase().contains(query) ||
+          (payment.customerName ?? '').toLowerCase().contains(query) ||
+          (payment.invoiceNumber ?? '').toLowerCase().contains(query) ||
+          (payment.depositAccountName ?? '').toLowerCase().contains(query);
+    }).toList()..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
   }
 
   static String _date(DateTime date) =>
-      '${date.day}/${date.month}/${date.year}';
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+  static String _statusText(PaymentModel payment) {
+    if (payment.isVoid) return 'Void';
+    return 'Posted';
+  }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+class _Tool extends StatelessWidget {
+  const _Tool({required this.icon, required this.label, this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    final enabled = onTap != null;
+    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 66,
+        height: 74,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.payments_outlined, size: 56),
-            const SizedBox(height: 16),
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 5),
             Text(
-              'لا توجد تحصيلات عملاء',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'ابدأ بتسجيل تحصيل جديد من فاتورة بيع آجلة.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.paymentNew),
-              icon: const Icon(Icons.add),
-              label: const Text('تحصيل جديد'),
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -190,35 +311,61 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-  final String message;
-  final VoidCallback onRetry;
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
+
+  final String text;
+  final int flex;
+  final bool right;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('إعادة المحاولة'),
-            ),
-          ],
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _Cell extends StatelessWidget {
+  const _Cell(
+    this.text, {
+    required this.flex,
+    this.right = false,
+    this.strong = false,
+  });
+
+  final String text;
+  final int flex;
+  final bool right;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: Text(
+        text,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+          color: const Color(0xFF273F4B),
+        ),
+      ),
+    ),
+  );
 }
