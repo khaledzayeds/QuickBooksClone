@@ -8,10 +8,13 @@ import 'package:intl/intl.dart';
 import 'package:ledgerflow/app/router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../invoices/widgets/notes_edit_dialog.dart';
 import '../../items/data/models/item_model.dart';
 import '../../items/providers/items_provider.dart';
 import '../../purchase_orders/data/models/purchase_order_model.dart';
 import '../../purchase_orders/providers/purchase_orders_provider.dart';
+import '../../transactions/widgets/transaction_context_sidebar.dart';
+import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
 import '../data/models/create_receive_inventory_dto.dart';
@@ -280,6 +283,19 @@ class _ReceiveInventoryFormScreenState
     });
   }
 
+  Future<void> _openNotesDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => NotesEditDialog(
+        title: 'Notes',
+        initialNotes: _notesCtrl.text,
+        onSave: (notes) async {
+          setState(() => _notesCtrl.text = notes);
+        },
+      ),
+    );
+  }
+
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -507,6 +523,11 @@ class _ReceiveInventoryFormScreenState
                             0,
                             (sum, line) => sum + line.draftAmount,
                           ),
+                          notes: _notesCtrl.text,
+                          onViewAll: _selectedVendor == null
+                              ? null
+                              : () => context.go(AppRoutes.receiveInventory),
+                          onEditNotes: _openNotesDialog,
                         ),
                       ),
                     ],
@@ -1332,115 +1353,77 @@ class _ReceiveContextPanel extends StatelessWidget {
     required this.vendor,
     required this.order,
     required this.total,
+    required this.notes,
+    this.onViewAll,
+    this.onEditNotes,
   });
 
   final VendorModel? vendor;
   final PurchaseOrderModel? order;
   final double total;
+  final String notes;
+  final VoidCallback? onViewAll;
+  final VoidCallback? onEditNotes;
 
   @override
   Widget build(BuildContext context) {
-    if (vendor == null) return const _EmptySidePanel();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
-          decoration: const BoxDecoration(
-            color: Color(0xFF264D5B),
-            border: Border(bottom: BorderSide(color: Color(0xFF183642))),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                vendor!.displayName,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              if (vendor!.companyName?.trim().isNotEmpty == true) ...[
-                const SizedBox(height: 3),
-                Text(
-                  vendor!.companyName!,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: const Color(0xFFD7E6EB),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
+    final v = vendor;
+    return TransactionContextSidebar(
+      title: v?.displayName ?? '',
+      subtitle: v?.companyName,
+      initials: v == null ? null : _initials(v.displayName),
+      emptyTitle: 'Select a vendor',
+      emptyMessage:
+          'Choose a vendor to see open purchase orders and receiving status.',
+      partyTabLabel: 'Vendor',
+      warning: v == null
+          ? null
+          : order == null
+          ? 'Standalone inventory receipt.'
+          : 'Receiving against ${order!.orderNumber}.',
+      metrics: [
+        TransactionContextMetric(
+          label: 'Receipt value',
+          value: '${total.toStringAsFixed(2)} EGP',
+          icon: Icons.receipt_long_outlined,
         ),
-        Container(
-          padding: const EdgeInsets.all(8),
-          color: const Color(0xFFFFE7C4),
-          child: Text(
-            order == null
-                ? 'Standalone inventory receipt.'
-                : 'Receiving against ${order!.orderNumber}.',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF714600),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+        TransactionContextMetric(
+          label: 'Purchase order',
+          value: order?.orderNumber ?? 'Standalone',
+          icon: Icons.inventory_2_outlined,
         ),
-        const _SideTabBar(),
-        _SideSection(
-          title: 'Vendor Balance Summary',
-          children: [
-            _InfoRow(
-              label: 'Receipt value',
-              value: '${total.toStringAsFixed(2)} EGP',
-            ),
-            _InfoRow(
-              label: 'Purchase order',
-              value: order?.orderNumber ?? 'Standalone',
-            ),
-            _InfoRow(
-              label: 'Can receive',
-              value: order?.canReceive == true ? 'Yes' : 'Manual',
-            ),
-          ],
-        ),
-        _SideSection(
-          title: 'Recent Transactions',
-          trailing: TextButton(
-            onPressed: () {},
-            style: TextButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-            ),
-            child: const Text('View All'),
-          ),
-          children: [
-            _MutedText(
-              order == null
-                  ? 'No recent transactions.'
-                  : 'Linked to ${order!.orderNumber}.',
-            ),
-          ],
-        ),
-        const Spacer(),
-        _SideSection(
-          title: 'Notes',
-          trailing: TextButton(
-            onPressed: () {},
-            style: TextButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-            ),
-            child: const Text('Edit'),
-          ),
-          children: const [_MutedText('No notes added.')],
+        TransactionContextMetric(
+          label: 'Can receive',
+          value: order?.canReceive == true ? 'Yes' : 'Manual',
+          icon: Icons.check_circle_outline,
         ),
       ],
+      activities: [
+        if (order != null)
+          TransactionContextActivity(
+            title: order!.orderNumber,
+            subtitle: 'Linked purchase order',
+            amount: '${order!.totalAmount.toStringAsFixed(2)} EGP',
+          ),
+      ],
+      notes: notes,
+      totals: TransactionTotalsUiModel(
+        subtotal: total,
+        total: total,
+        paid: 0,
+        balanceDue: total,
+        currency: 'EGP',
+      ),
+      onViewAll: onViewAll,
+      onEditNotes: onEditNotes,
     );
+  }
+
+  static String _initials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'V';
+    final parts = trimmed.split(RegExp(r'\s+'));
+    return parts.take(2).map((part) => part[0].toUpperCase()).join();
   }
 }
 

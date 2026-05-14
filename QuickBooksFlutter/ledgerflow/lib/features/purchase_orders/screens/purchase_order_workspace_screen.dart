@@ -7,6 +7,9 @@ import '../../../../app/router.dart';
 import '../../../../core/widgets/qb/qb_transaction_line_grid.dart';
 import '../../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../invoices/widgets/notes_edit_dialog.dart';
+import '../../transactions/widgets/transaction_context_sidebar.dart';
+import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
 import '../data/models/order_line_entry.dart';
@@ -33,6 +36,7 @@ class _PurchaseOrderWorkspaceScreenState
     5,
     (_) => TransactionLineEntry(),
   );
+  final _notesCtrl = TextEditingController();
   bool _saving = false;
   bool _loadingExisting = false;
 
@@ -66,6 +70,7 @@ class _PurchaseOrderWorkspaceScreenState
     for (final line in _lines) {
       line.dispose();
     }
+    _notesCtrl.dispose();
     super.dispose();
   }
 
@@ -243,10 +248,24 @@ class _PurchaseOrderWorkspaceScreenState
       _editingOrder = null;
       _orderDate = DateTime.now();
       _expectedDate = DateTime.now().add(const Duration(days: 7));
+      _notesCtrl.clear();
       _lines
         ..clear()
         ..addAll(List.generate(5, (_) => TransactionLineEntry()));
     });
+  }
+
+  Future<void> _openNotesDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => NotesEditDialog(
+        title: 'Notes',
+        initialNotes: _notesCtrl.text,
+        onSave: (notes) async {
+          setState(() => _notesCtrl.text = notes);
+        },
+      ),
+    );
   }
 
   void _openAdjacentOrder(int direction) {
@@ -446,6 +465,11 @@ class _PurchaseOrderWorkspaceScreenState
                       order: _editingOrder,
                       vendor: _vendor,
                       total: _total,
+                      notes: _notesCtrl.text,
+                      onViewAll: _vendor == null
+                          ? null
+                          : () => context.go(AppRoutes.purchaseOrders),
+                      onEditNotes: _openNotesDialog,
                     ),
                   ),
                 ],
@@ -1030,107 +1054,76 @@ class _PoSidePanel extends StatelessWidget {
     required this.order,
     required this.vendor,
     required this.total,
+    required this.notes,
+    this.onViewAll,
+    this.onEditNotes,
   });
   final PurchaseOrderModel? order;
   final VendorModel? vendor;
   final double total;
+  final String notes;
+  final VoidCallback? onViewAll;
+  final VoidCallback? onEditNotes;
 
   @override
   Widget build(BuildContext context) {
-    return vendor == null
-        ? const _EmptySidePanel()
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF264D5B),
-                  border: Border(bottom: BorderSide(color: Color(0xFF183642))),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      vendor!.displayName,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if (vendor!.companyName?.trim().isNotEmpty == true) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        vendor!.companyName!,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFFD7E6EB),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              _SideWarning(
-                text: order == null
-                    ? 'Standalone purchase order.'
-                    : order!.status.label.toUpperCase(),
-              ),
-              const _SideTabBar(),
-              _SideSection(
-                title: 'Vendor Balance Summary',
-                children: [
-                  _InfoRow(
-                    label: 'Status',
-                    value: order?.status.label ?? 'New',
-                  ),
-                  _InfoRow(
-                    label: 'PO Total',
-                    value: '${total.toStringAsFixed(2)} EGP',
-                  ),
-                  _InfoRow(
-                    label: 'Can Receive',
-                    value: order?.canReceive == true ? 'Yes' : 'No',
-                  ),
-                ],
-              ),
-              _SideSection(
-                title: 'Recent Transactions',
-                trailing: TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                  ),
-                  child: const Text('View All'),
-                ),
-                children: [
-                  _MutedText(
-                    order == null
-                        ? 'No recent transactions.'
-                        : '${order!.orderNumber}  ${total.toStringAsFixed(2)} EGP',
-                  ),
-                ],
-              ),
-              const Spacer(),
-              _SideSection(
-                title: 'Notes',
-                trailing: TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                  ),
-                  child: const Text('Edit'),
-                ),
-                children: const [_MutedText('No notes added.')],
-              ),
-            ],
-          );
+    final v = vendor;
+    return TransactionContextSidebar(
+      title: v?.displayName ?? '',
+      subtitle: v?.companyName,
+      initials: v == null ? null : _initials(v.displayName),
+      emptyTitle: 'Select a vendor',
+      emptyMessage:
+          'Choose a vendor to see open purchase orders and receiving status.',
+      partyTabLabel: 'Vendor',
+      warning: v == null
+          ? null
+          : order == null
+          ? 'Standalone purchase order.'
+          : order!.status.label.toUpperCase(),
+      metrics: [
+        TransactionContextMetric(
+          label: 'Status',
+          value: order?.status.label ?? 'New',
+          icon: Icons.flag_outlined,
+        ),
+        TransactionContextMetric(
+          label: 'PO Total',
+          value: '${total.toStringAsFixed(2)} EGP',
+          icon: Icons.receipt_long_outlined,
+        ),
+        TransactionContextMetric(
+          label: 'Can Receive',
+          value: order?.canReceive == true ? 'Yes' : 'No',
+          icon: Icons.inventory_2_outlined,
+        ),
+      ],
+      activities: [
+        if (order != null)
+          TransactionContextActivity(
+            title: order!.orderNumber,
+            subtitle: order!.status.label,
+            amount: '${order!.totalAmount.toStringAsFixed(2)} EGP',
+          ),
+      ],
+      notes: notes,
+      totals: TransactionTotalsUiModel(
+        subtotal: total,
+        total: total,
+        paid: 0,
+        balanceDue: total,
+        currency: 'EGP',
+      ),
+      onViewAll: onViewAll,
+      onEditNotes: onEditNotes,
+    );
+  }
+
+  static String _initials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'V';
+    final parts = trimmed.split(RegExp(r'\s+'));
+    return parts.take(2).map((part) => part[0].toUpperCase()).join();
   }
 }
 

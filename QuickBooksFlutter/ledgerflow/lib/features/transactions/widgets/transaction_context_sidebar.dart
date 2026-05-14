@@ -14,6 +14,7 @@ class TransactionContextSidebar extends StatelessWidget {
     this.activities = const [],
     this.notes,
     this.warning,
+    this.partyTabLabel = 'Customer',
     this.isLoading = false,
     this.totals,
     this.onViewAll,
@@ -29,6 +30,7 @@ class TransactionContextSidebar extends StatelessWidget {
   final List<TransactionContextActivity> activities;
   final String? notes;
   final String? warning;
+  final String partyTabLabel;
   final bool isLoading;
   final TransactionTotalsUiModel? totals;
   final VoidCallback? onViewAll;
@@ -43,58 +45,58 @@ class TransactionContextSidebar extends StatelessWidget {
       child: isLoading
           ? const Center(child: CircularProgressIndicator())
           : hasParty
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _PanelHeader(title: title, subtitle: subtitle),
-                    if (warning != null && warning!.trim().isNotEmpty)
-                      _WarningStrip(message: warning!),
-                    Expanded(
-                      child: DefaultTabController(
-                        length: 2,
-                        child: Column(
-                          children: [
-                            Container(
-                              height: 34,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE1E9ED),
-                                border: Border(
-                                  top: BorderSide(color: Color(0xFFB8C6CE)),
-                                  bottom: BorderSide(color: Color(0xFFB8C6CE)),
-                                ),
-                              ),
-                              child: const TabBar(
-                                labelPadding: EdgeInsets.zero,
-                                indicatorSize: TabBarIndicatorSize.tab,
-                                dividerColor: Colors.transparent,
-                                tabs: [
-                                  Tab(text: 'Customer'),
-                                  Tab(text: 'Transaction'),
-                                ],
-                              ),
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _PanelHeader(title: title, subtitle: subtitle),
+                if (warning != null && warning!.trim().isNotEmpty)
+                  _WarningStrip(message: warning!),
+                Expanded(
+                  child: DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 34,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE1E9ED),
+                            border: Border(
+                              top: BorderSide(color: Color(0xFFB8C6CE)),
+                              bottom: BorderSide(color: Color(0xFFB8C6CE)),
                             ),
-                            Expanded(
-                              child: TabBarView(
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: [
-                                  _CustomerPanel(
-                                    metrics: metrics,
-                                    activities: activities,
-                                    notes: notes,
-                                    onViewAll: onViewAll,
-                                    onEditNotes: onEditNotes,
-                                  ),
-                                  _TransactionPanel(totals: totals),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
+                          child: TabBar(
+                            labelPadding: EdgeInsets.zero,
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            dividerColor: Colors.transparent,
+                            tabs: [
+                              Tab(text: partyTabLabel),
+                              const Tab(text: 'Transaction'),
+                            ],
+                          ),
                         ),
-                      ),
+                        Expanded(
+                          child: TabBarView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _CustomerPanel(
+                                metrics: metrics,
+                                activities: activities,
+                                notes: notes,
+                                onViewAll: onViewAll,
+                                onEditNotes: onEditNotes,
+                              ),
+                              _TransactionPanel(totals: totals),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                )
-              : _EmptyPanel(title: emptyTitle, message: emptyMessage),
+                  ),
+                ),
+              ],
+            )
+          : _EmptyPanel(title: emptyTitle, message: emptyMessage),
     );
   }
 }
@@ -236,13 +238,30 @@ class _TransactionPanel extends StatelessWidget {
               ? const _EmptyLine('No transaction totals yet.')
               : Column(
                   children: [
-                    _InfoRow(label: 'Subtotal', value: _money(t.subtotal, t.currency)),
-                    _InfoRow(label: 'Discount', value: _money(t.discountTotal, t.currency)),
-                    _InfoRow(label: 'Tax', value: _money(t.taxTotal, t.currency)),
+                    _InfoRow(
+                      label: 'Subtotal',
+                      value: _money(t.subtotal, t.currency),
+                    ),
+                    _InfoRow(
+                      label: 'Discount',
+                      value: _money(t.discountTotal, t.currency),
+                    ),
+                    _InfoRow(
+                      label: 'Tax',
+                      value: _money(t.taxTotal, t.currency),
+                    ),
                     const Divider(height: 14),
-                    _InfoRow(label: 'Total', value: _money(t.total, t.currency), strong: true),
+                    _InfoRow(
+                      label: 'Total',
+                      value: _money(t.total, t.currency),
+                      strong: true,
+                    ),
                     _InfoRow(label: 'Paid', value: _money(t.paid, t.currency)),
-                    _InfoRow(label: 'Balance Due', value: _money(t.balanceDue, t.currency), strong: true),
+                    _InfoRow(
+                      label: 'Balance Due',
+                      value: _money(t.balanceDue, t.currency),
+                      strong: true,
+                    ),
                   ],
                 ),
         ),
@@ -260,7 +279,8 @@ class _TransactionPanel extends StatelessWidget {
     );
   }
 
-  static String _money(double value, String currency) => '${value.toStringAsFixed(2)} $currency';
+  static String _money(double value, String currency) =>
+      '${value.toStringAsFixed(2)} $currency';
 }
 
 class _Section extends StatelessWidget {
@@ -313,16 +333,10 @@ class _Section extends StatelessWidget {
           ),
           if (expanded)
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: child,
-              ),
+              child: Padding(padding: const EdgeInsets.all(8), child: child),
             )
           else
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: child,
-            ),
+            Padding(padding: const EdgeInsets.all(8), child: child),
         ],
       ),
     );
@@ -332,7 +346,11 @@ class _Section extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value, this.strong = false});
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
 
   final String label;
   final String value;
@@ -348,7 +366,9 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: style, overflow: TextOverflow.ellipsis)),
+          Expanded(
+            child: Text(label, style: style, overflow: TextOverflow.ellipsis),
+          ),
           Text(value, style: style),
         ],
       ),
@@ -400,7 +420,9 @@ class _ActivityLine extends StatelessWidget {
             activity.subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(color: const Color(0xFF687980)),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF687980),
+            ),
           ),
         ],
       ),
@@ -445,7 +467,11 @@ class _EmptyPanel extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.person_search_outlined, size: 38, color: Color(0xFF8CA0AA)),
+          const Icon(
+            Icons.person_search_outlined,
+            size: 38,
+            color: Color(0xFF8CA0AA),
+          ),
           const SizedBox(height: 12),
           Text(
             title,
