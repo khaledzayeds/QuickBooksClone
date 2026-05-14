@@ -414,107 +414,113 @@ class _ReceiveInventoryFormScreenState
               ? _selectedOrder!.id
               : null;
           return SafeArea(
-            child: Column(
-              children: [
-                _ReceiveCommandBar(
-                  saving: _saving,
-                  onFind: () => context.go(AppRoutes.receiveInventory),
-                  onNew: () => context.go(AppRoutes.receiveInventoryNew),
-                  onSave: _saving || _loadingPlan ? null : _save,
-                  onClear: _clear,
-                  onClose: () => context.go(AppRoutes.receiveInventory),
-                ),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFB9C3CA)),
-                          ),
-                          child: Column(
-                            children: [
-                              _ReceiveHeader(
-                                l10n: l10n,
-                                fmt: fmt,
-                                vendors: vendors,
-                                selectedVendor: _selectedVendor,
-                                selectedOrderId: selectedOrderId,
-                                orders: uniqueVendorOrders,
-                                receiptDate: _receiptDate,
-                                onVendorSelected: (vendor) {
-                                  setState(() {
-                                    _selectedVendor = vendor;
-                                    _selectedOrder = null;
-                                  });
-                                  _clearPoLinkedLines();
-                                },
-                                onOrderChanged: (id) {
-                                  final order = id == null
-                                      ? null
-                                      : uniqueVendorOrders
-                                            .where((order) => order.id == id)
-                                            .firstOrNull;
-                                  _selectOrder(order);
-                                },
-                                onDateTap: () async {
-                                  final d = await showDatePicker(
-                                    context: context,
-                                    initialDate: _receiptDate,
-                                    firstDate: DateTime(2020),
-                                    lastDate: DateTime(2035),
-                                  );
-                                  if (d != null) {
-                                    setState(() => _receiptDate = d);
-                                  }
-                                },
-                              ),
-                              _ReceiveLinesHeader(
-                                loading: _loadingPlan,
-                                onAddLine: _addManualLine,
-                              ),
-                              Expanded(
-                                child: _loadingPlan
-                                    ? const Center(
-                                        child: CircularProgressIndicator(),
-                                      )
-                                    : _ReceiveLinesTable(
-                                        lines: _manualLines,
-                                        onSelectItem: _selectManualItem,
-                                        onRemoveLine: _removeManualLine,
-                                        onChanged: () => setState(() {}),
-                                      ),
-                              ),
-                              _ReceiveFooter(
-                                l10n: l10n,
-                                lines: _manualLines,
-                                notesCtrl: _notesCtrl,
-                                saving: _saving,
-                                onSave: _saving || _loadingPlan ? null : _save,
-                                onClear: _clear,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      _CollapsibleReceivePanel(
-                        child: _ReceiveContextPanel(
-                          vendor: _selectedVendor,
-                          order: _selectedOrder,
-                          total: _manualLines.fold<double>(
-                            0,
-                            (sum, line) => sum + line.draftAmount,
-                          ),
-                        ),
-                      ),
-                    ],
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Column(
+                children: [
+                  _ReceiveCommandBar(
+                    saving: _saving,
+                    onFind: () => context.go(AppRoutes.receiveInventory),
+                    onNew: () => context.go(AppRoutes.receiveInventoryNew),
+                    onSave: _saving || _loadingPlan ? null : _save,
+                    onClear: _clear,
+                    onClose: () => context.go(AppRoutes.receiveInventory),
                   ),
-                ),
-                const _ReceiveShortcutStrip(),
-              ],
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color(0xFFB9C3CA),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                _ReceiveHeader(
+                                  l10n: l10n,
+                                  fmt: fmt,
+                                  vendors: vendors,
+                                  selectedVendor: _selectedVendor,
+                                  selectedOrderId: selectedOrderId,
+                                  orders: uniqueVendorOrders,
+                                  receiptDate: _receiptDate,
+                                  onVendorSelected: (vendor) {
+                                    setState(() {
+                                      _selectedVendor = vendor;
+                                      _selectedOrder = null;
+                                    });
+                                    _clearPoLinkedLines();
+                                  },
+                                  onOrderChanged: (id) {
+                                    final order = id == null
+                                        ? null
+                                        : uniqueVendorOrders
+                                              .where((order) => order.id == id)
+                                              .firstOrNull;
+                                    _selectOrder(order);
+                                  },
+                                  onDateTap: () async {
+                                    final d = await showDatePicker(
+                                      context: context,
+                                      initialDate: _receiptDate,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2035),
+                                    );
+                                    if (d != null) {
+                                      setState(() => _receiptDate = d);
+                                    }
+                                  },
+                                ),
+                                _ReceiveLinesHeader(
+                                  loading: _loadingPlan,
+                                  onAddLine: _addManualLine,
+                                ),
+                                Expanded(
+                                  child: _loadingPlan
+                                      ? const Center(
+                                          child: CircularProgressIndicator(),
+                                        )
+                                      : _ReceiveLinesTable(
+                                          lines: _manualLines,
+                                          onSelectItem: _selectManualItem,
+                                          onChanged: () => setState(() {}),
+                                        ),
+                                ),
+                                _ReceiveFooter(
+                                  l10n: l10n,
+                                  lines: _manualLines,
+                                  notesCtrl: _notesCtrl,
+                                  saving: _saving,
+                                  onSave: _saving || _loadingPlan
+                                      ? null
+                                      : _save,
+                                  onClear: _clear,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        _CollapsibleReceivePanel(
+                          child: _ReceiveContextPanel(
+                            vendor: _selectedVendor,
+                            order: _selectedOrder,
+                            total: _manualLines.fold<double>(
+                              0,
+                              (sum, line) => sum + line.draftAmount,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const _ReceiveShortcutStrip(),
+                ],
+              ),
             ),
           );
         },
@@ -696,38 +702,41 @@ class _ReceiveCommandBar extends StatelessWidget {
         color: Color(0xFFF3F6F7),
         border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
       ),
-      child: Row(
-        children: [
-          const SizedBox(width: 8),
-          _Tool(icon: Icons.arrow_back, label: 'Prev'),
-          _Tool(icon: Icons.arrow_forward, label: 'Next'),
-          _Tool(
-            icon: Icons.search,
-            label: 'Find',
-            onTap: saving ? null : onFind,
-          ),
-          _Tool(
-            icon: Icons.note_add_outlined,
-            label: 'New',
-            onTap: saving ? null : onNew,
-          ),
-          _SaveTool(saving: saving, onSave: onSave),
-          _Tool(
-            icon: Icons.delete_outline,
-            label: 'Clear',
-            onTap: saving ? null : onClear,
-          ),
-          const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
-          const _Tool(icon: Icons.mail_outline, label: 'Email'),
-          const Spacer(),
-          _Tool(
-            icon: Icons.close,
-            label: 'Close',
-            onTap: saving ? null : onClose,
-          ),
-          const SizedBox(width: 8),
-        ],
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          children: [
+            const SizedBox(width: 8),
+            _Tool(icon: Icons.arrow_back, label: 'Prev'),
+            _Tool(icon: Icons.arrow_forward, label: 'Next'),
+            _Tool(
+              icon: Icons.search,
+              label: 'Find',
+              onTap: saving ? null : onFind,
+            ),
+            _Tool(
+              icon: Icons.note_add_outlined,
+              label: 'New',
+              onTap: saving ? null : onNew,
+            ),
+            _SaveTool(saving: saving, onSave: onSave),
+            _Tool(
+              icon: Icons.delete_outline,
+              label: 'Clear',
+              onTap: saving ? null : onClear,
+            ),
+            const _Separator(),
+            const _Tool(icon: Icons.print_outlined, label: 'Print'),
+            const _Tool(icon: Icons.mail_outline, label: 'Email'),
+            const Spacer(),
+            _Tool(
+              icon: Icons.close,
+              label: 'Close',
+              onTap: saving ? null : onClose,
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
       ),
     );
   }
@@ -772,30 +781,33 @@ class _ReceiveHeader extends StatelessWidget {
               color: Color(0xFF264D5B),
               border: Border(bottom: BorderSide(color: Color(0xFF183642))),
             ),
-            child: Row(
-              children: [
-                const _StripLabel('VENDOR'),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 5,
-                  child: _InlineVendorField(
-                    vendors: vendors,
-                    selected: selectedVendor,
-                    onSelected: onVendorSelected,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                children: [
+                  const _StripLabel('VENDOR'),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 5,
+                    child: _InlineVendorField(
+                      vendors: vendors,
+                      selected: selectedVendor,
+                      onSelected: onVendorSelected,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                const _StripLabel('P.O.'),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 3,
-                  child: _PoDropdown(
-                    selectedOrderId: selectedOrderId,
-                    orders: orders,
-                    onChanged: onOrderChanged,
+                  const SizedBox(width: 16),
+                  const _StripLabel('P.O.'),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 3,
+                    child: _PoDropdown(
+                      selectedOrderId: selectedOrderId,
+                      orders: orders,
+                      onChanged: onOrderChanged,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           SizedBox(
@@ -1014,13 +1026,11 @@ class _ReceiveLinesTable extends StatelessWidget {
   const _ReceiveLinesTable({
     required this.lines,
     required this.onSelectItem,
-    required this.onRemoveLine,
     required this.onChanged,
   });
 
   final List<_ManualReceiveLine> lines;
   final ValueChanged<_ManualReceiveLine> onSelectItem;
-  final ValueChanged<_ManualReceiveLine> onRemoveLine;
   final VoidCallback onChanged;
 
   @override
@@ -1030,103 +1040,106 @@ class _ReceiveLinesTable extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFF9EADB6)),
       ),
-      child: Column(
-        children: [
-          Container(
-            height: 28,
-            color: const Color(0xFFDDE8ED),
-            child: const Row(
-              children: [
-                _HeaderCell('ITEM / SERVICE', flex: 3),
-                _HeaderCell('QUANTITY', flex: 1),
-                _HeaderCell('DESCRIPTION', flex: 4),
-                _HeaderCell('RATE', flex: 1),
-                _HeaderCell('AMOUNT', flex: 1, right: true),
-                SizedBox(width: 34),
-              ],
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Column(
+          children: [
+            Container(
+              height: 28,
+              color: const Color(0xFFDDE8ED),
+              child: const Row(
+                children: [
+                  _HeaderCell('ITEM / SERVICE', flex: 3),
+                  _HeaderCell('QUANTITY', flex: 1),
+                  _HeaderCell('DESCRIPTION', flex: 4),
+                  _HeaderCell('RATE', flex: 1),
+                  _HeaderCell('AMOUNT', flex: 1, right: true),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: lines.length,
-              itemBuilder: (context, index) {
-                final line = lines[index];
-                final shaded = index.isEven;
-                return Container(
-                  height: 34,
-                  color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: InkWell(
-                          onTap: () => onSelectItem(line),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    line.itemName.isEmpty
-                                        ? 'Select an item...'
-                                        : line.itemName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: lines.length,
+                itemBuilder: (context, index) {
+                  final line = lines[index];
+                  final shaded = index.isEven;
+                  return Container(
+                    height: 28,
+                    color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: InkWell(
+                            onTap: () => onSelectItem(line),
+                            child: Container(
+                              height: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  right: BorderSide(color: Color(0xFFB8C6CE)),
                                 ),
-                                const Icon(Icons.search, size: 14),
-                              ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      line.itemName.isEmpty
+                                          ? 'Select an item...'
+                                          : line.itemName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ),
+                                  const Icon(Icons.search, size: 14),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      _CellTextField(
-                        controller: line.qtyCtrl,
-                        flex: 1,
-                        onChanged: onChanged,
-                      ),
-                      _CellTextField(
-                        controller: line.descriptionCtrl,
-                        flex: 4,
-                        onChanged: onChanged,
-                      ),
-                      _CellTextField(
-                        controller: line.costCtrl,
-                        flex: 1,
-                        onChanged: onChanged,
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Text(
-                            line.draftAmount.toStringAsFixed(2),
-                            textAlign: TextAlign.end,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
+                        _CellTextField(
+                          controller: line.qtyCtrl,
+                          flex: 1,
+                          textAlign: TextAlign.center,
+                          onChanged: onChanged,
+                        ),
+                        _CellTextField(
+                          controller: line.descriptionCtrl,
+                          flex: 4,
+                          onChanged: onChanged,
+                        ),
+                        _CellTextField(
+                          controller: line.costCtrl,
+                          flex: 1,
+                          textAlign: TextAlign.end,
+                          onChanged: onChanged,
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            height: double.infinity,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              line.draftAmount.toStringAsFixed(2),
+                              textAlign: TextAlign.end,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        width: 34,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          iconSize: 18,
-                          onPressed: lines.length == 1
-                              ? null
-                              : () => onRemoveLine(line),
-                          icon: const Icon(Icons.delete_outline),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1137,25 +1150,34 @@ class _CellTextField extends StatelessWidget {
     required this.controller,
     required this.flex,
     required this.onChanged,
+    this.textAlign = TextAlign.start,
   });
 
   final TextEditingController controller;
   final int flex;
   final VoidCallback onChanged;
+  final TextAlign textAlign;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       flex: flex,
-      child: TextField(
-        controller: controller,
-        onChanged: (_) => onChanged(),
-        decoration: const InputDecoration(
-          isDense: true,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Container(
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
         ),
-        style: Theme.of(context).textTheme.bodySmall,
+        child: TextField(
+          controller: controller,
+          onChanged: (_) => onChanged(),
+          textAlign: textAlign,
+          decoration: const InputDecoration(
+            isDense: true,
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          ),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       ),
     );
   }
@@ -1341,15 +1363,36 @@ class _ReceiveContextPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
-          color: const Color(0xFF264D5B),
-          child: Text(
-            vendor!.displayName,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-            ),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+          decoration: const BoxDecoration(
+            color: Color(0xFF264D5B),
+            border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                vendor!.displayName,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (vendor!.companyName?.trim().isNotEmpty == true) ...[
+                const SizedBox(height: 3),
+                Text(
+                  vendor!.companyName!,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFFD7E6EB),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         Container(
@@ -1367,7 +1410,7 @@ class _ReceiveContextPanel extends StatelessWidget {
         ),
         const _SideTabBar(),
         _SideSection(
-          title: 'Vendor Summary',
+          title: 'Vendor Balance Summary',
           children: [
             _InfoRow(
               label: 'Receipt value',
@@ -1383,9 +1426,35 @@ class _ReceiveContextPanel extends StatelessWidget {
             ),
           ],
         ),
+        _SideSection(
+          title: 'Recent Transactions',
+          trailing: TextButton(
+            onPressed: () {},
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+            child: const Text('View All'),
+          ),
+          children: [
+            _MutedText(
+              order == null
+                  ? 'No recent transactions.'
+                  : 'Linked to ${order!.orderNumber}.',
+            ),
+          ],
+        ),
         const Spacer(),
         _SideSection(
           title: 'Notes',
+          trailing: TextButton(
+            onPressed: () {},
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+            child: const Text('Edit'),
+          ),
           children: const [_MutedText('No notes added.')],
         ),
       ],
@@ -1651,23 +1720,58 @@ class _SideTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: 34,
-    alignment: Alignment.center,
-    color: const Color(0xFFE1E9ED),
-    child: Text(
-      'Vendor     Transaction',
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-        fontWeight: FontWeight.w900,
-        color: const Color(0xFF2D4854),
+    decoration: const BoxDecoration(
+      color: Color(0xFFE1E9ED),
+      border: Border(
+        top: BorderSide(color: Color(0xFFB8C6CE)),
+        bottom: BorderSide(color: Color(0xFFB8C6CE)),
       ),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Container(
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Color(0xFF21A229), width: 2),
+              ),
+            ),
+            child: Text(
+              'Vendor',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF21A229),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Text(
+              'Transaction',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF53646D),
+              ),
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
 
 class _SideSection extends StatelessWidget {
-  const _SideSection({required this.title, required this.children});
+  const _SideSection({
+    required this.title,
+    required this.children,
+    this.trailing,
+  });
 
   final String title;
   final List<Widget> children;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1682,14 +1786,20 @@ class _SideSection extends StatelessWidget {
         Container(
           height: 30,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          alignment: Alignment.centerLeft,
           color: const Color(0xFFE7EEF1),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF2D4854),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF2D4854),
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
           ),
         ),
         Padding(
