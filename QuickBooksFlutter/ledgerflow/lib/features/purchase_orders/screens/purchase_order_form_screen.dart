@@ -403,7 +403,9 @@ class _PurchaseOrderFormScreenState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(child: _buildMainForm(l10n, fmt)),
-                  _PoSidePanel(vendorId: _vendor?.id),
+                  _CollapsiblePoSidePanel(
+                    child: _PoSidePanel(vendorId: _vendor?.id),
+                  ),
                 ],
               ),
             ),
@@ -1103,14 +1105,61 @@ class _PoSidePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 270,
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+    return TransactionSidebar(vendorId: vendorId);
+  }
+}
+
+class _CollapsiblePoSidePanel extends StatefulWidget {
+  const _CollapsiblePoSidePanel({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_CollapsiblePoSidePanel> createState() =>
+      _CollapsiblePoSidePanelState();
+}
+
+class _CollapsiblePoSidePanelState extends State<_CollapsiblePoSidePanel> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: _expanded ? 258 : 38,
+      margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         border: Border.all(color: const Color(0xFFB9C3CA)),
       ),
-      child: TransactionSidebar(vendorId: vendorId),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          if (_expanded) Positioned.fill(child: widget.child),
+          Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              color: const Color(0xFFE6EEF2),
+              child: InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Tooltip(
+                  message: _expanded ? 'Hide side panel' : 'Show side panel',
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      _expanded ? Icons.chevron_right : Icons.chevron_left,
+                      size: 22,
+                      color: const Color(0xFF2B4A56),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
