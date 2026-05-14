@@ -353,112 +353,106 @@ class _PurchaseOrderWorkspaceScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFE8EDF0),
       body: SafeArea(
-        child: Directionality(
-          textDirection: TextDirection.ltr,
-          child: Column(
-            children: [
-              _PoCommandBar(
-                saving: _saving,
-                onPrevious: _hasAdjacentOrder(-1)
-                    ? () => _openAdjacentOrder(-1)
-                    : null,
-                onNext: _hasAdjacentOrder(1)
-                    ? () => _openAdjacentOrder(1)
-                    : null,
-                onFind: () => context.go(AppRoutes.purchaseOrders),
-                onNew: () => context.go(AppRoutes.purchaseOrderNew),
-                onSaveDraft: _canSaveDraft ? () => _save(SaveMode.draft) : null,
-                onSaveOpen: _canOpen ? () => _save(SaveMode.saveAsOpen) : null,
-                onReceive: _canReceive ? _receiveInventory : null,
-                onClear: _clear,
-                onClose: () => context.go(AppRoutes.purchaseOrders),
+        child: Column(
+          children: [
+            _PoCommandBar(
+              saving: _saving,
+              onPrevious: _hasAdjacentOrder(-1)
+                  ? () => _openAdjacentOrder(-1)
+                  : null,
+              onNext: _hasAdjacentOrder(1) ? () => _openAdjacentOrder(1) : null,
+              onFind: () => context.go(AppRoutes.purchaseOrders),
+              onNew: () => context.go(AppRoutes.purchaseOrderNew),
+              onSaveDraft: _canSaveDraft ? () => _save(SaveMode.draft) : null,
+              onSaveOpen: _canOpen ? () => _save(SaveMode.saveAsOpen) : null,
+              onReceive: _canReceive ? _receiveInventory : null,
+              onClear: _clear,
+              onClose: () => context.go(AppRoutes.purchaseOrders),
+            ),
+            if (_statusMessage != null && _statusBadgeText != null)
+              _PoStatusStrip(
+                badgeText: _statusBadgeText!,
+                message: _statusMessage!,
+                color: _statusColor,
               ),
-              if (_statusMessage != null && _statusBadgeText != null)
-                _PoStatusStrip(
-                  badgeText: _statusBadgeText!,
-                  message: _statusMessage!,
-                  color: _statusColor,
-                ),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFFB9C3CA)),
-                        ),
-                        child: Column(
-                          children: [
-                            _PoHeader(
-                              l10n: l10n,
-                              fmt: fmt,
-                              vendor: _vendor,
-                              vendors: vendors,
-                              readOnly: _readOnly,
-                              orderDate: _orderDate,
-                              expectedDate: _expectedDate,
-                              poNumber: _editingOrder?.orderNumber ?? 'AUTO',
-                              onVendorChanged: (vendor) =>
-                                  setState(() => _vendor = vendor),
-                              onOrderDateTap: () => _pickDate(expected: false),
-                              onExpectedDateTap: () =>
-                                  _pickDate(expected: true),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFFB9C3CA)),
+                      ),
+                      child: Column(
+                        children: [
+                          _PoHeader(
+                            l10n: l10n,
+                            fmt: fmt,
+                            vendor: _vendor,
+                            vendors: vendors,
+                            readOnly: _readOnly,
+                            orderDate: _orderDate,
+                            expectedDate: _expectedDate,
+                            poNumber: _editingOrder?.orderNumber ?? 'AUTO',
+                            onVendorChanged: (vendor) =>
+                                setState(() => _vendor = vendor),
+                            onOrderDateTap: () => _pickDate(expected: false),
+                            onExpectedDateTap: () => _pickDate(expected: true),
+                          ),
+                          _LinesHeader(
+                            readOnly: _readOnly,
+                            onAddLine: () => setState(
+                              () => _lines.add(TransactionLineEntry()),
                             ),
-                            _LinesHeader(
-                              readOnly: _readOnly,
-                              onAddLine: () => setState(
-                                () => _lines.add(TransactionLineEntry()),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                              child: QbTransactionLineGrid(
+                                lines: _lines,
+                                priceMode: TransactionLinePriceMode.purchase,
+                                fillWidth: true,
+                                compact: true,
+                                showAddLineFooter: false,
+                                readOnly: _readOnly,
+                                onChanged: () {
+                                  if (!_readOnly) setState(() {});
+                                },
                               ),
                             ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                                child: QbTransactionLineGrid(
-                                  lines: _lines,
-                                  priceMode: TransactionLinePriceMode.purchase,
-                                  fillWidth: true,
-                                  compact: true,
-                                  showAddLineFooter: false,
-                                  readOnly: _readOnly,
-                                  onChanged: () {
-                                    if (!_readOnly) setState(() {});
-                                  },
-                                ),
-                              ),
-                            ),
-                            _PoFooter(
-                              l10n: l10n,
-                              total: _total,
-                              saving: _saving,
-                              readOnly: _readOnly,
-                              onSaveDraft: _canSaveDraft
-                                  ? () => _save(SaveMode.draft)
-                                  : null,
-                              onSaveOpen: _canOpen
-                                  ? () => _save(SaveMode.saveAsOpen)
-                                  : null,
-                              onClear: _clear,
-                            ),
-                          ],
-                        ),
+                          ),
+                          _PoFooter(
+                            l10n: l10n,
+                            total: _total,
+                            saving: _saving,
+                            readOnly: _readOnly,
+                            onSaveDraft: _canSaveDraft
+                                ? () => _save(SaveMode.draft)
+                                : null,
+                            onSaveOpen: _canOpen
+                                ? () => _save(SaveMode.saveAsOpen)
+                                : null,
+                            onClear: _clear,
+                          ),
+                        ],
                       ),
                     ),
-                    _CollapsiblePoSidePanel(
-                      child: _PoSidePanel(
-                        order: _editingOrder,
-                        vendor: _vendor,
-                        total: _total,
-                      ),
+                  ),
+                  _CollapsiblePoSidePanel(
+                    child: _PoSidePanel(
+                      order: _editingOrder,
+                      vendor: _vendor,
+                      total: _total,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const _PoShortcutStrip(),
-            ],
-          ),
+            ),
+            const _PoShortcutStrip(),
+          ],
         ),
       ),
     );
@@ -506,33 +500,28 @@ class _PoHeader extends StatelessWidget {
               color: Color(0xFF264D5B),
               border: Border(bottom: BorderSide(color: Color(0xFF183642))),
             ),
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: Row(
-                children: [
-                  const _StripLabel('VENDOR'),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 5,
-                    child: readOnly
-                        ? _StaticBox(
-                            text: vendor?.displayName ?? 'Select vendor',
-                          )
-                        : _InlineVendorField(
-                            vendors: vendors,
-                            selected: vendor,
-                            onSelected: onVendorChanged,
-                          ),
-                  ),
-                  const SizedBox(width: 16),
-                  const _StripLabel('TEMPLATE'),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    flex: 3,
-                    child: _StaticBox(text: 'Standard Purchase Order'),
-                  ),
-                ],
-              ),
+            child: Row(
+              children: [
+                const _StripLabel('VENDOR'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 5,
+                  child: readOnly
+                      ? _StaticBox(text: vendor?.displayName ?? 'Select vendor')
+                      : _InlineVendorField(
+                          vendors: vendors,
+                          selected: vendor,
+                          onSelected: onVendorChanged,
+                        ),
+                ),
+                const SizedBox(width: 16),
+                const _StripLabel('TEMPLATE'),
+                const SizedBox(width: 8),
+                const Expanded(
+                  flex: 3,
+                  child: _StaticBox(text: 'Standard Purchase Order'),
+                ),
+              ],
             ),
           ),
           SizedBox(
@@ -939,63 +928,60 @@ class _PoCommandBar extends StatelessWidget {
         color: Color(0xFFF3F6F7),
         border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
       ),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Row(
-          children: [
-            const SizedBox(width: 8),
-            _Tool(
-              icon: Icons.arrow_back,
-              label: 'Prev',
-              onTap: saving ? null : onPrevious,
-            ),
-            _Tool(
-              icon: Icons.arrow_forward,
-              label: 'Next',
-              onTap: saving ? null : onNext,
-            ),
-            _Tool(
-              icon: Icons.search,
-              label: 'Find',
-              onTap: saving ? null : onFind,
-            ),
-            _Tool(
-              icon: Icons.note_add_outlined,
-              label: 'New',
-              onTap: saving ? null : onNew,
-            ),
-            _SaveTool(
-              saving: saving,
-              onSaveDraft: onSaveDraft,
-              onSaveOpen: onSaveOpen,
-            ),
-            _Tool(
-              icon: Icons.drafts_outlined,
-              label: 'Draft',
-              onTap: saving ? null : onSaveDraft,
-            ),
-            _Tool(
-              icon: Icons.delete_outline,
-              label: 'Clear',
-              onTap: saving ? null : onClear,
-            ),
-            const _Separator(),
-            const _Tool(icon: Icons.print_outlined, label: 'Print'),
-            const _Tool(icon: Icons.mail_outline, label: 'Email'),
-            _Tool(
-              icon: Icons.inventory_2_outlined,
-              label: 'Receive',
-              onTap: saving ? null : onReceive,
-            ),
-            const Spacer(),
-            _Tool(
-              icon: Icons.close,
-              label: 'Close',
-              onTap: saving ? null : onClose,
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          _Tool(
+            icon: Icons.arrow_back,
+            label: 'Prev',
+            onTap: saving ? null : onPrevious,
+          ),
+          _Tool(
+            icon: Icons.arrow_forward,
+            label: 'Next',
+            onTap: saving ? null : onNext,
+          ),
+          _Tool(
+            icon: Icons.search,
+            label: 'Find',
+            onTap: saving ? null : onFind,
+          ),
+          _Tool(
+            icon: Icons.note_add_outlined,
+            label: 'New',
+            onTap: saving ? null : onNew,
+          ),
+          _SaveTool(
+            saving: saving,
+            onSaveDraft: onSaveDraft,
+            onSaveOpen: onSaveOpen,
+          ),
+          _Tool(
+            icon: Icons.drafts_outlined,
+            label: 'Draft',
+            onTap: saving ? null : onSaveDraft,
+          ),
+          _Tool(
+            icon: Icons.delete_outline,
+            label: 'Clear',
+            onTap: saving ? null : onClear,
+          ),
+          const _Separator(),
+          const _Tool(icon: Icons.print_outlined, label: 'Print'),
+          const _Tool(icon: Icons.mail_outline, label: 'Email'),
+          _Tool(
+            icon: Icons.inventory_2_outlined,
+            label: 'Receive',
+            onTap: saving ? null : onReceive,
+          ),
+          const Spacer(),
+          _Tool(
+            icon: Icons.close,
+            label: 'Close',
+            onTap: saving ? null : onClose,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
     );
   }

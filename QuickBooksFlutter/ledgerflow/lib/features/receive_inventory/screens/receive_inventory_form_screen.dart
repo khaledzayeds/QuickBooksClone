@@ -414,113 +414,106 @@ class _ReceiveInventoryFormScreenState
               ? _selectedOrder!.id
               : null;
           return SafeArea(
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: Column(
-                children: [
-                  _ReceiveCommandBar(
-                    saving: _saving,
-                    onFind: () => context.go(AppRoutes.receiveInventory),
-                    onNew: () => context.go(AppRoutes.receiveInventoryNew),
-                    onSave: _saving || _loadingPlan ? null : _save,
-                    onClear: _clear,
-                    onClose: () => context.go(AppRoutes.receiveInventory),
-                  ),
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(
-                                color: const Color(0xFFB9C3CA),
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                _ReceiveHeader(
-                                  l10n: l10n,
-                                  fmt: fmt,
-                                  vendors: vendors,
-                                  selectedVendor: _selectedVendor,
-                                  selectedOrderId: selectedOrderId,
-                                  orders: uniqueVendorOrders,
-                                  receiptDate: _receiptDate,
-                                  onVendorSelected: (vendor) {
-                                    setState(() {
-                                      _selectedVendor = vendor;
-                                      _selectedOrder = null;
-                                    });
-                                    _clearPoLinkedLines();
-                                  },
-                                  onOrderChanged: (id) {
-                                    final order = id == null
-                                        ? null
-                                        : uniqueVendorOrders
-                                              .where((order) => order.id == id)
-                                              .firstOrNull;
-                                    _selectOrder(order);
-                                  },
-                                  onDateTap: () async {
-                                    final d = await showDatePicker(
-                                      context: context,
-                                      initialDate: _receiptDate,
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2035),
-                                    );
-                                    if (d != null) {
-                                      setState(() => _receiptDate = d);
-                                    }
-                                  },
-                                ),
-                                _ReceiveLinesHeader(
-                                  loading: _loadingPlan,
-                                  onAddLine: _addManualLine,
-                                ),
-                                Expanded(
-                                  child: _loadingPlan
-                                      ? const Center(
-                                          child: CircularProgressIndicator(),
-                                        )
-                                      : _ReceiveLinesTable(
-                                          lines: _manualLines,
-                                          onSelectItem: _selectManualItem,
-                                          onChanged: () => setState(() {}),
-                                        ),
-                                ),
-                                _ReceiveFooter(
-                                  l10n: l10n,
-                                  lines: _manualLines,
-                                  notesCtrl: _notesCtrl,
-                                  saving: _saving,
-                                  onSave: _saving || _loadingPlan
+            child: Column(
+              children: [
+                _ReceiveCommandBar(
+                  saving: _saving,
+                  onFind: () => context.go(AppRoutes.receiveInventory),
+                  onNew: () => context.go(AppRoutes.receiveInventoryNew),
+                  onSave: _saving || _loadingPlan ? null : _save,
+                  onClear: _clear,
+                  onClose: () => context.go(AppRoutes.receiveInventory),
+                ),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFB9C3CA)),
+                          ),
+                          child: Column(
+                            children: [
+                              _ReceiveHeader(
+                                l10n: l10n,
+                                fmt: fmt,
+                                vendors: vendors,
+                                selectedVendor: _selectedVendor,
+                                selectedOrderId: selectedOrderId,
+                                orders: uniqueVendorOrders,
+                                receiptDate: _receiptDate,
+                                onVendorSelected: (vendor) {
+                                  setState(() {
+                                    _selectedVendor = vendor;
+                                    _selectedOrder = null;
+                                  });
+                                  _clearPoLinkedLines();
+                                },
+                                onOrderChanged: (id) {
+                                  final order = id == null
                                       ? null
-                                      : _save,
-                                  onClear: _clear,
-                                ),
-                              ],
-                            ),
+                                      : uniqueVendorOrders
+                                            .where((order) => order.id == id)
+                                            .firstOrNull;
+                                  _selectOrder(order);
+                                },
+                                onDateTap: () async {
+                                  final d = await showDatePicker(
+                                    context: context,
+                                    initialDate: _receiptDate,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2035),
+                                  );
+                                  if (d != null) {
+                                    setState(() => _receiptDate = d);
+                                  }
+                                },
+                              ),
+                              _ReceiveLinesHeader(
+                                loading: _loadingPlan,
+                                onAddLine: _addManualLine,
+                              ),
+                              Expanded(
+                                child: _loadingPlan
+                                    ? const Center(
+                                        child: CircularProgressIndicator(),
+                                      )
+                                    : _ReceiveLinesTable(
+                                        lines: _manualLines,
+                                        onSelectItem: _selectManualItem,
+                                        onChanged: () => setState(() {}),
+                                      ),
+                              ),
+                              _ReceiveFooter(
+                                l10n: l10n,
+                                lines: _manualLines,
+                                notesCtrl: _notesCtrl,
+                                saving: _saving,
+                                onSave: _saving || _loadingPlan ? null : _save,
+                                onClear: _clear,
+                              ),
+                            ],
                           ),
                         ),
-                        _CollapsibleReceivePanel(
-                          child: _ReceiveContextPanel(
-                            vendor: _selectedVendor,
-                            order: _selectedOrder,
-                            total: _manualLines.fold<double>(
-                              0,
-                              (sum, line) => sum + line.draftAmount,
-                            ),
+                      ),
+                      _CollapsibleReceivePanel(
+                        child: _ReceiveContextPanel(
+                          vendor: _selectedVendor,
+                          order: _selectedOrder,
+                          total: _manualLines.fold<double>(
+                            0,
+                            (sum, line) => sum + line.draftAmount,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const _ReceiveShortcutStrip(),
-                ],
-              ),
+                ),
+                const _ReceiveShortcutStrip(),
+              ],
             ),
           );
         },
@@ -702,41 +695,38 @@ class _ReceiveCommandBar extends StatelessWidget {
         color: Color(0xFFF3F6F7),
         border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
       ),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Row(
-          children: [
-            const SizedBox(width: 8),
-            _Tool(icon: Icons.arrow_back, label: 'Prev'),
-            _Tool(icon: Icons.arrow_forward, label: 'Next'),
-            _Tool(
-              icon: Icons.search,
-              label: 'Find',
-              onTap: saving ? null : onFind,
-            ),
-            _Tool(
-              icon: Icons.note_add_outlined,
-              label: 'New',
-              onTap: saving ? null : onNew,
-            ),
-            _SaveTool(saving: saving, onSave: onSave),
-            _Tool(
-              icon: Icons.delete_outline,
-              label: 'Clear',
-              onTap: saving ? null : onClear,
-            ),
-            const _Separator(),
-            const _Tool(icon: Icons.print_outlined, label: 'Print'),
-            const _Tool(icon: Icons.mail_outline, label: 'Email'),
-            const Spacer(),
-            _Tool(
-              icon: Icons.close,
-              label: 'Close',
-              onTap: saving ? null : onClose,
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          _Tool(icon: Icons.arrow_back, label: 'Prev'),
+          _Tool(icon: Icons.arrow_forward, label: 'Next'),
+          _Tool(
+            icon: Icons.search,
+            label: 'Find',
+            onTap: saving ? null : onFind,
+          ),
+          _Tool(
+            icon: Icons.note_add_outlined,
+            label: 'New',
+            onTap: saving ? null : onNew,
+          ),
+          _SaveTool(saving: saving, onSave: onSave),
+          _Tool(
+            icon: Icons.delete_outline,
+            label: 'Clear',
+            onTap: saving ? null : onClear,
+          ),
+          const _Separator(),
+          const _Tool(icon: Icons.print_outlined, label: 'Print'),
+          const _Tool(icon: Icons.mail_outline, label: 'Email'),
+          const Spacer(),
+          _Tool(
+            icon: Icons.close,
+            label: 'Close',
+            onTap: saving ? null : onClose,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
     );
   }
@@ -781,33 +771,30 @@ class _ReceiveHeader extends StatelessWidget {
               color: Color(0xFF264D5B),
               border: Border(bottom: BorderSide(color: Color(0xFF183642))),
             ),
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: Row(
-                children: [
-                  const _StripLabel('VENDOR'),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 5,
-                    child: _InlineVendorField(
-                      vendors: vendors,
-                      selected: selectedVendor,
-                      onSelected: onVendorSelected,
-                    ),
+            child: Row(
+              children: [
+                const _StripLabel('VENDOR'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 5,
+                  child: _InlineVendorField(
+                    vendors: vendors,
+                    selected: selectedVendor,
+                    onSelected: onVendorSelected,
                   ),
-                  const SizedBox(width: 16),
-                  const _StripLabel('P.O.'),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 3,
-                    child: _PoDropdown(
-                      selectedOrderId: selectedOrderId,
-                      orders: orders,
-                      onChanged: onOrderChanged,
-                    ),
+                ),
+                const SizedBox(width: 16),
+                const _StripLabel('P.O.'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: _PoDropdown(
+                    selectedOrderId: selectedOrderId,
+                    orders: orders,
+                    onChanged: onOrderChanged,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           SizedBox(
@@ -1040,106 +1027,101 @@ class _ReceiveLinesTable extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFF9EADB6)),
       ),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Column(
-          children: [
-            Container(
-              height: 28,
-              color: const Color(0xFFDDE8ED),
-              child: const Row(
-                children: [
-                  _HeaderCell('ITEM / SERVICE', flex: 3),
-                  _HeaderCell('QUANTITY', flex: 1),
-                  _HeaderCell('DESCRIPTION', flex: 4),
-                  _HeaderCell('RATE', flex: 1),
-                  _HeaderCell('AMOUNT', flex: 1, right: true),
-                ],
-              ),
+      child: Column(
+        children: [
+          Container(
+            height: 28,
+            color: const Color(0xFFDDE8ED),
+            child: const Row(
+              children: [
+                _HeaderCell('ITEM / SERVICE', flex: 3),
+                _HeaderCell('QUANTITY', flex: 1),
+                _HeaderCell('DESCRIPTION', flex: 4),
+                _HeaderCell('RATE', flex: 1),
+                _HeaderCell('AMOUNT', flex: 1, right: true),
+              ],
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: lines.length,
-                itemBuilder: (context, index) {
-                  final line = lines[index];
-                  final shaded = index.isEven;
-                  return Container(
-                    height: 28,
-                    color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: InkWell(
-                            onTap: () => onSelectItem(line),
-                            child: Container(
-                              height: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  right: BorderSide(color: Color(0xFFB8C6CE)),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      line.itemName.isEmpty
-                                          ? 'Select an item...'
-                                          : line.itemName,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                    ),
-                                  ),
-                                  const Icon(Icons.search, size: 14),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        _CellTextField(
-                          controller: line.qtyCtrl,
-                          flex: 1,
-                          textAlign: TextAlign.center,
-                          onChanged: onChanged,
-                        ),
-                        _CellTextField(
-                          controller: line.descriptionCtrl,
-                          flex: 4,
-                          onChanged: onChanged,
-                        ),
-                        _CellTextField(
-                          controller: line.costCtrl,
-                          flex: 1,
-                          textAlign: TextAlign.end,
-                          onChanged: onChanged,
-                        ),
-                        Expanded(
-                          flex: 1,
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: lines.length,
+              itemBuilder: (context, index) {
+                final line = lines[index];
+                final shaded = index.isEven;
+                return Container(
+                  height: 28,
+                  color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: InkWell(
+                          onTap: () => onSelectItem(line),
                           child: Container(
                             height: double.infinity,
-                            alignment: Alignment.centerRight,
                             padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Text(
-                              line.draftAmount.toStringAsFixed(2),
-                              textAlign: TextAlign.end,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Color(0xFFB8C6CE)),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    line.itemName.isEmpty
+                                        ? 'Select an item...'
+                                        : line.itemName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
+                                const Icon(Icons.search, size: 14),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      ),
+                      _CellTextField(
+                        controller: line.qtyCtrl,
+                        flex: 1,
+                        textAlign: TextAlign.center,
+                        onChanged: onChanged,
+                      ),
+                      _CellTextField(
+                        controller: line.descriptionCtrl,
+                        flex: 4,
+                        onChanged: onChanged,
+                      ),
+                      _CellTextField(
+                        controller: line.costCtrl,
+                        flex: 1,
+                        textAlign: TextAlign.end,
+                        onChanged: onChanged,
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          height: double.infinity,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            line.draftAmount.toStringAsFixed(2),
+                            textAlign: TextAlign.end,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
