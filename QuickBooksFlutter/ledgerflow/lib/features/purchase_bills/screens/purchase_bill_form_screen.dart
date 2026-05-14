@@ -22,8 +22,13 @@ import '../data/models/create_purchase_bill_dto.dart';
 import '../providers/purchase_bills_provider.dart';
 
 class PurchaseBillFormScreen extends ConsumerStatefulWidget {
-  const PurchaseBillFormScreen({super.key, this.inventoryReceiptId});
+  const PurchaseBillFormScreen({
+    super.key,
+    this.inventoryReceiptId,
+    this.billId,
+  });
   final String? inventoryReceiptId;
+  final String? billId;
 
   @override
   ConsumerState<PurchaseBillFormScreen> createState() =>
@@ -49,9 +54,63 @@ class _PurchaseBillFormScreenState
   void initState() {
     super.initState();
     _lines.add(TransactionLineEntry());
-    if (widget.inventoryReceiptId != null &&
+    if (widget.billId != null && widget.billId!.isNotEmpty) {
+      Future.microtask(_loadExistingBill);
+    } else if (widget.inventoryReceiptId != null &&
         widget.inventoryReceiptId!.isNotEmpty) {
       Future.microtask(_loadInitialReceipt);
+    }
+  }
+
+  Future<void> _loadExistingBill() async {
+    final billId = widget.billId;
+    if (billId == null || billId.isEmpty) return;
+
+    setState(() => _loadingInitialReceipt = true);
+    try {
+      final result = await ref
+          .read(purchaseBillsRepositoryProvider)
+          .getBill(billId);
+      if (!mounted) return;
+      result.when(
+        success: (bill) {
+          setState(() {
+            _selectedVendor = VendorModel(
+              id: bill.vendorId,
+              displayName: bill.vendorName,
+              isActive: true,
+              balance: bill.balanceDue,
+              creditBalance: bill.creditAppliedAmount,
+            );
+            _billDate = bill.billDate;
+            _dueDate = bill.dueDate;
+            _memoCtrl.text = bill.memo ?? '';
+            _clearLines();
+            _lines.addAll(
+              bill.lines.isEmpty
+                  ? [TransactionLineEntry()]
+                  : bill.lines.map((line) {
+                      final entry = TransactionLineEntry(
+                        itemId: line.itemId,
+                        itemName: line.itemName.isEmpty
+                            ? line.description
+                            : line.itemName,
+                        qty: line.quantity,
+                        rate: line.unitCost,
+                        inventoryReceiptLineId: line.inventoryReceiptLineId,
+                      );
+                      entry.descCtrl.text = line.description;
+                      entry.qtyCtrl.text = line.quantity.toStringAsFixed(2);
+                      entry.rateCtrl.text = line.unitCost.toStringAsFixed(2);
+                      return entry;
+                    }).toList(),
+            );
+          });
+        },
+        failure: (e) => _showError(e.message),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingInitialReceipt = false);
     }
   }
 
@@ -538,14 +597,14 @@ class _BillHeader extends StatelessWidget {
             ),
           ),
           SizedBox(
-            height: 146,
+            height: 128,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
-                    width: 260,
+                    width: 230,
                     child: Text(
                       'Enter Bills',
                       style: theme.textTheme.headlineMedium?.copyWith(
@@ -583,34 +642,7 @@ class _BillHeader extends StatelessWidget {
                       onChanged: onDueDateChanged,
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _FieldLabel('VENDOR / BILL FROM'),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 96,
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFB7C3CB)),
-                          ),
-                          child: Text(
-                            selectedVendor?.displayName ?? 'Select a vendor',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: selectedVendor == null
-                                  ? const Color(0xFF7B8B93)
-                                  : const Color(0xFF253C47),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  const Spacer(),
                 ],
               ),
             ),
@@ -1218,30 +1250,25 @@ class _TotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final draftSubtotal = lines.fold<double>(0, (sum, l) => sum + l.amount);
-    final theme = Theme.of(context);
 
-    return Card(
-      color: theme.colorScheme.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _AmountRow(label: 'Draft subtotal', amount: draftSubtotal),
-            const Divider(height: 24),
-            _AmountRow(
-              label: 'Draft total',
-              amount: draftSubtotal,
-              isTotal: true,
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Official bill totals, taxes, and posting amounts are recalculated by the backend after save.',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _AmountRow(label: 'TOTAL', amount: draftSubtotal),
+        Container(
+          margin: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE7F1F4),
+            border: Border.all(color: const Color(0xFF9DB2BC)),
+          ),
+          child: _AmountRow(
+            label: 'BILL TOTAL',
+            amount: draftSubtotal,
+            isTotal: true,
+          ),
         ),
-      ),
+      ],
     );
   }
 }

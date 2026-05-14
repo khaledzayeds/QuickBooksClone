@@ -44,7 +44,6 @@ import '../features/payments/screens/payment_form_screen.dart';
 import '../features/payments/screens/payment_details_screen.dart';
 import '../features/payments/screens/payment_list_screen.dart';
 import '../features/payroll/screens/payroll_setup_screen.dart';
-import '../features/purchase_bills/screens/purchase_bill_details_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_form_screen.dart';
 import '../features/purchase_bills/screens/purchase_bill_list_screen.dart';
 import '../features/purchase_orders/screens/purchase_order_workspace_screen.dart';
@@ -377,7 +376,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.purchaseBillDetails,
             builder: (context, state) =>
-                PurchaseBillDetailsScreen(id: state.pathParameters['id']!),
+                PurchaseBillFormScreen(billId: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.vendorPayments,
