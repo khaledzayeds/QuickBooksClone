@@ -56,7 +56,6 @@ import '../features/receive_inventory/screens/receive_inventory_form_screen.dart
 import '../features/receive_inventory/screens/receive_inventory_list_screen.dart';
 import '../features/reports/screens/reports_screen.dart';
 import '../features/sales_orders/screens/sales_order_form_screen.dart';
-import '../features/sales_orders/screens/sales_order_details_screen.dart';
 import '../features/sales_orders/screens/sales_order_list_screen.dart';
 import '../features/sales_receipts/screens/sales_receipt_form_page_shell.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
@@ -447,7 +446,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.salesOrderDetails,
             builder: (context, state) =>
-                SalesOrderDetailsScreen(id: state.pathParameters['id']!),
+                SalesOrderFormScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.salesReceipts,
