@@ -3,200 +3,307 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 
-import '../../../../app/router.dart';
+import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show VendorCreditAction;
 import '../data/models/vendor_credit_model.dart';
 import '../providers/vendor_credits_provider.dart';
 
-class VendorCreditListScreen extends ConsumerWidget {
+class VendorCreditListScreen extends ConsumerStatefulWidget {
   const VendorCreditListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final creditsAsync = ref.watch(vendorCreditsProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.creditBalance),
-        actions: [
-          IconButton(
-            tooltip: l10n.retry,
-            onPressed: () => ref.read(vendorCreditsProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 12),
-            child: FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.vendorCreditNew),
-              icon: const Icon(Icons.add),
-              label: Text('${l10n.newText} ${l10n.creditBalance}'),
-            ),
-          ),
-        ],
-      ),
-      body: creditsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: error.toString(),
-          onRetry: () => ref.read(vendorCreditsProvider.notifier).refresh(),
-        ),
-        data: (credits) {
-          if (credits.isEmpty) return const _EmptyState();
-
-          return RefreshIndicator(
-            onRefresh: () => ref.read(vendorCreditsProvider.notifier).refresh(),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: credits.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) =>
-                  _VendorCreditCard(credit: credits[index]),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  ConsumerState<VendorCreditListScreen> createState() =>
+      _VendorCreditListScreenState();
 }
 
-class _VendorCreditCard extends StatelessWidget {
-  const _VendorCreditCard({required this.credit});
+class _VendorCreditListScreenState
+    extends ConsumerState<VendorCreditListScreen> {
+  final _searchCtrl = TextEditingController();
+  String _action = 'all';
 
-  final VendorCreditModel credit;
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDeposit = credit.action == VendorCreditAction.refundReceipt;
+    final creditsAsync = ref.watch(vendorCreditsProvider);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(
-          AppRoutes.vendorCreditDetails.replaceFirst(':id', credit.id),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: isDeposit
-                    ? cs.secondaryContainer
-                    : cs.primaryContainer,
-                child: Icon(
-                  isDeposit
-                      ? Icons.account_balance_outlined
-                      : Icons.receipt_long_outlined,
-                  color: isDeposit
-                      ? cs.onSecondaryContainer
-                      : cs.onPrimaryContainer,
-                ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8EDF0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: 74,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3F6F7),
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      credit.referenceNumber.isEmpty
-                          ? '-'
-                          : credit.referenceNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(credit.vendorName ?? '-'),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_date(credit.activityDate)} • ${isDeposit ? l10n.recordDeposits : l10n.purchaseBill}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                    if (credit.billNumber != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '${l10n.purchaseBill}: ${credit.billNumber}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                    if (credit.depositAccountName != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '${l10n.depositAccount}: ${credit.depositAccountName}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child: Row(
                 children: [
-                  Text(
-                    '${credit.amount.toStringAsFixed(2)} ${l10n.egp}',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
+                  const SizedBox(width: 8),
+                  _Tool(
+                    icon: Icons.search,
+                    label: 'Find',
+                    onTap: () => FocusScope.of(context).nextFocus(),
+                  ),
+                  _Tool(
+                    icon: Icons.note_add_outlined,
+                    label: 'New',
+                    onTap: () => context.push(AppRoutes.vendorCreditNew),
+                  ),
+                  _Tool(
+                    icon: Icons.refresh,
+                    label: 'Refresh',
+                    onTap: () =>
+                        ref.read(vendorCreditsProvider.notifier).refresh(),
+                  ),
+                  const Spacer(),
+                  _Tool(
+                    icon: Icons.close,
+                    label: 'Close',
+                    onTap: () => context.go(AppRoutes.dashboard),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 210,
+                    child: Text(
+                      'Vendor Credits',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: const Color(0xFF243E4A),
+                            fontWeight: FontWeight.w300,
+                          ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.posted,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.primary,
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: Icon(Icons.search, size: 18),
+                        hintText: 'Search credit #, vendor, bill...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 170,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _action,
+                      isDense: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('All')),
+                        DropdownMenuItem(
+                          value: 'bill',
+                          child: Text('Applied to Bill'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'refund',
+                          child: Text('Refund Receipt'),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _action = value ?? 'all'),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: creditsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(error.toString())),
+                data: (credits) {
+                  final filtered = _filter(credits);
+                  if (filtered.isEmpty) {
+                    return const Center(
+                      child: Text('No vendor credits found.'),
+                    );
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFF9EADB6)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 30,
+                            color: const Color(0xFFDDE8ED),
+                            child: const Row(
+                              children: [
+                                _HeaderCell('DATE', flex: 2),
+                                _HeaderCell('TYPE', flex: 2),
+                                _HeaderCell('NUM', flex: 2),
+                                _HeaderCell('NAME', flex: 4),
+                                _HeaderCell('BILL/ACCOUNT', flex: 4),
+                                _HeaderCell('AMOUNT', flex: 2, right: true),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final credit = filtered[index];
+                                final refund =
+                                    credit.action ==
+                                    VendorCreditAction.refundReceipt;
+                                return InkWell(
+                                  onTap: () => context.push(
+                                    AppRoutes.vendorCreditDetails.replaceFirst(
+                                      ':id',
+                                      credit.id,
+                                    ),
+                                  ),
+                                  child: Container(
+                                    height: 34,
+                                    color: index.isEven
+                                        ? const Color(0xFFDDEFF4)
+                                        : Colors.white,
+                                    child: Row(
+                                      children: [
+                                        _Cell(
+                                          _date(credit.activityDate),
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          refund ? 'Refund' : 'Bill Credit',
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          credit.referenceNumber.isEmpty
+                                              ? 'Vendor Credit'
+                                              : credit.referenceNumber,
+                                          flex: 2,
+                                        ),
+                                        _Cell(credit.vendorName ?? '', flex: 4),
+                                        _Cell(
+                                          refund
+                                              ? credit.depositAccountName ?? ''
+                                              : credit.billNumber ?? '',
+                                          flex: 4,
+                                        ),
+                                        _Cell(
+                                          credit.amount.toStringAsFixed(2),
+                                          flex: 2,
+                                          right: true,
+                                          strong: true,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              height: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD4DDE3),
+                border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
+              ),
+              child: Text(
+                'Vendor credits search  •  Enter opens credit workspace  •  Esc Close',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFF33434C),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  List<VendorCreditModel> _filter(List<VendorCreditModel> credits) {
+    final query = _searchCtrl.text.trim().toLowerCase();
+    return credits.where((credit) {
+      final matchesAction = switch (_action) {
+        'bill' => credit.action == VendorCreditAction.applyToBill,
+        'refund' => credit.action == VendorCreditAction.refundReceipt,
+        _ => true,
+      };
+      if (!matchesAction) return false;
+      if (query.isEmpty) return true;
+      return credit.referenceNumber.toLowerCase().contains(query) ||
+          (credit.vendorName ?? '').toLowerCase().contains(query) ||
+          (credit.billNumber ?? '').toLowerCase().contains(query) ||
+          (credit.depositAccountName ?? '').toLowerCase().contains(query);
+    }).toList()..sort((a, b) => b.activityDate.compareTo(a.activityDate));
   }
 
   static String _date(DateTime date) =>
-      '${date.day}/${date.month}/${date.year}';
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+class _Tool extends StatelessWidget {
+  const _Tool({required this.icon, required this.label, this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    final enabled = onTap != null;
+    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 66,
+        height: 74,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.account_balance_wallet_outlined, size: 56),
-            const SizedBox(height: 16),
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 5),
             Text(
-              l10n.creditBalance,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(l10n.underDevelopment, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.vendorCreditNew),
-              icon: const Icon(Icons.add),
-              label: Text('${l10n.newText} ${l10n.creditBalance}'),
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -205,38 +312,59 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
+  final String text;
+  final int flex;
+  final bool right;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.retry),
-            ),
-          ],
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _Cell extends StatelessWidget {
+  const _Cell(
+    this.text, {
+    required this.flex,
+    this.right = false,
+    this.strong = false,
+  });
+  final String text;
+  final int flex;
+  final bool right;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: Text(
+        text,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+          color: const Color(0xFF273F4B),
+        ),
+      ),
+    ),
+  );
 }

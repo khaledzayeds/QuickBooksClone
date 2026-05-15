@@ -392,7 +392,7 @@ class _DepositHeader extends StatelessWidget {
                             onTap: onPickDate,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         _HorizontalField(
                           label: 'DEPOSIT #',
                           child: const _StaticBox(text: 'AUTO'),
@@ -409,13 +409,13 @@ class _DepositHeader extends StatelessWidget {
                           value: bank == null ? '-' : money(bank.balance),
                           accent: false,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         _StatBox(
                           label: 'THIS DEPOSIT',
                           value: money(amount),
                           accent: true,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         _StatBox(
                           label: 'AFTER DEPOSIT',
                           value: bank == null
@@ -969,7 +969,7 @@ class _StatBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 38,
+      height: 34,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: accent ? const Color(0xFFE7F1F4) : Colors.white,

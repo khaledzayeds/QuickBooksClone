@@ -78,7 +78,6 @@ import '../features/snapshots/screens/snapshots_screen.dart';
 import '../features/time_tracking/screens/enter_time_screen.dart';
 import '../features/transactions/screens/transaction_details_screen.dart';
 import '../features/transactions/screens/transaction_list_screen.dart';
-import '../features/vendor_credits/screens/vendor_credit_details_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_form_screen.dart';
 import '../features/vendor_credits/screens/vendor_credit_list_screen.dart';
 import '../features/vendor_payments/screens/vendor_payment_details_screen.dart';
@@ -404,7 +403,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.vendorCreditDetails,
             builder: (context, state) =>
-                VendorCreditDetailsScreen(id: state.pathParameters['id']!),
+                VendorCreditFormScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.purchaseReturns,
