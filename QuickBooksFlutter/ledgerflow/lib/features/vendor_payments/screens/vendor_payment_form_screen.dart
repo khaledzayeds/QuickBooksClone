@@ -13,6 +13,9 @@ import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
 import 'package:ledgerflow/features/accounts/providers/accounts_provider.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
+import '../../transactions/widgets/transaction_context_sidebar.dart';
+import '../data/models/vendor_payment_model.dart';
 import '../providers/vendor_payments_provider.dart';
 
 class VendorPaymentFormScreen extends ConsumerStatefulWidget {
@@ -238,9 +241,7 @@ class _VendorPaymentFormScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final vendors = ref
-        .watch(vendorsProvider)
-        .maybeWhen(
+    final vendors = ref.watch(vendorsProvider).maybeWhen(
           data: (items) => items.where((vendor) => vendor.isActive).toList(),
           orElse: () => const <VendorModel>[],
         );
@@ -249,97 +250,76 @@ class _VendorPaymentFormScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8EDF0),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _PaymentCommandBar(
-              saving: _saving,
-              onFind: () => context.go(AppRoutes.vendorPayments),
-              onNew: () => context.go(AppRoutes.vendorPaymentNew),
-              onSave: _saving ? null : _save,
-              onClear: _clear,
-              onClose: () => context.go(AppRoutes.vendorPayments),
-            ),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFFB9C3CA)),
+    final payments = ref.watch(vendorPaymentsProvider).maybeWhen(
+          data: (items) => items,
+          orElse: () => <VendorPaymentModel>[],
+        );
+
+    final total = _calculateTotal();
+
+    return TransactionWorkspaceShell(
+      workspaceName: 'Vendor payment workspace',
+      saving: _saving,
+      posting: _loadingBills,
+      isEdit: false,
+      readOnly: false,
+      onFind: () => context.go(AppRoutes.vendorPayments),
+      onPrevious: payments.isNotEmpty
+          ? () => context.go(AppRoutes.vendorPaymentDetails.replaceFirst(':id', payments.first.id))
+          : null,
+      onNew: _clear,
+      onSave: _saving ? null : _save,
+      onClear: _clear,
+      onClose: () => context.go(AppRoutes.vendorPayments),
+      formContent: Column(
+        children: [
+          _PaymentHeader(
+            l10n: l10n,
+            vendors: vendors,
+            selectedVendor: _selectedVendor,
+            paymentDate: _paymentDate,
+            paymentMethod: _paymentMethod,
+            paymentAccountId: _paymentAccountId,
+            onVendorChanged: _onVendorChanged,
+            onPaymentDateChanged: (d) => setState(() => _paymentDate = d),
+            onPaymentMethodChanged: (value) => setState(() => _paymentMethod = value),
+            onPaymentAccountChanged: (value) => setState(() => _paymentAccountId = value),
+          ),
+          const _BillsHeader(),
+          Expanded(
+            child: _loadingBills
+                ? const Center(child: CircularProgressIndicator())
+                : _openBills.isEmpty
+                    ? Center(
+                        child: Text(
+                          _selectedVendor == null
+                              ? l10n.selectVendorHint
+                              : l10n.noRecentTransactions,
+                        ),
+                      )
+                    : _PayBillsGrid(
+                        bills: _openBills,
+                        selectedBillIds: _selectedBillIds,
+                        amountControllers: _amountControllers,
+                        currency: l10n.egp,
+                        onChanged: () => setState(() {}),
                       ),
-                      child: Column(
-                        children: [
-                          _PaymentHeader(
-                            l10n: l10n,
-                            vendors: vendors,
-                            selectedVendor: _selectedVendor,
-                            paymentDate: _paymentDate,
-                            paymentMethod: _paymentMethod,
-                            paymentAccountId: _paymentAccountId,
-                            onVendorChanged: _onVendorChanged,
-                            onPaymentDateChanged: (d) =>
-                                setState(() => _paymentDate = d),
-                            onPaymentMethodChanged: (value) =>
-                                setState(() => _paymentMethod = value),
-                            onPaymentAccountChanged: (value) =>
-                                setState(() => _paymentAccountId = value),
-                          ),
-                          const _BillsHeader(),
-                          Expanded(
-                            child: _loadingBills
-                                ? const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                : _openBills.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      _selectedVendor == null
-                                          ? l10n.selectVendorHint
-                                          : l10n.noRecentTransactions,
-                                    ),
-                                  )
-                                : _PayBillsGrid(
-                                    bills: _openBills,
-                                    selectedBillIds: _selectedBillIds,
-                                    amountControllers: _amountControllers,
-                                    currency: l10n.egp,
-                                    onChanged: () => setState(() {}),
-                                  ),
-                          ),
-                          _PaymentFooter(
-                            total: _calculateTotal(),
-                            currency: l10n.egp,
-                            saving: _saving,
-                            onSave: _saving ? null : _save,
-                            onClear: _clear,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _CollapsiblePaymentPanel(
-                    child: _PaymentContextPanel(
-                      vendor: _selectedVendor,
-                      openBills: _openBills,
-                      total: _calculateTotal(),
-                      currency: l10n.egp,
-                      onViewAll: _selectedVendor == null
-                          ? null
-                          : () => context.go(AppRoutes.purchaseBills),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const _PaymentShortcutStrip(),
-          ],
-        ),
+          ),
+          _PaymentFooter(
+            total: total,
+            currency: l10n.egp,
+            saving: _saving,
+            onSave: _saving ? null : _save,
+            onClear: _clear,
+          ),
+        ],
+      ),
+      contextPanel: _PaymentContextPanel(
+        vendor: _selectedVendor,
+        openBills: _openBills,
+        total: total,
+        currency: l10n.egp,
+        onViewAll: _selectedVendor == null ? null : () => context.go(AppRoutes.purchaseBills),
       ),
     );
   }
@@ -353,55 +333,7 @@ class _VendorPaymentFormScreenState
   }
 }
 
-class _PaymentCommandBar extends StatelessWidget {
-  const _PaymentCommandBar({
-    required this.saving,
-    required this.onFind,
-    required this.onNew,
-    required this.onClear,
-    required this.onClose,
-    this.onSave,
-  });
 
-  final bool saving;
-  final VoidCallback onFind;
-  final VoidCallback onNew;
-  final VoidCallback onClear;
-  final VoidCallback onClose;
-  final VoidCallback? onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 74,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF3F6F7),
-        border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 8),
-          const _Tool(icon: Icons.arrow_back, label: 'Prev'),
-          const _Tool(icon: Icons.arrow_forward, label: 'Next'),
-          _Tool(icon: Icons.search, label: 'Find', onTap: onFind),
-          _Tool(icon: Icons.note_add_outlined, label: 'New', onTap: onNew),
-          _Tool(
-            icon: saving ? Icons.hourglass_top : Icons.save_outlined,
-            label: saving ? 'Saving' : 'Save',
-            onTap: onSave,
-          ),
-          _Tool(icon: Icons.delete_outline, label: 'Clear', onTap: onClear),
-          const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
-          const _Tool(icon: Icons.mail_outline, label: 'Email'),
-          const Spacer(),
-          _Tool(icon: Icons.close, label: 'Close', onTap: onClose),
-          const SizedBox(width: 8),
-        ],
-      ),
-    );
-  }
-}
 
 class _PaymentHeader extends StatelessWidget {
   const _PaymentHeader({
@@ -975,57 +907,6 @@ class _PaymentFooter extends StatelessWidget {
   );
 }
 
-class _CollapsiblePaymentPanel extends StatefulWidget {
-  const _CollapsiblePaymentPanel({required this.child});
-  final Widget child;
-
-  @override
-  State<_CollapsiblePaymentPanel> createState() =>
-      _CollapsiblePaymentPanelState();
-}
-
-class _CollapsiblePaymentPanelState extends State<_CollapsiblePaymentPanel> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      width: _expanded ? 258 : 38,
-      margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(color: const Color(0xFFB9C3CA)),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          if (_expanded) Positioned.fill(child: widget.child),
-          Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              color: const Color(0xFFE6EEF2),
-              child: InkWell(
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Icon(
-                    _expanded ? Icons.chevron_right : Icons.chevron_left,
-                    size: 22,
-                    color: const Color(0xFF2B4A56),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PaymentContextPanel extends StatelessWidget {
   const _PaymentContextPanel({
     required this.vendor,
@@ -1103,75 +984,7 @@ class _PaymentContextPanel extends StatelessWidget {
   }
 }
 
-class _PaymentShortcutStrip extends StatelessWidget {
-  const _PaymentShortcutStrip();
 
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 24,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
-    alignment: Alignment.centerLeft,
-    decoration: const BoxDecoration(
-      color: Color(0xFFD4DDE3),
-      border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
-    ),
-    child: Text(
-      'Pay bills workspace  •  Save & Close  •  Ctrl+P Print  •  Esc Close',
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: const Color(0xFF33434C),
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
-}
-
-class _Tool extends StatelessWidget {
-  const _Tool({required this.icon, required this.label, this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        width: 64,
-        height: 74,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Separator extends StatelessWidget {
-  const _Separator();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 48,
-    margin: const EdgeInsets.symmetric(horizontal: 8),
-    color: const Color(0xFFC4D0D6),
-  );
-}
 
 class _StripLabel extends StatelessWidget {
   const _StripLabel(this.text);

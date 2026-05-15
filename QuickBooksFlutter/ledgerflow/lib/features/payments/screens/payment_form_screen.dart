@@ -3,11 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ledgerflow/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show AccountType, PaymentMethod;
+import '../../transactions/widgets/transaction_models.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../../customers/data/models/customer_model.dart';
@@ -207,11 +210,27 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
     );
   }
 
+  void _navigatePrevious() {
+    final payments = ref.read(paymentsProvider).maybeWhen(
+      data: (items) => items,
+      orElse: () => <PaymentModel>[],
+    );
+    if (payments.isEmpty) return;
+    // Since we are in "New" mode, Prev takes us to the latest existing payment
+    context.go(AppRoutes.paymentDetails.replaceFirst(':id', payments.first.id));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final customersAsync = ref.watch(customersProvider);
     final invoicesAsync = ref.watch(invoicesProvider);
     final accountsAsync = ref.watch(accountsProvider);
+    final payments = ref.watch(paymentsProvider).maybeWhen(
+      data: (items) => items,
+      orElse: () => <PaymentModel>[],
+    );
+
     final customers = customersAsync.maybeWhen(
       data: (items) => items.where((customer) => customer.isActive).toList(),
       orElse: () => const <CustomerModel>[],
@@ -237,149 +256,95 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
       _applyInvoicePrefill(invoices, customers);
     });
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8EDF0),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _PaymentCommandBar(
-              saving: _saving,
-              onFind: () => context.go(AppRoutes.payments),
-              onNew: () => context.go(AppRoutes.paymentNew),
-              onSave: _saving ? null : _save,
-              onClear: _clearPayment,
-              onClose: () => context.go(AppRoutes.payments),
-            ),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFFB9C3CA)),
-                      ),
-                      child: Column(
-                        children: [
-                          _PaymentHeader(
-                            customers: customers,
-                            invoices: invoices,
-                            depositAccounts: depositAccounts,
-                            customer: _customer,
-                            depositAccount: _depositAccount,
-                            paymentMethod: _paymentMethod,
-                            paymentDate: _paymentDate,
-                            dateText: _dateFmt.format(_paymentDate),
-                            openBalance: _openBalance,
-                            amountReceived: _amountReceived,
-                            onCustomerSelected: (customer) =>
-                                _loadCustomerInvoices(invoices, customer),
-                            onDepositSelected: (account) =>
-                                setState(() => _depositAccount = account),
-                            onPaymentMethodChanged: (method) =>
-                                setState(() => _paymentMethod = method),
-                            onPickDate: _pickDate,
-                            money: _money,
-                          ),
-                          _AllocationToolbar(
-                            enabled: _allocations.isNotEmpty,
-                            selectedCount: _selectedCount,
-                            amountReceived: _amountReceived,
-                            money: _money,
-                            onAutoApply: _autoApplyOldestFirst,
-                            onClear: _clearAllocations,
-                          ),
-                          Expanded(
-                            child: _PaymentAllocationGrid(
-                              allocations: _allocations,
-                              money: _money,
-                              date: _dateFmt.format,
-                              onChanged: () => setState(() {}),
-                            ),
-                          ),
-                          _PaymentFooter(
-                            amountReceived: _amountReceived,
-                            selectedCount: _selectedCount,
-                            money: _money,
-                            saving: _saving,
-                            onSave: _saving ? null : _save,
-                            onClear: _clearAllocations,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _PaymentSidePanel(
-                    customer: _customer,
-                    depositAccount: _depositAccount,
-                    paymentMethod: _paymentMethod,
-                    allocations: _allocations,
-                    amountReceived: _amountReceived,
-                    openBalance: _openBalance,
-                    money: _money,
-                  ),
-                ],
-              ),
-            ),
-            const _ShortcutStrip(),
-          ],
-        ),
+    final formBody = Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB9C3CA)),
       ),
-    );
-  }
-}
-
-class _PaymentCommandBar extends StatelessWidget {
-  const _PaymentCommandBar({
-    required this.saving,
-    required this.onFind,
-    required this.onNew,
-    required this.onClear,
-    required this.onClose,
-    this.onSave,
-  });
-
-  final bool saving;
-  final VoidCallback onFind;
-  final VoidCallback onNew;
-  final VoidCallback onClear;
-  final VoidCallback onClose;
-  final VoidCallback? onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 74,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF3F6F7),
-        border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
-      ),
-      child: Row(
+      child: Column(
         children: [
-          const SizedBox(width: 8),
-          const _Tool(icon: Icons.arrow_back, label: 'Prev'),
-          const _Tool(icon: Icons.arrow_forward, label: 'Next'),
-          _Tool(icon: Icons.search, label: 'Find', onTap: onFind),
-          _Tool(icon: Icons.note_add_outlined, label: 'New', onTap: onNew),
-          _Tool(
-            icon: saving ? Icons.hourglass_top : Icons.save_outlined,
-            label: saving ? 'Posting' : 'Save',
-            onTap: onSave,
+          _PaymentHeader(
+            customers: customers,
+            invoices: invoices,
+            depositAccounts: depositAccounts,
+            customer: _customer,
+            depositAccount: _depositAccount,
+            paymentMethod: _paymentMethod,
+            paymentDate: _paymentDate,
+            dateText: _dateFmt.format(_paymentDate),
+            openBalance: _openBalance,
+            amountReceived: _amountReceived,
+            onCustomerSelected: (customer) =>
+                _loadCustomerInvoices(invoices, customer),
+            onDepositSelected: (account) =>
+                setState(() => _depositAccount = account),
+            onPaymentMethodChanged: (method) =>
+                setState(() => _paymentMethod = method),
+            onPickDate: _pickDate,
+            money: _money,
           ),
-          _Tool(icon: Icons.delete_outline, label: 'Clear', onTap: onClear),
-          const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
-          const _Tool(icon: Icons.mail_outline, label: 'Email'),
-          const Spacer(),
-          _Tool(icon: Icons.close, label: 'Close', onTap: onClose),
-          const SizedBox(width: 8),
+          _AllocationToolbar(
+            enabled: _allocations.isNotEmpty,
+            selectedCount: _selectedCount,
+            amountReceived: _amountReceived,
+            money: _money,
+            onAutoApply: _autoApplyOldestFirst,
+            onClear: _clearAllocations,
+          ),
+          Expanded(
+            child: _PaymentAllocationGrid(
+              allocations: _allocations,
+              money: _money,
+              date: _dateFmt.format,
+              onChanged: () => setState(() {}),
+            ),
+          ),
+          _PaymentFooter(
+            amountReceived: _amountReceived,
+            selectedCount: _selectedCount,
+            money: _money,
+            saving: _saving,
+            onSave: _saving ? null : _save,
+            onClear: _clearAllocations,
+          ),
         ],
       ),
     );
+
+    return TransactionWorkspaceShell(
+      workspaceName: 'Receive payment workspace',
+      saving: _saving,
+      posting: true,
+      isEdit: false,
+      readOnly: false,
+      formContent: formBody,
+      contextPanel: _PaymentSidePanel(
+        customer: _customer,
+        depositAccount: _depositAccount,
+        paymentMethod: _paymentMethod,
+        allocations: _allocations,
+        amountReceived: _amountReceived,
+        openBalance: _openBalance,
+        money: _money,
+      ),
+      onFind: () => context.go(AppRoutes.payments),
+      onPrevious: payments.isNotEmpty ? _navigatePrevious : null,
+      onNext: null, // Always new, no next
+      onNew: () => context.go(AppRoutes.paymentNew),
+      onSave: _saving ? null : _save,
+      onClear: _clearPayment,
+      onClose: () => context.go(AppRoutes.payments),
+      showSaveDraft: false,
+      showSaveAndPrint: false,
+      showVoid: false,
+      showPayment: false,
+      showRefund: false,
+      showReceive: false,
+    );
   }
 }
+
+
 
 class _PaymentHeader extends StatelessWidget {
   const _PaymentHeader({
@@ -1493,54 +1458,7 @@ class _AppliedLine extends StatelessWidget {
   }
 }
 
-class _Tool extends StatelessWidget {
-  const _Tool({required this.icon, required this.label, this.onTap});
 
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        width: 64,
-        height: 74,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Separator extends StatelessWidget {
-  const _Separator();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 48,
-    margin: const EdgeInsets.symmetric(horizontal: 8),
-    color: const Color(0xFFC4D0D6),
-  );
-}
 
 class _StripLabel extends StatelessWidget {
   const _StripLabel(this.text);
@@ -1649,24 +1567,4 @@ class _AmountRow extends StatelessWidget {
   );
 }
 
-class _ShortcutStrip extends StatelessWidget {
-  const _ShortcutStrip();
 
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 24,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
-    alignment: Alignment.centerLeft,
-    decoration: const BoxDecoration(
-      color: Color(0xFFD4DDE3),
-      border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
-    ),
-    child: Text(
-      'Receive payment workspace  •  Save posts payment  •  Auto Apply  •  Esc Close',
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: const Color(0xFF33434C),
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
-}

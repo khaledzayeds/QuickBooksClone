@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/router.dart';
 import '../../invoices/providers/invoices_provider.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/payment_model.dart';
 import '../providers/payments_provider.dart';
 
@@ -73,40 +74,49 @@ class PaymentDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final paymentAsync = ref.watch(paymentDetailsProvider(id));
+    final payments = ref.watch(paymentsProvider).maybeWhen(
+      data: (items) => items,
+      orElse: () => <PaymentModel>[],
+    );
+    final currentIdx = payments.indexWhere((p) => p.id == id);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Customer Payment'),
-        actions: [
-          paymentAsync.maybeWhen(
-            data: (payment) => payment.isVoid
-                ? const SizedBox.shrink()
-                : IconButton(
-                    tooltip: 'Void payment',
-                    onPressed: () => _voidPayment(context, ref, payment),
-                    icon: Icon(
-                      Icons.block_outlined,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () => ref.invalidate(paymentDetailsProvider(id)),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: paymentAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
+    void navigateTo(int idx) {
+      if (idx >= 0 && idx < payments.length) {
+        context.go(AppRoutes.paymentDetails.replaceFirst(':id', payments[idx].id));
+      }
+    }
+
+    return paymentAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, _) => Scaffold(
+        body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text(error.toString(), textAlign: TextAlign.center),
           ),
         ),
-        data: (payment) => _PaymentBody(payment: payment),
+      ),
+      data: (payment) => TransactionWorkspaceShell(
+        workspaceName: 'Customer payment workspace',
+        saving: false,
+        posting: false,
+        isEdit: true,
+        readOnly: true,
+        formContent: _PaymentBody(payment: payment),
+        onFind: () => context.go(AppRoutes.payments),
+        onPrevious: currentIdx > 0 ? () => navigateTo(currentIdx - 1) : null,
+        onNext: currentIdx >= 0 && currentIdx < payments.length - 1
+            ? () => navigateTo(currentIdx + 1)
+            : null,
+        onNew: () => context.go(AppRoutes.paymentNew),
+        onVoid: payment.isVoid ? null : () => _voidPayment(context, ref, payment),
+        onClose: () => context.go(AppRoutes.payments),
+        showSaveDraft: false,
+        showSaveAndPrint: false,
+        showPrint: true,
+        showEmail: true,
+        showVoid: !payment.isVoid,
+        showClear: false,
       ),
     );
   }

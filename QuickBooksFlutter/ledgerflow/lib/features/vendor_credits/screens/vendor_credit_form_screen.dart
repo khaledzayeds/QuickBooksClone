@@ -16,6 +16,7 @@ import '../../purchase_bills/data/models/purchase_bill_model.dart';
 import '../../purchase_bills/providers/purchase_bills_provider.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/vendor_credit_model.dart';
 import '../providers/vendor_credits_provider.dart';
 
@@ -205,37 +206,26 @@ class _VendorCreditFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    final vendors = ref
-        .watch(vendorsProvider)
-        .maybeWhen(
+    final vendors = ref.watch(vendorsProvider).maybeWhen(
           data: (items) => items.where((vendor) => vendor.isActive).toList(),
           orElse: () => const <VendorModel>[],
         );
-    final bills = ref
-        .watch(purchaseBillsProvider)
-        .maybeWhen(
+    final bills = ref.watch(purchaseBillsProvider).maybeWhen(
           data: (items) => items,
           orElse: () => const <PurchaseBillModel>[],
         );
-    final accounts = ref
-        .watch(accountsProvider)
-        .maybeWhen(
+    final accounts = ref.watch(accountsProvider).maybeWhen(
           data: (items) => items,
           orElse: () => const <AccountModel>[],
         );
 
-    final selectedVendor = vendors
-        .where((vendor) => vendor.id == _vendorId)
-        .firstOrNull;
-    final openBills =
-        bills
-            .where((bill) => _vendorId == null || bill.vendorId == _vendorId)
-            .where((bill) => bill.canPay)
-            .toList()
-          ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-    final selectedBill = openBills
-        .where((bill) => bill.id == _purchaseBillId)
-        .firstOrNull;
+    final selectedVendor = vendors.where((vendor) => vendor.id == _vendorId).firstOrNull;
+    final openBills = bills
+        .where((bill) => _vendorId == null || bill.vendorId == _vendorId)
+        .where((bill) => bill.canPay)
+        .toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    final selectedBill = openBills.where((bill) => bill.id == _purchaseBillId).firstOrNull;
     final depositAccounts = accounts
         .where(
           (account) =>
@@ -245,165 +235,188 @@ class _VendorCreditFormScreenState
                   account.accountType == AccountType.creditCard),
         )
         .toList();
-    final selectedAccount = depositAccounts
-        .where((account) => account.id == _depositAccountId)
-        .firstOrNull;
+    final selectedAccount =
+        depositAccounts.where((account) => account.id == _depositAccountId).firstOrNull;
 
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8EDF0),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _CreditCommandBar(
-              saving: _saving,
-              onFind: () => context.go(AppRoutes.vendorCredits),
-              onNew: () => context.go(AppRoutes.vendorCreditNew),
-              onSave: _saving ? null : _save,
-              onClear: _clear,
-              onClose: () => context.go(AppRoutes.vendorCredits),
-            ),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFFB9C3CA)),
-                      ),
-                      child: Column(
-                        children: [
-                          _CreditHeader(
-                            vendors: vendors,
-                            vendor: selectedVendor,
-                            action: _action,
-                            dateText: _dateFmt.format(_activityDate),
-                            reference:
-                                _editingCredit?.referenceNumber ?? 'AUTO',
-                            amount: _amount,
-                            money: _moneyFmt.format,
-                            onVendorSelected: (vendor) => setState(() {
-                              _vendorId = vendor.id;
-                              _purchaseBillId = null;
-                            }),
-                            onActionChanged: (action) => setState(() {
-                              _action = action;
-                              _purchaseBillId = null;
-                              _depositAccountId = null;
-                            }),
-                            onPickDate: _pickDate,
-                          ),
-                          _ModeToolbar(action: _action),
-                          Expanded(
-                            child: _action == VendorCreditAction.applyToBill
-                                ? _BillCreditGrid(
-                                    bills: openBills,
-                                    selectedBillId: _purchaseBillId,
-                                    money: _moneyFmt.format,
-                                    date: _dateFmt.format,
-                                    onSelected: (bill) => setState(() {
-                                      _purchaseBillId = bill.id;
-                                      _amountCtrl.text = bill.balanceDue
-                                          .toStringAsFixed(2);
-                                    }),
-                                  )
-                                : _RefundReceiptPanel(
-                                    accounts: depositAccounts,
-                                    selectedAccount: selectedAccount,
-                                    paymentMethod: _paymentMethod,
-                                    onAccountChanged: (account) => setState(
-                                      () => _depositAccountId = account?.id,
-                                    ),
-                                    onPaymentMethodChanged: (method) =>
-                                        setState(() => _paymentMethod = method),
-                                  ),
-                          ),
-                          _CreditFooter(
-                            amountCtrl: _amountCtrl,
-                            amount: _amount,
-                            money: _moneyFmt.format,
-                            saving: _saving,
-                            onAmountChanged: () => setState(() {}),
-                            onSave: _saving ? null : _save,
-                            onClear: _clear,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _CreditSidePanel(
-                    vendor: selectedVendor,
-                    bill: selectedBill,
-                    depositAccount: selectedAccount,
-                    action: _action,
-                    amount: _amount,
+    final credits = ref.watch(vendorCreditsProvider).maybeWhen(
+          data: (items) => items,
+          orElse: () => <VendorCreditModel>[],
+        );
+
+    final currentIdx = widget.id != null ? credits.indexWhere((c) => c.id == widget.id) : -1;
+
+    void navigateTo(int idx) {
+      if (idx >= 0 && idx < credits.length) {
+        context.go(AppRoutes.vendorCreditDetails.replaceFirst(':id', credits[idx].id));
+      }
+    }
+
+    return TransactionWorkspaceShell(
+      workspaceName: 'Vendor credit workspace',
+      saving: _saving,
+      posting: _loading,
+      isEdit: _isDetails,
+      readOnly: false,
+      onFind: () => context.go(AppRoutes.vendorCredits),
+      onPrevious: _isDetails
+          ? (currentIdx > 0 ? () => navigateTo(currentIdx - 1) : null)
+          : (credits.isNotEmpty ? () => navigateTo(0) : null),
+      onNext: _isDetails && currentIdx < credits.length - 1 && currentIdx != -1
+          ? () => navigateTo(currentIdx + 1)
+          : null,
+      onNew: _clear,
+      onSave: _saving ? null : _save,
+      onClear: _clear,
+      onClose: () => context.go(AppRoutes.vendorCredits),
+      formContent: Column(
+        children: [
+          _CreditHeader(
+            vendors: vendors,
+            vendor: selectedVendor,
+            action: _action,
+            dateText: _dateFmt.format(_activityDate),
+            reference: _editingCredit?.referenceNumber ?? 'AUTO',
+            amount: _amount,
+            money: _moneyFmt.format,
+            onVendorSelected: (vendor) => setState(() {
+              _vendorId = vendor.id;
+              _purchaseBillId = null;
+            }),
+            onActionChanged: (action) => setState(() {
+              _action = action;
+              _purchaseBillId = null;
+              _depositAccountId = null;
+            }),
+            onPickDate: _pickDate,
+          ),
+          _ModeToolbar(action: _action),
+          Expanded(
+            child: _action == VendorCreditAction.applyToBill
+                ? _BillCreditGrid(
+                    bills: openBills,
+                    selectedBillId: _purchaseBillId,
                     money: _moneyFmt.format,
+                    date: _dateFmt.format,
+                    onSelected: (bill) => setState(() {
+                      _purchaseBillId = bill.id;
+                      _amountCtrl.text = bill.balanceDue.toStringAsFixed(2);
+                    }),
+                  )
+                : _RefundReceiptPanel(
+                    accounts: depositAccounts,
+                    selectedAccount: selectedAccount,
+                    paymentMethod: _paymentMethod,
+                    onAccountChanged: (account) => setState(
+                      () => _depositAccountId = account?.id,
+                    ),
+                    onPaymentMethodChanged: (method) => setState(() => _paymentMethod = method),
                   ),
-                ],
-              ),
-            ),
-            const _ShortcutStrip(),
-          ],
-        ),
+          ),
+          _CreditFooter(
+            amountCtrl: _amountCtrl,
+            amount: _amount,
+            money: _moneyFmt.format,
+            saving: _saving,
+            onAmountChanged: () => setState(() {}),
+            onSave: _saving ? null : _save,
+            onClear: _clear,
+          ),
+        ],
+      ),
+      contextPanel: _VendorCreditContextPanel(
+        vendor: selectedVendor,
+        bill: selectedBill,
+        depositAccount: selectedAccount,
+        action: _action,
+        amount: _amount,
+        money: _moneyFmt.format,
       ),
     );
   }
 }
 
-class _CreditCommandBar extends StatelessWidget {
-  const _CreditCommandBar({
-    required this.saving,
-    required this.onFind,
-    required this.onNew,
-    required this.onClear,
-    required this.onClose,
-    this.onSave,
+class _VendorCreditContextPanel extends StatelessWidget {
+  const _VendorCreditContextPanel({
+    required this.vendor,
+    required this.bill,
+    required this.depositAccount,
+    required this.action,
+    required this.amount,
+    required this.money,
   });
 
-  final bool saving;
-  final VoidCallback onFind;
-  final VoidCallback onNew;
-  final VoidCallback onClear;
-  final VoidCallback onClose;
-  final VoidCallback? onSave;
+  final VendorModel? vendor;
+  final PurchaseBillModel? bill;
+  final AccountModel? depositAccount;
+  final VendorCreditAction action;
+  final double amount;
+  final String Function(double) money;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 74,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF3F6F7),
-        border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
-      ),
-      child: Row(
+      color: const Color(0xFFF4F7F8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(width: 8),
-          const _Tool(icon: Icons.arrow_back, label: 'Prev'),
-          const _Tool(icon: Icons.arrow_forward, label: 'Next'),
-          _Tool(icon: Icons.search, label: 'Find', onTap: onFind),
-          _Tool(icon: Icons.note_add_outlined, label: 'New', onTap: onNew),
-          _Tool(
-            icon: saving ? Icons.hourglass_top : Icons.save_outlined,
-            label: saving ? 'Saving' : 'Save',
-            onTap: onSave,
+          Container(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+            color: const Color(0xFF264D5B),
+            child: Text(
+              'Vendor Credit Info',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
-          _Tool(icon: Icons.delete_outline, label: 'Clear', onTap: onClear),
-          const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
-          const Spacer(),
-          _Tool(icon: Icons.close, label: 'Close', onTap: onClose),
-          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SidebarStat(label: 'AMOUNT', value: money(amount), isTotal: true),
+                if (vendor != null) _SidebarStat(label: 'VENDOR', value: vendor!.displayName),
+                if (action == VendorCreditAction.applyToBill && bill != null)
+                  _SidebarStat(label: 'APPLIED TO', value: 'Bill #${bill!.billNumber}'),
+                if (action == VendorCreditAction.refundReceipt && depositAccount != null)
+                  _SidebarStat(label: 'REFUND TO', value: depositAccount!.name),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
+
+class _SidebarStat extends StatelessWidget {
+  const _SidebarStat({required this.label, required this.value, this.isTotal = false});
+  final String label;
+  final String value;
+  final bool isTotal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF7D8B93), fontWeight: FontWeight.w900)),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700, color: const Color(0xFF264D5B))),
+        ],
+      ),
+    );
+  }
+}
+
+
 
 class _CreditHeader extends StatelessWidget {
   const _CreditHeader({
@@ -1417,53 +1430,7 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _Tool extends StatelessWidget {
-  const _Tool({required this.icon, required this.label, this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        width: 64,
-        height: 74,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Separator extends StatelessWidget {
-  const _Separator();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 48,
-    margin: const EdgeInsets.symmetric(horizontal: 8),
-    color: const Color(0xFFC4D0D6),
-  );
-}
 
 class _StripLabel extends StatelessWidget {
   const _StripLabel(this.text);
@@ -1567,24 +1534,4 @@ class _AmountRow extends StatelessWidget {
   );
 }
 
-class _ShortcutStrip extends StatelessWidget {
-  const _ShortcutStrip();
 
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 24,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
-    alignment: Alignment.centerLeft,
-    decoration: const BoxDecoration(
-      color: Color(0xFFD4DDE3),
-      border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
-    ),
-    child: Text(
-      'Vendor credit workspace  •  Save posts credit  •  Esc Close',
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: const Color(0xFF33434C),
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
-}

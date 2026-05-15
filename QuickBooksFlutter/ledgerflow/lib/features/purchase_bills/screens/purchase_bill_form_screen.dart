@@ -13,12 +13,14 @@ import '../../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
 import '../../receive_inventory/data/models/receive_inventory_model.dart';
 import '../../receive_inventory/providers/receive_inventory_provider.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../../transactions/widgets/transaction_context_sidebar.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
 import '../data/models/billing_plan_model.dart';
 import '../data/models/create_purchase_bill_dto.dart';
+import '../data/models/purchase_bill_model.dart';
 import '../providers/purchase_bills_provider.dart';
 
 class PurchaseBillFormScreen extends ConsumerStatefulWidget {
@@ -335,9 +337,7 @@ class _PurchaseBillFormScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final vendors = ref
-        .watch(vendorsProvider)
-        .maybeWhen(
+    final vendors = ref.watch(vendorsProvider).maybeWhen(
           data: (items) => items.where((vendor) => vendor.isActive).toList(),
           orElse: () => const <VendorModel>[],
         );
@@ -346,187 +346,104 @@ class _PurchaseBillFormScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8EDF0),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _BillCommandBar(
-              saving: _saving || _loadingPlan,
-              onFind: () => context.go(AppRoutes.purchaseBills),
-              onNew: () => context.go(AppRoutes.purchaseBillNew),
-              onSave: _saving || _loadingPlan ? null : _save,
-              onClear: () {
-                setState(() {
-                  _selectedVendor = null;
-                  _selectedReceipt = null;
-                  _activePlan = null;
-                  _billDate = DateTime.now();
-                  _dueDate = DateTime.now().add(const Duration(days: 30));
-                  _memoCtrl.clear();
-                  _clearLines();
-                  _lines.add(TransactionLineEntry());
-                });
-              },
-              onClose: () => context.go(AppRoutes.purchaseBills),
-            ),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFFB9C3CA)),
-                      ),
-                      child: Column(
-                        children: [
-                          _BillHeader(
-                            l10n: l10n,
-                            vendors: vendors,
-                            selectedVendor: _selectedVendor,
-                            selectedReceipt: _selectedReceipt,
-                            billDate: _billDate,
-                            dueDate: _dueDate,
-                            onVendorChanged: _onVendorChanged,
-                            onReceiptChanged: _onReceiptChanged,
-                            onBillDateChanged: (d) =>
-                                setState(() => _billDate = d),
-                            onDueDateChanged: (d) =>
-                                setState(() => _dueDate = d),
-                          ),
-                          _LinesHeader(
-                            loading: _loadingPlan,
-                            onAddLine: () => setState(
-                              () => _lines.add(TransactionLineEntry()),
-                            ),
-                          ),
-                          Expanded(
-                            child: _loadingPlan
-                                ? const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                : Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      8,
-                                      8,
-                                      8,
-                                      0,
-                                    ),
-                                    child: QbTransactionLineGrid(
-                                      lines: _lines,
-                                      onChanged: () => setState(() {}),
-                                      priceMode:
-                                          TransactionLinePriceMode.purchase,
-                                      fillWidth: true,
-                                      compact: true,
-                                      showAddLineFooter: false,
-                                    ),
-                                  ),
-                          ),
-                          _BillFooter(
-                            l10n: l10n,
-                            lines: _lines,
-                            memoCtrl: _memoCtrl,
-                            saving: _saving,
-                            onSave: _saving || _loadingPlan ? null : _save,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  _CollapsibleBillPanel(
-                    child: _BillContextPanel(
-                      vendor: _selectedVendor,
-                      receipt: _selectedReceipt,
-                      total: _lines.fold<double>(
-                        0,
-                        (sum, line) => sum + line.amount,
-                      ),
-                      notes: _memoCtrl.text,
-                      onViewAll: _selectedVendor == null
-                          ? null
-                          : () => context.go(AppRoutes.purchaseBills),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const _BillShortcutStrip(),
-          ],
-        ),
-      ),
-    );
-  }
-}
+    final bills = ref.watch(purchaseBillsProvider).maybeWhen(
+          data: (items) => items,
+          orElse: () => <PurchaseBillModel>[],
+        );
 
-class _BillCommandBar extends StatelessWidget {
-  const _BillCommandBar({
-    required this.saving,
-    required this.onFind,
-    required this.onNew,
-    required this.onClear,
-    required this.onClose,
-    this.onSave,
-  });
+    final currentId = widget.billId;
+    final currentIdx = currentId != null ? bills.indexWhere((b) => b.id == currentId) : -1;
 
-  final bool saving;
-  final VoidCallback onFind;
-  final VoidCallback onNew;
-  final VoidCallback onClear;
-  final VoidCallback onClose;
-  final VoidCallback? onSave;
+    void navigateTo(int idx) {
+      if (idx >= 0 && idx < bills.length) {
+        context.go(AppRoutes.purchaseBillDetails.replaceFirst(':id', bills[idx].id));
+      }
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 74,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF3F6F7),
-        border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
-      ),
-      child: Row(
+    final total = _lines.fold<double>(0, (sum, line) => sum + line.amount);
+
+    return TransactionWorkspaceShell(
+      workspaceName: 'Purchase bill workspace',
+      saving: _saving,
+      posting: _loadingPlan,
+      isEdit: widget.billId != null,
+      readOnly: false,
+      onFind: () => context.go(AppRoutes.purchaseBills),
+      onPrevious: widget.billId == null
+          ? (bills.isNotEmpty ? () => navigateTo(0) : null)
+          : (currentIdx > 0 ? () => navigateTo(currentIdx - 1) : null),
+      onNext: (widget.billId != null && currentIdx >= 0 && currentIdx < bills.length - 1)
+          ? () => navigateTo(currentIdx + 1)
+          : null,
+      onNew: () => context.go(AppRoutes.purchaseBillNew),
+      onSave: _saving || _loadingPlan ? null : _save,
+      onClear: () {
+        setState(() {
+          _selectedVendor = null;
+          _selectedReceipt = null;
+          _activePlan = null;
+          _billDate = DateTime.now();
+          _dueDate = DateTime.now().add(const Duration(days: 30));
+          _memoCtrl.clear();
+          _clearLines();
+          _lines.add(TransactionLineEntry());
+        });
+      },
+      onClose: () => context.go(AppRoutes.purchaseBills),
+      formContent: Column(
         children: [
-          const SizedBox(width: 8),
-          const _Tool(icon: Icons.arrow_back, label: 'Prev'),
-          const _Tool(icon: Icons.arrow_forward, label: 'Next'),
-          _Tool(
-            icon: Icons.search,
-            label: 'Find',
-            onTap: saving ? null : onFind,
+          _BillHeader(
+            l10n: l10n,
+            vendors: vendors,
+            selectedVendor: _selectedVendor,
+            selectedReceipt: _selectedReceipt,
+            billDate: _billDate,
+            dueDate: _dueDate,
+            onVendorChanged: _onVendorChanged,
+            onReceiptChanged: _onReceiptChanged,
+            onBillDateChanged: (d) => setState(() => _billDate = d),
+            onDueDateChanged: (d) => setState(() => _dueDate = d),
           ),
-          _Tool(
-            icon: Icons.note_add_outlined,
-            label: 'New',
-            onTap: saving ? null : onNew,
+          _LinesHeader(
+            loading: _loadingPlan,
+            onAddLine: () => setState(() => _lines.add(TransactionLineEntry())),
           ),
-          _Tool(
-            icon: saving ? Icons.hourglass_top : Icons.save_outlined,
-            label: saving ? 'Saving' : 'Save',
-            onTap: onSave,
+          Expanded(
+            child: _loadingPlan
+                ? const Center(child: CircularProgressIndicator())
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                    child: QbTransactionLineGrid(
+                      lines: _lines,
+                      onChanged: () => setState(() {}),
+                      priceMode: TransactionLinePriceMode.purchase,
+                      fillWidth: true,
+                      compact: true,
+                      showAddLineFooter: false,
+                    ),
+                  ),
           ),
-          _Tool(
-            icon: Icons.delete_outline,
-            label: 'Clear',
-            onTap: saving ? null : onClear,
+          _BillFooter(
+            l10n: l10n,
+            lines: _lines,
+            memoCtrl: _memoCtrl,
+            saving: _saving,
+            onSave: _saving || _loadingPlan ? null : _save,
           ),
-          const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
-          const _Tool(icon: Icons.mail_outline, label: 'Email'),
-          const Spacer(),
-          _Tool(
-            icon: Icons.close,
-            label: 'Close',
-            onTap: saving ? null : onClose,
-          ),
-          const SizedBox(width: 8),
         ],
       ),
+      contextPanel: _BillContextPanel(
+        vendor: _selectedVendor,
+        receipt: _selectedReceipt,
+        total: total,
+        notes: _memoCtrl.text,
+        onViewAll: _selectedVendor == null ? null : () => context.go(AppRoutes.purchaseBills),
+      ),
     );
   }
 }
+
+
 
 class _BillHeader extends StatelessWidget {
   const _BillHeader({
@@ -839,55 +756,7 @@ class _BillFooter extends StatelessWidget {
   );
 }
 
-class _CollapsibleBillPanel extends StatefulWidget {
-  const _CollapsibleBillPanel({required this.child});
-  final Widget child;
 
-  @override
-  State<_CollapsibleBillPanel> createState() => _CollapsibleBillPanelState();
-}
-
-class _CollapsibleBillPanelState extends State<_CollapsibleBillPanel> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      width: _expanded ? 258 : 38,
-      margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(color: const Color(0xFFB9C3CA)),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          if (_expanded) Positioned.fill(child: widget.child),
-          Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              color: const Color(0xFFE6EEF2),
-              child: InkWell(
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Icon(
-                    _expanded ? Icons.chevron_right : Icons.chevron_left,
-                    size: 22,
-                    color: const Color(0xFF2B4A56),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _BillContextPanel extends StatelessWidget {
   const _BillContextPanel({
@@ -963,75 +832,7 @@ class _BillContextPanel extends StatelessWidget {
   }
 }
 
-class _BillShortcutStrip extends StatelessWidget {
-  const _BillShortcutStrip();
 
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 24,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
-    alignment: Alignment.centerLeft,
-    decoration: const BoxDecoration(
-      color: Color(0xFFD4DDE3),
-      border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
-    ),
-    child: Text(
-      'Enter bills workspace  •  Save & Close  •  Ctrl+P Print  •  Esc Close',
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: const Color(0xFF33434C),
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
-}
-
-class _Tool extends StatelessWidget {
-  const _Tool({required this.icon, required this.label, this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        width: 64,
-        height: 74,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Separator extends StatelessWidget {
-  const _Separator();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 48,
-    margin: const EdgeInsets.symmetric(horizontal: 8),
-    color: const Color(0xFFC4D0D6),
-  );
-}
 
 class _StripLabel extends StatelessWidget {
   const _StripLabel(this.text);
