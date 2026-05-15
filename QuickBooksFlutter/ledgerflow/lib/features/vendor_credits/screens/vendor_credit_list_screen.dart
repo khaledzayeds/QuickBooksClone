@@ -21,6 +21,7 @@ class _VendorCreditListScreenState
     extends ConsumerState<VendorCreditListScreen> {
   final _searchCtrl = TextEditingController();
   String _action = 'all';
+  DateTimeRange? _dateRange;
 
   @override
   void dispose() {
@@ -31,6 +32,10 @@ class _VendorCreditListScreenState
   @override
   Widget build(BuildContext context) {
     final creditsAsync = ref.watch(vendorCreditsProvider);
+    
+    final dateLabel = _dateRange == null
+        ? 'Any date'
+        : '${_date(_dateRange!.start)} - ${_date(_dateRange!.end)}';
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8EDF0),
@@ -107,6 +112,36 @@ class _VendorCreditListScreenState
                   ),
                   const SizedBox(width: 10),
                   SizedBox(
+                    width: 200,
+                    height: 40,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(now.year - 5),
+                          lastDate: DateTime(now.year + 3),
+                          initialDateRange: _dateRange,
+                        );
+                        setState(() => _dateRange = picked);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        side: const BorderSide(color: Color(0xFF79747E)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.centerLeft,
+                      ),
+                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      label: Text(
+                        dateLabel,
+                        style: const TextStyle(color: Color(0xFF1D1B20)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
                     width: 170,
                     child: DropdownButtonFormField<String>(
                       initialValue: _action,
@@ -133,6 +168,20 @@ class _VendorCreditListScreenState
                           setState(() => _action = value ?? 'all'),
                     ),
                   ),
+                  if (_dateRange != null) ...[
+                    const SizedBox(width: 10),
+                    IconButton(
+                      tooltip: 'Clear filters',
+                      icon: const Icon(Icons.clear, color: Colors.red),
+                      onPressed: () {
+                        setState(() {
+                          _dateRange = null;
+                          _action = 'all';
+                          _searchCtrl.clear();
+                        });
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -264,6 +313,16 @@ class _VendorCreditListScreenState
         _ => true,
       };
       if (!matchesAction) return false;
+      
+      final range = _dateRange;
+      if (range != null) {
+        final date = DateUtils.dateOnly(credit.activityDate);
+        if (date.isBefore(DateUtils.dateOnly(range.start)) ||
+            date.isAfter(DateUtils.dateOnly(range.end))) {
+          return false;
+        }
+      }
+
       if (query.isEmpty) return true;
       return credit.referenceNumber.toLowerCase().contains(query) ||
           (credit.vendorName ?? '').toLowerCase().contains(query) ||

@@ -14,6 +14,7 @@ import '../../items/providers/items_provider.dart';
 import '../../purchase_orders/data/models/purchase_order_model.dart';
 import '../../purchase_orders/providers/purchase_orders_provider.dart';
 import '../../transactions/widgets/transaction_context_sidebar.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
@@ -429,112 +430,95 @@ class _ReceiveInventoryFormScreenState
                   seenOrderIds.contains(_selectedOrder!.id)
               ? _selectedOrder!.id
               : null;
-          return SafeArea(
-            child: Column(
+          return TransactionWorkspaceShell(
+            workspaceName: 'Receive inventory workspace',
+            saving: _saving,
+            posting: false,
+            isEdit: false,
+            readOnly: false,
+            onFind: () => context.go(AppRoutes.receiveInventory),
+            onPrevious: null, // TODO: Implement previous
+            onNext: null, // TODO: Implement next
+            onNew: () => context.go(AppRoutes.receiveInventoryNew),
+            onSave: _saving || _loadingPlan ? null : _save,
+            onClear: _clear,
+            onPrint: null, // TODO: Implement print
+            onEmail: null, // TODO: Implement email
+            showSaveDraft: false, // Receive inventory doesn't support draft saving
+            showSaveAndPrint: false, // Hide for now until print is supported
+            onClose: () => context.go(AppRoutes.receiveInventory),
+            formContent: Column(
               children: [
-                _ReceiveCommandBar(
-                  saving: _saving,
-                  onFind: () => context.go(AppRoutes.receiveInventory),
-                  onNew: () => context.go(AppRoutes.receiveInventoryNew),
-                  onSave: _saving || _loadingPlan ? null : _save,
-                  onClear: _clear,
-                  onClose: () => context.go(AppRoutes.receiveInventory),
+                _ReceiveHeader(
+                  l10n: l10n,
+                  fmt: fmt,
+                  vendors: vendors,
+                  selectedVendor: _selectedVendor,
+                  selectedOrderId: selectedOrderId,
+                  orders: uniqueVendorOrders,
+                  receiptDate: _receiptDate,
+                  onVendorSelected: (vendor) {
+                    setState(() {
+                      _selectedVendor = vendor;
+                      _selectedOrder = null;
+                    });
+                    _clearPoLinkedLines();
+                  },
+                  onOrderChanged: (id) {
+                    final order = id == null
+                        ? null
+                        : uniqueVendorOrders
+                              .where((order) => order.id == id)
+                              .firstOrNull;
+                    _selectOrder(order);
+                  },
+                  onDateTap: () async {
+                    final d = await showDatePicker(
+                      context: context,
+                      initialDate: _receiptDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2035),
+                    );
+                    if (d != null) {
+                      setState(() => _receiptDate = d);
+                    }
+                  },
+                ),
+                _ReceiveLinesHeader(
+                  loading: _loadingPlan,
+                  onAddLine: _addManualLine,
                 ),
                 Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFB9C3CA)),
-                          ),
-                          child: Column(
-                            children: [
-                              _ReceiveHeader(
-                                l10n: l10n,
-                                fmt: fmt,
-                                vendors: vendors,
-                                selectedVendor: _selectedVendor,
-                                selectedOrderId: selectedOrderId,
-                                orders: uniqueVendorOrders,
-                                receiptDate: _receiptDate,
-                                onVendorSelected: (vendor) {
-                                  setState(() {
-                                    _selectedVendor = vendor;
-                                    _selectedOrder = null;
-                                  });
-                                  _clearPoLinkedLines();
-                                },
-                                onOrderChanged: (id) {
-                                  final order = id == null
-                                      ? null
-                                      : uniqueVendorOrders
-                                            .where((order) => order.id == id)
-                                            .firstOrNull;
-                                  _selectOrder(order);
-                                },
-                                onDateTap: () async {
-                                  final d = await showDatePicker(
-                                    context: context,
-                                    initialDate: _receiptDate,
-                                    firstDate: DateTime(2020),
-                                    lastDate: DateTime(2035),
-                                  );
-                                  if (d != null) {
-                                    setState(() => _receiptDate = d);
-                                  }
-                                },
-                              ),
-                              _ReceiveLinesHeader(
-                                loading: _loadingPlan,
-                                onAddLine: _addManualLine,
-                              ),
-                              Expanded(
-                                child: _loadingPlan
-                                    ? const Center(
-                                        child: CircularProgressIndicator(),
-                                      )
-                                    : _ReceiveLinesTable(
-                                        lines: _manualLines,
-                                        onSelectItem: _selectManualItem,
-                                        onChanged: () => setState(() {}),
-                                      ),
-                              ),
-                              _ReceiveFooter(
-                                l10n: l10n,
-                                lines: _manualLines,
-                                notesCtrl: _notesCtrl,
-                                saving: _saving,
-                                onSave: _saving || _loadingPlan ? null : _save,
-                                onClear: _clear,
-                              ),
-                            ],
-                          ),
+                  child: _loadingPlan
+                      ? const Center(child: CircularProgressIndicator())
+                      : _ReceiveLinesTable(
+                          lines: _manualLines,
+                          onSelectItem: _selectManualItem,
+                          onChanged: () => setState(() {}),
                         ),
-                      ),
-                      _CollapsibleReceivePanel(
-                        child: _ReceiveContextPanel(
-                          vendor: _selectedVendor,
-                          order: _selectedOrder,
-                          total: _manualLines.fold<double>(
-                            0,
-                            (sum, line) => sum + line.draftAmount,
-                          ),
-                          notes: _notesCtrl.text,
-                          onViewAll: _selectedVendor == null
-                              ? null
-                              : () => context.go(AppRoutes.receiveInventory),
-                          onEditNotes: _openNotesDialog,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-                const _ReceiveShortcutStrip(),
+                _ReceiveFooter(
+                  l10n: l10n,
+                  lines: _manualLines,
+                  notesCtrl: _notesCtrl,
+                  saving: _saving,
+                  onSave: _saving || _loadingPlan ? null : _save,
+                  onClear: _clear,
+                ),
               ],
+            ),
+            contextPanel: _ReceiveContextPanel(
+              vendor: _selectedVendor,
+              order: _selectedOrder,
+              total: _manualLines.fold<double>(
+                0,
+                (sum, line) => sum + line.draftAmount,
+              ),
+              notes: _notesCtrl.text,
+              onViewAll: _selectedVendor == null
+                  ? null
+                  : () => context.go(AppRoutes.receiveInventory),
+              onEditNotes: _openNotesDialog,
             ),
           );
         },

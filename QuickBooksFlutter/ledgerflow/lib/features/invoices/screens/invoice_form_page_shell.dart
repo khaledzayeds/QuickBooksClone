@@ -19,7 +19,11 @@ import '../data/models/sales_preview_contracts.dart';
 import '../providers/invoices_provider.dart' as invoice_list;
 import '../providers/invoices_state.dart';
 import '../widgets/invoice_form_fields.dart';
-import '../widgets/invoice_shell.dart';
+import '../widgets/invoice_context_panel.dart';
+import '../widgets/invoice_header_panel.dart';
+import '../widgets/invoice_lines_panel.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
+import '../widgets/notes_edit_dialog.dart';
 import '../widgets/notes_edit_dialog.dart';
 
 const _kInvoiceTerms = [
@@ -819,127 +823,148 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           orElse: () => const <CustomerModel>[],
         );
 
-    return InvoiceShell(
-      customerField: InvoiceFormField(
-        label: l10n.customer,
-        required: true,
-        child: InvoiceCustomerField(
-          controller: _customerCtrl,
-          customers: customers,
-          selected: _customer,
-          enabled: !financialReadOnly,
-          onSelected: (customer) {
-            setState(() {
-              _customer = customer;
-              _customerCtrl.text = customer.displayName;
-              _activity = null;
-              _preview = null;
-              _editingInvoice = null;
-              _savedInvoice = null;
-            });
-            _loadCustomerActivity(customer.id);
-            _schedulePreview();
-          },
-          onCleared: () => setState(() {
-            _customer = null;
-            _customerCtrl.clear();
-            _activity = null;
-            _preview = null;
-            _editingInvoice = null;
-            _savedInvoice = null;
-          }),
-        ),
+    return TransactionWorkspaceShell(
+      workspaceName: 'Invoice workspace',
+      formContent: Column(
+        children: [
+          InvoiceHeaderPanel(
+            customerField: InvoiceFormField(
+              label: l10n.customer,
+              required: true,
+              child: InvoiceCustomerField(
+                controller: _customerCtrl,
+                customers: customers,
+                selected: _customer,
+                enabled: !financialReadOnly,
+                onSelected: (customer) {
+                  setState(() {
+                    _customer = customer;
+                    _customerCtrl.text = customer.displayName;
+                    _activity = null;
+                    _preview = null;
+                    _editingInvoice = null;
+                    _savedInvoice = null;
+                  });
+                  _loadCustomerActivity(customer.id);
+                  _schedulePreview();
+                },
+                onCleared: () => setState(() {
+                  _customer = null;
+                  _customerCtrl.clear();
+                  _activity = null;
+                  _preview = null;
+                  _editingInvoice = null;
+                  _savedInvoice = null;
+                }),
+              ),
+            ),
+            invoiceNumberField: InvoiceFormField(
+              label: 'Invoice #',
+              child: InvoiceReadonlyTextField(controller: _numberCtrl, hint: 'AUTO'),
+            ),
+            invoiceDateField: InvoiceFormField(
+              label: 'Invoice Date',
+              child: InvoiceReadonlyTextField(
+                controller: _dateCtrl,
+                hint: 'dd/mm/yyyy',
+                suffixIcon: Icons.calendar_today_outlined,
+                enabled: !financialReadOnly,
+                onTap: _pickInvoiceDate,
+              ),
+            ),
+            dueDateField: InvoiceFormField(
+              label: l10n.dueDate,
+              child: InvoiceReadonlyTextField(
+                controller: _dueDateCtrl,
+                hint: 'dd/mm/yyyy',
+                suffixIcon: Icons.event_available_outlined,
+                enabled: !financialReadOnly,
+                onTap: _pickDueDate,
+              ),
+            ),
+            billingTermsField: InvoiceFormField(
+              label: 'Terms',
+              child: InvoiceTermsField(
+                value: _terms,
+                terms: _kInvoiceTerms,
+                enabled: !financialReadOnly,
+                onChanged: (terms) {
+                  setState(() => _terms = terms);
+                },
+              ),
+            ),
+            memoField: InvoiceFormField(
+              label: 'Memo / Reference',
+              child: InvoiceMemoField(
+                controller: _memoCtrl,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            customer: _customer,
+          ),
+          Expanded(
+            child: InvoiceLinesPanel(
+              lines: _lines,
+              totals: _totals,
+              onAddLine: _addLine,
+              onLinesChanged: () {
+                if (financialReadOnly) return;
+                setState(() {
+                  _preview = null;
+                  _editingInvoice = null;
+                  _savedInvoice = null;
+                });
+                _schedulePreview();
+              },
+              memoField: InvoiceFormField(
+                label: 'Memo / Reference',
+                child: InvoiceMemoField(
+                  controller: _memoCtrl,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              saving: _saving,
+              posting: _posting,
+              readOnly: financialReadOnly,
+              onSaveAndClose: financialReadOnly ? null : () => _saveWithMode(_saveModeForPost()),
+              onSaveAndNew: financialReadOnly ? null : _saveAndNew,
+              onClear: _handleClearOrNew,
+            ),
+          ),
+        ],
       ),
-      invoiceNumberField: InvoiceFormField(
-        label: 'Invoice #',
-        child: InvoiceReadonlyTextField(controller: _numberCtrl, hint: 'AUTO'),
+      contextPanel: buildInvoiceContextPanel(
+        customer: _customer,
+        metrics: _metrics,
+        activities: _activities,
+        totals: _totals,
+        isLoading: _loadingActivity,
+        warning: _warning,
+        notesText: _notes.trim().isNotEmpty ? _notes : _memoCtrl.text,
+        onViewAll: _customer == null ? null : _openCustomerHistory,
+        onEditNotes: _openNotesDialog,
       ),
-      invoiceDateField: InvoiceFormField(
-        label: 'Invoice Date',
-        child: InvoiceReadonlyTextField(
-          controller: _dateCtrl,
-          hint: 'dd/mm/yyyy',
-          suffixIcon: Icons.calendar_today_outlined,
-          enabled: !financialReadOnly,
-          onTap: _pickInvoiceDate,
-        ),
-      ),
-      dueDateField: InvoiceFormField(
-        label: l10n.dueDate,
-        child: InvoiceReadonlyTextField(
-          controller: _dueDateCtrl,
-          hint: 'dd/mm/yyyy',
-          suffixIcon: Icons.event_available_outlined,
-          enabled: !financialReadOnly,
-          onTap: _pickDueDate,
-        ),
-      ),
-      billingTermsField: InvoiceFormField(
-        label: 'Terms',
-        child: InvoiceTermsField(
-          value: _terms,
-          terms: _kInvoiceTerms,
-          enabled: !financialReadOnly,
-          onChanged: (terms) {
-            setState(() => _terms = terms);
-          },
-        ),
-      ),
-      memoField: InvoiceFormField(
-        label: 'Memo / Reference',
-        child: InvoiceMemoField(
-          controller: _memoCtrl,
-          onChanged: (_) => setState(() {}),
-        ),
-      ),
-      lines: _lines,
-      totals: _totals,
-      customer: _customer,
-      metrics: _metrics,
-      activities: _activities,
-      loadingActivity: _loadingActivity,
-      warning: _warning,
       statusBadgeText: _statusBadgeText,
       statusMessage: _statusMessage,
       statusColor: _statusColor,
-      memoText: _notes.trim().isNotEmpty ? _notes : _memoCtrl.text,
       saving: _saving,
       posting: _posting,
       isEdit: _isEdit,
       readOnly: financialReadOnly,
-      onAddLine: _addLine,
-      onLinesChanged: () {
-        if (financialReadOnly) return;
-        setState(() {
-          _preview = null;
-          _editingInvoice = null;
-          _savedInvoice = null;
-        });
-        _schedulePreview();
-      },
       onFind: () => context.go(AppRoutes.invoices),
-      onPrevious: _hasAdjacentInvoice(-1)
-          ? () => _openAdjacentInvoice(-1)
-          : null,
+      onPrevious: _hasAdjacentInvoice(-1) ? () => _openAdjacentInvoice(-1) : null,
       onNext: _hasAdjacentInvoice(1) ? () => _openAdjacentInvoice(1) : null,
-      onSaveDraft: canSaveDraft
-          ? () => _saveWithMode(_saveModeForDraft())
-          : null,
-      onSave: financialReadOnly
-          ? null
-          : () => _saveWithMode(_saveModeForPost()),
+      onNew: _handleClearOrNew,
+      onSaveDraft: canSaveDraft ? () => _saveWithMode(_saveModeForDraft()) : null,
+      onSave: financialReadOnly ? null : () => _saveWithMode(_saveModeForPost()),
       onSaveAndPrint: _handleSaveAndPrint,
       onSaveAndNew: financialReadOnly ? null : _saveAndNew,
-      onPost: financialReadOnly
-          ? null
-          : () => _saveWithMode(_saveModeForPost()),
       onPrint: _handlePrint,
       onPayment: _handlePayment,
       onRefund: _handleRefund,
       onVoid: canVoid ? _handleVoid : null,
       onClear: _handleClearOrNew,
       onClose: _goBack,
-      onViewAll: _customer == null ? null : _openCustomerHistory,
       onEditNotes: _openNotesDialog,
     );
   }

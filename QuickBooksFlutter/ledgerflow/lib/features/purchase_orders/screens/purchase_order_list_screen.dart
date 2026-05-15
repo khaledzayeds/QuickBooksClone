@@ -25,22 +25,301 @@ class _PurchaseOrderListScreenState
   final _queryCtrl = TextEditingController();
   DateTimeRange? _dateRange;
 
-  // ignore: unused_field
-  static const _filters = [
-    (null, 'الكل | All'),
-    (PurchaseOrderStatus.draft, 'مسودة | Draft'),
-    (PurchaseOrderStatus.open, 'مفتوح | Open'),
-    (PurchaseOrderStatus.closed, 'مغلق | Closed'),
-    (PurchaseOrderStatus.cancelled, 'ملغي | Cancelled'),
-  ];
-
   @override
   void dispose() {
     _queryCtrl.dispose();
     super.dispose();
   }
 
-  List<PurchaseOrderModel> _filtered(List<PurchaseOrderModel> orders) {
+  PurchaseOrderStatus? _toPurchaseOrderStatus(
+    _PurchaseOrderStatusFilter status,
+  ) {
+    return switch (status) {
+      _PurchaseOrderStatusFilter.all => null,
+      _PurchaseOrderStatusFilter.draft => PurchaseOrderStatus.draft,
+      _PurchaseOrderStatusFilter.open => PurchaseOrderStatus.open,
+      _PurchaseOrderStatusFilter.closed => PurchaseOrderStatus.closed,
+      _PurchaseOrderStatusFilter.cancelled => PurchaseOrderStatus.cancelled,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ordersAsync = ref.watch(purchaseOrdersProvider);
+    final l10n = AppLocalizations.of(context)!;
+    
+    final dateLabel = _dateRange == null
+        ? 'Any date'
+        : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8EDF0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: 74,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3F6F7),
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 8),
+                  _Tool(
+                    icon: Icons.search,
+                    label: 'Find',
+                    onTap: () => FocusScope.of(context).nextFocus(),
+                  ),
+                  _Tool(
+                    icon: Icons.note_add_outlined,
+                    label: 'New',
+                    onTap: () => context.push(AppRoutes.purchaseOrderNew),
+                  ),
+                  _Tool(
+                    icon: Icons.refresh,
+                    label: 'Refresh',
+                    onTap: () => ref.read(purchaseOrdersProvider.notifier).refresh(),
+                  ),
+                  const Spacer(),
+                  _Tool(
+                    icon: Icons.close,
+                    label: 'Close',
+                    onTap: () => context.go(AppRoutes.dashboard),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 190,
+                    child: Text(
+                      'Purchase Orders',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: const Color(0xFF243E4A),
+                            fontWeight: FontWeight.w300,
+                          ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _queryCtrl,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: Icon(Icons.search, size: 18),
+                        hintText: 'Search purchase order #, vendor, amount...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 200,
+                    height: 40,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(now.year - 5),
+                          lastDate: DateTime(now.year + 3),
+                          initialDateRange: _dateRange,
+                        );
+                        setState(() => _dateRange = picked);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        side: const BorderSide(color: Color(0xFF79747E)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.centerLeft,
+                      ),
+                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      label: Text(
+                        dateLabel,
+                        style: const TextStyle(color: Color(0xFF1D1B20)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 150,
+                    child: DropdownButtonFormField<_PurchaseOrderStatusFilter>(
+                      initialValue: _selectedStatus,
+                      isDense: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.all, child: Text('All')),
+                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.draft, child: Text('Draft')),
+                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.open, child: Text('Open')),
+                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.closed, child: Text('Closed')),
+                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.cancelled, child: Text('Cancelled')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedStatus = value ?? _PurchaseOrderStatusFilter.all);
+                        ref.read(purchaseOrdersProvider.notifier).setStatusFilter(_toPurchaseOrderStatus(_selectedStatus));
+                      },
+                    ),
+                  ),
+                  if (_dateRange != null) ...[
+                    const SizedBox(width: 10),
+                    IconButton(
+                      tooltip: 'Clear filters',
+                      icon: const Icon(Icons.clear, color: Colors.red),
+                      onPressed: () {
+                        setState(() {
+                          _dateRange = null;
+                          _selectedStatus = _PurchaseOrderStatusFilter.all;
+                          _queryCtrl.clear();
+                        });
+                        ref.read(purchaseOrdersProvider.notifier).setStatusFilter(null);
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Expanded(
+              child: ordersAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(error.toString())),
+                data: (orders) {
+                  final filtered = _filter(orders);
+                  if (filtered.isEmpty) {
+                    return Center(child: Text(l10n.noRecentTransactions));
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFF9EADB6)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 30,
+                            color: const Color(0xFFDDE8ED),
+                            child: const Row(
+                              children: [
+                                _HeaderCell('DATE', flex: 2),
+                                _HeaderCell('NUM', flex: 2),
+                                _HeaderCell('VENDOR', flex: 4),
+                                _HeaderCell('STATUS', flex: 2),
+                                _HeaderCell('EXPECTED', flex: 2),
+                                _HeaderCell('TOTAL', flex: 2, right: true),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final order = filtered[index];
+                                final shaded = index.isEven;
+                                
+                                return InkWell(
+                                  onTap: () => context.push(
+                                    AppRoutes.purchaseOrderDetails.replaceFirst(
+                                      ':id',
+                                      order.id,
+                                    ),
+                                  ),
+                                  child: Container(
+                                    height: 34,
+                                    color: shaded
+                                        ? const Color(0xFFDDEFF4)
+                                        : Colors.white,
+                                    child: Row(
+                                      children: [
+                                        _Cell(
+                                          _fmtDate(order.orderDate),
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          order.orderNumber.isEmpty
+                                              ? 'Purchase Order'
+                                              : order.orderNumber,
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          order.vendorName,
+                                          flex: 4,
+                                        ),
+                                        _CellWidget(
+                                          flex: 2,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: _StatusBadge(status: order.status),
+                                          ),
+                                        ),
+                                        _Cell(
+                                          _fmtDate(order.expectedDate),
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          _fmtMoney(order.totalAmount),
+                                          flex: 2,
+                                          right: true,
+                                          strong: true,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              height: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD4DDE3),
+                border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
+              ),
+              child: Text(
+                'Purchase Orders search  •  Enter opens purchase order workspace  •  Esc Close',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFF33434C),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<PurchaseOrderModel> _filter(List<PurchaseOrderModel> orders) {
     final query = _queryCtrl.text.trim().toLowerCase();
     return orders.where((order) {
       final matchesText =
@@ -66,356 +345,38 @@ class _PurchaseOrderListScreenState
           !date.isAfter(DateUtils.dateOnly(range.end));
     }).toList()..sort((a, b) => b.orderDate.compareTo(a.orderDate));
   }
+}
 
-  PurchaseOrderStatus? _toPurchaseOrderStatus(
-    _PurchaseOrderStatusFilter status,
-  ) {
-    return switch (status) {
-      _PurchaseOrderStatusFilter.all => null,
-      _PurchaseOrderStatusFilter.draft => PurchaseOrderStatus.draft,
-      _PurchaseOrderStatusFilter.open => PurchaseOrderStatus.open,
-      _PurchaseOrderStatusFilter.closed => PurchaseOrderStatus.closed,
-      _PurchaseOrderStatusFilter.cancelled => PurchaseOrderStatus.cancelled,
-    };
-  }
+class _Tool extends StatelessWidget {
+  const _Tool({required this.icon, required this.label, this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final ordersAsync = ref.watch(purchaseOrdersProvider);
-    final l10n = AppLocalizations.of(context)!;
-    final cs = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8EDF0),
-      appBar: AppBar(
-        title: Text(l10n.purchaseOrders),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () =>
-                ref.read(purchaseOrdersProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 12),
-            child: FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.purchaseOrderNew),
-              icon: const Icon(Icons.add),
-              label: Text(l10n.newText),
+    final enabled = onTap != null;
+    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 66,
+        height: 74,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+              ),
             ),
-          ),
-        ],
-      ),
-      body: ordersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: cs.error),
-              const SizedBox(height: 12),
-              Text(e.toString(), style: TextStyle(color: cs.error)),
-              const SizedBox(height: 12),
-              TextButton.icon(
-                icon: const Icon(Icons.refresh),
-                label: Text(l10n.retry),
-                onPressed: () =>
-                    ref.read(purchaseOrdersProvider.notifier).refresh(),
-              ),
-            ],
-          ),
-        ),
-        data: (orders) {
-          final filtered = _filtered(orders);
-          return Column(
-            children: [
-              _PurchaseOrderSearchBar(
-                controller: _queryCtrl,
-                selectedStatus: _selectedStatus,
-                dateRange: _dateRange,
-                totalCount: orders.length,
-                visibleCount: filtered.length,
-                onChanged: () => setState(() {}),
-                onStatusChanged: (status) {
-                  setState(() => _selectedStatus = status);
-                  ref
-                      .read(purchaseOrdersProvider.notifier)
-                      .setStatusFilter(_toPurchaseOrderStatus(status));
-                },
-                onDateRangeChanged: (range) =>
-                    setState(() => _dateRange = range),
-                onReset: () {
-                  setState(() {
-                    _queryCtrl.clear();
-                    _selectedStatus = _PurchaseOrderStatusFilter.all;
-                    _dateRange = null;
-                  });
-                  ref
-                      .read(purchaseOrdersProvider.notifier)
-                      .setStatusFilter(null);
-                },
-              ),
-              Expanded(
-                child: filtered.isEmpty
-                    ? _EmptyState(
-                        onNew: () => context.go(AppRoutes.purchaseOrderNew),
-                      )
-                    : _PurchaseOrderTable(
-                        orders: filtered,
-                        onOpen: (order) => context.go(
-                          AppRoutes.purchaseOrderDetails.replaceFirst(
-                            ':id',
-                            order.id,
-                          ),
-                        ),
-                      ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _PurchaseOrderSearchBar extends StatelessWidget {
-  const _PurchaseOrderSearchBar({
-    required this.controller,
-    required this.selectedStatus,
-    required this.dateRange,
-    required this.totalCount,
-    required this.visibleCount,
-    required this.onChanged,
-    required this.onStatusChanged,
-    required this.onDateRangeChanged,
-    required this.onReset,
-  });
-
-  final TextEditingController controller;
-  final _PurchaseOrderStatusFilter selectedStatus;
-  final DateTimeRange? dateRange;
-  final int totalCount;
-  final int visibleCount;
-  final VoidCallback onChanged;
-  final ValueChanged<_PurchaseOrderStatusFilter> onStatusChanged;
-  final ValueChanged<DateTimeRange?> onDateRangeChanged;
-  final VoidCallback onReset;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final dateLabel = dateRange == null
-        ? 'Any date'
-        : '${_fmtDate(dateRange!.start)} - ${_fmtDate(dateRange!.end)}';
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextField(
-                  controller: controller,
-                  onChanged: (_) => onChanged(),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search purchase order #, vendor, amount...',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final now = DateTime.now();
-                  final picked = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime(now.year - 5),
-                    lastDate: DateTime(now.year + 3),
-                    initialDateRange: dateRange,
-                  );
-                  onDateRangeChanged(picked);
-                },
-                icon: const Icon(Icons.date_range_outlined, size: 18),
-                label: Text(dateLabel),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: 'Reset filters',
-                onPressed: onReset,
-                icon: const Icon(Icons.filter_alt_off_outlined),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              SegmentedButton<_PurchaseOrderStatusFilter>(
-                segments: const [
-                  ButtonSegment(
-                    value: _PurchaseOrderStatusFilter.all,
-                    label: Text('All'),
-                    icon: Icon(Icons.all_inbox_outlined),
-                  ),
-                  ButtonSegment(
-                    value: _PurchaseOrderStatusFilter.draft,
-                    label: Text('Draft'),
-                    icon: Icon(Icons.drafts_outlined),
-                  ),
-                  ButtonSegment(
-                    value: _PurchaseOrderStatusFilter.open,
-                    label: Text('Open'),
-                    icon: Icon(Icons.pending_actions_outlined),
-                  ),
-                  ButtonSegment(
-                    value: _PurchaseOrderStatusFilter.closed,
-                    label: Text('Closed'),
-                    icon: Icon(Icons.check_circle_outline),
-                  ),
-                  ButtonSegment(
-                    value: _PurchaseOrderStatusFilter.cancelled,
-                    label: Text('Cancelled'),
-                    icon: Icon(Icons.block),
-                  ),
-                ],
-                selected: {selectedStatus},
-                onSelectionChanged: (next) => onStatusChanged(next.first),
-                showSelectedIcon: false,
-                style: SegmentedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '$visibleCount of $totalCount purchase orders',
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PurchaseOrderTable extends StatelessWidget {
-  const _PurchaseOrderTable({required this.orders, required this.onOpen});
-
-  final List<PurchaseOrderModel> orders;
-  final ValueChanged<PurchaseOrderModel> onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _PurchaseTableHeader(),
-        for (var i = 0; i < orders.length; i++)
-          _PurchaseOrderRow(
-            order: orders[i],
-            shaded: i.isOdd,
-            onOpen: () => onOpen(orders[i]),
-          ),
-      ],
-    );
-  }
-}
-
-class _PurchaseTableHeader extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final style = TextStyle(
-      color: cs.onSurfaceVariant,
-      fontSize: 11,
-      fontWeight: FontWeight.w900,
-    );
-    return Container(
-      height: 34,
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          _HeaderCell('DATE', flex: 1, style: style),
-          _HeaderCell('NUM', flex: 2, style: style),
-          _HeaderCell('VENDOR', flex: 3, style: style),
-          _HeaderCell('STATUS', flex: 1, style: style),
-          _HeaderCell('EXPECTED', flex: 1, style: style),
-          _HeaderCell('TOTAL', flex: 1, style: style, right: true),
-        ],
-      ),
-    );
-  }
-}
-
-class _PurchaseOrderRow extends StatelessWidget {
-  const _PurchaseOrderRow({
-    required this.order,
-    required this.shaded,
-    required this.onOpen,
-  });
-
-  final PurchaseOrderModel order;
-  final bool shaded;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final bg = shaded ? const Color(0xFFF4F7F8) : cs.surface;
-    return Material(
-      color: bg,
-      child: InkWell(
-        hoverColor: const Color(0xFFDCEBF0),
-        onTap: onOpen,
-        child: Container(
-          height: 42,
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: cs.outlineVariant),
-              right: BorderSide(color: cs.outlineVariant),
-              bottom: BorderSide(color: cs.outlineVariant),
-            ),
-          ),
-          child: Row(
-            children: [
-              _DataCell(_fmtDate(order.orderDate), flex: 1),
-              _DataCell(
-                order.orderNumber.isEmpty
-                    ? 'Purchase Order'
-                    : order.orderNumber,
-                flex: 2,
-                bold: true,
-              ),
-              _DataCell(order.vendorName, flex: 3),
-              Expanded(
-                flex: 1,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _StatusBadge(status: order.status),
-                ),
-              ),
-              _DataCell(_fmtDate(order.expectedDate), flex: 1),
-              _DataCell(
-                _fmtMoney(order.totalAmount),
-                flex: 1,
-                right: true,
-                bold: true,
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -423,66 +384,84 @@ class _PurchaseOrderRow extends StatelessWidget {
 }
 
 class _HeaderCell extends StatelessWidget {
-  const _HeaderCell(
-    this.text, {
-    required this.flex,
-    required this.style,
-    this.right = false,
-  });
-
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
   final String text;
   final int flex;
-  final TextStyle style;
   final bool right;
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text(
-          text,
-          textAlign: right ? TextAlign.right : TextAlign.left,
-          style: style,
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _DataCell extends StatelessWidget {
-  const _DataCell(
+class _Cell extends StatelessWidget {
+  const _Cell(
     this.text, {
     required this.flex,
     this.right = false,
-    this.bold = false,
+    this.strong = false,
+    this.color,
   });
-
   final String text;
   final int flex;
   final bool right;
-  final bool bold;
+  final bool strong;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: right ? TextAlign.right : TextAlign.left,
-          style: TextStyle(
-            color: const Color(0xFF263D47),
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-          ),
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: Text(
+        text,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+          color: color ?? const Color(0xFF273F4B),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _CellWidget extends StatelessWidget {
+  const _CellWidget({
+    required this.child,
+    required this.flex,
+  });
+  final Widget child;
+  final int flex;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: child,
+    ),
+  );
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────
@@ -520,39 +499,6 @@ class _StatusBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─── Empty State ──────────────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onNew});
-  final VoidCallback onNew;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.receipt_long_outlined,
-          size: 64,
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'لا توجد أوامر شراء | No purchase orders',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        const Text('ابدأ بإنشاء أمر شراء جديد'),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.add),
-          label: const Text('أمر جديد | New Order'),
-          onPressed: onNew,
-        ),
-      ],
-    ),
-  );
 }
 
 String _fmtDate(DateTime value) => DateFormat('dd/MM/yyyy').format(value);

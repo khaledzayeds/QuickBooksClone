@@ -16,6 +16,7 @@ import '../data/models/purchase_order_model.dart';
 import '../providers/purchase_orders_provider.dart';
 import '../../../../app/router.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 
 class PurchaseOrderFormScreen extends ConsumerStatefulWidget {
   const PurchaseOrderFormScreen({super.key, this.id});
@@ -366,67 +367,40 @@ class _PurchaseOrderFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final fmt = DateFormat('dd/MM/yyyy');
-
     if (_loadingExisting) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    final l10n = AppLocalizations.of(context)!;
+    final fmt = DateFormat('dd/MM/yyyy');
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8EDF0),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _PoCommandBar(
-              saving: _saving,
-              onPrevious: _hasAdjacentOrder(-1)
-                  ? () => _openAdjacentOrder(-1)
-                  : null,
-              onNext: _hasAdjacentOrder(1) ? () => _openAdjacentOrder(1) : null,
-              onFind: () => context.go(AppRoutes.purchaseOrders),
-              onNew: () => context.go(AppRoutes.purchaseOrderNew),
-              onSaveDraft: _canSaveDraft ? () => _save(SaveMode.draft) : null,
-              onSaveOpen: _canOpen ? () => _save(SaveMode.saveAsOpen) : null,
-              onReceive: _canReceive ? _receiveInventory : null,
-              onClear: _clear,
-              onClose: _cancel,
-            ),
-            if (_statusMessage != null && _statusBadgeText != null)
-              _PoStatusStrip(
-                badgeText: _statusBadgeText!,
-                message: _statusMessage!,
-                color: _statusColor,
-              ),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: _buildMainForm(l10n, fmt)),
-                  _CollapsiblePoSidePanel(
-                    child: _PoSidePanel(vendorId: _vendor?.id),
-                  ),
-                ],
-              ),
-            ),
-            const _PoShortcutStrip(),
-          ],
-        ),
-      ),
+    return TransactionWorkspaceShell(
+      workspaceName: 'Purchase order workspace',
+      saving: _saving,
+      posting: false,
+      isEdit: _isEdit,
+      readOnly: _readOnly,
+      onFind: () => context.go(AppRoutes.purchaseOrders),
+      onPrevious: _hasAdjacentOrder(-1) ? () => _openAdjacentOrder(-1) : null,
+      onNext: _hasAdjacentOrder(1) ? () => _openAdjacentOrder(1) : null,
+      onNew: () => context.go(AppRoutes.purchaseOrderNew),
+      onSaveDraft: _canSaveDraft ? () => _save(SaveMode.draft) : null,
+      onSave: _canOpen ? () => _save(SaveMode.saveAsOpen) : null,
+      onReceive: _canReceive ? _receiveInventory : null,
+      onClear: _clear,
+      onClose: _cancel,
+      showReceive: true,
+      statusBadgeText: _statusBadgeText,
+      statusMessage: _statusMessage,
+      statusColor: _statusColor,
+      formContent: _buildMainForm(l10n, fmt),
+      contextPanel: _PoSidePanel(vendorId: _vendor?.id),
     );
   }
 
   Widget _buildMainForm(AppLocalizations l10n, DateFormat fmt) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.fromLTRB(10, 8, 0, 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB9C3CA)),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(10),
-        child: Column(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(10),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
@@ -594,7 +568,6 @@ class _PurchaseOrderFormScreenState
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -665,292 +638,7 @@ class _DateField extends StatelessWidget {
   );
 }
 
-class _PoCommandBar extends StatelessWidget {
-  const _PoCommandBar({
-    required this.saving,
-    required this.onFind,
-    required this.onNew,
-    required this.onClear,
-    required this.onClose,
-    this.onPrevious,
-    this.onNext,
-    this.onSaveDraft,
-    this.onSaveOpen,
-    this.onReceive,
-  });
 
-  final bool saving;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-  final VoidCallback onFind;
-  final VoidCallback onNew;
-  final VoidCallback? onSaveDraft;
-  final VoidCallback? onSaveOpen;
-  final VoidCallback? onReceive;
-  final VoidCallback onClear;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 74,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF3F6F7),
-        border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 8),
-          _PoTool(
-            icon: Icons.arrow_back,
-            label: 'Prev',
-            onTap: saving ? null : onPrevious,
-          ),
-          _PoTool(
-            icon: Icons.arrow_forward,
-            label: 'Next',
-            onTap: saving ? null : onNext,
-          ),
-          _PoTool(
-            icon: Icons.search,
-            label: 'Find',
-            onTap: saving ? null : onFind,
-          ),
-          _PoTool(
-            icon: Icons.note_add_outlined,
-            label: 'New',
-            onTap: saving ? null : onNew,
-          ),
-          _PoSaveTool(
-            saving: saving,
-            onSaveDraft: onSaveDraft,
-            onSaveOpen: onSaveOpen,
-          ),
-          _PoTool(
-            icon: Icons.drafts_outlined,
-            label: 'Draft',
-            onTap: saving ? null : onSaveDraft,
-          ),
-          _PoTool(
-            icon: Icons.delete_outline,
-            label: 'Clear',
-            onTap: saving ? null : onClear,
-          ),
-          const _PoSeparator(),
-          _PoTool(icon: Icons.print_outlined, label: 'Print', onTap: null),
-          _PoTool(icon: Icons.mail_outline, label: 'Email', onTap: null),
-          _PoTool(
-            icon: Icons.inventory_2_outlined,
-            label: 'Receive',
-            onTap: saving ? null : onReceive,
-          ),
-          const Spacer(),
-          _PoTool(icon: Icons.close, label: 'Close', onTap: onClose),
-          const SizedBox(width: 12),
-        ],
-      ),
-    );
-  }
-}
-
-class _PoSaveTool extends StatelessWidget {
-  const _PoSaveTool({required this.saving, this.onSaveDraft, this.onSaveOpen});
-
-  final bool saving;
-  final VoidCallback? onSaveDraft;
-  final VoidCallback? onSaveOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: 'Save options',
-      enabled: !saving && (onSaveDraft != null || onSaveOpen != null),
-      onSelected: (value) {
-        if (value == 'draft') onSaveDraft?.call();
-        if (value == 'open') onSaveOpen?.call();
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'draft',
-          enabled: onSaveDraft != null,
-          child: const Text('Save Draft'),
-        ),
-        PopupMenuItem(
-          value: 'open',
-          enabled: onSaveOpen != null,
-          child: const Text('Save & Open'),
-        ),
-      ],
-      child: _PoToolBody(
-        icon: saving ? Icons.hourglass_top : Icons.save_outlined,
-        label: 'Save',
-        enabled: !saving && (onSaveDraft != null || onSaveOpen != null),
-        hasMenu: true,
-      ),
-    );
-  }
-}
-
-class _PoTool extends StatelessWidget {
-  const _PoTool({required this.icon, required this.label, this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      waitDuration: const Duration(milliseconds: 350),
-      child: InkWell(
-        onTap: onTap,
-        child: _PoToolBody(icon: icon, label: label, enabled: onTap != null),
-      ),
-    );
-  }
-}
-
-class _PoToolBody extends StatefulWidget {
-  const _PoToolBody({
-    required this.icon,
-    required this.label,
-    required this.enabled,
-    this.hasMenu = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool enabled;
-  final bool hasMenu;
-
-  @override
-  State<_PoToolBody> createState() => _PoToolBodyState();
-}
-
-class _PoToolBodyState extends State<_PoToolBody> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = widget.enabled
-        ? const Color(0xFF1F5163)
-        : const Color(0xFF8A9AA3);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        width: 64,
-        height: 62,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color: widget.enabled && _hovered
-              ? const Color(0xFFE3EEF3)
-              : Colors.transparent,
-          border: Border.all(
-            color: widget.enabled && _hovered
-                ? const Color(0xFFB7C9D2)
-                : Colors.transparent,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(widget.icon, size: 22, color: color),
-            const SizedBox(height: 5),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: Text(
-                    widget.label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                if (widget.hasMenu)
-                  Icon(Icons.arrow_drop_down, size: 13, color: color),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PoSeparator extends StatelessWidget {
-  const _PoSeparator();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 44,
-    margin: const EdgeInsets.symmetric(horizontal: 8),
-    color: const Color(0xFFCAD4DA),
-  );
-}
-
-class _PoStatusStrip extends StatelessWidget {
-  const _PoStatusStrip({
-    required this.badgeText,
-    required this.message,
-    required this.color,
-  });
-
-  final String badgeText;
-  final String message;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
-        border: Border(bottom: BorderSide(color: color.withOpacity(0.35))),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 20,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: Text(
-              badgeText,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _PoTopSearchBar extends StatelessWidget {
   const _PoTopSearchBar({required this.label, required this.child});
@@ -1106,82 +794,5 @@ class _PoSidePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TransactionSidebar(vendorId: vendorId);
-  }
-}
-
-class _CollapsiblePoSidePanel extends StatefulWidget {
-  const _CollapsiblePoSidePanel({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_CollapsiblePoSidePanel> createState() =>
-      _CollapsiblePoSidePanelState();
-}
-
-class _CollapsiblePoSidePanelState extends State<_CollapsiblePoSidePanel> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      width: _expanded ? 258 : 38,
-      margin: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(color: const Color(0xFFB9C3CA)),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          if (_expanded) Positioned.fill(child: widget.child),
-          Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              color: const Color(0xFFE6EEF2),
-              child: InkWell(
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: Tooltip(
-                  message: _expanded ? 'Hide side panel' : 'Show side panel',
-                  child: SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: Icon(
-                      _expanded ? Icons.chevron_right : Icons.chevron_left,
-                      size: 22,
-                      color: const Color(0xFF2B4A56),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PoShortcutStrip extends StatelessWidget {
-  const _PoShortcutStrip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 25,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      color: const Color(0xFFD6E0E6),
-      child: const Text(
-        'Purchase order workspace  •  F4 Save Draft  •  Ctrl+P Print  •  Esc Close',
-        style: TextStyle(
-          color: Color(0xFF203A49),
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 }

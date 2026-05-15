@@ -10,8 +10,6 @@ import '../../../app/router.dart';
 import '../data/models/invoice_contracts.dart';
 import '../providers/invoices_state.dart';
 
-enum _InvoiceStatusFilter { all, open, draft, paid, voided }
-
 class InvoicesListPage extends ConsumerStatefulWidget {
   const InvoicesListPage({super.key});
 
@@ -21,7 +19,7 @@ class InvoicesListPage extends ConsumerStatefulWidget {
 
 class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
   final _searchCtrl = TextEditingController();
-  _InvoiceStatusFilter _status = _InvoiceStatusFilter.all;
+  String _status = 'all';
   DateTimeRange? _dateRange;
 
   @override
@@ -32,64 +30,280 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final invoicesAsync = ref.watch(invoicesStateProvider);
+    final l10n = AppLocalizations.of(context)!;
+    
+    final dateLabel = _dateRange == null
+        ? 'Any date'
+        : '${_date(_dateRange!.start)} - ${_date(_dateRange!.end)}';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.invoices),
-        actions: [
-          IconButton(
-            tooltip: l10n.retry,
-            onPressed: () => ref.read(invoicesStateProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 12),
-            child: FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.invoiceNew),
-              icon: const Icon(Icons.add),
-              label: Text(l10n.newText),
+      backgroundColor: const Color(0xFFE8EDF0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: 74,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3F6F7),
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 8),
+                  _Tool(
+                    icon: Icons.search,
+                    label: 'Find',
+                    onTap: () => FocusScope.of(context).nextFocus(),
+                  ),
+                  _Tool(
+                    icon: Icons.note_add_outlined,
+                    label: 'New',
+                    onTap: () => context.push(AppRoutes.invoiceNew),
+                  ),
+                  _Tool(
+                    icon: Icons.refresh,
+                    label: 'Refresh',
+                    onTap: () => ref.read(invoicesStateProvider.notifier).refresh(),
+                  ),
+                  const Spacer(),
+                  _Tool(
+                    icon: Icons.close,
+                    label: 'Close',
+                    onTap: () => context.go(AppRoutes.dashboard),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      body: invoicesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: error.toString(),
-          onRetry: () => ref.read(invoicesStateProvider.notifier).refresh(),
-        ),
-        data: (invoices) {
-          final filtered = _filter(invoices);
-          return Column(
-            children: [
-              _InvoiceSearchBar(
-                controller: _searchCtrl,
-                status: _status,
-                dateRange: _dateRange,
-                totalCount: invoices.length,
-                visibleCount: filtered.length,
-                onChanged: () => setState(() {}),
-                onStatusChanged: (status) => setState(() => _status = status),
-                onDateRangeChanged: (range) =>
-                    setState(() => _dateRange = range),
-                onReset: () {
-                  setState(() {
-                    _searchCtrl.clear();
-                    _status = _InvoiceStatusFilter.all;
-                    _dateRange = null;
-                  });
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 190,
+                    child: Text(
+                      'Invoices',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: const Color(0xFF243E4A),
+                            fontWeight: FontWeight.w300,
+                          ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: Icon(Icons.search, size: 18),
+                        hintText: 'Search invoice #, customer, amount...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 200,
+                    height: 40,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(now.year - 5),
+                          lastDate: DateTime(now.year + 3),
+                          initialDateRange: _dateRange,
+                        );
+                        setState(() => _dateRange = picked);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        side: const BorderSide(color: Color(0xFF79747E)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.centerLeft,
+                      ),
+                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      label: Text(
+                        dateLabel,
+                        style: const TextStyle(color: Color(0xFF1D1B20)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 150,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _status,
+                      isDense: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('All')),
+                        DropdownMenuItem(value: 'open', child: Text('Open')),
+                        DropdownMenuItem(value: 'draft', child: Text('Draft')),
+                        DropdownMenuItem(value: 'paid', child: Text('Paid')),
+                        DropdownMenuItem(value: 'voided', child: Text('Voided')),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _status = value ?? 'all'),
+                    ),
+                  ),
+                  if (_dateRange != null) ...[
+                    const SizedBox(width: 10),
+                    IconButton(
+                      tooltip: 'Clear filters',
+                      icon: const Icon(Icons.clear, color: Colors.red),
+                      onPressed: () {
+                        setState(() {
+                          _dateRange = null;
+                          _status = 'all';
+                          _searchCtrl.clear();
+                        });
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Expanded(
+              child: invoicesAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(error.toString())),
+                data: (invoices) {
+                  final filtered = _filter(invoices);
+                  if (filtered.isEmpty) {
+                    return Center(child: Text(l10n.noRecentTransactions));
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFF9EADB6)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 30,
+                            color: const Color(0xFFDDE8ED),
+                            child: const Row(
+                              children: [
+                                _HeaderCell('DATE', flex: 2),
+                                _HeaderCell('NUM', flex: 2),
+                                _HeaderCell('CUSTOMER', flex: 4),
+                                _HeaderCell('STATUS', flex: 2),
+                                _HeaderCell('DUE', flex: 2),
+                                _HeaderCell('TOTAL', flex: 2, right: true),
+                                _HeaderCell('BALANCE', flex: 2, right: true),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (context, index) {
+                                final invoice = filtered[index];
+                                final shaded = index.isEven;
+                                final statusColor = _statusColor(invoice);
+                                
+                                return InkWell(
+                                  onTap: () => context.push(
+                                    AppRoutes.invoiceDetails.replaceFirst(
+                                      ':id',
+                                      invoice.id,
+                                    ),
+                                  ),
+                                  child: Container(
+                                    height: 34,
+                                    color: shaded
+                                        ? const Color(0xFFDDEFF4)
+                                        : Colors.white,
+                                    child: Row(
+                                      children: [
+                                        _Cell(
+                                          _date(invoice.invoiceDate),
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          invoice.invoiceNumber.isEmpty
+                                              ? 'Invoice'
+                                              : invoice.invoiceNumber,
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          invoice.customerName,
+                                          flex: 4,
+                                        ),
+                                        _Cell(
+                                          _statusLabel(invoice), 
+                                          flex: 2,
+                                          color: statusColor,
+                                          strong: true,
+                                        ),
+                                        _Cell(
+                                          _date(invoice.dueDate),
+                                          flex: 2,
+                                        ),
+                                        _Cell(
+                                          _fmtMoney(invoice.totalAmount),
+                                          flex: 2,
+                                          right: true,
+                                        ),
+                                        _Cell(
+                                          _fmtMoney(invoice.balanceDue),
+                                          flex: 2,
+                                          right: true,
+                                          strong: true,
+                                          color: invoice.balanceDue > 0 ? Colors.red.shade700 : const Color(0xFF177A25),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
               ),
-              Expanded(
-                child: filtered.isEmpty
-                    ? _EmptyState(l10n: l10n, hasFilters: invoices.isNotEmpty)
-                    : _InvoiceResultsTable(invoices: filtered),
+            ),
+            Container(
+              height: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.centerLeft,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD4DDE3),
+                border: Border(top: BorderSide(color: Color(0xFFAFBBC4))),
               ),
-            ],
-          );
-        },
+              child: Text(
+                'Invoices search  •  Enter opens invoice workspace  •  Esc Close',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFF33434C),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -106,12 +320,13 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
       if (!matchesQuery) return false;
 
       final matchesStatus = switch (_status) {
-        _InvoiceStatusFilter.all => true,
-        _InvoiceStatusFilter.open =>
+        'all' => true,
+        'open' =>
           !invoice.isDraft && !invoice.isVoid && invoice.balanceDue > 0,
-        _InvoiceStatusFilter.draft => invoice.isDraft,
-        _InvoiceStatusFilter.paid => invoice.isPaid && !invoice.isVoid,
-        _InvoiceStatusFilter.voided => invoice.isVoid,
+        'draft' => invoice.isDraft,
+        'paid' => invoice.isPaid && !invoice.isVoid,
+        'voided' => invoice.isVoid,
+        _ => true,
       };
       if (!matchesStatus) return false;
 
@@ -125,248 +340,13 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
     filtered.sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
     return filtered;
   }
-}
 
-class _InvoiceSearchBar extends StatelessWidget {
-  const _InvoiceSearchBar({
-    required this.controller,
-    required this.status,
-    required this.dateRange,
-    required this.totalCount,
-    required this.visibleCount,
-    required this.onChanged,
-    required this.onStatusChanged,
-    required this.onDateRangeChanged,
-    required this.onReset,
-  });
+  static String _date(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
-  final TextEditingController controller;
-  final _InvoiceStatusFilter status;
-  final DateTimeRange? dateRange;
-  final int totalCount;
-  final int visibleCount;
-  final VoidCallback onChanged;
-  final ValueChanged<_InvoiceStatusFilter> onStatusChanged;
-  final ValueChanged<DateTimeRange?> onDateRangeChanged;
-  final VoidCallback onReset;
+  static String _fmtMoney(double value) => NumberFormat('#,##0.00').format(value);
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final dateLabel = dateRange == null
-        ? 'Any date'
-        : '${_fmtDate(dateRange!.start)} - ${_fmtDate(dateRange!.end)}';
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextField(
-                  controller: controller,
-                  onChanged: (_) => onChanged(),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search invoice #, customer, amount...',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final now = DateTime.now();
-                  final picked = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime(now.year - 5),
-                    lastDate: DateTime(now.year + 3),
-                    initialDateRange: dateRange,
-                  );
-                  onDateRangeChanged(picked);
-                },
-                icon: const Icon(Icons.date_range_outlined, size: 18),
-                label: Text(dateLabel),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: 'Reset filters',
-                onPressed: onReset,
-                icon: const Icon(Icons.filter_alt_off_outlined),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              SegmentedButton<_InvoiceStatusFilter>(
-                segments: const [
-                  ButtonSegment(
-                    value: _InvoiceStatusFilter.all,
-                    label: Text('All'),
-                    icon: Icon(Icons.all_inbox_outlined),
-                  ),
-                  ButtonSegment(
-                    value: _InvoiceStatusFilter.open,
-                    label: Text('Open'),
-                    icon: Icon(Icons.pending_actions_outlined),
-                  ),
-                  ButtonSegment(
-                    value: _InvoiceStatusFilter.draft,
-                    label: Text('Draft'),
-                    icon: Icon(Icons.drafts_outlined),
-                  ),
-                  ButtonSegment(
-                    value: _InvoiceStatusFilter.paid,
-                    label: Text('Paid'),
-                    icon: Icon(Icons.check_circle_outline),
-                  ),
-                  ButtonSegment(
-                    value: _InvoiceStatusFilter.voided,
-                    label: Text('Void'),
-                    icon: Icon(Icons.block),
-                  ),
-                ],
-                selected: {status},
-                onSelectionChanged: (next) => onStatusChanged(next.first),
-                showSelectedIcon: false,
-                style: SegmentedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '$visibleCount of $totalCount invoices',
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InvoiceResultsTable extends StatelessWidget {
-  const _InvoiceResultsTable({required this.invoices});
-
-  final List<InvoiceModel> invoices;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _TableHeader(),
-        for (var i = 0; i < invoices.length; i++)
-          _InvoiceRow(invoice: invoices[i], shaded: i.isOdd),
-      ],
-    );
-  }
-}
-
-class _TableHeader extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final style = TextStyle(
-      color: cs.onSurfaceVariant,
-      fontSize: 11,
-      fontWeight: FontWeight.w900,
-    );
-    return Container(
-      height: 34,
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          _HeaderCell('DATE', flex: 1, style: style),
-          _HeaderCell('NUM', flex: 2, style: style),
-          _HeaderCell('CUSTOMER', flex: 3, style: style),
-          _HeaderCell('STATUS', flex: 1, style: style),
-          _HeaderCell('DUE', flex: 1, style: style),
-          _HeaderCell('TOTAL', flex: 1, style: style, right: true),
-          _HeaderCell('BALANCE', flex: 1, style: style, right: true),
-        ],
-      ),
-    );
-  }
-}
-
-class _InvoiceRow extends StatelessWidget {
-  const _InvoiceRow({required this.invoice, required this.shaded});
-
-  final InvoiceModel invoice;
-  final bool shaded;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final bg = shaded ? const Color(0xFFF4F7F8) : cs.surface;
-    final statusColor = _statusColor(cs);
-    return Material(
-      color: bg,
-      child: InkWell(
-        hoverColor: const Color(0xFFDCEBF0),
-        onTap: () => context.go(
-          AppRoutes.invoiceDetails.replaceFirst(':id', invoice.id),
-        ),
-        child: Container(
-          height: 42,
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: cs.outlineVariant),
-              right: BorderSide(color: cs.outlineVariant),
-              bottom: BorderSide(color: cs.outlineVariant),
-            ),
-          ),
-          child: Row(
-            children: [
-              _DataCell(_fmtDate(invoice.invoiceDate), flex: 1),
-              _DataCell(
-                invoice.invoiceNumber.isEmpty
-                    ? 'Invoice'
-                    : invoice.invoiceNumber,
-                flex: 2,
-                bold: true,
-              ),
-              _DataCell(invoice.customerName, flex: 3),
-              Expanded(
-                flex: 1,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _StatusPill(label: _statusLabel, color: statusColor),
-                ),
-              ),
-              _DataCell(_fmtDate(invoice.dueDate), flex: 1),
-              _DataCell(_fmtMoney(invoice.totalAmount), flex: 1, right: true),
-              _DataCell(
-                _fmtMoney(invoice.balanceDue),
-                flex: 1,
-                right: true,
-                color: invoice.balanceDue > 0 ? cs.error : cs.primary,
-                bold: true,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String get _statusLabel {
+  static String _statusLabel(InvoiceModel invoice) {
     if (invoice.isVoid) return 'Void';
     if (invoice.isPaid) return 'Paid';
     if (invoice.isPartiallyPaid) return 'Partial';
@@ -374,186 +354,106 @@ class _InvoiceRow extends StatelessWidget {
     return 'Open';
   }
 
-  Color _statusColor(ColorScheme cs) {
-    if (invoice.isVoid) return cs.error;
-    if (invoice.isPaid) return cs.primary;
+  static Color _statusColor(InvoiceModel invoice) {
+    if (invoice.isVoid) return Colors.red.shade700;
+    if (invoice.isPaid) return const Color(0xFF177A25);
     if (invoice.isPartiallyPaid) return Colors.orange.shade800;
-    if (invoice.isDraft) return cs.tertiary;
+    if (invoice.isDraft) return const Color(0xFF7D8B93);
     return const Color(0xFF177A25);
   }
 }
 
-class _HeaderCell extends StatelessWidget {
-  const _HeaderCell(
-    this.text, {
-    required this.flex,
-    required this.style,
-    this.right = false,
-  });
-
-  final String text;
-  final int flex;
-  final TextStyle style;
-  final bool right;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text(
-          text,
-          textAlign: right ? TextAlign.right : TextAlign.left,
-          style: style,
-        ),
-      ),
-    );
-  }
-}
-
-class _DataCell extends StatelessWidget {
-  const _DataCell(
-    this.text, {
-    required this.flex,
-    this.right = false,
-    this.bold = false,
-    this.color,
-  });
-
-  final String text;
-  final int flex;
-  final bool right;
-  final bool bold;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: right ? TextAlign.right : TextAlign.left,
-          style: TextStyle(
-            color: color,
-            fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.label, required this.color});
-
+class _Tool extends StatelessWidget {
+  const _Tool({required this.icon, required this.label, this.onTap});
+  final IconData icon;
   final String label;
-  final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        border: Border.all(color: color.withValues(alpha: 0.45)),
-        borderRadius: BorderRadius.circular(3),
+    final enabled = onTap != null;
+    final color = enabled ? const Color(0xFF234C5D) : const Color(0xFF7D8B93);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 66,
+        height: 74,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: enabled ? FontWeight.w900 : FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
+  final String text;
+  final int flex;
+  final bool right;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
           fontWeight: FontWeight.w900,
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.l10n, required this.hasFilters});
-
-  final AppLocalizations l10n;
-  final bool hasFilters;
+class _Cell extends StatelessWidget {
+  const _Cell(
+    this.text, {
+    required this.flex,
+    this.right = false,
+    this.strong = false,
+    this.color,
+  });
+  final String text;
+  final int flex;
+  final bool right;
+  final bool strong;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.receipt_long_outlined, size: 56),
-            const SizedBox(height: 16),
-            Text(
-              hasFilters ? 'No invoices match your filters' : l10n.invoices,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              hasFilters
-                  ? 'Reset the filters or refine the search.'
-                  : l10n.creditSale,
-              textAlign: TextAlign.center,
-            ),
-            if (!hasFilters) ...[
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () => context.go(AppRoutes.invoiceNew),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.createInvoice),
-              ),
-            ],
-          ],
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: Text(
+        text,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+          color: color ?? const Color(0xFF273F4B),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.retry),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-String _fmtDate(DateTime date) => DateFormat('dd/MM/yyyy').format(date);
-
-String _fmtMoney(double value) => NumberFormat('#,##0.00').format(value);
