@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/app/router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
@@ -570,7 +571,7 @@ class _BillHeader extends StatelessWidget {
   }
 }
 
-class _InlineVendorField extends StatelessWidget {
+class _InlineVendorField extends StatefulWidget {
   const _InlineVendorField({
     required this.vendors,
     required this.selected,
@@ -582,37 +583,93 @@ class _InlineVendorField extends StatelessWidget {
   final ValueChanged<VendorModel?> onSelected;
 
   @override
+  State<_InlineVendorField> createState() => _InlineVendorFieldState();
+}
+
+class _InlineVendorFieldState extends State<_InlineVendorField> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  List<VendorModel> _matches(String q) {
+    final text = q.trim().toLowerCase();
+    if (text.isEmpty) return widget.vendors.take(20).toList();
+    return widget.vendors
+        .where((v) =>
+            v.displayName.toLowerCase().contains(text) ||
+            (v.companyName?.toLowerCase().contains(text) ?? false) ||
+            (v.phone?.contains(text) ?? false) ||
+            (v.email?.toLowerCase().contains(text) ?? false))
+        .take(20)
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Autocomplete<VendorModel>(
-      key: ValueKey(selected?.id ?? 'bill-vendor'),
-      displayStringForOption: (vendor) => vendor.displayName,
-      initialValue: TextEditingValue(text: selected?.displayName ?? ''),
-      optionsBuilder: (value) {
-        final query = value.text.trim().toLowerCase();
-        if (query.isEmpty) return vendors.take(20);
-        return vendors
-            .where((vendor) => vendor.displayName.toLowerCase().contains(query))
-            .take(20);
-      },
-      onSelected: onSelected,
-      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-        return SizedBox(
-          height: 30,
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            decoration: const InputDecoration(
-              isDense: true,
-              filled: true,
-              fillColor: Colors.white,
-              prefixIcon: Icon(Icons.search, size: 16),
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-              border: OutlineInputBorder(),
-              hintText: 'Select vendor',
-            ),
+    if (widget.selected != null &&
+        _ctrl.text != widget.selected!.displayName) {
+      _ctrl.text = widget.selected!.displayName;
+    }
+    return SizedBox(
+      height: 30,
+      child: TypeAheadField<VendorModel>(
+        textFieldConfiguration: TextFieldConfiguration(
+          controller: _ctrl,
+          style: const TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.15),
+            prefixIcon: const Icon(Icons.search, size: 16, color: Colors.white70),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+            border: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+            enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+            focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white, width: 1.5)),
+            hintText: 'Search vendor...',
+            hintStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+            suffixIcon: widget.selected != null
+                ? IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.clear, size: 16, color: Colors.white70),
+                    onPressed: () {
+                      _ctrl.clear();
+                      widget.onSelected(null);
+                    },
+                  )
+                : null,
           ),
-        );
-      },
+        ),
+        suggestionsCallback: _matches,
+        itemBuilder: (context, vendor) => ListTile(
+          dense: true,
+          leading: CircleAvatar(
+              radius: 14,
+              child: Text(vendor.initials,
+                  style: const TextStyle(fontSize: 10))),
+          title: Text(vendor.displayName,
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text(
+              '${vendor.primaryContact} | Bal: ${vendor.balance.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 11)),
+        ),
+        onSuggestionSelected: (vendor) {
+          _ctrl.text = vendor.displayName;
+          widget.onSelected(vendor);
+        },
+        noItemsFoundBuilder: (_) => const Padding(
+            padding: EdgeInsets.all(10), child: Text('No vendors found')),
+        suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+            elevation: 4, constraints: BoxConstraints(maxHeight: 280)),
+      ),
     );
   }
 }

@@ -2,14 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
 import '../../../core/constants/api_enums.dart'
     show AccountType, CustomerCreditAction, PaymentMethod;
-import '../../../core/widgets/app_text_field.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../../customers/data/models/customer_model.dart';
@@ -30,14 +29,36 @@ class CustomerCreditFormScreen extends ConsumerStatefulWidget {
 
 class _CustomerCreditFormScreenState
     extends ConsumerState<CustomerCreditFormScreen> {
-  String? _customerId;
-  String? _invoiceId;
+  CustomerModel? _selectedCustomer;
+  InvoiceModel? _selectedInvoice;
   String? _refundAccountId;
   final DateTime _activityDate = DateTime.now();
   double _amount = 0;
   CustomerCreditAction _action = CustomerCreditAction.applyToInvoice;
   PaymentMethod _paymentMethod = PaymentMethod.cash;
   bool _saving = false;
+
+  final _customerCtrl = TextEditingController();
+  final _invoiceCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _customerCtrl.dispose();
+    _invoiceCtrl.dispose();
+    super.dispose();
+  }
+
+  void _clearState() {
+    setState(() {
+      _selectedCustomer = null;
+      _selectedInvoice = null;
+      _refundAccountId = null;
+      _amount = 0;
+      _action = CustomerCreditAction.applyToInvoice;
+    });
+    _customerCtrl.clear();
+    _invoiceCtrl.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,16 +67,37 @@ class _CustomerCreditFormScreenState
     final invoicesAsync = ref.watch(invoicesProvider);
     final accountsAsync = ref.watch(accountsProvider);
 
+    final customers = customersAsync.maybeWhen(
+      data: (items) => items.where((c) => c.isActive).toList(),
+      orElse: () => <CustomerModel>[],
+    );
+
+    final customerInvoices = invoicesAsync.maybeWhen(
+      data: (invoices) => invoices
+          .where((inv) =>
+              !inv.isVoid &&
+              inv.balanceDue > 0 &&
+              (_selectedCustomer == null ||
+                  inv.customerId == _selectedCustomer!.id))
+          .toList(),
+      orElse: () => <InvoiceModel>[],
+    );
+
+    final refundAccounts = accountsAsync.maybeWhen(
+      data: (accounts) => accounts
+          .where((a) =>
+              a.isActive &&
+              (a.accountType == AccountType.bank ||
+                  a.accountType == AccountType.otherCurrentAsset ||
+                  a.accountType == AccountType.creditCard))
+          .toList(),
+      orElse: () => <AccountModel>[],
+    );
+
     final credits = ref.watch(customerCreditsProvider).maybeWhen(
           data: (items) => items,
           orElse: () => <CustomerCreditModel>[],
         );
-
-    final selectedCustomer = customersAsync.maybeWhen(
-      data: (customers) =>
-          customers.where((c) => c.id == _customerId).firstOrNull,
-      orElse: () => null,
-    );
 
     return TransactionWorkspaceShell(
       workspaceName: 'Customer credit workspace',
@@ -66,58 +108,46 @@ class _CustomerCreditFormScreenState
       onFind: () => context.go(AppRoutes.customerCredits),
       onPrevious: credits.isNotEmpty
           ? () => context.go(
-                AppRoutes.customerCreditDetails.replaceFirst(
-                  ':id',
-                  credits.first.id,
-                ),
+                AppRoutes.customerCreditDetails
+                    .replaceFirst(':id', credits.first.id),
               )
           : null,
       onNext: null,
-      onNew: () {
-        setState(() {
-          _customerId = null;
-          _invoiceId = null;
-          _refundAccountId = null;
-          _amount = 0;
-          _action = CustomerCreditAction.applyToInvoice;
-        });
-      },
+      onNew: _clearState,
       onSave: _saving ? null : _save,
-      onClear: () {
-        setState(() {
-          _customerId = null;
-          _invoiceId = null;
-          _refundAccountId = null;
-          _amount = 0;
-          _action = CustomerCreditAction.applyToInvoice;
-        });
-      },
+      onClear: _clearState,
       onClose: () => context.go(AppRoutes.customerCredits),
       showVoid: false,
       formContent: Column(
         children: [
           _CreditHeader(
-            customerId: _customerId,
-            invoiceId: _invoiceId,
+            selectedCustomer: _selectedCustomer,
+            selectedInvoice: _selectedInvoice,
             refundAccountId: _refundAccountId,
             activityDate: _activityDate,
             amount: _amount,
             action: _action,
             paymentMethod: _paymentMethod,
-            customersAsync: customersAsync,
-            invoicesAsync: invoicesAsync,
-            accountsAsync: accountsAsync,
-            onCustomerChanged: (value) => setState(() {
-              _customerId = value;
-              _invoiceId = null;
-            }),
+            customers: customers,
+            customerInvoices: customerInvoices,
+            refundAccounts: refundAccounts,
+            customerCtrl: _customerCtrl,
+            invoiceCtrl: _invoiceCtrl,
+            onCustomerChanged: (customer) {
+              setState(() {
+                _selectedCustomer = customer;
+                _selectedInvoice = null;
+              });
+              _invoiceCtrl.clear();
+            },
             onActionChanged: (value) => setState(() {
               _action = value;
-              _invoiceId = null;
+              _selectedInvoice = null;
               _refundAccountId = null;
+              _invoiceCtrl.clear();
             }),
             onInvoiceChanged: (invoice) => setState(() {
-              _invoiceId = invoice?.id;
+              _selectedInvoice = invoice;
               _amount = invoice?.balanceDue ?? _amount;
             }),
             onRefundAccountChanged: (value) =>
@@ -129,7 +159,7 @@ class _CustomerCreditFormScreenState
           Expanded(
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.all(32.0),
+                padding: const EdgeInsets.all(32),
                 child: Text(
                   'Customer balances, invoice balances, and accounting impact are computed by the backend automatically upon saving.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -144,11 +174,10 @@ class _CustomerCreditFormScreenState
         ],
       ),
       contextPanel: _CreditContextPanel(
-        customer: selectedCustomer,
+        customer: _selectedCustomer,
         amount: _amount,
         action: _action,
-        invoiceId: _invoiceId,
-        invoicesAsync: invoicesAsync,
+        selectedInvoice: _selectedInvoice,
         currency: l10n.egp,
       ),
     );
@@ -157,7 +186,7 @@ class _CustomerCreditFormScreenState
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
 
-    if (_customerId == null || _customerId!.isEmpty) {
+    if (_selectedCustomer == null) {
       _error(context, l10n.selectCustomerFirst);
       return;
     }
@@ -166,7 +195,7 @@ class _CustomerCreditFormScreenState
       return;
     }
     if (_action == CustomerCreditAction.applyToInvoice &&
-        (_invoiceId == null || _invoiceId!.isEmpty)) {
+        _selectedInvoice == null) {
       _error(context, l10n.selectInvoiceFirst);
       return;
     }
@@ -177,18 +206,18 @@ class _CustomerCreditFormScreenState
     }
 
     final dto = CreateCustomerCreditDto(
-      customerId: _customerId!,
+      customerId: _selectedCustomer!.id,
       activityDate: _activityDate,
       amount: _amount,
       action: _action,
-      invoiceId:
-          _action == CustomerCreditAction.applyToInvoice ? _invoiceId : null,
+      invoiceId: _action == CustomerCreditAction.applyToInvoice
+          ? _selectedInvoice?.id
+          : null,
       refundAccountId: _action == CustomerCreditAction.refundReceipt
           ? _refundAccountId
           : null,
-      paymentMethod: _action == CustomerCreditAction.refundReceipt
-          ? _paymentMethod
-          : null,
+      paymentMethod:
+          _action == CustomerCreditAction.refundReceipt ? _paymentMethod : null,
     );
 
     setState(() => _saving = true);
@@ -215,20 +244,22 @@ class _CustomerCreditFormScreenState
   }
 }
 
-// ── Form Sections ──────────────────────────────────────────────────────────
+// ── Header ─────────────────────────────────────────────────────────────────
 
 class _CreditHeader extends StatelessWidget {
   const _CreditHeader({
-    required this.customerId,
-    required this.invoiceId,
+    required this.selectedCustomer,
+    required this.selectedInvoice,
     required this.refundAccountId,
     required this.activityDate,
     required this.amount,
     required this.action,
     required this.paymentMethod,
-    required this.customersAsync,
-    required this.invoicesAsync,
-    required this.accountsAsync,
+    required this.customers,
+    required this.customerInvoices,
+    required this.refundAccounts,
+    required this.customerCtrl,
+    required this.invoiceCtrl,
     required this.onCustomerChanged,
     required this.onActionChanged,
     required this.onInvoiceChanged,
@@ -237,17 +268,19 @@ class _CreditHeader extends StatelessWidget {
     required this.onAmountChanged,
   });
 
-  final String? customerId;
-  final String? invoiceId;
+  final CustomerModel? selectedCustomer;
+  final InvoiceModel? selectedInvoice;
   final String? refundAccountId;
   final DateTime activityDate;
   final double amount;
   final CustomerCreditAction action;
   final PaymentMethod paymentMethod;
-  final AsyncValue customersAsync;
-  final AsyncValue<List<InvoiceModel>> invoicesAsync;
-  final AsyncValue<List<AccountModel>> accountsAsync;
-  final ValueChanged<String?> onCustomerChanged;
+  final List<CustomerModel> customers;
+  final List<InvoiceModel> customerInvoices;
+  final List<AccountModel> refundAccounts;
+  final TextEditingController customerCtrl;
+  final TextEditingController invoiceCtrl;
+  final ValueChanged<CustomerModel?> onCustomerChanged;
   final ValueChanged<CustomerCreditAction> onActionChanged;
   final ValueChanged<InvoiceModel?> onInvoiceChanged;
   final ValueChanged<String?> onRefundAccountChanged;
@@ -260,37 +293,8 @@ class _CreditHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
-    final customerInvoices = invoicesAsync.maybeWhen(
-      data: (invoices) => invoices
-          .where(
-            (invoice) =>
-                customerId == null || invoice.customerId == customerId,
-          )
-          .where((invoice) => !invoice.isVoid && invoice.balanceDue > 0)
-          .toList(),
-      orElse: () => <InvoiceModel>[],
-    );
-
-    final refundAccounts = accountsAsync.maybeWhen(
-      data: (accounts) => accounts
-          .where(
-            (account) =>
-                account.isActive &&
-                (account.accountType == AccountType.bank ||
-                    account.accountType == AccountType.otherCurrentAsset ||
-                    account.accountType == AccountType.creditCard),
-          )
-          .toList(),
-      orElse: () => <AccountModel>[],
-    );
-
-    final safeInvoiceId = customerInvoices.any((i) => i.id == invoiceId)
-        ? invoiceId
-        : null;
-    final safeAccountId = refundAccounts.any((a) => a.id == refundAccountId)
-        ? refundAccountId
-        : null;
+    final safeAccountId =
+        refundAccounts.any((a) => a.id == refundAccountId) ? refundAccountId : null;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -300,38 +304,18 @@ class _CreditHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // Row 1: Customer + Action + Date
           Row(
             children: [
               Expanded(
                 flex: 2,
-                child: DropdownButtonFormField<String>(
-                  value: customerId,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: '${l10n.customer} *',
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.person_outline, size: 18),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                  items: customersAsync.maybeWhen(
-                    data: (customers) => customers
-                        .map<DropdownMenuItem<String>>(
-                          (CustomerModel customer) => DropdownMenuItem<String>(
-                            value: customer.id,
-                            child: Text(
-                              customer.displayName,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    orElse: () => const <DropdownMenuItem<String>>[],
-                  ),
-                  onChanged: onCustomerChanged,
+                child: _CustomerTypeAhead(
+                  controller: customerCtrl,
+                  customers: customers,
+                  selected: selectedCustomer,
+                  label: '${l10n.customer} *',
+                  onSelected: onCustomerChanged,
+                  onClear: () => onCustomerChanged(null),
                 ),
               ),
               const SizedBox(width: 12),
@@ -346,24 +330,25 @@ class _CreditHeader extends StatelessWidget {
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(
-                      Icons.account_balance_wallet_outlined,
-                      size: 18,
-                    ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        Icons.account_balance_wallet_outlined,
+                        size: 18),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
                   ),
                   items: [
-                    DropdownMenuItem<CustomerCreditAction>(
+                    DropdownMenuItem(
                       value: CustomerCreditAction.applyToInvoice,
-                      child: Text(l10n.invoice, overflow: TextOverflow.ellipsis),
+                      child: Text(l10n.invoice,
+                          overflow: TextOverflow.ellipsis),
                     ),
-                    DropdownMenuItem<CustomerCreditAction>(
+                    DropdownMenuItem(
                       value: CustomerCreditAction.refundReceipt,
-                      child: Text(l10n.recordDeposits, overflow: TextOverflow.ellipsis),
+                      child: Text(l10n.recordDeposits,
+                          overflow: TextOverflow.ellipsis),
                     ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) onActionChanged(value);
+                  onChanged: (v) {
+                    if (v != null) onActionChanged(v);
                   },
                 ),
               ),
@@ -381,49 +366,28 @@ class _CreditHeader extends StatelessWidget {
                     border: const OutlineInputBorder(),
                     prefixIcon:
                         const Icon(Icons.calendar_today_outlined, size: 16),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
+          // Row 2: Invoice / Refund fields + Amount
           Row(
             children: [
               if (action == CustomerCreditAction.applyToInvoice)
                 Expanded(
                   flex: 3,
-                  child: DropdownButtonFormField<String>(
-                    value: safeInvoiceId,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: '${l10n.invoice} *',
-                      isDense: true,
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.receipt_long_outlined, size: 18),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    ),
-                    items: customerInvoices
-                        .map<DropdownMenuItem<String>>(
-                          (InvoiceModel invoice) => DropdownMenuItem<String>(
-                            value: invoice.id,
-                            child: Text(
-                              '${invoice.invoiceNumber} - ${invoice.balanceDue.toStringAsFixed(2)} ${l10n.egp}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      final invoice = customerInvoices
-                          .where((i) => i.id == value)
-                          .firstOrNull;
-                      onInvoiceChanged(invoice);
-                    },
+                  child: _InvoiceTypeAhead(
+                    controller: invoiceCtrl,
+                    invoices: customerInvoices,
+                    selected: selectedInvoice,
+                    label: '${l10n.invoice} *',
+                    currency: l10n.egp,
+                    onSelected: onInvoiceChanged,
+                    onClear: () => onInvoiceChanged(null),
                   ),
                 )
               else ...[
@@ -438,20 +402,17 @@ class _CreditHeader extends StatelessWidget {
                       filled: true,
                       fillColor: Colors.white,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.account_balance_outlined, size: 18),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      prefixIcon: const Icon(Icons.account_balance_outlined,
+                          size: 18),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
                     ),
                     items: refundAccounts
-                        .map<DropdownMenuItem<String>>(
-                          (AccountModel account) => DropdownMenuItem<String>(
-                            value: account.id,
-                            child: Text(
-                              '${account.code} - ${account.name}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
+                        .map((a) => DropdownMenuItem<String>(
+                              value: a.id,
+                              child: Text('${a.code} - ${a.name}',
+                                  overflow: TextOverflow.ellipsis),
+                            ))
                         .toList(),
                     onChanged: onRefundAccountChanged,
                   ),
@@ -467,24 +428,31 @@ class _CreditHeader extends StatelessWidget {
                       filled: true,
                       fillColor: Colors.white,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.payments_outlined, size: 18),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      prefixIcon:
+                          const Icon(Icons.payments_outlined, size: 18),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
                     ),
                     items: [
-                      DropdownMenuItem<PaymentMethod>(
-                          value: PaymentMethod.cash, child: Text(l10n.cash, overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem<PaymentMethod>(
-                          value: PaymentMethod.check, child: Text(l10n.check, overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem<PaymentMethod>(
+                      DropdownMenuItem(
+                          value: PaymentMethod.cash,
+                          child: Text(l10n.cash,
+                              overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(
+                          value: PaymentMethod.check,
+                          child: Text(l10n.check,
+                              overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(
                           value: PaymentMethod.bankTransfer,
-                          child: Text(l10n.bankTransfer, overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem<PaymentMethod>(
+                          child: Text(l10n.bankTransfer,
+                              overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(
                           value: PaymentMethod.creditCard,
-                          child: Text(l10n.creditCard, overflow: TextOverflow.ellipsis)),
+                          child: Text(l10n.creditCard,
+                              overflow: TextOverflow.ellipsis)),
                     ],
-                    onChanged: (value) {
-                      if (value != null) onPaymentMethodChanged(value);
+                    onChanged: (v) {
+                      if (v != null) onPaymentMethodChanged(v);
                     },
                   ),
                 ),
@@ -501,11 +469,10 @@ class _CreditHeader extends StatelessWidget {
                     filled: true,
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 8),
                   ),
-                  onChanged: (value) =>
-                      onAmountChanged(double.tryParse(value) ?? 0),
+                  onChanged: (v) => onAmountChanged(double.tryParse(v) ?? 0),
                 ),
               ),
             ],
@@ -515,6 +482,8 @@ class _CreditHeader extends StatelessWidget {
     );
   }
 }
+
+// ── Footer ─────────────────────────────────────────────────────────────────
 
 class _CreditFooter extends StatelessWidget {
   const _CreditFooter({required this.total, required this.currency});
@@ -536,19 +505,17 @@ class _CreditFooter extends StatelessWidget {
           const Text(
             'CREDIT AMOUNT',
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF7D8B93),
-            ),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF7D8B93)),
           ),
           const SizedBox(width: 16),
           Text(
             '${total.toStringAsFixed(2)} $currency',
             style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF264D5B),
-            ),
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF264D5B)),
           ),
           const SizedBox(width: 8),
         ],
@@ -564,25 +531,18 @@ class _CreditContextPanel extends StatelessWidget {
     required this.customer,
     required this.amount,
     required this.action,
-    required this.invoiceId,
-    required this.invoicesAsync,
+    required this.selectedInvoice,
     required this.currency,
   });
 
   final CustomerModel? customer;
   final double amount;
   final CustomerCreditAction action;
-  final String? invoiceId;
-  final AsyncValue<List<InvoiceModel>> invoicesAsync;
+  final InvoiceModel? selectedInvoice;
   final String currency;
 
   @override
   Widget build(BuildContext context) {
-    final invoice = invoicesAsync.maybeWhen(
-      data: (invoices) => invoices.where((i) => i.id == invoiceId).firstOrNull,
-      orElse: () => null,
-    );
-
     return Container(
       color: const Color(0xFFF4F7F8),
       child: Column(
@@ -612,10 +572,10 @@ class _CreditContextPanel extends StatelessWidget {
                 if (customer != null)
                   _Stat(label: 'CUSTOMER', value: customer!.displayName),
                 if (action == CustomerCreditAction.applyToInvoice &&
-                    invoice != null)
+                    selectedInvoice != null)
                   _Stat(
                     label: 'APPLIED TO',
-                    value: 'Invoice #${invoice.invoiceNumber}',
+                    value: 'Invoice #${selectedInvoice!.invoiceNumber}',
                   ),
                 if (action == CustomerCreditAction.refundReceipt)
                   const _Stat(label: 'TYPE', value: 'Refund Receipt'),
@@ -627,6 +587,8 @@ class _CreditContextPanel extends StatelessWidget {
     );
   }
 }
+
+// ── Shared Widgets ──────────────────────────────────────────────────────────
 
 class _Stat extends StatelessWidget {
   const _Stat({required this.label, required this.value, this.isTotal = false});
@@ -641,25 +603,192 @@ class _Stat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF7D8B93),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF7D8B93),
+                  fontWeight: FontWeight.w900)),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 14,
-              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
-              color: const Color(0xFF264D5B),
-            ),
-          ),
+          Text(value,
+              style: TextStyle(
+                  fontSize: isTotal ? 18 : 14,
+                  fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
+                  color: const Color(0xFF264D5B))),
         ],
       ),
+    );
+  }
+}
+
+// ── Customer TypeAhead ──────────────────────────────────────────────────────
+
+class _CustomerTypeAhead extends StatelessWidget {
+  const _CustomerTypeAhead({
+    required this.controller,
+    required this.customers,
+    required this.selected,
+    required this.label,
+    required this.onSelected,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final List<CustomerModel> customers;
+  final CustomerModel? selected;
+  final String label;
+  final ValueChanged<CustomerModel?> onSelected;
+  final VoidCallback onClear;
+
+  List<CustomerModel> _matches(String q) {
+    final text = q.trim().toLowerCase();
+    if (text.isEmpty) return customers.take(10).toList();
+    return customers
+        .where((c) =>
+            c.displayName.toLowerCase().contains(text) ||
+            (c.companyName?.toLowerCase().contains(text) ?? false) ||
+            (c.phone?.contains(text) ?? false))
+        .take(12)
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (selected != null && controller.text != selected!.displayName) {
+      controller.text = selected!.displayName;
+    }
+    return TypeAheadField<CustomerModel>(
+      textFieldConfiguration: TextFieldConfiguration(
+        controller: controller,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          labelText: label,
+          isDense: true,
+          filled: true,
+          fillColor: Colors.white,
+          border: const OutlineInputBorder(),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          prefixIcon: const Icon(Icons.person_outline, size: 18),
+          suffixIcon: selected != null
+              ? IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    controller.clear();
+                    onClear();
+                  },
+                )
+              : null,
+        ),
+      ),
+      suggestionsCallback: _matches,
+      itemBuilder: (context, c) => ListTile(
+        dense: true,
+        leading: CircleAvatar(
+            radius: 14,
+            child: Text(c.initials, style: const TextStyle(fontSize: 11))),
+        title: Text(c.displayName,
+            style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text(
+            '${c.primaryContact} | Bal: ${c.balance.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 11)),
+      ),
+      onSuggestionSelected: (c) {
+        controller.text = c.displayName;
+        onSelected(c);
+      },
+      noItemsFoundBuilder: (_) => const Padding(
+          padding: EdgeInsets.all(10), child: Text('No matching customers')),
+      suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+          elevation: 4, constraints: BoxConstraints(maxHeight: 300)),
+    );
+  }
+}
+
+// ── Invoice TypeAhead ───────────────────────────────────────────────────────
+
+class _InvoiceTypeAhead extends StatelessWidget {
+  const _InvoiceTypeAhead({
+    required this.controller,
+    required this.invoices,
+    required this.selected,
+    required this.label,
+    required this.currency,
+    required this.onSelected,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final List<InvoiceModel> invoices;
+  final InvoiceModel? selected;
+  final String label;
+  final String currency;
+  final ValueChanged<InvoiceModel?> onSelected;
+  final VoidCallback onClear;
+
+  List<InvoiceModel> _matches(String q) {
+    final text = q.trim().toLowerCase();
+    if (text.isEmpty) return invoices.take(10).toList();
+    return invoices
+        .where((inv) =>
+            inv.invoiceNumber.toLowerCase().contains(text) ||
+            (inv.customerName?.toLowerCase().contains(text) ?? false))
+        .take(12)
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (selected != null && controller.text.isEmpty) {
+      controller.text =
+          '${selected!.invoiceNumber} - ${selected!.customerName ?? ''}';
+    }
+    return TypeAheadField<InvoiceModel>(
+      textFieldConfiguration: TextFieldConfiguration(
+        controller: controller,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          labelText: label,
+          isDense: true,
+          filled: true,
+          fillColor: Colors.white,
+          border: const OutlineInputBorder(),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          prefixIcon: const Icon(Icons.receipt_long_outlined, size: 18),
+          suffixIcon: selected != null
+              ? IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    controller.clear();
+                    onClear();
+                  },
+                )
+              : null,
+        ),
+      ),
+      suggestionsCallback: _matches,
+      itemBuilder: (context, inv) => ListTile(
+        dense: true,
+        leading: const Icon(Icons.receipt_long_outlined,
+            size: 18, color: Color(0xFF264D5B)),
+        title: Text(
+            '${inv.invoiceNumber} — ${inv.customerName ?? inv.customerId}',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+        subtitle: Text(
+            'Balance: ${inv.balanceDue.toStringAsFixed(2)} $currency',
+            style: const TextStyle(fontSize: 11)),
+      ),
+      onSuggestionSelected: (inv) {
+        controller.text =
+            '${inv.invoiceNumber} - ${inv.customerName ?? ''}';
+        onSelected(inv);
+      },
+      noItemsFoundBuilder: (_) => const Padding(
+          padding: EdgeInsets.all(10), child: Text('No matching invoices')),
+      suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+          elevation: 4, constraints: BoxConstraints(maxHeight: 300)),
     );
   }
 }

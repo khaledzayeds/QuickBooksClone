@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
@@ -47,6 +48,7 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
   List<SalesReturnLineState> _lines = [];
   bool _saving = false;
   bool _prefillApplied = false;
+  final _invoiceCtrl = TextEditingController();
 
   bool get _isExisting => (widget.id ?? '').isNotEmpty;
   double get _draftTotal => _lines.fold(0, (sum, line) => sum + line.amount);
@@ -115,6 +117,7 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
             invoiceId: _invoiceId,
             returnDate: isExisting ? doc.returnDate : _returnDate,
             readOnly: readOnly,
+            invoiceController: _invoiceCtrl,
             onInvoiceChanged: _selectInvoice,
             onOpenInvoice: doc == null
                 ? null
@@ -238,6 +241,7 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
       _lines = [];
       _prefillApplied = false;
     });
+    _invoiceCtrl.clear();
   }
 
   void _goNew() => context.go(AppRoutes.salesReturnNew);
@@ -363,6 +367,7 @@ class _HeaderPanel extends StatelessWidget {
     required this.invoiceId,
     required this.returnDate,
     required this.readOnly,
+    required this.invoiceController,
     required this.onInvoiceChanged,
     this.onOpenInvoice,
   });
@@ -373,6 +378,7 @@ class _HeaderPanel extends StatelessWidget {
   final String? invoiceId;
   final DateTime returnDate;
   final bool readOnly;
+  final TextEditingController invoiceController;
   final ValueChanged<InvoiceModel?> onInvoiceChanged;
   final VoidCallback? onOpenInvoice;
 
@@ -410,26 +416,12 @@ class _HeaderPanel extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: selectedInvoice?.id,
-                    decoration: const InputDecoration(
-                      labelText: 'الفاتورة *',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      prefixIcon: Icon(Icons.receipt_long_outlined),
-                    ),
-                    items: invoices
-                        .map(
-                          (invoice) => DropdownMenuItem<String>(
-                            value: invoice.id,
-                            child: Text(
-                              '${invoice.invoiceNumber} - ${invoice.customerName ?? ''} - ${invoice.totalAmount.toStringAsFixed(2)}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => onInvoiceChanged(invoices.where((item) => item.id == value).firstOrNull),
+                  child: _InvoiceTypeAheadField(
+                    controller: invoiceController,
+                    invoices: invoices,
+                    selectedInvoice: selectedInvoice,
+                    onSelected: onInvoiceChanged,
+                    onClear: () => onInvoiceChanged(null),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -721,3 +713,99 @@ class _ContextLine extends StatelessWidget {
 
 String _dateDisplay(DateTime value) =>
     '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year.toString().padLeft(4, '0')}';
+
+// ── Invoice TypeAhead Field ─────────────────────────────────────────────────
+
+class _InvoiceTypeAheadField extends StatelessWidget {
+  const _InvoiceTypeAheadField({
+    required this.controller,
+    required this.invoices,
+    required this.selectedInvoice,
+    required this.onSelected,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final List<InvoiceModel> invoices;
+  final InvoiceModel? selectedInvoice;
+  final ValueChanged<InvoiceModel?> onSelected;
+  final VoidCallback onClear;
+
+  List<InvoiceModel> _matches(String pattern) {
+    final q = pattern.trim().toLowerCase();
+    if (q.isEmpty) return invoices.take(10).toList();
+    return invoices
+        .where(
+          (inv) =>
+              inv.invoiceNumber.toLowerCase().contains(q) ||
+              (inv.customerName?.toLowerCase().contains(q) ?? false) ||
+              inv.totalAmount.toStringAsFixed(2).contains(q),
+        )
+        .take(12)
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Sync controller text when selection changes from outside (e.g. prefill)
+    if (selectedInvoice != null &&
+        controller.text != selectedInvoice!.invoiceNumber) {
+      controller.text =
+          '${selectedInvoice!.invoiceNumber} - ${selectedInvoice!.customerName ?? ''}';
+    }
+
+    return TypeAheadField<InvoiceModel>(
+      textFieldConfiguration: TextFieldConfiguration(
+        controller: controller,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          labelText: 'الفاتورة *',
+          isDense: true,
+          filled: true,
+          fillColor: Colors.white,
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          prefixIcon: const Icon(Icons.receipt_long_outlined, size: 18),
+          suffixIcon: selectedInvoice != null
+              ? IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    controller.clear();
+                    onClear();
+                  },
+                  tooltip: 'مسح الاختيار',
+                )
+              : null,
+        ),
+      ),
+      suggestionsCallback: _matches,
+      itemBuilder: (context, invoice) => ListTile(
+        dense: true,
+        leading: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFF264D5B)),
+        title: Text(
+          '${invoice.invoiceNumber} — ${invoice.customerName ?? invoice.customerId}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+        ),
+        subtitle: Text(
+          'Total: ${invoice.totalAmount.toStringAsFixed(2)} | Balance: ${invoice.balanceDue.toStringAsFixed(2)}',
+          style: const TextStyle(fontSize: 11),
+        ),
+      ),
+      onSuggestionSelected: (invoice) {
+        controller.text =
+            '${invoice.invoiceNumber} - ${invoice.customerName ?? ''}';
+        onSelected(invoice);
+      },
+      noItemsFoundBuilder: (_) => const Padding(
+        padding: EdgeInsets.all(10),
+        child: Text('لا توجد فواتير مطابقة'),
+      ),
+      suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+        elevation: 4,
+        constraints: BoxConstraints(maxHeight: 320),
+      ),
+    );
+  }
+}
+

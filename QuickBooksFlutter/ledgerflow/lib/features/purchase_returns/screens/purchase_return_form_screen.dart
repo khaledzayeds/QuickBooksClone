@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -47,6 +48,13 @@ class _PurchaseReturnFormScreenState
   List<PurchaseReturnLineState> _lines = [];
   bool _saving = false;
   bool _preselected = false;
+  final _billCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _billCtrl.dispose();
+    super.dispose();
+  }
 
   double get _draftTotal => _lines.fold(0, (sum, line) => sum + line.draftAmount);
 
@@ -91,6 +99,7 @@ class _PurchaseReturnFormScreenState
           _lines = [];
           _preselected = false;
         });
+        _billCtrl.clear();
       },
       onSave: _saving ? null : _save,
       onClear: () {
@@ -99,6 +108,7 @@ class _PurchaseReturnFormScreenState
           _lines = [];
           _preselected = false;
         });
+        _billCtrl.clear();
       },
       onClose: () => context.go(AppRoutes.purchaseReturns),
       showVoid: false,
@@ -107,7 +117,9 @@ class _PurchaseReturnFormScreenState
           _ReturnHeader(
             bills: bills,
             selectedBillId: _purchaseBillId,
+            selectedBill: selectedBill,
             returnDate: _returnDate,
+            billCtrl: _billCtrl,
             onBillChanged: _selectBill,
           ),
           Expanded(
@@ -151,6 +163,7 @@ class _PurchaseReturnFormScreenState
       if (bill == null) {
         _purchaseBillId = null;
         _lines = [];
+        _billCtrl.clear();
         return;
       }
       _purchaseBillId = bill.id;
@@ -231,19 +244,43 @@ class _ReturnHeader extends StatelessWidget {
   const _ReturnHeader({
     required this.bills,
     required this.selectedBillId,
+    required this.selectedBill,
     required this.returnDate,
+    required this.billCtrl,
     required this.onBillChanged,
   });
 
   final List<PurchaseBillModel> bills;
   final String? selectedBillId;
+  final PurchaseBillModel? selectedBill;
   final DateTime returnDate;
+  final TextEditingController billCtrl;
   final ValueChanged<PurchaseBillModel?> onBillChanged;
+
+  List<PurchaseBillModel> _matches(String q) {
+    final text = q.trim().toLowerCase();
+    if (text.isEmpty) return bills.take(10).toList();
+    return bills
+        .where((b) =>
+            b.billNumber.toLowerCase().contains(text) ||
+            b.vendorName.toLowerCase().contains(text) ||
+            b.totalAmount.toStringAsFixed(2).contains(text))
+        .take(12)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('dd/MM/yyyy');
-    final selected = bills.where((b) => b.id == selectedBillId).firstOrNull;
+
+    // Sync controller text when bill selected from outside (prefill)
+    if (selectedBill != null &&
+        billCtrl.text !=
+            '${selectedBill!.billNumber} - ${selectedBill!.vendorName}') {
+      billCtrl.text =
+          '${selectedBill!.billNumber} - ${selectedBill!.vendorName}';
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: const BoxDecoration(
@@ -254,33 +291,61 @@ class _ReturnHeader extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: DropdownButtonFormField<String>(
-              value: selectedBillId,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Purchase Bill *',
-                isDense: true,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.receipt_long_outlined, size: 18),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: TypeAheadField<PurchaseBillModel>(
+              textFieldConfiguration: TextFieldConfiguration(
+                controller: billCtrl,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w700),
+                decoration: InputDecoration(
+                  labelText: 'Purchase Bill *',
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 9),
+                  prefixIcon: const Icon(
+                      Icons.receipt_long_outlined,
+                      size: 18),
+                  suffixIcon: selectedBill != null
+                      ? IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            billCtrl.clear();
+                            onBillChanged(null);
+                          },
+                          tooltip: 'Clear',
+                        )
+                      : null,
+                ),
               ),
-              items: bills
-                  .map(
-                    (bill) => DropdownMenuItem<String>(
-                      value: bill.id,
-                      child: Text(
-                        '${bill.billNumber}  ·  ${bill.vendorName}  ·  ${bill.totalAmount.toStringAsFixed(2)}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                final bill = bills.where((b) => b.id == value).firstOrNull;
+              suggestionsCallback: _matches,
+              itemBuilder: (context, bill) => ListTile(
+                dense: true,
+                leading: const Icon(Icons.receipt_long_outlined,
+                    size: 18, color: Color(0xFF264D5B)),
+                title: Text(
+                  '${bill.billNumber} — ${bill.vendorName}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 13),
+                ),
+                subtitle: Text(
+                  'Total: ${bill.totalAmount.toStringAsFixed(2)} | Balance: ${bill.balanceDue.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+              onSuggestionSelected: (bill) {
+                billCtrl.text =
+                    '${bill.billNumber} - ${bill.vendorName}';
                 onBillChanged(bill);
               },
+              noItemsFoundBuilder: (_) => const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Text('No matching bills')),
+              suggestionsBoxDecoration: const SuggestionsBoxDecoration(
+                  elevation: 4,
+                  constraints: BoxConstraints(maxHeight: 300)),
             ),
           ),
           const SizedBox(width: 12),
@@ -295,21 +360,23 @@ class _ReturnHeader extends StatelessWidget {
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.calendar_today_outlined, size: 16),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                prefixIcon:
+                    Icon(Icons.calendar_today_outlined, size: 16),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             ),
           ),
-          if (selected != null) ...[
+          if (selectedBill != null) ...[
             const SizedBox(width: 16),
             _HeaderStat(
               label: 'VENDOR',
-              value: selected.vendorName,
+              value: selectedBill!.vendorName,
             ),
             const SizedBox(width: 16),
             _HeaderStat(
               label: 'BILL TOTAL',
-              value: selected.totalAmount.toStringAsFixed(2),
+              value: selectedBill!.totalAmount.toStringAsFixed(2),
             ),
           ],
         ],
