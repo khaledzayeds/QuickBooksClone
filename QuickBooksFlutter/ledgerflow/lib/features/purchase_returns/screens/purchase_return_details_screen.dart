@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/router.dart';
 import '../../purchase_bills/providers/purchase_bills_provider.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/purchase_return_model.dart';
 import '../providers/purchase_returns_provider.dart';
 
@@ -23,13 +24,10 @@ class PurchaseReturnDetailsScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: Icon(
-          Icons.block_outlined,
-          color: Theme.of(context).colorScheme.error,
-        ),
+        icon: Icon(Icons.block_outlined, color: Theme.of(context).colorScheme.error),
         title: Text('Void ${purchaseReturn.returnNumber}?'),
         content: const Text(
-          'This reverses the purchase return accounting and inventory effect when the backend allows it.',
+          'This reverses the purchase return accounting and inventory effect.',
         ),
         actions: [
           TextButton(
@@ -58,15 +56,11 @@ class PurchaseReturnDetailsScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.invalidate(purchaseReturnDetailsProvider(purchaseReturn.id));
-        ref.invalidate(
-          purchaseBillDetailsProvider(purchaseReturn.purchaseBillId),
-        );
+        ref.invalidate(purchaseBillDetailsProvider(purchaseReturn.purchaseBillId));
         ref.read(purchaseBillsProvider.notifier).refresh();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Purchase return ${purchaseReturn.returnNumber} voided.',
-            ),
+            content: Text('Purchase return ${purchaseReturn.returnNumber} voided.'),
           ),
         );
       },
@@ -83,43 +77,63 @@ class PurchaseReturnDetailsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final purchaseReturnAsync = ref.watch(purchaseReturnDetailsProvider(id));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Purchase Return'),
-        actions: [
-          purchaseReturnAsync.maybeWhen(
-            data: (purchaseReturn) => purchaseReturn.isVoid
-                ? const SizedBox.shrink()
-                : IconButton(
-                    tooltip: 'Void return',
-                    onPressed: () => _voidReturn(context, ref, purchaseReturn),
-                    icon: Icon(
-                      Icons.block_outlined,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () => ref.invalidate(purchaseReturnDetailsProvider(id)),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: purchaseReturnAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
+    final returns = ref.watch(purchaseReturnsProvider).maybeWhen(
+          data: (items) => items,
+          orElse: () => <PurchaseReturnModel>[],
+        );
+
+    final currentIdx = returns.indexWhere((r) => r.id == id);
+
+    void navigateTo(int idx) {
+      if (idx >= 0 && idx < returns.length) {
+        context.go(
+          AppRoutes.purchaseReturnDetails.replaceFirst(':id', returns[idx].id),
+        );
+      }
+    }
+
+    return purchaseReturnAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, _) => Scaffold(
+        body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text(error.toString(), textAlign: TextAlign.center),
           ),
         ),
-        data: (purchaseReturn) => _DetailsBody(purchaseReturn: purchaseReturn),
       ),
+      data: (purchaseReturn) {
+        return TransactionWorkspaceShell(
+          workspaceName: 'Purchase return workspace',
+          saving: false,
+          posting: false,
+          isEdit: true,
+          readOnly: true,
+          onFind: () => context.go(AppRoutes.purchaseReturns),
+          onPrevious: currentIdx > 0 ? () => navigateTo(currentIdx - 1) : null,
+          onNext: currentIdx < returns.length - 1 && currentIdx != -1
+              ? () => navigateTo(currentIdx + 1)
+              : null,
+          onNew: () => context.go(AppRoutes.purchaseReturnNew),
+          onVoid: purchaseReturn.isVoid
+              ? null
+              : () => _voidReturn(context, ref, purchaseReturn),
+          onClose: () => context.go(AppRoutes.purchaseReturns),
+          statusBadgeText: purchaseReturn.isVoid ? 'VOID' : 'POSTED',
+          statusMessage: purchaseReturn.isVoid
+              ? 'This return has been voided and reversed.'
+              : 'Posted · Total: ${purchaseReturn.totalAmount.toStringAsFixed(2)}',
+          statusColor: purchaseReturn.isVoid ? Colors.red : Colors.green,
+          formContent: _DetailsBody(purchaseReturn: purchaseReturn),
+          contextPanel: _ReturnContextPanel(purchaseReturn: purchaseReturn),
+        );
+      },
     );
   }
 }
+
+// ── Details Body ────────────────────────────────────────────────────────────
 
 class _DetailsBody extends StatelessWidget {
   const _DetailsBody({required this.purchaseReturn});
@@ -134,101 +148,133 @@ class _DetailsBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        purchaseReturn.returnNumber.isEmpty
-                            ? 'Purchase Return'
-                            : purchaseReturn.returnNumber,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+        // Main info card
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFDDE4E8)),
+          ),
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      purchaseReturn.returnNumber.isEmpty
+                          ? 'Purchase Return'
+                          : purchaseReturn.returnNumber,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1A3240),
                       ),
                     ),
-                    _StatusChip(purchaseReturn: purchaseReturn),
-                  ],
+                  ),
+                  _StatusChip(purchaseReturn: purchaseReturn),
+                ],
+              ),
+              const Divider(height: 24),
+              _InfoRow(
+                label: 'Vendor',
+                value: purchaseReturn.vendorName ?? purchaseReturn.vendorId,
+              ),
+              _InfoRow(
+                label: 'Return Date',
+                value: fmt.format(purchaseReturn.returnDate),
+              ),
+              _InfoRow(
+                label: 'Purchase Bill',
+                value: purchaseReturn.billNumber ?? purchaseReturn.purchaseBillId,
+                isLink: true,
+                onTap: () => context.push(
+                  AppRoutes.purchaseBillDetails.replaceFirst(
+                    ':id',
+                    purchaseReturn.purchaseBillId,
+                  ),
                 ),
-                const Divider(height: 24),
+              ),
+              if (purchaseReturn.postedTransactionId != null &&
+                  purchaseReturn.postedTransactionId!.isNotEmpty)
                 _InfoRow(
-                  label: 'Vendor',
-                  value: purchaseReturn.vendorName ?? purchaseReturn.vendorId,
+                  label: 'Posted Transaction',
+                  value: purchaseReturn.postedTransactionId!,
                 ),
+              if (purchaseReturn.reversalTransactionId != null &&
+                  purchaseReturn.reversalTransactionId!.isNotEmpty)
                 _InfoRow(
-                  label: 'Return date',
-                  value: fmt.format(purchaseReturn.returnDate),
+                  label: 'Reversal Transaction',
+                  value: purchaseReturn.reversalTransactionId!,
                 ),
-                _InfoRow(
-                  label: 'Purchase bill',
-                  value:
-                      purchaseReturn.billNumber ??
-                      purchaseReturn.purchaseBillId,
-                  isLink: true,
-                  onTap: () => context.push(
-                    AppRoutes.purchaseBillDetails.replaceFirst(
-                      ':id',
-                      purchaseReturn.purchaseBillId,
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Lines card
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFDDE4E8)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE7EEF1),
+                  border: Border(bottom: BorderSide(color: Color(0xFFB9C3CA))),
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Returned Lines',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF2D4854),
                     ),
                   ),
                 ),
-                if (purchaseReturn.postedTransactionId != null &&
-                    purchaseReturn.postedTransactionId!.isNotEmpty)
-                  _InfoRow(
-                    label: 'Posted transaction',
-                    value: purchaseReturn.postedTransactionId!,
-                  ),
-                if (purchaseReturn.reversalTransactionId != null &&
-                    purchaseReturn.reversalTransactionId!.isNotEmpty)
-                  _InfoRow(
-                    label: 'Reversal transaction',
-                    value: purchaseReturn.reversalTransactionId!,
-                  ),
-              ],
-            ),
+              ),
+              if (purchaseReturn.lines.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No lines on this purchase return.'),
+                )
+              else
+                ...purchaseReturn.lines.map((line) => _LineTile(line: line)),
+            ],
           ),
         ),
         const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Returned lines',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const Divider(height: 20),
-                if (purchaseReturn.lines.isEmpty)
-                  const Text('No lines on this purchase return.')
-                else
-                  ...purchaseReturn.lines.map((line) => _LineTile(line: line)),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
+        // Total row
         Align(
           alignment: AlignmentDirectional.centerEnd,
-          child: SizedBox(
-            width: 360,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: _AmountRow(
-                  label: 'Total returned',
-                  amount: purchaseReturn.totalAmount,
-                  isTotal: true,
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFDDE4E8)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total Returned',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
+                Text(
+                  purchaseReturn.totalAmount.toStringAsFixed(2),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF264D5B),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -237,9 +283,67 @@ class _DetailsBody extends StatelessWidget {
   }
 }
 
+// ── Context Panel ───────────────────────────────────────────────────────────
+
+class _ReturnContextPanel extends StatelessWidget {
+  const _ReturnContextPanel({required this.purchaseReturn});
+
+  final PurchaseReturnModel purchaseReturn;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    return Container(
+      color: const Color(0xFFF4F7F8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+            color: const Color(0xFF264D5B),
+            child: Text(
+              'Return Summary',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Stat(
+                  label: 'TOTAL',
+                  value: purchaseReturn.totalAmount.toStringAsFixed(2),
+                  isTotal: true,
+                ),
+                _Stat(
+                  label: 'RETURN DATE',
+                  value: fmt.format(purchaseReturn.returnDate),
+                ),
+                if (purchaseReturn.vendorName != null)
+                  _Stat(label: 'VENDOR', value: purchaseReturn.vendorName!),
+                if (purchaseReturn.billNumber != null)
+                  _Stat(label: 'BILL #', value: purchaseReturn.billNumber!),
+                _Stat(
+                  label: 'STATUS',
+                  value: purchaseReturn.isVoid ? 'Voided' : 'Posted',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shared Small Widgets ────────────────────────────────────────────────────
+
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.purchaseReturn});
-
   final PurchaseReturnModel purchaseReturn;
 
   @override
@@ -247,7 +351,7 @@ class _StatusChip extends StatelessWidget {
     final isVoid = purchaseReturn.isVoid;
     final color = isVoid
         ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.primary;
+        : Colors.green.shade800;
     return Chip(
       label: Text(isVoid ? 'Void' : 'Posted'),
       backgroundColor: color.withValues(alpha: 0.14),
@@ -258,24 +362,46 @@ class _StatusChip extends StatelessWidget {
 
 class _LineTile extends StatelessWidget {
   const _LineTile({required this.line});
-
   final PurchaseReturnLineModel line;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.keyboard_return_outlined),
-      title: Text(
-        line.description,
-        style: const TextStyle(fontWeight: FontWeight.w700),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE8EEF1))),
       ),
-      subtitle: Text(
-        'Qty ${line.quantity.toStringAsFixed(2)} x ${line.unitCost.toStringAsFixed(2)}',
-      ),
-      trailing: Text(
-        line.lineTotal.toStringAsFixed(2),
-        style: const TextStyle(fontWeight: FontWeight.w900),
+      child: Row(
+        children: [
+          const Icon(Icons.keyboard_return_outlined,
+              size: 18, color: Color(0xFF5B7A89)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              line.description,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E3540),
+              ),
+            ),
+          ),
+          Text(
+            'Qty ${line.quantity.toStringAsFixed(2)} × ${line.unitCost.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF667A84)),
+          ),
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 80,
+            child: Text(
+              line.lineTotal.toStringAsFixed(2),
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF264D5B),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -296,62 +422,68 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      children: [
-        Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
-        const Spacer(),
-        Flexible(
-          child: isLink
-              ? InkWell(
-                  onTap: onTap,
-                  child: Text(
-                    value,
-                    textAlign: TextAlign.end,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                      decoration: TextDecoration.underline,
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
+            const Spacer(),
+            Flexible(
+              child: isLink
+                  ? InkWell(
+                      onTap: onTap,
+                      child: Text(
+                        value,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    )
+                  : Text(
+                      value,
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                  ),
-                )
-              : Text(
-                  value,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
-class _AmountRow extends StatelessWidget {
-  const _AmountRow({
-    required this.label,
-    required this.amount,
-    this.isTotal = false,
-  });
-
+class _Stat extends StatelessWidget {
+  const _Stat({required this.label, required this.value, this.isTotal = false});
   final String label;
-  final double amount;
+  final String value;
   final bool isTotal;
 
   @override
   Widget build(BuildContext context) {
-    final style = isTotal
-        ? Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: style),
-        Text(amount.toStringAsFixed(2), style: style),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF7D8B93),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isTotal ? 18 : 14,
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
+              color: const Color(0xFF264D5B),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
