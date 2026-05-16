@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using QuickBooksClone.Core.PrintTemplates;
 using QuickBooksClone.Infrastructure.Persistence;
 
@@ -24,18 +25,10 @@ public sealed class EfPrintTemplateRepository : IPrintTemplateRepository
             : "SELECT id, name, document_type, page_size, json_content, is_default, created_at, updated_at FROM print_templates WHERE lower(document_type) = lower($documentType) ORDER BY is_default DESC, name";
 
         await using var command = CreateCommand(sql);
-        if (!string.IsNullOrWhiteSpace(documentType))
-        {
-            AddParameter(command, "$documentType", documentType.Trim());
-        }
-
+        if (!string.IsNullOrWhiteSpace(documentType)) AddParameter(command, "$documentType", documentType.Trim());
         await OpenAsync(command.Connection!, cancellationToken);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            items.Add(ReadTemplate(reader));
-        }
-
+        while (await reader.ReadAsync(cancellationToken)) items.Add(ReadTemplate(reader));
         return items;
     }
 
@@ -52,11 +45,7 @@ public sealed class EfPrintTemplateRepository : IPrintTemplateRepository
     public async Task<PrintTemplate> AddAsync(PrintTemplate template, CancellationToken cancellationToken = default)
     {
         await EnsureTableAsync(cancellationToken);
-        if (template.IsDefault)
-        {
-            await ClearDefaultAsync(template.DocumentType, cancellationToken);
-        }
-
+        if (template.IsDefault) await ClearDefaultAsync(template.DocumentType, cancellationToken);
         await using var command = CreateCommand("INSERT INTO print_templates (id, name, document_type, page_size, json_content, is_default, created_at, updated_at) VALUES ($id, $name, $documentType, $pageSize, $jsonContent, $isDefault, $createdAt, $updatedAt)");
         BindTemplate(command, template);
         await OpenAsync(command.Connection!, cancellationToken);
@@ -67,20 +56,12 @@ public sealed class EfPrintTemplateRepository : IPrintTemplateRepository
     public async Task<PrintTemplate> UpdateAsync(PrintTemplate template, CancellationToken cancellationToken = default)
     {
         await EnsureTableAsync(cancellationToken);
-        if (template.IsDefault)
-        {
-            await ClearDefaultAsync(template.DocumentType, cancellationToken);
-        }
-
+        if (template.IsDefault) await ClearDefaultAsync(template.DocumentType, cancellationToken);
         await using var command = CreateCommand("UPDATE print_templates SET name = $name, document_type = $documentType, page_size = $pageSize, json_content = $jsonContent, is_default = $isDefault, updated_at = $updatedAt WHERE id = $id");
         BindTemplate(command, template);
         await OpenAsync(command.Connection!, cancellationToken);
         var affected = await command.ExecuteNonQueryAsync(cancellationToken);
-        if (affected == 0)
-        {
-            throw new KeyNotFoundException("Print template was not found.");
-        }
-
+        if (affected == 0) throw new KeyNotFoundException("Print template was not found.");
         return template;
     }
 
@@ -95,12 +76,8 @@ public sealed class EfPrintTemplateRepository : IPrintTemplateRepository
 
     private async Task EnsureTableAsync(CancellationToken cancellationToken)
     {
-        await _db.Database.ExecuteSqlRawAsync(
-            "CREATE TABLE IF NOT EXISTS print_templates (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, document_type TEXT NOT NULL, page_size TEXT NOT NULL, json_content TEXT NOT NULL, is_default INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);",
-            cancellationToken);
-        await _db.Database.ExecuteSqlRawAsync(
-            "CREATE INDEX IF NOT EXISTS idx_print_templates_document_type ON print_templates (document_type);",
-            cancellationToken);
+        await _db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS print_templates (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, document_type TEXT NOT NULL, page_size TEXT NOT NULL, json_content TEXT NOT NULL, is_default INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);", cancellationToken);
+        await _db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS idx_print_templates_document_type ON print_templates (document_type);", cancellationToken);
     }
 
     private async Task ClearDefaultAsync(string documentType, CancellationToken cancellationToken)
@@ -120,16 +97,12 @@ public sealed class EfPrintTemplateRepository : IPrintTemplateRepository
         {
             command.Transaction = _db.Database.CurrentTransaction.GetDbTransaction();
         }
-
         return command;
     }
 
     private static async Task OpenAsync(DbConnection connection, CancellationToken cancellationToken)
     {
-        if (connection.State != ConnectionState.Open)
-        {
-            await connection.OpenAsync(cancellationToken);
-        }
+        if (connection.State != ConnectionState.Open) await connection.OpenAsync(cancellationToken);
     }
 
     private static void BindTemplate(DbCommand command, PrintTemplate template)
