@@ -39,7 +39,7 @@ class SettingsHomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Manage company, database, backup, printing, users, license, and setup configuration.',
+            'Manage company profile, local runtime, database, backup, printing, users, license, and setup configuration.',
             style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
@@ -80,9 +80,9 @@ class SettingsHomeScreen extends ConsumerWidget {
                   onTap: () => context.go(AppRoutes.companySettings),
                 ),
                 _SettingsTile(
-                  icon: Icons.language_outlined,
-                  title: 'Connection',
-                  subtitle: 'Local/LAN/hosted API endpoint and connection test.',
+                  icon: Icons.computer_outlined,
+                  title: 'Local Runtime',
+                  subtitle: 'Internal offline API endpoint and local runtime health check.',
                   onTap: () => context.go(AppRoutes.connectionSettings),
                 ),
                 _SettingsTile(
@@ -94,7 +94,7 @@ class SettingsHomeScreen extends ConsumerWidget {
                 _SettingsTile(
                   icon: Icons.storage_outlined,
                   title: 'Database & Backup',
-                  subtitle: 'Database provider, backup folder, restore, and maintenance.',
+                  subtitle: 'Company database, backup folder, restore, and maintenance.',
                   onTap: () => context.go(AppRoutes.backupSettings),
                 ),
                 _SettingsTile(
@@ -120,13 +120,13 @@ class SettingsHomeScreen extends ConsumerWidget {
                 _SettingsTile(
                   icon: Icons.flag_outlined,
                   title: 'Setup Wizard',
-                  subtitle: 'First-run company setup, restore, connection, and demo options.',
+                  subtitle: 'First-run company setup, restore, local runtime, and demo options.',
                   onTap: () => context.go(AppRoutes.setupWizard),
                 ),
                 _SettingsTile(
                   icon: Icons.verified_user_outlined,
                   title: 'License',
-                  subtitle: 'Trial, activation key, edition, limits, and device activation.',
+                  subtitle: 'Offline edition, activation key, limits, and device activation.',
                   onTap: () => context.go(AppRoutes.licenseSettings),
                 ),
               ];
@@ -212,7 +212,7 @@ class _RuntimeSummaryCard extends StatelessWidget {
     return _SummaryCard(
       icon: Icons.dns_outlined,
       title: 'Runtime & Database',
-      subtitle: 'Current API runtime and database status.',
+      subtitle: 'Current local runtime and company database status.',
       rows: [
         ('Environment', environmentName),
         ('Provider', databaseProvider),
@@ -259,9 +259,15 @@ class _SummaryCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 2),
-                      Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                      Text(
+                        title,
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                      ),
                     ],
                   ),
                 ),
@@ -269,18 +275,24 @@ class _SummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ...rows.map((row) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 130,
-                        child: Text(row.$1, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 140,
+                    child: Text(
+                      row.$1,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w800,
                       ),
-                      Expanded(child: Text(row.$2.isEmpty ? '-' : row.$2)),
-                    ],
+                    ),
                   ),
-                )),
+                  Expanded(child: Text(row.$2.isEmpty ? '-' : row.$2)),
+                ],
+              ),
+            )),
           ],
         ),
       ),
@@ -305,13 +317,12 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
     return Card(
-      clipBehavior: Clip.antiAlias,
       child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Row(
             children: [
               CircleAvatar(
@@ -321,10 +332,13 @@ class _SettingsTile extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
@@ -335,7 +349,7 @@ class _SettingsTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
             ],
           ),
         ),
@@ -346,17 +360,22 @@ class _SettingsTile extends StatelessWidget {
 
 class _LoadingCard extends StatelessWidget {
   const _LoadingCard({required this.title});
+
   final String title;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
-            const SizedBox(width: 16),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
             Text('Loading $title...'),
           ],
         ),
@@ -367,31 +386,36 @@ class _LoadingCard extends StatelessWidget {
 
 class _ErrorCard extends StatelessWidget {
   const _ErrorCard({required this.title, required this.message, required this.onRetry});
+
   final String title;
   final String message;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            Icon(Icons.error_outline, color: cs.error),
+            const Icon(Icons.error_outline, color: Colors.red),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 4),
-                  Text(message, maxLines: 3, overflow: TextOverflow.ellipsis),
+                  Text(message),
                 ],
               ),
             ),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
           ],
         ),
       ),
