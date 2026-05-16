@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -16,7 +17,7 @@ class PrintTemplatePdfService {
     );
   }
 
-  Future<List<int>> build(PrintTemplateModel template) async {
+  Future<Uint8List> build(PrintTemplateModel template) async {
     final doc = pw.Document();
     final pageFormat = PdfPageFormat(
       template.page.effectiveWidthMm * PdfPageFormat.mm,
