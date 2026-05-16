@@ -43,6 +43,7 @@ class TemplateCanvas extends StatelessWidget {
                   width: element.width * mmToPixel,
                   height: element.height * mmToPixel,
                   child: GestureDetector(
+                    onPanStart: (_) => controller.selectElement(element.id),
                     onPanUpdate: (details) => controller.moveSelectedBy(
                       details.delta.dx / mmToPixel,
                       details.delta.dy / mmToPixel,
@@ -62,6 +63,7 @@ class TemplateCanvas extends StatelessWidget {
                             right: -6,
                             bottom: -6,
                             child: GestureDetector(
+                              onPanStart: (_) => controller.selectElement(element.id),
                               onPanUpdate: (details) => controller.resizeSelectedBy(
                                 details.delta.dx / mmToPixel,
                                 details.delta.dy / mmToPixel,
