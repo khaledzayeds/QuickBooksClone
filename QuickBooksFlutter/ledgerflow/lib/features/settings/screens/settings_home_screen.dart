@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/widgets/coming_soon_screen.dart';
+import '../../print_templates/presentation/pages/print_template_designer_page.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsHomeScreen extends ConsumerWidget {
@@ -101,6 +102,14 @@ class SettingsHomeScreen extends ConsumerWidget {
                   title: 'Printing',
                   subtitle: 'A4 invoices, thermal receipts, logos, and document templates.',
                   onTap: () => context.go(AppRoutes.printingSettings),
+                ),
+                _SettingsTile(
+                  icon: Icons.dashboard_customize_outlined,
+                  title: 'Print Template Designer',
+                  subtitle: 'Design invoice, receipt, QR, barcode, and A4/thermal templates.',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const PrintTemplateDesignerPage()),
+                  ),
                 ),
                 _SettingsTile(
                   icon: Icons.admin_panel_settings_outlined,

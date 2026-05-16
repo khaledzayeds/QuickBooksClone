@@ -13,6 +13,7 @@ using QuickBooksClone.Core.JournalEntries;
 using QuickBooksClone.Core.Licensing;
 using QuickBooksClone.Core.OpeningBalances;
 using QuickBooksClone.Core.Payments;
+using QuickBooksClone.Core.PrintTemplates;
 using QuickBooksClone.Core.PurchaseBills;
 using QuickBooksClone.Core.PurchaseOrders;
 using QuickBooksClone.Core.PurchaseWorkflow;
@@ -86,6 +87,7 @@ builder.Services.AddScoped<ISalesInvoicePostingService, SalesInvoicePostingServi
 builder.Services.AddScoped<SalesPostingPreviewService>();
 builder.Services.AddScoped<SalesActivityService>();
 builder.Services.AddScoped<SalesPrintService>();
+builder.Services.AddSingleton<IPrintTemplateRepository, InMemoryPrintTemplateRepository>();
 builder.Services.AddScoped<IInventoryAdjustmentRepository, EfInventoryAdjustmentRepository>();
 builder.Services.AddScoped<IInventoryAdjustmentPostingService, InventoryAdjustmentPostingService>();
 builder.Services.AddScoped<IJournalEntryRepository, EfJournalEntryRepository>();
