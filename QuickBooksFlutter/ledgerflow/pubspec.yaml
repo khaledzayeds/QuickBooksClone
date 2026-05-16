@@ -1,5 +1,5 @@
 name: ledgerflow
-description: "LedgerFlow ERP - Flutter Mobile Client"
+description: "LedgerFlow Offline ERP - Desktop Client"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -23,7 +23,7 @@ dependencies:
   # Navigation
   go_router: ^17.2.2
 
-  # Network
+  # Internal local API client
   dio: ^5.9.2
 
   # Local Settings Storage
