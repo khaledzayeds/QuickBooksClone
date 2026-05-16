@@ -1,3 +1,5 @@
+import '../../../../core/constants/app_constants.dart';
+
 enum ConnectionProfileType {
   local,
   lan,
@@ -34,16 +36,18 @@ class ConnectionSettingsModel {
   final String? hostedUrl;
   final String? customUrl;
 
-  static const defaultLocalUrl = 'http://localhost:5014';
-  static const defaultLanHost = '192.168.1.100:5014';
-  static const defaultHostedUrl = 'https://your-server.com';
+  static const offlineOnly = true;
+  static const defaultLocalUrl = AppConstants.defaultBaseUrl;
+
+  // Kept for source compatibility with LAN/hosted screens until those are split
+  // into their own future branches. The offline build never resolves to them.
+  static const defaultLanHost = '';
+  static const defaultHostedUrl = '';
 
   factory ConnectionSettingsModel.defaults() {
     return const ConnectionSettingsModel(
       profileType: ConnectionProfileType.local,
       baseUrl: defaultLocalUrl,
-      lanHost: defaultLanHost,
-      hostedUrl: defaultHostedUrl,
     );
   }
 
@@ -64,60 +68,22 @@ class ConnectionSettingsModel {
   }
 
   ConnectionSettingsModel resolveBaseUrl() {
-    final resolved = switch (profileType) {
-      ConnectionProfileType.local => defaultLocalUrl,
-      ConnectionProfileType.lan => _normalizeLanHost(lanHost ?? defaultLanHost),
-      ConnectionProfileType.hosted => _normalizeUrl(
-        hostedUrl ?? defaultHostedUrl,
-      ),
-      ConnectionProfileType.custom => _normalizeUrl(customUrl ?? baseUrl),
-    };
-
-    return copyWith(baseUrl: resolved);
+    return const ConnectionSettingsModel(
+      profileType: ConnectionProfileType.local,
+      baseUrl: defaultLocalUrl,
+    );
   }
 
-  Map<String, String> toStorage() => {
-    'profileType': profileType.name,
-    'baseUrl': baseUrl,
-    'lanHost': lanHost ?? '',
-    'hostedUrl': hostedUrl ?? '',
-    'customUrl': customUrl ?? '',
+  Map<String, String> toStorage() => const {
+    'profileType': 'local',
+    'baseUrl': defaultLocalUrl,
+    'lanHost': '',
+    'hostedUrl': '',
+    'customUrl': '',
   };
 
   factory ConnectionSettingsModel.fromStorage(Map<String, String?> values) {
-    final profileType = ConnectionProfileType.fromName(values['profileType']);
-    final model = ConnectionSettingsModel(
-      profileType: profileType,
-      baseUrl: values['baseUrl']?.isNotEmpty == true
-          ? values['baseUrl']!
-          : defaultLocalUrl,
-      lanHost: values['lanHost']?.isNotEmpty == true
-          ? values['lanHost']
-          : defaultLanHost,
-      hostedUrl: values['hostedUrl']?.isNotEmpty == true
-          ? values['hostedUrl']
-          : defaultHostedUrl,
-      customUrl: values['customUrl']?.isNotEmpty == true
-          ? values['customUrl']
-          : null,
-    );
-    return model.resolveBaseUrl();
-  }
-
-  static String _normalizeLanHost(String value) {
-    final trimmed = value.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-    return 'http://$trimmed';
-  }
-
-  static String _normalizeUrl(String value) {
-    final trimmed = value.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-    return 'http://$trimmed';
+    return ConnectionSettingsModel.defaults();
   }
 }
 
