@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/print_template_model.dart';
+import '../../logic/print_template_controller.dart';
 import 'template_element_widget.dart';
 
 class TemplateCanvas extends StatelessWidget {
   const TemplateCanvas({
     super.key,
-    required this.template,
-    required this.selectedElementId,
-    required this.onSelectElement,
+    required this.controller,
     this.mmToPixel = 3.2,
   });
 
-  final PrintTemplateModel template;
-  final String? selectedElementId;
-  final ValueChanged<String> onSelectElement;
+  final PrintTemplateController controller;
   final double mmToPixel;
+
+  PrintTemplateModel get template => controller.template;
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +42,43 @@ class TemplateCanvas extends StatelessWidget {
                   top: element.y * mmToPixel,
                   width: element.width * mmToPixel,
                   height: element.height * mmToPixel,
-                  child: TemplateElementWidget(
-                    element: element,
-                    selected: element.id == selectedElementId,
-                    onTap: () => onSelectElement(element.id),
+                  child: GestureDetector(
+                    onPanUpdate: (details) => controller.moveSelectedBy(
+                      details.delta.dx / mmToPixel,
+                      details.delta.dy / mmToPixel,
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          child: TemplateElementWidget(
+                            element: element,
+                            selected: element.id == controller.selectedElementId,
+                            onTap: () => controller.selectElement(element.id),
+                          ),
+                        ),
+                        if (element.id == controller.selectedElementId)
+                          Positioned(
+                            right: -6,
+                            bottom: -6,
+                            child: GestureDetector(
+                              onPanUpdate: (details) => controller.resizeSelectedBy(
+                                details.delta.dx / mmToPixel,
+                                details.delta.dy / mmToPixel,
+                              ),
+                              child: Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2563EB),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
             ],
