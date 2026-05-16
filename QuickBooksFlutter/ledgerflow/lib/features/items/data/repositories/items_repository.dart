@@ -1,4 +1,3 @@
-﻿// items_repository.dart
 // items_repository.dart
 
 import '../../../../core/api/api_result.dart';
@@ -14,7 +13,7 @@ class ItemsRepository {
     int?    itemType,
     bool    includeInactive = false,
     int     page            = 1,
-    int     pageSize        = 25,
+    int     pageSize        = 100,
   }) =>
       _datasource.getItems(
         search:          search,
@@ -30,10 +29,28 @@ class ItemsRepository {
   Future<ApiResult<ItemModel>> createItem(Map<String, dynamic> body) =>
       _datasource.createItem(body);
 
-  Future<ApiResult<ItemModel>> updateItem(
-          String id, Map<String, dynamic> body) =>
+  Future<ApiResult<ItemModel>> updateItem(String id, Map<String, dynamic> body) =>
       _datasource.updateItem(id, body);
 
   Future<ApiResult<ItemModel>> toggleActive(String id, bool isActive) =>
       _datasource.toggleActive(id, isActive);
+
+  Future<ApiResult<int>> bulkPriceChange({
+    required List<String> itemIds,
+    required int target,
+    required int mode,
+    required double value,
+  }) =>
+      _datasource.bulkPriceChange(
+        itemIds: itemIds,
+        target:  target,
+        mode:    mode,
+        value:   value,
+      );
+
+  Future<ApiResult<String>> exportCsv() => _datasource.exportCsv();
+
+
+  Future<ApiResult<List<Map<String, dynamic>>>> exportItemsJson() =>
+      _datasource.exportItemsJson();
 }

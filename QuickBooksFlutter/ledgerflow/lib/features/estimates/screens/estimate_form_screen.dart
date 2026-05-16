@@ -329,7 +329,7 @@ class _EstimateHeader extends StatelessWidget {
             ),
           ),
           SizedBox(
-            height: 146,
+            height: 110,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
               child: Row(
@@ -364,36 +364,7 @@ class _EstimateHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _FieldLabel('BILL TO'),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 96,
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFB7C3CB)),
-                          ),
-                          child: Text(
-                            selectedCustomer?.displayName ??
-                                'Select a customer',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: selectedCustomer == null
-                                  ? const Color(0xFF7B8B93)
-                                  : const Color(0xFF253C47),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 18),
+                  const SizedBox(width: 32),
                   SizedBox(
                     width: 240,
                     child: Column(

@@ -402,7 +402,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get incomeTracker => 'Income Tracker';
 
   @override
-  String get billTracker => 'Bill Tracker';
+  String get billTracker => 'تتبع الفواتير';
 
   @override
   String get calendar => 'Calendar';
@@ -714,4 +714,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get itemsLines => 'lines';
+
+  @override
+  String get seedDefaults => 'Seed Defaults';
+
+  @override
+  String get allTypes => 'All types';
+
+  @override
+  String get typeFilter => 'Type';
+
+  @override
+  String get includeInactive => 'Include inactive';
+
+  @override
+  String get searchCodeOrName => 'Search code or name...';
+
+  @override
+  String get noAccountsFound => 'No accounts found';
+
+  @override
+  String get createOrSeedHint => 'Create a new account or seed defaults.';
+
+  @override
+  String seedCreated(Object count) {
+    return 'Seed: $count created';
+  }
+
+  @override
+  String get coaShortcutHint =>
+      'Chart of Accounts  •  Enter to edit account  •  Esc Close';
+
+  @override
+  String get accounts => 'Accounts';
+
+  @override
+  String get active => 'Active';
+
+  @override
+  String get inactive => 'Inactive';
+
+  @override
+  String get activate => 'Activate';
+
+  @override
+  String get deactivate => 'Deactivate';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get inventoryCenter => 'Inventory Center';
+
+  @override
+  String get inventoryCenterDescription =>
+      'Manage inventory parts, non-inventory parts, services, and bundle items with QuickBooks-style posting.';
+
+  @override
+  String get stockValue => 'Stock value';
+
+  @override
+  String get missingAccounts => 'Missing accounts';
+
+  @override
+  String get lowOrZeroStock => 'Zero/low stock';
+
+  @override
+  String get allItemTypes => 'All item types';
+
+  @override
+  String get itemActions => 'Item actions';
+
+  @override
+  String get addEditMultipleItems => 'Add/Edit Multiple Items';
+
+  @override
+  String get importItemsExcel => 'Import Items from Excel/CSV';
+
+  @override
+  String get exportItemsExcel => 'Export Items to Excel/CSV';
+
+  @override
+  String get downloadImportTemplate => 'Download Import Template';
+
+  @override
+  String get changeItemPrices => 'Change Item Prices';
+
+  @override
+  String get noItemsFound => 'No items found';
+
+  @override
+  String get createOrImportItemsHint =>
+      'Create a new item or import a list from Excel.';
 }

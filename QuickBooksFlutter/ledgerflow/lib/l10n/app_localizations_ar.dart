@@ -708,4 +708,100 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get itemsLines => 'سطور';
+
+  @override
+  String get seedDefaults => 'إعداد الحسابات الافتراضية';
+
+  @override
+  String get allTypes => 'كل الأنواع';
+
+  @override
+  String get typeFilter => 'النوع';
+
+  @override
+  String get includeInactive => 'عرض غير النشط';
+
+  @override
+  String get searchCodeOrName => 'بحث بالكود أو الاسم...';
+
+  @override
+  String get noAccountsFound => 'لا توجد حسابات';
+
+  @override
+  String get createOrSeedHint =>
+      'أنشئ حساباً جديداً أو قم بإعداد الحسابات الافتراضية.';
+
+  @override
+  String seedCreated(Object count) {
+    return 'الإعداد: تم إنشاء $count';
+  }
+
+  @override
+  String get coaShortcutHint =>
+      'دليل الحسابات  •  Enter للتعديل  •  Esc للإغلاق';
+
+  @override
+  String get accounts => 'الحسابات';
+
+  @override
+  String get active => 'نشط';
+
+  @override
+  String get inactive => 'غير نشط';
+
+  @override
+  String get activate => 'تفعيل';
+
+  @override
+  String get deactivate => 'تعطيل';
+
+  @override
+  String get refresh => 'تحديث';
+
+  @override
+  String get close => 'إغلاق';
+
+  @override
+  String get inventoryCenter => 'مركز المخزون';
+
+  @override
+  String get inventoryCenterDescription =>
+      'إدارة بنود المخزون، والبنود غير المخزنية، والخدمات، ومجموعات البنود مع سلوك ترحيل بأسلوب QuickBooks.';
+
+  @override
+  String get stockValue => 'قيمة المخزون';
+
+  @override
+  String get missingAccounts => 'حسابات مفقودة';
+
+  @override
+  String get lowOrZeroStock => 'مخزون منخفض/صفر';
+
+  @override
+  String get allItemTypes => 'كل أنواع الأصناف';
+
+  @override
+  String get itemActions => 'إجراءات الأصناف';
+
+  @override
+  String get addEditMultipleItems => 'إضافة/تعديل عدة أصناف';
+
+  @override
+  String get importItemsExcel => 'استيراد الأصناف من Excel/CSV';
+
+  @override
+  String get exportItemsExcel => 'تصدير الأصناف إلى Excel/CSV';
+
+  @override
+  String get downloadImportTemplate => 'تحميل نموذج الاستيراد';
+
+  @override
+  String get changeItemPrices => 'تغيير أسعار الأصناف';
+
+  @override
+  String get noItemsFound => 'لم يتم العثور على أصناف';
+
+  @override
+  String get createOrImportItemsHint =>
+      'أنشئ صنفاً جديداً أو استورد قائمة من ملف Excel.';
 }

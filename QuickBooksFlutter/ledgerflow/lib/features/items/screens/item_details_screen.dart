@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/loading_widget.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/models/item_model.dart';
 import '../providers/items_provider.dart';
 
@@ -18,63 +18,140 @@ class ItemDetailsScreen extends ConsumerWidget {
     final itemAsync = ref.watch(itemDetailProvider(id));
     final theme = Theme.of(context);
 
+    final l10n = AppLocalizations.of(context)!;
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Item Details'),
-        actions: [
-          itemAsync.whenData((item) => AppButton(
-                label: 'Edit',
-                icon: Icons.edit_outlined,
-                variant: AppButtonVariant.secondary,
-                onPressed: () => context.go(AppRoutes.itemEdit.replaceFirst(':id', id)),
-              )).value ??
-              const SizedBox.shrink(),
-          const SizedBox(width: 12),
+      backgroundColor: cs.surface,
+      body: Column(
+        children: [
+          // Tool Strip
+          Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: cs.surface,
+              border: Border(
+                bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.5)),
+              ),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 8),
+                _ToolBtn(
+                  icon: Icons.arrow_back,
+                  label: l10n.close,
+                  onPressed: () => context.go(AppRoutes.items),
+                ),
+                const Spacer(),
+                itemAsync.whenData((item) => _ToolBtn(
+                      icon: Icons.edit_outlined,
+                      label: l10n.edit,
+                      onPressed: () => context.go(
+                        AppRoutes.itemEdit.replaceFirst(':id', id),
+                      ),
+                    )).value ?? const SizedBox.shrink(),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ),
+          Expanded(
+            child:
+            itemAsync.when(
+              loading: () => const LoadingWidget(),
+              error: (e, _) => Center(child: Text(e.toString())),
+              data: (item) => ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  _HeaderCard(item: item),
+                  const SizedBox(height: 16),
+                  if (!item.hasRequiredPostingAccounts) ...[
+                    _WarningCard(item: item),
+                    const SizedBox(height: 16),
+                  ],
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 980;
+                      final left = Column(
+                        children: [
+                          _PriceAndStockCard(item: item),
+                          const SizedBox(height: 16),
+                          _IdentifiersCard(item: item),
+                        ],
+                      );
+                      final right = Column(
+                        children: [
+                          _PostingAccountsCard(item: item),
+                          const SizedBox(height: 16),
+                          _QuickActionsCard(item: item),
+                        ],
+                      );
+
+                      if (!wide) {
+                        return Column(
+                          children: [
+                            left,
+                            const SizedBox(height: 16),
+                            right,
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: left),
+                          const SizedBox(width: 16),
+                          Expanded(child: right),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _FutureActivityCard(item: item),
+                  const SizedBox(height: 16),
+                  Text(
+                    'QuickBooks-style note: item activity will later show related invoices, sales receipts, purchase orders, bills, receive inventory documents, and inventory adjustments.',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
-      body: itemAsync.when(
-        loading: () => const LoadingWidget(),
-        error: (e, _) => Center(child: Text(e.toString())),
-        data: (item) => ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            _HeaderCard(item: item),
-            const SizedBox(height: 16),
-            if (!item.hasRequiredPostingAccounts) ...[
-              _WarningCard(item: item),
-              const SizedBox(height: 16),
-            ],
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 980;
-                final left = Column(
-                  children: [
-                    _PriceAndStockCard(item: item),
-                    const SizedBox(height: 16),
-                    _IdentifiersCard(item: item),
-                  ],
-                );
-                final right = Column(
-                  children: [
-                    _PostingAccountsCard(item: item),
-                    const SizedBox(height: 16),
-                    _QuickActionsCard(item: item),
-                  ],
-                );
+    );
+  }
+}
 
-                if (!wide) return Column(children: [left, const SizedBox(height: 16), right]);
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [Expanded(child: left), const SizedBox(width: 16), Expanded(child: right)],
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            _FutureActivityCard(item: item),
-            const SizedBox(height: 16),
+class _ToolBtn extends StatelessWidget {
+  const _ToolBtn({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: theme.colorScheme.primary),
+            const SizedBox(width: 5),
             Text(
-              'QuickBooks-style note: item activity will later show related invoices, sales receipts, purchase orders, bills, receive inventory documents, and inventory adjustments.',
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ],
         ),
@@ -244,24 +321,21 @@ class _QuickActionsCard extends StatelessWidget {
           spacing: 10,
           runSpacing: 10,
           children: [
-            AppButton(
-              label: 'Create invoice',
-              icon: Icons.description_outlined,
-              variant: AppButtonVariant.secondary,
+            OutlinedButton.icon(
               onPressed: () => context.go('${AppRoutes.invoiceNew}?itemId=${item.id}'),
+              icon: const Icon(Icons.description_outlined, size: 16),
+              label: const Text('Create invoice'),
             ),
             if (item.isInventory)
-              AppButton(
-                label: 'Inventory adjustment',
-                icon: Icons.tune_outlined,
-                variant: AppButtonVariant.secondary,
+              OutlinedButton.icon(
                 onPressed: () => context.go('${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}'),
+                icon: const Icon(Icons.tune_outlined, size: 16),
+                label: const Text('Inventory adjustment'),
               ),
-            AppButton(
-              label: 'Edit item',
-              icon: Icons.edit_outlined,
-              variant: AppButtonVariant.secondary,
+            OutlinedButton.icon(
               onPressed: () => context.go(AppRoutes.itemEdit.replaceFirst(':id', item.id)),
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text('Edit item'),
             ),
           ],
         ),

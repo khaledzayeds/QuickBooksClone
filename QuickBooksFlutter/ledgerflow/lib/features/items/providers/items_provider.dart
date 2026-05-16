@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../data/datasources/items_remote_datasource.dart';
@@ -65,32 +65,44 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
 
   Future<ApiResult<ItemModel>> createItem(Map<String, dynamic> body) async {
     final result = await ref.read(itemsRepositoryProvider).createItem(body);
-    if (result.isSuccess) {
-      await refresh();
-    }
+    if (result.isSuccess) await refresh();
     return result;
   }
 
-  Future<ApiResult<ItemModel>> updateItem(
-    String id,
-    Map<String, dynamic> body,
-  ) async {
+  Future<ApiResult<ItemModel>> updateItem(String id, Map<String, dynamic> body) async {
     final result = await ref.read(itemsRepositoryProvider).updateItem(id, body);
-    if (result.isSuccess) {
-      await refresh();
-    }
+    if (result.isSuccess) await refresh();
     return result;
   }
 
   Future<ApiResult<ItemModel>> toggleActive(String id, bool isActive) async {
-    final result = await ref
-        .read(itemsRepositoryProvider)
-        .toggleActive(id, isActive);
-    if (result.isSuccess) {
-      await refresh();
-    }
+    final result = await ref.read(itemsRepositoryProvider).toggleActive(id, isActive);
+    if (result.isSuccess) await refresh();
     return result;
   }
+
+  Future<ApiResult<int>> bulkPriceChange({
+    required List<String> itemIds,
+    required int target,
+    required int mode,
+    required double value,
+  }) async {
+    final result = await ref.read(itemsRepositoryProvider).bulkPriceChange(
+      itemIds: itemIds,
+      target:  target,
+      mode:    mode,
+      value:   value,
+    );
+    if (result.isSuccess) await refresh();
+    return result;
+  }
+
+  Future<ApiResult<String>> exportCsv() =>
+      ref.read(itemsRepositoryProvider).exportCsv();
+
+
+  Future<ApiResult<List<Map<String, dynamic>>>> exportItemsJson() =>
+      ref.read(itemsRepositoryProvider).exportItemsJson();
 }
 
 final itemDetailProvider = FutureProvider.family<ItemModel, String>((

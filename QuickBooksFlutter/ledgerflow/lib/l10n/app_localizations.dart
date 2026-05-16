@@ -1495,6 +1495,186 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سطور'**
   String get itemsLines;
+
+  /// No description provided for @seedDefaults.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعداد الحسابات الافتراضية'**
+  String get seedDefaults;
+
+  /// No description provided for @allTypes.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل الأنواع'**
+  String get allTypes;
+
+  /// No description provided for @typeFilter.
+  ///
+  /// In ar, this message translates to:
+  /// **'النوع'**
+  String get typeFilter;
+
+  /// No description provided for @includeInactive.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض غير النشط'**
+  String get includeInactive;
+
+  /// No description provided for @searchCodeOrName.
+  ///
+  /// In ar, this message translates to:
+  /// **'بحث بالكود أو الاسم...'**
+  String get searchCodeOrName;
+
+  /// No description provided for @noAccountsFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد حسابات'**
+  String get noAccountsFound;
+
+  /// No description provided for @createOrSeedHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنشئ حساباً جديداً أو قم بإعداد الحسابات الافتراضية.'**
+  String get createOrSeedHint;
+
+  /// No description provided for @seedCreated.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإعداد: تم إنشاء {count}'**
+  String seedCreated(Object count);
+
+  /// No description provided for @coaShortcutHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'دليل الحسابات  •  Enter للتعديل  •  Esc للإغلاق'**
+  String get coaShortcutHint;
+
+  /// No description provided for @accounts.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحسابات'**
+  String get accounts;
+
+  /// No description provided for @active.
+  ///
+  /// In ar, this message translates to:
+  /// **'نشط'**
+  String get active;
+
+  /// No description provided for @inactive.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير نشط'**
+  String get inactive;
+
+  /// No description provided for @activate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفعيل'**
+  String get activate;
+
+  /// No description provided for @deactivate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعطيل'**
+  String get deactivate;
+
+  /// No description provided for @refresh.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديث'**
+  String get refresh;
+
+  /// No description provided for @close.
+  ///
+  /// In ar, this message translates to:
+  /// **'إغلاق'**
+  String get close;
+
+  /// No description provided for @inventoryCenter.
+  ///
+  /// In ar, this message translates to:
+  /// **'مركز المخزون'**
+  String get inventoryCenter;
+
+  /// No description provided for @inventoryCenterDescription.
+  ///
+  /// In ar, this message translates to:
+  /// **'إدارة بنود المخزون، والبنود غير المخزنية، والخدمات، ومجموعات البنود مع سلوك ترحيل بأسلوب QuickBooks.'**
+  String get inventoryCenterDescription;
+
+  /// No description provided for @stockValue.
+  ///
+  /// In ar, this message translates to:
+  /// **'قيمة المخزون'**
+  String get stockValue;
+
+  /// No description provided for @missingAccounts.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابات مفقودة'**
+  String get missingAccounts;
+
+  /// No description provided for @lowOrZeroStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخزون منخفض/صفر'**
+  String get lowOrZeroStock;
+
+  /// No description provided for @allItemTypes.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل أنواع الأصناف'**
+  String get allItemTypes;
+
+  /// No description provided for @itemActions.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجراءات الأصناف'**
+  String get itemActions;
+
+  /// No description provided for @addEditMultipleItems.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة/تعديل عدة أصناف'**
+  String get addEditMultipleItems;
+
+  /// No description provided for @importItemsExcel.
+  ///
+  /// In ar, this message translates to:
+  /// **'استيراد الأصناف من Excel/CSV'**
+  String get importItemsExcel;
+
+  /// No description provided for @exportItemsExcel.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصدير الأصناف إلى Excel/CSV'**
+  String get exportItemsExcel;
+
+  /// No description provided for @downloadImportTemplate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحميل نموذج الاستيراد'**
+  String get downloadImportTemplate;
+
+  /// No description provided for @changeItemPrices.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير أسعار الأصناف'**
+  String get changeItemPrices;
+
+  /// No description provided for @noItemsFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يتم العثور على أصناف'**
+  String get noItemsFound;
+
+  /// No description provided for @createOrImportItemsHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنشئ صنفاً جديداً أو استورد قائمة من ملف Excel.'**
+  String get createOrImportItemsHint;
 }
 
 class _AppLocalizationsDelegate

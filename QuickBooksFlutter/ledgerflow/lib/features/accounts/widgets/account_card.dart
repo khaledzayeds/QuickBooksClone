@@ -1,7 +1,7 @@
-﻿// account_card.dart
 // account_card.dart
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/models/account_model.dart';
 
 class AccountCard extends StatelessWidget {
@@ -20,6 +20,7 @@ class AccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme   = Theme.of(context);
     final isDebit = account.isDebitNormal;
+    final l10n    = AppLocalizations.of(context)!;
 
     return Card(
       child: ListTile(
@@ -63,7 +64,7 @@ class AccountCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${account.balance.toStringAsFixed(2)} ج.م',
+                  '${account.balance.toStringAsFixed(2)} ${l10n.egp}',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: account.balance >= 0
@@ -72,7 +73,7 @@ class AccountCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  isDebit ? 'مدين' : 'دائن',
+                  isDebit ? l10n.debit : l10n.credit,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.textTheme.bodyMedium?.color
                         ?.withValues(alpha: 0.4),
@@ -94,7 +95,7 @@ class AccountCard extends StatelessWidget {
                       : theme.disabledColor,
                 ),
                 onPressed: onToggleActive,
-                tooltip: account.isActive ? 'تعطيل' : 'تفعيل',
+                tooltip: account.isActive ? l10n.deactivate : l10n.activate,
               ),
           ],
         ),

@@ -33,8 +33,10 @@ import '../features/inventory_adjustments/screens/inventory_adjustment_form_scre
 import '../features/inventory_adjustments/screens/inventory_adjustment_list_screen.dart';
 import '../features/invoices/screens/invoice_form_page_shell.dart';
 import '../features/invoices/screens/invoices_list_page.dart';
+import '../features/items/screens/item_bulk_edit_screen.dart';
 import '../features/items/screens/item_details_screen.dart';
 import '../features/items/screens/item_form_screen.dart';
+import '../features/items/screens/item_import_screen.dart';
 import '../features/items/screens/item_list_screen.dart';
 import '../features/journal_entries/screens/journal_entry_details_screen.dart';
 import '../features/journal_entries/screens/journal_entry_form_screen.dart';
@@ -140,6 +142,8 @@ class AppRoutes {
   static const itemNew = '/master/items/new';
   static const itemDetails = '/master/items/:id';
   static const itemEdit = '/master/items/edit/:id';
+  static const itemBulkEdit = '/master/items/bulk-edit';
+  static const itemImport = '/master/items/import';
   static const vendors = '/master/vendors';
   static const vendorNew = '/master/vendors/new';
   static const vendorEdit = '/master/vendors/edit/:id';
@@ -245,17 +249,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.itemNew,
-            builder: (context, state) => const ItemFormScreen(),
+            builder: (context, state) {
+              final typeVal = state.uri.queryParameters['type'];
+              return ItemFormScreen();
+            },
           ),
           GoRoute(
-            path: AppRoutes.itemDetails,
-            builder: (context, state) =>
-                ItemDetailsScreen(id: state.pathParameters['id']!),
+            path: AppRoutes.itemBulkEdit,
+            builder: (context, state) => const ItemBulkEditScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.itemImport,
+            builder: (context, state) => const ItemImportScreen(),
           ),
           GoRoute(
             path: AppRoutes.itemEdit,
             builder: (context, state) =>
                 ItemFormScreen(id: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: AppRoutes.itemDetails,
+            builder: (context, state) =>
+                ItemDetailsScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.vendors,

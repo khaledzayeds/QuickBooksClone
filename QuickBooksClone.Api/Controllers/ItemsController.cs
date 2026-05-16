@@ -215,6 +215,98 @@ public sealed class ItemsController : ControllerBase
         return updated ? NoContent() : NotFound();
     }
 
+    // ── Bulk Price Change ─────────────────────────────────────────────────────
+    [HttpPost("bulk-price-change")]
+    [ProducesResponseType(typeof(BulkPriceChangeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BulkPriceChangeResponse>> BulkPriceChange(
+        BulkPriceChangeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.ItemIds is null || request.ItemIds.Count == 0)
+            return BadRequest("No item IDs provided.");
+
+        if (request.Value < 0)
+            return BadRequest("Value cannot be negative.");
+
+        int updated = 0;
+        var errors = new List<string>();
+
+        foreach (var id in request.ItemIds)
+        {
+            var item = await _items.GetByIdAsync(id, cancellationToken);
+            if (item is null) { errors.Add($"Item {id} not found."); continue; }
+
+            var newSales    = Compute(item.SalesPrice,    request.Mode, request.Value);
+            var newPurchase = Compute(item.PurchasePrice, request.Mode, request.Value);
+
+            decimal targetSales    = request.Target is PriceChangeTarget.SalesPrice or PriceChangeTarget.Both    ? newSales    : item.SalesPrice;
+            decimal targetPurchase = request.Target is PriceChangeTarget.PurchasePrice or PriceChangeTarget.Both ? newPurchase : item.PurchasePrice;
+
+            await _items.UpdateAsync(
+                id,
+                item.Name,
+                item.ItemType,
+                item.Sku,
+                item.Barcode,
+                targetSales,
+                targetPurchase,
+                item.Unit,
+                item.IncomeAccountId,
+                item.InventoryAssetAccountId,
+                item.CogsAccountId,
+                item.ExpenseAccountId,
+                cancellationToken);
+
+            updated++;
+        }
+
+        return Ok(new BulkPriceChangeResponse(updated, errors));
+    }
+
+    private static decimal Compute(decimal current, PriceChangeMode mode, decimal value) => mode switch
+    {
+        PriceChangeMode.SetFixed           => value,
+        PriceChangeMode.IncreaseByAmount   => current + value,
+        PriceChangeMode.IncreaseByPercent  => Math.Round(current * (1 + value / 100), 2),
+        PriceChangeMode.DecreaseByAmount   => Math.Max(0, current - value),
+        PriceChangeMode.DecreaseByPercent  => Math.Round(current * (1 - value / 100), 2),
+        _                                  => current,
+    };
+
+    // ── Bulk Toggle Active ────────────────────────────────────────────────────
+    [HttpPost("bulk-toggle-active")]
+    [ProducesResponseType(typeof(BulkToggleActiveResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BulkToggleActiveResponse>> BulkToggleActive(
+        BulkToggleActiveRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        int updated = 0;
+        foreach (var id in request.ItemIds)
+        {
+            var ok = await _items.SetActiveAsync(id, request.IsActive, cancellationToken);
+            if (ok) updated++;
+        }
+        return Ok(new BulkToggleActiveResponse(updated));
+    }
+
+    // ── Export CSV ───────────────────────────────────────────────────────────
+    [HttpGet("export")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Export(CancellationToken cancellationToken = default)
+    {
+        var result = await _items.SearchAsync(new ItemSearch(null, true, 1, 10000), cancellationToken);
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Id,Name,Type,SKU,Barcode,Unit,SalesPrice,PurchasePrice,QuantityOnHand,IsActive,IncomeAccountId,InventoryAssetAccountId,CogsAccountId,ExpenseAccountId");
+        foreach (var item in result.Items)
+        {
+            sb.AppendLine(
+                $"\"{item.Id}\",\"{item.Name}\",{item.ItemType},\"{item.Sku}\",\"{item.Barcode}\",{item.Unit},{item.SalesPrice},{item.PurchasePrice},{item.QuantityOnHand},{item.IsActive},\"{item.IncomeAccountId}\",\"{item.InventoryAssetAccountId}\",\"{item.CogsAccountId}\",\"{item.ExpenseAccountId}\"");
+        }
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        return File(bytes, "text/csv", $"items-export-{DateTime.UtcNow:yyyyMMdd}.csv");
+    }
+
     private async Task<string?> ValidateUniqueItemAsync(
         string name,
         string? sku,
