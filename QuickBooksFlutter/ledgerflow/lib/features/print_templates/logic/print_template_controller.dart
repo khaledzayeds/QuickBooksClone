@@ -4,13 +4,19 @@ import '../data/models/print_element_model.dart';
 import '../data/models/print_template_model.dart';
 import '../data/print_template_repository.dart';
 import '../data/sample_templates.dart';
+import 'print_template_pdf_service.dart';
 
 class PrintTemplateController extends ChangeNotifier {
-  PrintTemplateController({PrintTemplateModel? initialTemplate, PrintTemplateRepository? repository})
-      : _template = initialTemplate ?? SamplePrintTemplates.classicA4Invoice(),
-        _repository = repository ?? const PrintTemplateRepository();
+  PrintTemplateController({
+    PrintTemplateModel? initialTemplate,
+    PrintTemplateRepository? repository,
+    PrintTemplatePdfService? pdfService,
+  })  : _template = initialTemplate ?? SamplePrintTemplates.classicA4Invoice(),
+        _repository = repository ?? const PrintTemplateRepository(),
+        _pdfService = pdfService ?? const PrintTemplatePdfService();
 
   final PrintTemplateRepository _repository;
+  final PrintTemplatePdfService _pdfService;
   PrintTemplateModel _template;
   String? _selectedElementId;
   int _nextElementNumber = 1;
@@ -47,8 +53,15 @@ class PrintTemplateController extends ChangeNotifier {
   Future<void> saveTemplate() async {
     await _runBusy(() async {
       _template = await _repository.save(_template);
-      await loadTemplates();
+      _savedTemplates = await _repository.list(documentType: _template.documentType);
       _lastMessage = 'Template saved';
+    });
+  }
+
+  Future<void> previewPrint() async {
+    await _runBusy(() async {
+      await _pdfService.preview(_template);
+      _lastMessage = 'Print preview opened';
     });
   }
 
@@ -108,10 +121,32 @@ class PrintTemplateController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void moveSelectedBy(double dxMm, double dyMm) {
+    final element = selectedElement;
+    if (element == null) return;
+    updateSelectedPosition(x: _snap(element.x + dxMm), y: _snap(element.y + dyMm));
+  }
+
+  void resizeSelectedBy(double dwMm, double dhMm) {
+    final element = selectedElement;
+    if (element == null) return;
+    updateSelectedPosition(
+      width: _snap((element.width + dwMm).clamp(4, template.page.effectiveWidthMm)),
+      height: _snap((element.height + dhMm).clamp(2, template.page.effectiveHeightMm)),
+    );
+  }
+
   void updateSelectedPosition({double? x, double? y, double? width, double? height}) {
     final element = selectedElement;
     if (element == null) return;
-    updateSelected(element.copyWith(x: x, y: y, width: width, height: height));
+    updateSelected(
+      element.copyWith(
+        x: x == null ? null : _snap(x).clamp(0, template.page.effectiveWidthMm - element.width).toDouble(),
+        y: y == null ? null : _snap(y).clamp(0, template.page.effectiveHeightMm - element.height).toDouble(),
+        width: width == null ? null : _snap(width).clamp(4, template.page.effectiveWidthMm).toDouble(),
+        height: height == null ? null : _snap(height).clamp(2, template.page.effectiveHeightMm).toDouble(),
+      ),
+    );
   }
 
   void updateSelectedText({String? value, String? binding}) {
@@ -127,6 +162,8 @@ class PrintTemplateController extends ChangeNotifier {
   }
 
   String exportJson() => _template.toPrettyJson();
+
+  double _snap(double value) => (value * 2).roundToDouble() / 2;
 
   Future<void> _runBusy(Future<void> Function() action) async {
     _isBusy = true;
