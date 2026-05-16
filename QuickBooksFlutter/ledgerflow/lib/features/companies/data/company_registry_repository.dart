@@ -87,7 +87,14 @@ class CompanyRegistryRepository {
 
   Future<CompanyRegistry> openCompany(String companyId) async {
     final registry = await load();
-    final target = registry.companies.where((company) => company.id == companyId).firstOrNull;
+    LocalCompanyInfo? target;
+    for (final company in registry.companies) {
+      if (company.id == companyId) {
+        target = company;
+        break;
+      }
+    }
+
     if (target == null) {
       throw ArgumentError('Company was not found in the local registry.');
     }
@@ -133,7 +140,7 @@ class CompanyRegistryRepository {
   Future<ActiveCompanyRuntimeModel> getActiveRuntime() async {
     final result = await _runtimeDatasource.getActive();
     return switch (result) {
-      Success<ActiveCompanyRuntimeModel>(value: final runtime) => runtime,
+      Success<ActiveCompanyRuntimeModel>(data: final runtime) => runtime,
       Failure<ActiveCompanyRuntimeModel>(error: final error) => throw error,
     };
   }
