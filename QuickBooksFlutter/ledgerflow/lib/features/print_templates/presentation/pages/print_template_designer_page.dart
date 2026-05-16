@@ -48,7 +48,7 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
             label: const Text('Save'),
           ),
           TextButton.icon(
-            onPressed: () => _showComingSoon('Print preview'),
+            onPressed: _controller.isBusy ? null : _controller.previewPrint,
             icon: const Icon(Icons.print_outlined),
             label: const Text('Preview Print'),
           ),
@@ -61,22 +61,12 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(18),
-              child: TemplateCanvas(
-                template: _controller.template,
-                selectedElementId: _controller.selectedElementId,
-                onSelectElement: _controller.selectElement,
-              ),
+              child: TemplateCanvas(controller: _controller),
             ),
           ),
           PropertiesPanel(controller: _controller),
         ],
       ),
-    );
-  }
-
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature will be added after PDF/print export is implemented.')),
     );
   }
 }
