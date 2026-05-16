@@ -1,12 +1,20 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/api/api_result.dart';
 import '../../../core/constants/app_constants.dart';
+import 'datasources/company_runtime_datasource.dart';
 import 'models/company_registry_models.dart';
+import 'models/company_runtime_models.dart';
 
 class CompanyRegistryRepository {
+  CompanyRegistryRepository({CompanyRuntimeDatasource? runtimeDatasource})
+      : _runtimeDatasource = runtimeDatasource ?? CompanyRuntimeDatasource();
+
   static const _registryKey = 'ledgerflow.companyRegistry.v1';
   static const _uuid = Uuid();
+
+  final CompanyRuntimeDatasource _runtimeDatasource;
 
   Future<CompanyRegistry> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -65,16 +73,27 @@ class CompanyRegistryRepository {
 
     companies.sort((a, b) => b.lastOpenedAt.compareTo(a.lastOpenedAt));
 
-    return save(
-      CompanyRegistry(
-        companies: companies,
-        activeCompanyId: makeActive ? company.id : registry.activeCompanyId,
-      ),
+    final updated = CompanyRegistry(
+      companies: companies,
+      activeCompanyId: makeActive ? company.id : registry.activeCompanyId,
     );
+
+    if (makeActive) {
+      await _openRuntime(company);
+    }
+
+    return save(updated);
   }
 
   Future<CompanyRegistry> openCompany(String companyId) async {
     final registry = await load();
+    final target = registry.companies.where((company) => company.id == companyId).firstOrNull;
+    if (target == null) {
+      throw ArgumentError('Company was not found in the local registry.');
+    }
+
+    await _openRuntime(target);
+
     final now = DateTime.now();
     final companies = registry.companies.map((company) {
       if (company.id != companyId) return company;
@@ -82,24 +101,41 @@ class CompanyRegistryRepository {
     }).toList()
       ..sort((a, b) => b.lastOpenedAt.compareTo(a.lastOpenedAt));
 
-    final exists = companies.any((company) => company.id == companyId);
-    if (!exists) {
-      throw ArgumentError('Company was not found in the local registry.');
-    }
-
     return save(CompanyRegistry(companies: companies, activeCompanyId: companyId));
+  }
+
+  Future<CompanyRegistry> closeActiveCompany() async {
+    final result = await _runtimeDatasource.close();
+    switch (result) {
+      case Success<ActiveCompanyRuntimeModel>():
+        final registry = await load();
+        return save(registry.copyWith(clearActiveCompany: true));
+      case Failure<ActiveCompanyRuntimeModel>(error: final error):
+        throw error;
+    }
   }
 
   Future<CompanyRegistry> removeCompany(String companyId) async {
     final registry = await load();
     final companies = registry.companies.where((company) => company.id != companyId).toList();
     final clearActive = registry.activeCompanyId == companyId;
+    if (clearActive) {
+      await _runtimeDatasource.close();
+    }
     return save(
       CompanyRegistry(
         companies: companies,
         activeCompanyId: clearActive ? null : registry.activeCompanyId,
       ),
     );
+  }
+
+  Future<ActiveCompanyRuntimeModel> getActiveRuntime() async {
+    final result = await _runtimeDatasource.getActive();
+    return switch (result) {
+      Success<ActiveCompanyRuntimeModel>(value: final runtime) => runtime,
+      Failure<ActiveCompanyRuntimeModel>(error: final error) => throw error,
+    };
   }
 
   String buildDefaultDatabaseFileName(String companyName) {
@@ -111,5 +147,22 @@ class CompanyRegistryRepository {
 
     final safeSlug = slug.isEmpty ? 'company' : slug;
     return '$safeSlug${AppConstants.companyFileExtension}';
+  }
+
+  Future<void> _openRuntime(LocalCompanyInfo company) async {
+    final result = await _runtimeDatasource.open(
+      OpenCompanyRuntimeRequest(
+        companyId: company.id,
+        companyName: company.name,
+        databasePath: company.databasePath,
+      ),
+    );
+
+    switch (result) {
+      case Success<ActiveCompanyRuntimeModel>():
+        return;
+      case Failure<ActiveCompanyRuntimeModel>(error: final error):
+        throw error;
+    }
   }
 }
