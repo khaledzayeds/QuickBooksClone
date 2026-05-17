@@ -43,8 +43,16 @@ class SetupNotifier extends AsyncNotifier<SetupStatus> {
         .read(_setupDatasourceProvider)
         .initializeCompany(request);
     switch (result) {
-      case Success<InitializeCompanyResponse>():
-        ref.invalidateSelf();
+      case Success<InitializeCompanyResponse>(data: final response):
+        state = AsyncData(
+          SetupStatus(
+            hasCompanySettings: response.initialized,
+            hasAdminUser: response.initialized,
+            isInitialized: response.initialized,
+            companyName: response.companyName,
+            adminUserName: response.adminUserName,
+          ),
+        );
         return null;
       case Failure<InitializeCompanyResponse>(error: final error):
         return error;
