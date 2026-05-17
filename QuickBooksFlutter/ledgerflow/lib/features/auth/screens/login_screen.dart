@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
 import '../../companies/providers/company_registry_provider.dart';
-import '../../companies/screens/company_launcher_screen.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -60,8 +59,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
+      await ref.read(authProvider.notifier).logout();
       await ref.read(companyRegistryProvider.notifier).closeActiveCompany();
-      await ref.read(companyRegistryProvider.notifier).refresh();
+      if (!mounted) return;
+      context.go(AppRoutes.companies);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -73,25 +74,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final registryState = ref.watch(companyRegistryProvider);
-
-    return registryState.when(
-      loading: () => const _CompanyGateLoading(),
-      error: (error, _) => _CompanyGateError(
-        message: error.toString(),
-        onRetry: () => ref.read(companyRegistryProvider.notifier).refresh(),
-      ),
-      data: (registry) {
-        final activeCompany = registry.activeCompany;
-        if (activeCompany == null) {
-          return const CompanyLauncherScreen();
-        }
-        return _buildLogin(context, activeCompany.name);
-      },
-    );
-  }
-
-  Widget _buildLogin(BuildContext context, String companyName) {
+    final registry = ref.watch(companyRegistryProvider).value;
+    final companyName = registry?.activeCompany?.name ?? 'No company open';
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -235,64 +219,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 16),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompanyGateLoading extends StatelessWidget {
-  const _CompanyGateLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            SizedBox(width: 14),
-            Text('Loading company files...'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CompanyGateError extends StatelessWidget {
-  const _CompanyGateError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 42),
-                const SizedBox(height: 12),
-                Text(message, textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
-                ),
-              ],
             ),
           ),
         ),
