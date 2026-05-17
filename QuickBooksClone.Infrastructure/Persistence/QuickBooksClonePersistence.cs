@@ -67,7 +67,7 @@ public static class QuickBooksClonePersistence
         await SeedDefaultsAsync(dbContext, seedDemoData);
     }
 
-    public static async Task ApplyCurrentCompanyDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    public static async Task ApplyCurrentCompanyDatabaseAsync(this IServiceProvider services, bool seedDefaults = true, CancellationToken cancellationToken = default)
     {
         var configuration = services.GetRequiredService<IConfiguration>();
         var runtime = services.GetRequiredService<ICompanyRuntimeService>().Current;
@@ -82,13 +82,19 @@ public static class QuickBooksClonePersistence
         if (!await SqliteDatabaseHasUserTablesAsync(runtime.DatabasePath, cancellationToken))
         {
             await dbContext.Database.EnsureCreatedAsync(cancellationToken);
-            await SeedDefaultsAsync(dbContext, seedDemoData);
+            if (seedDefaults)
+            {
+                await SeedDefaultsAsync(dbContext, seedDemoData);
+            }
             return;
         }
 
         await AdoptExistingSqliteSchemaAsync(dbContext);
         await dbContext.Database.MigrateAsync(cancellationToken);
-        await SeedDefaultsAsync(dbContext, seedDemoData);
+        if (seedDefaults)
+        {
+            await SeedDefaultsAsync(dbContext, seedDemoData);
+        }
     }
 
     public static async Task<bool> CurrentCompanyDatabaseIsInitializedAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
@@ -99,9 +105,15 @@ public static class QuickBooksClonePersistence
             return false;
         }
 
-        await using var dbContext = CreateSqliteDbContext(runtime.DatabasePath);
-        return await dbContext.CompanySettings.AnyAsync(cancellationToken) &&
-            await dbContext.SecurityUsers.AnyAsync(cancellationToken);
+        await using var connection = new SqliteConnection(BuildSqliteConnectionString(runtime.DatabasePath));
+        await connection.OpenAsync(cancellationToken);
+        var hasCompanySettings = await SqliteTableHasRowsAsync(connection, "company_settings", cancellationToken);
+        if (!hasCompanySettings)
+        {
+            return false;
+        }
+
+        return await SqliteTableHasRowsAsync(connection, "security_users", cancellationToken);
     }
 
     private static QuickBooksCloneDbContext CreateSqliteDbContext(string databasePath)
@@ -143,6 +155,22 @@ public static class QuickBooksClonePersistence
         command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';";
         var value = await command.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt64(value) > 0;
+    }
+
+    private static async Task<bool> SqliteTableHasRowsAsync(SqliteConnection connection, string tableName, CancellationToken cancellationToken)
+    {
+        await using var tableCommand = connection.CreateCommand();
+        tableCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = $tableName;";
+        tableCommand.Parameters.AddWithValue("$tableName", tableName);
+        var tableExists = Convert.ToInt64(await tableCommand.ExecuteScalarAsync(cancellationToken)) > 0;
+        if (!tableExists)
+        {
+            return false;
+        }
+
+        await using var rowsCommand = connection.CreateCommand();
+        rowsCommand.CommandText = $"SELECT EXISTS(SELECT 1 FROM \"{tableName}\" LIMIT 1);";
+        return Convert.ToInt64(await rowsCommand.ExecuteScalarAsync(cancellationToken)) > 0;
     }
 
     private static async Task AdoptExistingSqliteSchemaAsync(QuickBooksCloneDbContext dbContext)

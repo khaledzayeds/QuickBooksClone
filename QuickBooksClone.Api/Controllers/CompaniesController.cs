@@ -61,7 +61,7 @@ public sealed class CompaniesController : ControllerBase
             _logger.LogInformation("Open company {CompanyId}: runtime open completed.", request.CompanyId);
 
             _logger.LogInformation("Open company {CompanyId}: before ApplyCurrentCompanyDatabaseAsync.", request.CompanyId);
-            await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(openCancellationToken);
+            await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(seedDefaults: false, cancellationToken: openCancellationToken);
             _logger.LogInformation("Open company {CompanyId}: ApplyCurrentCompanyDatabaseAsync completed.", request.CompanyId);
 
             _logger.LogInformation("Open company {CompanyId}: before CurrentCompanyDatabaseIsInitializedAsync.", request.CompanyId);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/router.dart';
 import '../data/models/setup_models.dart';
 import '../providers/setup_provider.dart';
 
@@ -78,7 +79,23 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       if (!mounted) return;
 
       if (error == null) {
-        context.go('/login');
+        final refreshError = await ref
+            .read(setupProvider.notifier)
+            .refreshStatus();
+        if (!mounted) return;
+
+        final setup = ref.read(setupProvider).value;
+        if (refreshError == null && setup?.isInitialized == true) {
+          context.go(AppRoutes.login);
+          return;
+        }
+
+        setState(() {
+          _saving = false;
+          _errorMessage =
+              refreshError?.message ??
+              'Setup completed, but LedgerFlow could not confirm initialization status.';
+        });
         return;
       }
 

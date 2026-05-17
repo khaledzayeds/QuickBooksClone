@@ -177,11 +177,6 @@ public sealed class SetupController : ControllerBase
             return new SetupStatusResponse(false, false, false, null, null);
         }
 
-        if (!runtime.IsSetupInitialized)
-        {
-            return new SetupStatusResponse(false, false, false, runtime.CompanyName, null);
-        }
-
         var company = await _companySettings.GetAsync(cancellationToken);
         var adminRole = await _security.GetRoleByKeyAsync(AdminRoleKey, cancellationToken);
         var hasAdminUser = false;
@@ -193,6 +188,11 @@ public sealed class SetupController : ControllerBase
             var adminUser = users.Items.FirstOrDefault(user => user.RoleAssignments.Any(role => role.RoleId == adminRole.Id));
             hasAdminUser = adminUser is not null;
             adminUserName = adminUser?.UserName;
+        }
+
+        if (company is not null && hasAdminUser && !runtime.IsSetupInitialized)
+        {
+            await _companyRuntime.MarkSetupInitializedAsync(cancellationToken);
         }
 
         return new SetupStatusResponse(
