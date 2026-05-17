@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -65,50 +67,67 @@ class _LauncherBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final activeCompany = registry.activeCompany;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(Icons.account_balance_outlined, size: 64, color: cs.primary),
-        const SizedBox(height: 12),
-        Text(
-          AppConstants.appDisplayName,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w900,
-            color: cs.primary,
-          ),
+        Row(
+          children: [
+            Icon(Icons.account_balance_outlined, size: 42, color: cs.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No Company Open',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Select a company that you have previously opened and click Open.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              AppConstants.appDisplayName,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Open a company file or create a new offline company.',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: cs.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 28),
-        if (activeCompany != null) ...[
-          _ActiveCompanyCard(company: activeCompany),
-          const SizedBox(height: 16),
-        ],
+        const SizedBox(height: 20),
+        _RecentCompaniesCard(companies: registry.companies),
+        const SizedBox(height: 14),
         LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 760;
-            final left = _ActionsCard(hasCompanies: registry.hasCompanies);
-            final right = _RecentCompaniesCard(companies: registry.companies);
+            final actions = _ActionsCard(hasCompanies: registry.hasCompanies);
+            final location = Text(
+              'Location: Documents / LedgerFlow / Companies',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            );
             if (!wide) {
               return Column(
-                children: [left, const SizedBox(height: 16), right],
+                children: [location, const SizedBox(height: 12), actions],
               );
             }
             return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Expanded(flex: 4, child: left),
+                Expanded(child: location),
                 const SizedBox(width: 16),
-                Expanded(flex: 6, child: right),
+                Expanded(flex: 2, child: actions),
               ],
             );
           },
@@ -390,40 +409,28 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_errorMessage != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cs.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(color: cs.onErrorContainer),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          alignment: WrapAlignment.end,
           children: [
-            Text(
-              'Company Files',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Each company will have its own offline LedgerFlow database file.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 18),
-            if (_errorMessage != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cs.errorContainer,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  _errorMessage!,
-                  style: TextStyle(color: cs.onErrorContainer),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
             FilledButton.icon(
               onPressed: _creating ? null : _createDefaultCompany,
               icon: _creating
@@ -435,34 +442,27 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
                   : const Icon(Icons.add_business_outlined),
               label: Text(
                 widget.hasCompanies
-                    ? 'Create New Company'
-                    : 'Create First Company',
+                    ? 'Create a new company'
+                    : 'Create your first company',
               ),
             ),
-            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: _creating || _openingExisting
                   ? null
                   : _openExistingCompany,
               icon: const Icon(Icons.folder_open_outlined),
-              label: const Text('Open Existing Company File'),
+              label: const Text('Open or restore existing'),
             ),
-            const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.restore_outlined),
-              label: const Text('Restore Backup'),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Every company uses its own offline database file in the location you choose.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+              onPressed: _creating || _openingExisting
+                  ? null
+                  : _openExistingCompany,
+              icon: const Icon(Icons.search_outlined),
+              label: const Text('Find a company file'),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }
@@ -479,15 +479,26 @@ class _RecentCompaniesCard extends ConsumerWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Recent Companies',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Recent Companies',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: companies.isEmpty ? null : () {},
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit List'),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             if (companies.isEmpty)
@@ -505,7 +516,28 @@ class _RecentCompaniesCard extends ConsumerWidget {
                 ),
               )
             else
-              ...companies.map((company) => _CompanyListTile(company: company)),
+              Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.45),
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 3, child: Text('Company Name')),
+                        Expanded(flex: 2, child: Text('Last Opened')),
+                        Expanded(child: Text('File Size')),
+                        SizedBox(width: 150, child: Text('Action')),
+                      ],
+                    ),
+                  ),
+                  ...companies.map(
+                    (company) => _CompanyListTile(company: company),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -550,7 +582,7 @@ class _CompanyListTileState extends ConsumerState<_CompanyListTile> {
     final cs = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -560,22 +592,18 @@ class _CompanyListTileState extends ConsumerState<_CompanyListTile> {
               borderRadius: BorderRadius.circular(12),
               onTap: _opening ? null : _openCompany,
               child: Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: cs.outlineVariant),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: cs.secondaryContainer,
-                      child: Icon(
-                        Icons.business_outlined,
-                        color: cs.onSecondaryContainer,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                     Expanded(
+                      flex: 3,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -598,14 +626,36 @@ class _CompanyListTileState extends ConsumerState<_CompanyListTile> {
                         ],
                       ),
                     ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(_formatDate(widget.company.lastOpenedAt)),
+                    ),
+                    Expanded(
+                      child: _FileSizeText(path: widget.company.databasePath),
+                    ),
+                    const SizedBox(width: 12),
                     if (_opening)
                       const SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    else
-                      const Icon(Icons.chevron_right),
+                    else ...[
+                      SizedBox(
+                        width: 68,
+                        child: FilledButton(
+                          onPressed: _openCompany,
+                          child: const Text('Open'),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Remove from list',
+                        onPressed: () => ref
+                            .read(companyRegistryProvider.notifier)
+                            .removeCompany(widget.company.id),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -619,6 +669,37 @@ class _CompanyListTileState extends ConsumerState<_CompanyListTile> {
       ),
     );
   }
+}
+
+class _FileSizeText extends StatelessWidget {
+  const _FileSizeText({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<int>(
+      future: File(
+        path,
+      ).exists().then((exists) => exists ? File(path).length() : 0),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data ?? 0;
+        return Text(bytes == 0 ? '-' : _formatBytes(bytes));
+      },
+    );
+  }
+}
+
+String _formatDate(DateTime value) {
+  if (value.millisecondsSinceEpoch == 0) return '-';
+  return '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  final kb = bytes / 1024;
+  if (kb < 1024) return '${kb.toStringAsFixed(1)} KB';
+  return '${(kb / 1024).toStringAsFixed(1)} MB';
 }
 
 class _LauncherLoadingCard extends StatelessWidget {

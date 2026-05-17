@@ -5,6 +5,7 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Companies;
 using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
+using QuickBooksClone.Core.Taxes;
 using QuickBooksClone.Infrastructure.Persistence;
 using QuickBooksClone.Infrastructure.Security;
 
@@ -228,7 +229,14 @@ public sealed class SetupController : ControllerBase
             string.IsNullOrWhiteSpace(request.DefaultLanguage) ? "ar" : request.DefaultLanguage,
             request.LegalName,
             request.Email,
-            request.Phone);
+            request.Phone,
+            fiscalYearStartMonth: request.FiscalYearStartMonth,
+            fiscalYearStartDay: request.FiscalYearStartDay,
+            defaultSalesTaxRate: request.DefaultSalesTaxRate,
+            defaultPurchaseTaxRate: request.DefaultPurchaseTaxRate,
+            taxesEnabled: request.TaxesEnabled,
+            pricesIncludeTax: request.PricesIncludeTax,
+            taxRoundingMode: TaxRoundingMode.PerLine);
 
         return await _companySettings.AddAsync(settings, cancellationToken);
     }

@@ -34,6 +34,15 @@ class InitializeCompanyRequest {
     required this.adminUserName,
     required this.adminDisplayName,
     required this.initialAdminSecret,
+    this.fiscalYearStartMonth = 1,
+    this.fiscalYearStartDay = 1,
+    this.taxesEnabled = false,
+    this.pricesIncludeTax = false,
+    this.defaultSalesTaxRate = 0,
+    this.defaultPurchaseTaxRate = 0,
+    this.inventoryEnabled = true,
+    this.defaultWarehouseName,
+    this.servicesEnabled = true,
     this.legalName,
     this.email,
     this.phone,
@@ -52,6 +61,15 @@ class InitializeCompanyRequest {
   final String adminDisplayName;
   final String? adminEmail;
   final String initialAdminSecret;
+  final int fiscalYearStartMonth;
+  final int fiscalYearStartDay;
+  final bool taxesEnabled;
+  final bool pricesIncludeTax;
+  final double defaultSalesTaxRate;
+  final double defaultPurchaseTaxRate;
+  final bool inventoryEnabled;
+  final String? defaultWarehouseName;
+  final bool servicesEnabled;
 
   Map<String, dynamic> toJson() => {
     'companyName': companyName,
@@ -66,6 +84,15 @@ class InitializeCompanyRequest {
     'adminDisplayName': adminDisplayName,
     'adminEmail': adminEmail,
     'initialAdminSecret': initialAdminSecret,
+    'fiscalYearStartMonth': fiscalYearStartMonth,
+    'fiscalYearStartDay': fiscalYearStartDay,
+    'taxesEnabled': taxesEnabled,
+    'pricesIncludeTax': pricesIncludeTax,
+    'defaultSalesTaxRate': defaultSalesTaxRate,
+    'defaultPurchaseTaxRate': defaultPurchaseTaxRate,
+    'inventoryEnabled': inventoryEnabled,
+    'defaultWarehouseName': defaultWarehouseName,
+    'servicesEnabled': servicesEnabled,
   };
 }
 

@@ -19,7 +19,16 @@ public sealed record InitializeCompanyRequest(
     string AdminUserName,
     string AdminDisplayName,
     string? AdminEmail,
-    string InitialAdminSecret);
+    string InitialAdminSecret,
+    int FiscalYearStartMonth = 1,
+    int FiscalYearStartDay = 1,
+    bool TaxesEnabled = false,
+    bool PricesIncludeTax = false,
+    decimal DefaultSalesTaxRate = 0,
+    decimal DefaultPurchaseTaxRate = 0,
+    bool InventoryEnabled = true,
+    string? DefaultWarehouseName = null,
+    bool ServicesEnabled = true);
 
 public sealed record InitializeCompanyResponse(
     bool Initialized,
