@@ -70,12 +70,47 @@ public static class QuickBooksClonePersistence
     public static async Task ApplyCurrentCompanyDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         var configuration = services.GetRequiredService<IConfiguration>();
+        var runtime = services.GetRequiredService<ICompanyRuntimeService>().Current;
+        if (!runtime.IsActive)
+        {
+            throw new InvalidOperationException("No active company is open.");
+        }
+
         var seedDemoData = bool.TryParse(configuration["Database:SeedDemoData"], out var configuredSeedDemoData) &&
             configuredSeedDemoData;
-        var dbContext = services.GetRequiredService<QuickBooksCloneDbContext>();
-        await AdoptExistingSqliteSchemaAsync(dbContext);
-        await dbContext.Database.MigrateAsync(cancellationToken);
-        await SeedDefaultsAsync(dbContext, seedDemoData);
+        await using var dbContext = CreateSqliteDbContext(runtime.DatabasePath);
+        try
+        {
+            await dbContext.Database.OpenConnectionAsync(cancellationToken);
+            await AdoptExistingSqliteSchemaAsync(dbContext);
+            await dbContext.Database.MigrateAsync(cancellationToken);
+            await SeedDefaultsAsync(dbContext, seedDemoData);
+        }
+        finally
+        {
+            await dbContext.Database.CloseConnectionAsync();
+        }
+    }
+
+    public static async Task<bool> CurrentCompanyDatabaseIsInitializedAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    {
+        var runtime = services.GetRequiredService<ICompanyRuntimeService>().Current;
+        if (!runtime.IsActive)
+        {
+            return false;
+        }
+
+        await using var dbContext = CreateSqliteDbContext(runtime.DatabasePath);
+        return await dbContext.CompanySettings.AnyAsync(cancellationToken) &&
+            await dbContext.SecurityUsers.AnyAsync(cancellationToken);
+    }
+
+    private static QuickBooksCloneDbContext CreateSqliteDbContext(string databasePath)
+    {
+        var options = new DbContextOptionsBuilder<QuickBooksCloneDbContext>()
+            .UseSqlite(BuildSqliteConnectionString(databasePath))
+            .Options;
+        return new QuickBooksCloneDbContext(options);
     }
 
     private static string BuildSqliteConnectionString(string databasePath)

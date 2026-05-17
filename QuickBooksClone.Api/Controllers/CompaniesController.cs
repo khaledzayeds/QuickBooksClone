@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using QuickBooksClone.Api.Contracts.Companies;
 using QuickBooksClone.Core.Companies;
 using QuickBooksClone.Infrastructure.Persistence;
@@ -52,9 +50,7 @@ public sealed class CompaniesController : ControllerBase
             request.DatabasePath,
             cancellationToken);
         await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(cancellationToken);
-        var db = HttpContext.RequestServices.GetRequiredService<QuickBooksCloneDbContext>();
-        if (await db.CompanySettings.AnyAsync(cancellationToken) &&
-            await db.SecurityUsers.AnyAsync(cancellationToken))
+        if (await HttpContext.RequestServices.CurrentCompanyDatabaseIsInitializedAsync(cancellationToken))
         {
             runtime = await _runtime.MarkSetupInitializedAsync(cancellationToken);
         }

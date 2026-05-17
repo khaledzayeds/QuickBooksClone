@@ -26,7 +26,7 @@ class LocalBackendBootstrap {
       workingDirectory: launch.workingDirectory,
     );
 
-    final deadline = DateTime.now().add(const Duration(seconds: 20));
+    final deadline = DateTime.now().add(const Duration(seconds: 90));
     while (DateTime.now().isBefore(deadline)) {
       if (await _isReady(baseUrl)) return;
       await Future<void>.delayed(const Duration(milliseconds: 250));
@@ -74,28 +74,24 @@ class LocalBackendBootstrap {
       }
     }
 
-    final projectCandidates = [
-      _join(
-        Directory.current.path,
-        '..',
-        '..',
-        'QuickBooksClone.Api',
-        'QuickBooksClone.Api.csproj',
-      ),
-      _joinAll([
-        exeDir,
-        '..',
-        '..',
-        '..',
-        '..',
-        'QuickBooksClone.Api',
-        'QuickBooksClone.Api.csproj',
-      ]),
-    ];
+    final projectCandidates = {
+      ..._findBackendProjects(Directory.current),
+      ..._findBackendProjects(Directory(exeDir)),
+    };
 
     for (final candidate in projectCandidates) {
       final fullPath = File(candidate).absolute.path;
       if (await File(fullPath).exists()) {
+        final builtDll = _builtApiDllForProject(fullPath);
+        if (await File(builtDll).exists()) {
+          return _BackendLaunch(
+            executable: 'dotnet',
+            arguments: [builtDll],
+            workingDirectory: File(builtDll).parent.path,
+            environment: {'ASPNETCORE_URLS': baseUrl},
+          );
+        }
+
         return _BackendLaunch(
           executable: 'dotnet',
           arguments: ['run', '--project', fullPath, '--urls', baseUrl],
@@ -121,6 +117,32 @@ class LocalBackendBootstrap {
 
   static String _joinAll(List<String> parts) =>
       parts.join(Platform.pathSeparator);
+
+  static Iterable<String> _findBackendProjects(Directory start) sync* {
+    var current = start.absolute;
+    for (var i = 0; i < 8; i++) {
+      yield _joinAll([
+        current.path,
+        'QuickBooksClone.Api',
+        'QuickBooksClone.Api.csproj',
+      ]);
+
+      final parent = current.parent;
+      if (parent.path == current.path) break;
+      current = parent;
+    }
+  }
+
+  static String _builtApiDllForProject(String projectPath) {
+    final projectDir = File(projectPath).parent.path;
+    return _joinAll([
+      projectDir,
+      'bin',
+      'Debug',
+      'net10.0',
+      'QuickBooksClone.Api.dll',
+    ]);
+  }
 }
 
 class _BackendLaunch {

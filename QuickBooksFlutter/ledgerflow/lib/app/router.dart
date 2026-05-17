@@ -229,6 +229,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (setup != null && !setup.isInitialized && !isSetupRoute) {
         return AppRoutes.setup;
       }
+      if (setup != null && !setup.isInitialized && isSetupRoute) {
+        return null;
+      }
       if (setup != null && setup.isInitialized && isSetupRoute) {
         return AppRoutes.login;
       }

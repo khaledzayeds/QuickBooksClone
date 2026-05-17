@@ -12,7 +12,7 @@ class AppConstants {
   ///
   /// The user should not need to start or configure this endpoint manually;
   /// a desktop launcher/host will own that responsibility.
-  static const defaultBaseUrl = 'http://localhost:5014';
+  static const defaultBaseUrl = 'http://127.0.0.1:5014';
 
   static const dataRootFolderName = 'LedgerFlow';
   static const companiesFolderName = 'Companies';
