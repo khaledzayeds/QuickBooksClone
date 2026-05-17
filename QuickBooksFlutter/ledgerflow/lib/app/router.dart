@@ -19,6 +19,7 @@ import '../features/banking/screens/write_check_screen.dart';
 import '../features/calendar/screens/calendar_screen.dart';
 import '../features/cash_flow/screens/cash_flow_hub_screen.dart';
 import '../features/companies/providers/company_registry_provider.dart';
+import '../features/companies/screens/company_launcher_screen.dart';
 import '../features/customer_credits/screens/customer_credit_details_screen.dart';
 import '../features/customer_credits/screens/customer_credit_form_screen.dart';
 import '../features/customer_credits/screens/customer_credit_list_screen.dart';
@@ -96,6 +97,7 @@ import '../core/widgets/qb/pluto_invoice_grid_demo.dart';
 
 class AppRoutes {
   static const dashboard = '/';
+  static const companies = '/companies';
   static const login = '/login';
   static const setup = '/setup';
   static const purchaseOrders = '/purchases/orders';
@@ -205,44 +207,56 @@ final routerProvider = Provider<GoRouter>((ref) {
   final companyRegistryState = ref.watch(companyRegistryProvider);
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: AppRoutes.login,
+    initialLocation: AppRoutes.companies,
     redirect: (context, state) {
-      if (authState is AsyncLoading ||
-          setupState is AsyncLoading ||
-          companyRegistryState is AsyncLoading) {
+      final path = state.uri.path;
+      final isCompaniesRoute = path == AppRoutes.companies;
+      final isSetupRoute = path == AppRoutes.setup;
+      final isLoginRoute = path == AppRoutes.login;
+
+      if (companyRegistryState is AsyncLoading) {
         return null;
       }
 
-      final hasActiveCompany =
-          companyRegistryState.value?.activeCompany != null;
-      final isLoggingIn = state.uri.path == AppRoutes.login;
+      final hasActiveCompany = companyRegistryState.value?.activeCompany != null;
       if (!hasActiveCompany) {
-        return isLoggingIn ? null : AppRoutes.login;
+        return isCompaniesRoute ? null : AppRoutes.companies;
+      }
+
+      if (setupState is AsyncLoading) {
+        return null;
       }
 
       if (setupState.hasError) {
-        return state.uri.path == AppRoutes.setup ? null : AppRoutes.setup;
+        return isSetupRoute ? null : AppRoutes.setup;
       }
 
       final setup = setupState.value;
-      final isSetupRoute = state.uri.path == AppRoutes.setup;
-      if (setup != null && !setup.isInitialized && !isSetupRoute) {
-        return AppRoutes.setup;
+      if (setup != null && !setup.isInitialized) {
+        return isSetupRoute ? null : AppRoutes.setup;
       }
-      if (setup != null && !setup.isInitialized && isSetupRoute) {
-        return null;
-      }
-      if (setup != null && setup.isInitialized && isSetupRoute) {
+
+      if (setup != null && setup.isInitialized && (isSetupRoute || isCompaniesRoute)) {
         return AppRoutes.login;
+      }
+
+      if (authState is AsyncLoading) {
+        return null;
       }
 
       final user = authState.value;
       final isLoggedIn = user != null;
-      if (!isLoggedIn && !isLoggingIn) return AppRoutes.login;
-      if (isLoggedIn && isLoggingIn) return AppRoutes.dashboard;
+      if (!isLoggedIn && !isLoginRoute && !isSetupRoute && !isCompaniesRoute) {
+        return AppRoutes.login;
+      }
+      if (isLoggedIn && isLoginRoute) return AppRoutes.dashboard;
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.companies,
+        builder: (context, state) => const CompanyLauncherScreen(),
+      ),
       GoRoute(
         path: AppRoutes.setup,
         builder: (context, state) => const SetupScreen(),
@@ -537,7 +551,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.salesReturns,
-            builder: (context, state) => const SalesReturnListScreen(),
+            builder: (context, state) => SalesReturnFormScreen(
+              invoiceId: state.uri.queryParameters['invoiceId'],
+            ),
           ),
           GoRoute(
             path: AppRoutes.salesReturnNew,
