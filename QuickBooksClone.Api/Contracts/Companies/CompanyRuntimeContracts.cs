@@ -5,7 +5,8 @@ public sealed record ActiveCompanyRuntimeResponse(
     string? CompanyName,
     string DatabasePath,
     bool IsActive,
-    DateTimeOffset? OpenedAtUtc);
+    DateTimeOffset? OpenedAtUtc,
+    bool IsSetupInitialized);
 
 public sealed record OpenCompanyRequest(
     Guid CompanyId,

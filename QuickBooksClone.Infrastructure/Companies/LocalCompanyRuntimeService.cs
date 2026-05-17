@@ -7,6 +7,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
 {
     private readonly object _gate = new();
     private readonly string _fallbackDatabasePath;
+    private readonly HashSet<Guid> _initializedCompanies = [];
     private ActiveCompanyRuntime? _active;
 
     public LocalCompanyRuntimeService(IConfiguration configuration)
@@ -16,16 +17,22 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
             ?? "Data Source=ledgerflow.db";
     }
 
+    public ActiveCompanyRuntime Current
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return BuildInactiveRuntime();
+            }
+        }
+    }
+
     public Task<ActiveCompanyRuntime> GetActiveAsync(CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
-            return Task.FromResult(_active ?? new ActiveCompanyRuntime(
-                CompanyId: null,
-                CompanyName: null,
-                DatabasePath: NormalizeDatabasePath(_fallbackDatabasePath),
-                IsActive: false,
-                OpenedAtUtc: null));
+            return Task.FromResult(BuildInactiveRuntime());
         }
     }
 
@@ -57,7 +64,8 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
                 companyName.Trim(),
                 NormalizeDatabasePath(databasePath),
                 IsActive: true,
-                OpenedAtUtc: DateTimeOffset.UtcNow);
+                OpenedAtUtc: DateTimeOffset.UtcNow,
+                IsSetupInitialized: _initializedCompanies.Contains(companyId));
 
             return Task.FromResult(_active);
         }
@@ -68,12 +76,22 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
         lock (_gate)
         {
             _active = null;
-            return Task.FromResult(new ActiveCompanyRuntime(
-                CompanyId: null,
-                CompanyName: null,
-                DatabasePath: NormalizeDatabasePath(_fallbackDatabasePath),
-                IsActive: false,
-                OpenedAtUtc: null));
+            return Task.FromResult(BuildInactiveRuntime());
+        }
+    }
+
+    public Task<ActiveCompanyRuntime> MarkSetupInitializedAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            if (_active?.CompanyId is not Guid companyId || !_active.IsActive)
+            {
+                throw new InvalidOperationException("No active company is open.");
+            }
+
+            _initializedCompanies.Add(companyId);
+            _active = _active with { IsSetupInitialized = true };
+            return Task.FromResult(_active);
         }
     }
 
@@ -84,5 +102,16 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
         return trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
             ? trimmed[prefix.Length..]
             : trimmed;
+    }
+
+    private ActiveCompanyRuntime BuildInactiveRuntime()
+    {
+        return _active ?? new ActiveCompanyRuntime(
+            CompanyId: null,
+            CompanyName: null,
+            DatabasePath: NormalizeDatabasePath(_fallbackDatabasePath),
+            IsActive: false,
+            OpenedAtUtc: null,
+            IsSetupInitialized: false);
     }
 }

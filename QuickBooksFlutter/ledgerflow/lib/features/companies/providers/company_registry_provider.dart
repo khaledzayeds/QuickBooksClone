@@ -7,9 +7,10 @@ final companyRegistryRepositoryProvider = Provider<CompanyRegistryRepository>(
   (_) => CompanyRegistryRepository(),
 );
 
-final companyRegistryProvider = AsyncNotifierProvider<CompanyRegistryNotifier, CompanyRegistry>(
-  CompanyRegistryNotifier.new,
-);
+final companyRegistryProvider =
+    AsyncNotifierProvider<CompanyRegistryNotifier, CompanyRegistry>(
+      CompanyRegistryNotifier.new,
+    );
 
 class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
   @override
@@ -19,7 +20,9 @@ class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => ref.read(companyRegistryRepositoryProvider).load());
+    state = await AsyncValue.guard(
+      () => ref.read(companyRegistryRepositoryProvider).load(),
+    );
   }
 
   Future<void> registerCompany({
@@ -30,13 +33,16 @@ class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(companyRegistryRepositoryProvider).registerCompany(
+      () => ref
+          .read(companyRegistryRepositoryProvider)
+          .registerCompany(
             name: name,
             databasePath: databasePath,
             displayPath: displayPath,
             makeActive: makeActive,
           ),
     );
+    _throwIfFailed();
   }
 
   Future<void> openCompany(String companyId) async {
@@ -44,12 +50,28 @@ class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
     state = await AsyncValue.guard(
       () => ref.read(companyRegistryRepositoryProvider).openCompany(companyId),
     );
+    _throwIfFailed();
+  }
+
+  Future<void> closeActiveCompany() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(companyRegistryRepositoryProvider).closeActiveCompany(),
+    );
+    _throwIfFailed();
   }
 
   Future<void> removeCompany(String companyId) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(companyRegistryRepositoryProvider).removeCompany(companyId),
+      () =>
+          ref.read(companyRegistryRepositoryProvider).removeCompany(companyId),
     );
+    _throwIfFailed();
+  }
+
+  void _throwIfFailed() {
+    if (!state.hasError) return;
+    throw state.error!;
   }
 }

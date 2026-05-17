@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.Setup;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Companies;
 using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
 using QuickBooksClone.Infrastructure.Security;
@@ -19,17 +20,20 @@ public sealed class SetupController : ControllerBase
     private readonly ISecurityRepository _security;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IDefaultAccountsSeeder _defaultAccountsSeeder;
+    private readonly ICompanyRuntimeService _companyRuntime;
 
     public SetupController(
         ICompanySettingsRepository companySettings,
         ISecurityRepository security,
         IPasswordHasher passwordHasher,
-        IDefaultAccountsSeeder defaultAccountsSeeder)
+        IDefaultAccountsSeeder defaultAccountsSeeder,
+        ICompanyRuntimeService companyRuntime)
     {
         _companySettings = companySettings;
         _security = security;
         _passwordHasher = passwordHasher;
         _defaultAccountsSeeder = defaultAccountsSeeder;
+        _companyRuntime = companyRuntime;
     }
 
     [HttpGet("status")]
@@ -78,6 +82,7 @@ public sealed class SetupController : ControllerBase
 
             await _security.AddUserAsync(adminUser, [adminRole.Id], cancellationToken);
             await _defaultAccountsSeeder.SeedAsync(cancellationToken);
+            await _companyRuntime.MarkSetupInitializedAsync(cancellationToken);
 
             return Ok(new InitializeCompanyResponse(true, company.CompanyName, adminUser.UserName, adminRole.RoleKey));
         }
@@ -105,6 +110,17 @@ public sealed class SetupController : ControllerBase
 
     private async Task<SetupStatusResponse> BuildStatusAsync(CancellationToken cancellationToken)
     {
+        var runtime = await _companyRuntime.GetActiveAsync(cancellationToken);
+        if (!runtime.IsActive)
+        {
+            return new SetupStatusResponse(false, false, false, null, null);
+        }
+
+        if (!runtime.IsSetupInitialized)
+        {
+            return new SetupStatusResponse(false, false, false, runtime.CompanyName, null);
+        }
+
         var company = await _companySettings.GetAsync(cancellationToken);
         var adminRole = await _security.GetRoleByKeyAsync(AdminRoleKey, cancellationToken);
         var hasAdminUser = false;

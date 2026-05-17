@@ -2,6 +2,8 @@ namespace QuickBooksClone.Core.Companies;
 
 public interface ICompanyRuntimeService
 {
+    ActiveCompanyRuntime Current { get; }
+
     Task<ActiveCompanyRuntime> GetActiveAsync(CancellationToken cancellationToken = default);
 
     Task<ActiveCompanyRuntime> OpenAsync(
@@ -11,4 +13,6 @@ public interface ICompanyRuntimeService
         CancellationToken cancellationToken = default);
 
     Task<ActiveCompanyRuntime> CloseAsync(CancellationToken cancellationToken = default);
+
+    Task<ActiveCompanyRuntime> MarkSetupInitializedAsync(CancellationToken cancellationToken = default);
 }

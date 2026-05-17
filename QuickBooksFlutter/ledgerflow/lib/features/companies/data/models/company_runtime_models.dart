@@ -2,6 +2,7 @@ class ActiveCompanyRuntimeModel {
   const ActiveCompanyRuntimeModel({
     required this.databasePath,
     required this.isActive,
+    required this.isSetupInitialized,
     this.companyId,
     this.companyName,
     this.openedAtUtc,
@@ -11,6 +12,7 @@ class ActiveCompanyRuntimeModel {
   final String? companyName;
   final String databasePath;
   final bool isActive;
+  final bool isSetupInitialized;
   final DateTime? openedAtUtc;
 
   factory ActiveCompanyRuntimeModel.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,7 @@ class ActiveCompanyRuntimeModel {
       companyName: json['companyName']?.toString(),
       databasePath: json['databasePath']?.toString() ?? '',
       isActive: json['isActive'] == true,
+      isSetupInitialized: json['isSetupInitialized'] == true,
       openedAtUtc: DateTime.tryParse(json['openedAtUtc']?.toString() ?? ''),
     );
   }

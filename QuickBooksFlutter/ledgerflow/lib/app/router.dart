@@ -18,6 +18,7 @@ import '../features/banking/screens/make_deposit_screen.dart';
 import '../features/banking/screens/write_check_screen.dart';
 import '../features/calendar/screens/calendar_screen.dart';
 import '../features/cash_flow/screens/cash_flow_hub_screen.dart';
+import '../features/companies/providers/company_registry_provider.dart';
 import '../features/customer_credits/screens/customer_credit_details_screen.dart';
 import '../features/customer_credits/screens/customer_credit_form_screen.dart';
 import '../features/customer_credits/screens/customer_credit_list_screen.dart';
@@ -201,11 +202,24 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
   final setupState = ref.watch(setupProvider);
+  final companyRegistryState = ref.watch(companyRegistryProvider);
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: AppRoutes.setup,
+    initialLocation: AppRoutes.login,
     redirect: (context, state) {
-      if (authState is AsyncLoading || setupState is AsyncLoading) return null;
+      if (authState is AsyncLoading ||
+          setupState is AsyncLoading ||
+          companyRegistryState is AsyncLoading) {
+        return null;
+      }
+
+      final hasActiveCompany =
+          companyRegistryState.value?.activeCompany != null;
+      final isLoggingIn = state.uri.path == AppRoutes.login;
+      if (!hasActiveCompany) {
+        return isLoggingIn ? null : AppRoutes.login;
+      }
+
       if (setupState.hasError) {
         return state.uri.path == AppRoutes.setup ? null : AppRoutes.setup;
       }
@@ -221,7 +235,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final user = authState.value;
       final isLoggedIn = user != null;
-      final isLoggingIn = state.uri.path == AppRoutes.login;
       if (!isLoggedIn && !isLoggingIn) return AppRoutes.login;
       if (isLoggedIn && isLoggingIn) return AppRoutes.dashboard;
       return null;

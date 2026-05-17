@@ -1,7 +1,9 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBooksClone.Core.Accounting;
+using QuickBooksClone.Core.Companies;
 using QuickBooksClone.Core.Customers;
 using QuickBooksClone.Core.Items;
 using QuickBooksClone.Core.Security;
@@ -22,7 +24,7 @@ public static class QuickBooksClonePersistence
         var connectionString = configuration.GetConnectionString("QuickBooksClone")
             ?? "Data Source=quickbooksclone.db";
 
-        services.AddDbContext<QuickBooksCloneDbContext>(options =>
+        services.AddDbContext<QuickBooksCloneDbContext>((serviceProvider, options) =>
         {
             if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
             {
@@ -36,7 +38,12 @@ public static class QuickBooksClonePersistence
                 return;
             }
 
-            options.UseSqlite(connectionString);
+            var runtime = serviceProvider.GetRequiredService<ICompanyRuntimeService>().Current;
+            var sqliteConnectionString = runtime.IsActive
+                ? BuildSqliteConnectionString(runtime.DatabasePath)
+                : connectionString;
+
+            options.UseSqlite(sqliteConnectionString);
         });
 
         return services;
@@ -45,6 +52,12 @@ public static class QuickBooksClonePersistence
     public static async Task ApplyQuickBooksDatabaseMigrationsAsync(this IServiceProvider services)
     {
         using var scope = services.CreateScope();
+        var runtime = scope.ServiceProvider.GetRequiredService<ICompanyRuntimeService>().Current;
+        if (!runtime.IsActive)
+        {
+            return;
+        }
+
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var seedDemoData = bool.TryParse(configuration["Database:SeedDemoData"], out var configuredSeedDemoData) &&
             configuredSeedDemoData;
@@ -52,6 +65,32 @@ public static class QuickBooksClonePersistence
         await AdoptExistingSqliteSchemaAsync(dbContext);
         await dbContext.Database.MigrateAsync();
         await SeedDefaultsAsync(dbContext, seedDemoData);
+    }
+
+    public static async Task ApplyCurrentCompanyDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    {
+        var configuration = services.GetRequiredService<IConfiguration>();
+        var seedDemoData = bool.TryParse(configuration["Database:SeedDemoData"], out var configuredSeedDemoData) &&
+            configuredSeedDemoData;
+        var dbContext = services.GetRequiredService<QuickBooksCloneDbContext>();
+        await AdoptExistingSqliteSchemaAsync(dbContext);
+        await dbContext.Database.MigrateAsync(cancellationToken);
+        await SeedDefaultsAsync(dbContext, seedDemoData);
+    }
+
+    private static string BuildSqliteConnectionString(string databasePath)
+    {
+        var fullPath = Path.GetFullPath(databasePath);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        return new SqliteConnectionStringBuilder
+        {
+            DataSource = fullPath
+        }.ToString();
     }
 
     private static async Task AdoptExistingSqliteSchemaAsync(QuickBooksCloneDbContext dbContext)

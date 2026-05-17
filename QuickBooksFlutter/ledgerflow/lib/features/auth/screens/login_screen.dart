@@ -53,6 +53,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _switchCompany() async {
+    setState(() {
+      _loading = true;
+      _errorMsg = null;
+    });
+
+    try {
+      await ref.read(companyRegistryProvider.notifier).closeActiveCompany();
+      await ref.read(companyRegistryProvider.notifier).refresh();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _errorMsg = error.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final registryState = ref.watch(companyRegistryProvider);
@@ -64,10 +82,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         onRetry: () => ref.read(companyRegistryProvider.notifier).refresh(),
       ),
       data: (registry) {
-        if (registry.activeCompany == null) {
+        final activeCompany = registry.activeCompany;
+        if (activeCompany == null) {
           return const CompanyLauncherScreen();
         }
-        return _buildLogin(context, registry.activeCompany!.name);
+        return _buildLogin(context, activeCompany.name);
       },
     );
   }
@@ -99,26 +118,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     'LedgerFlow',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: cs.primary,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      color: cs.primary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     companyName,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: cs.onSurface.withValues(alpha: 0.72),
-                        ),
+                      fontWeight: FontWeight.w800,
+                      color: cs.onSurface.withValues(alpha: 0.72),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'تسجيل الدخول | Sign In',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurface.withValues(alpha: 0.6),
-                        ),
+                      color: cs.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   if (_errorMsg != null) ...[
@@ -172,12 +191,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                         ),
-                        onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                        onPressed: () =>
+                            setState(() => _obscurePass = !_obscurePass),
                       ),
                     ),
-                    validator: (v) => (v == null || v.isEmpty)
-                        ? 'أدخل كلمة المرور'
-                        : null,
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'أدخل كلمة المرور' : null,
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
@@ -201,15 +220,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   TextButton.icon(
-                    onPressed: _loading
-                        ? null
-                        : () async {
-                            await ref
-                                .read(companyRegistryProvider.notifier)
-                                .removeCompany(
-                                  ref.read(companyRegistryProvider).value!.activeCompany!.id,
-                                );
-                          },
+                    onPressed: _loading ? null : _switchCompany,
                     icon: const Icon(Icons.swap_horiz_outlined),
                     label: const Text('Switch Company'),
                   ),
@@ -218,8 +229,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     'بيئة التطوير: admin / admin',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurface.withValues(alpha: 0.35),
-                        ),
+                      color: cs.onSurface.withValues(alpha: 0.35),
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -242,7 +253,11 @@ class _CompanyGateLoading extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
             SizedBox(width: 14),
             Text('Loading company files...'),
           ],

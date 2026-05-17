@@ -44,6 +44,7 @@ using QuickBooksClone.Infrastructure.Licensing;
 using QuickBooksClone.Infrastructure.OpeningBalances;
 using QuickBooksClone.Infrastructure.Persistence;
 using QuickBooksClone.Infrastructure.Payments;
+using QuickBooksClone.Infrastructure.PrintTemplates;
 using QuickBooksClone.Infrastructure.PurchaseBills;
 using QuickBooksClone.Infrastructure.PurchaseWorkflow;
 using QuickBooksClone.Infrastructure.PurchaseReturns;
@@ -90,7 +91,7 @@ builder.Services.AddScoped<ISalesInvoicePostingService, SalesInvoicePostingServi
 builder.Services.AddScoped<SalesPostingPreviewService>();
 builder.Services.AddScoped<SalesActivityService>();
 builder.Services.AddScoped<SalesPrintService>();
-builder.Services.AddSingleton<IPrintTemplateRepository, InMemoryPrintTemplateRepository>();
+builder.Services.AddScoped<IPrintTemplateRepository, EfPrintTemplateRepository>();
 builder.Services.AddScoped<IInventoryAdjustmentRepository, EfInventoryAdjustmentRepository>();
 builder.Services.AddScoped<IInventoryAdjustmentPostingService, InventoryAdjustmentPostingService>();
 builder.Services.AddScoped<IJournalEntryRepository, EfJournalEntryRepository>();

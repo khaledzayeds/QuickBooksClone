@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using QuickBooksClone.Core.Companies;
 using System.Text.Json;
 
 namespace QuickBooksClone.Infrastructure.Persistence;
@@ -26,7 +27,8 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
 
     public SqliteDatabaseMaintenanceService(
         QuickBooksCloneDbContext dbContext,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ICompanyRuntimeService companyRuntime)
     {
         _dbContext = dbContext;
         _provider = configuration["Database:Provider"] ?? SqliteProvider;
@@ -35,7 +37,10 @@ public sealed class SqliteDatabaseMaintenanceService : IDatabaseMaintenanceServi
         var connectionString = configuration.GetConnectionString("QuickBooksClone")
             ?? "Data Source=quickbooksclone.db";
 
-        _liveDatabasePath = ResolveSqliteDatabasePath(connectionString, rootPath);
+        var activeCompany = companyRuntime.Current;
+        _liveDatabasePath = activeCompany.IsActive
+            ? Path.GetFullPath(activeCompany.DatabasePath)
+            : ResolveSqliteDatabasePath(connectionString, rootPath);
         _backupDirectory = ResolveBackupDirectory(configuration["Database:BackupDirectory"], rootPath);
         _settingsPath = Path.Combine(_backupDirectory, "database-maintenance-settings.json");
         _restoreAuditPath = Path.Combine(_backupDirectory, "restore-audit-log.json");

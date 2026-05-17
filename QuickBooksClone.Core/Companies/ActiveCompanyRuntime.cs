@@ -5,4 +5,5 @@ public sealed record ActiveCompanyRuntime(
     string? CompanyName,
     string DatabasePath,
     bool IsActive,
-    DateTimeOffset? OpenedAtUtc);
+    DateTimeOffset? OpenedAtUtc,
+    bool IsSetupInitialized = false);
