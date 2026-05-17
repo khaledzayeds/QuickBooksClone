@@ -159,10 +159,41 @@ class _ActiveCompanyCard extends ConsumerWidget {
   }
 }
 
-class _ActionsCard extends StatelessWidget {
+class _ActionsCard extends ConsumerStatefulWidget {
   const _ActionsCard({required this.hasCompanies});
 
   final bool hasCompanies;
+
+  @override
+  ConsumerState<_ActionsCard> createState() => _ActionsCardState();
+}
+
+class _ActionsCardState extends ConsumerState<_ActionsCard> {
+  bool _creating = false;
+  String? _errorMessage;
+
+  Future<void> _createDefaultCompany() async {
+    setState(() {
+      _creating = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref.read(companyRegistryProvider.notifier).registerCompany(
+            name: 'LedgerFlow Company',
+            databasePath: AppConstants.defaultCompanyDatabaseFileName,
+            displayPath: AppConstants.defaultCompanyDatabaseFileName,
+            makeActive: true,
+          );
+      if (mounted) context.go(AppRoutes.setup);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _creating = false;
+        _errorMessage = error.toString();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -185,10 +216,30 @@ class _ActionsCard extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 18),
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cs.errorContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(color: cs.onErrorContainer),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.setup),
-              icon: const Icon(Icons.add_business_outlined),
-              label: Text(hasCompanies ? 'Create New Company' : 'Create First Company'),
+              onPressed: _creating ? null : _createDefaultCompany,
+              icon: _creating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.add_business_outlined),
+              label: Text(widget.hasCompanies ? 'Create New Company' : 'Create First Company'),
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
@@ -204,7 +255,7 @@ class _ActionsCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Open/restore will be enabled after the company file picker and runtime database switching are connected.',
+              'For now this will register and open the current local LedgerFlow database. Full separate company files come next.',
               style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
             ),
           ],
