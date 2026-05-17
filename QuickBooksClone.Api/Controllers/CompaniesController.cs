@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using QuickBooksClone.Api.Contracts.Companies;
 using QuickBooksClone.Core.Companies;
 using QuickBooksClone.Infrastructure.Persistence;
@@ -7,6 +8,7 @@ namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/companies")]
+[AllowAnonymous]
 public sealed class CompaniesController : ControllerBase
 {
     private readonly ICompanyRuntimeService _runtime;
@@ -59,10 +61,6 @@ public sealed class CompaniesController : ControllerBase
                 request.DatabasePath,
                 openCancellationToken);
             _logger.LogInformation("Open company {CompanyId}: runtime open completed.", request.CompanyId);
-
-            _logger.LogInformation("Open company {CompanyId}: before ApplyCurrentCompanyDatabaseAsync.", request.CompanyId);
-            await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(seedDefaults: false, cancellationToken: openCancellationToken);
-            _logger.LogInformation("Open company {CompanyId}: ApplyCurrentCompanyDatabaseAsync completed.", request.CompanyId);
 
             _logger.LogInformation("Open company {CompanyId}: before CurrentCompanyDatabaseIsInitializedAsync.", request.CompanyId);
             if (await HttpContext.RequestServices.CurrentCompanyDatabaseIsInitializedAsync(openCancellationToken))

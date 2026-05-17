@@ -5,6 +5,7 @@ using QuickBooksClone.Core.Accounting;
 using QuickBooksClone.Core.Companies;
 using QuickBooksClone.Core.Security;
 using QuickBooksClone.Core.Settings;
+using QuickBooksClone.Infrastructure.Persistence;
 using QuickBooksClone.Infrastructure.Security;
 
 namespace QuickBooksClone.Api.Controllers;
@@ -89,6 +90,8 @@ public sealed class SetupController : ControllerBase
             {
                 return BadRequest("Initial admin secret must be at least 8 characters.");
             }
+
+            await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(seedDefaults: true, cancellationToken: setupCancellationToken);
 
             if (await _security.UserNameExistsAsync(request.AdminUserName, null, setupCancellationToken))
             {
@@ -175,6 +178,12 @@ public sealed class SetupController : ControllerBase
         if (!runtime.IsActive)
         {
             return new SetupStatusResponse(false, false, false, null, null);
+        }
+
+        await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(seedDefaults: false, cancellationToken: cancellationToken);
+        if (!await HttpContext.RequestServices.CurrentCompanyDatabaseIsInitializedAsync(cancellationToken))
+        {
+            return new SetupStatusResponse(false, false, false, runtime.CompanyName, null);
         }
 
         var company = await _companySettings.GetAsync(cancellationToken);

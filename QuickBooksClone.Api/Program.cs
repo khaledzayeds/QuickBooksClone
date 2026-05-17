@@ -161,6 +161,4 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-await app.Services.ApplyQuickBooksDatabaseMigrationsAsync();
-
 app.Run();

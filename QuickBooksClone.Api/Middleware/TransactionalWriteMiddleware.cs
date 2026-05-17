@@ -9,6 +9,7 @@ public sealed class TransactionalWriteMiddleware
 {
     private static readonly PathString CompaniesRuntimePath = new("/api/companies");
     private static readonly PathString DatabaseMaintenancePath = new("/api/database");
+    private static readonly PathString SetupPath = new("/api/setup");
     private static readonly HashSet<string> WriteMethods = new(StringComparer.OrdinalIgnoreCase)
     {
         HttpMethods.Post,
@@ -28,7 +29,8 @@ public sealed class TransactionalWriteMiddleware
     {
         if (!WriteMethods.Contains(context.Request.Method) ||
             context.Request.Path.StartsWithSegments(CompaniesRuntimePath, StringComparison.OrdinalIgnoreCase) ||
-            context.Request.Path.StartsWithSegments(DatabaseMaintenancePath, StringComparison.OrdinalIgnoreCase))
+            context.Request.Path.StartsWithSegments(DatabaseMaintenancePath, StringComparison.OrdinalIgnoreCase) ||
+            context.Request.Path.StartsWithSegments(SetupPath, StringComparison.OrdinalIgnoreCase))
         {
             await _next(context);
             return;

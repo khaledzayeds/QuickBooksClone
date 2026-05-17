@@ -26,24 +26,25 @@ class LocalBackendBootstrap {
       workingDirectory: launch.workingDirectory,
     );
 
-    final deadline = DateTime.now().add(const Duration(seconds: 90));
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
     while (DateTime.now().isBefore(deadline)) {
       if (await _isReady(baseUrl)) return;
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
     }
 
     throw StateError('LedgerFlow local API did not become ready in time.');
   }
 
   static Future<bool> _isReady(String baseUrl) async {
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 1);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(milliseconds: 350);
     try {
       final uri = Uri.parse('$baseUrl/api/companies/active');
       final request = await client
           .getUrl(uri)
-          .timeout(const Duration(seconds: 2));
+          .timeout(const Duration(milliseconds: 500));
       final response = await request.close().timeout(
-        const Duration(seconds: 2),
+        const Duration(milliseconds: 500),
       );
       await response.drain<void>();
       return response.statusCode >= 200 && response.statusCode < 500;
@@ -82,22 +83,15 @@ class LocalBackendBootstrap {
     for (final candidate in projectCandidates) {
       final fullPath = File(candidate).absolute.path;
       if (await File(fullPath).exists()) {
-        final builtDll = _builtApiDllForProject(fullPath);
-        if (await File(builtDll).exists()) {
+        final builtExe = _builtApiExeForProject(fullPath);
+        if (await File(builtExe).exists()) {
           return _BackendLaunch(
-            executable: 'dotnet',
-            arguments: [builtDll],
-            workingDirectory: File(builtDll).parent.path,
+            executable: builtExe,
+            arguments: const [],
+            workingDirectory: File(builtExe).parent.path,
             environment: {'ASPNETCORE_URLS': baseUrl},
           );
         }
-
-        return _BackendLaunch(
-          executable: 'dotnet',
-          arguments: ['run', '--project', fullPath, '--urls', baseUrl],
-          workingDirectory: File(fullPath).parent.path,
-          environment: {'ASPNETCORE_URLS': baseUrl},
-        );
       }
     }
 
@@ -133,14 +127,14 @@ class LocalBackendBootstrap {
     }
   }
 
-  static String _builtApiDllForProject(String projectPath) {
+  static String _builtApiExeForProject(String projectPath) {
     final projectDir = File(projectPath).parent.path;
     return _joinAll([
       projectDir,
       'bin',
       'Debug',
       'net10.0',
-      'QuickBooksClone.Api.dll',
+      'QuickBooksClone.Api.exe',
     ]);
   }
 }

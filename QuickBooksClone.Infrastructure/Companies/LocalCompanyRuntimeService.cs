@@ -23,7 +23,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
         {
             lock (_gate)
             {
-                return BuildInactiveRuntime();
+                return BuildCurrentRuntime();
             }
         }
     }
@@ -32,7 +32,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
     {
         lock (_gate)
         {
-            return Task.FromResult(BuildInactiveRuntime());
+            return Task.FromResult(BuildCurrentRuntime());
         }
     }
 
@@ -76,7 +76,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
         lock (_gate)
         {
             _active = null;
-            return Task.FromResult(BuildInactiveRuntime());
+            return Task.FromResult(BuildCurrentRuntime());
         }
     }
 
@@ -104,7 +104,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
             : trimmed;
     }
 
-    private ActiveCompanyRuntime BuildInactiveRuntime()
+    private ActiveCompanyRuntime BuildCurrentRuntime()
     {
         return _active ?? new ActiveCompanyRuntime(
             CompanyId: null,
