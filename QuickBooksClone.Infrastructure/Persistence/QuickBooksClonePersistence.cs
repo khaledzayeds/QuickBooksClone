@@ -43,7 +43,7 @@ public static class QuickBooksClonePersistence
                 ? BuildSqliteConnectionString(runtime.DatabasePath)
                 : connectionString;
 
-            options.UseSqlite(sqliteConnectionString);
+            options.UseSqlite(CreateOpenSqliteConnection(sqliteConnectionString), contextOwnsConnection: true);
         });
 
         return services;
@@ -79,17 +79,16 @@ public static class QuickBooksClonePersistence
         var seedDemoData = bool.TryParse(configuration["Database:SeedDemoData"], out var configuredSeedDemoData) &&
             configuredSeedDemoData;
         await using var dbContext = CreateSqliteDbContext(runtime.DatabasePath);
-        try
+        if (!await SqliteDatabaseHasUserTablesAsync(runtime.DatabasePath, cancellationToken))
         {
-            await dbContext.Database.OpenConnectionAsync(cancellationToken);
-            await AdoptExistingSqliteSchemaAsync(dbContext);
-            await dbContext.Database.MigrateAsync(cancellationToken);
+            await dbContext.Database.EnsureCreatedAsync(cancellationToken);
             await SeedDefaultsAsync(dbContext, seedDemoData);
+            return;
         }
-        finally
-        {
-            await dbContext.Database.CloseConnectionAsync();
-        }
+
+        await AdoptExistingSqliteSchemaAsync(dbContext);
+        await dbContext.Database.MigrateAsync(cancellationToken);
+        await SeedDefaultsAsync(dbContext, seedDemoData);
     }
 
     public static async Task<bool> CurrentCompanyDatabaseIsInitializedAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
@@ -108,9 +107,16 @@ public static class QuickBooksClonePersistence
     private static QuickBooksCloneDbContext CreateSqliteDbContext(string databasePath)
     {
         var options = new DbContextOptionsBuilder<QuickBooksCloneDbContext>()
-            .UseSqlite(BuildSqliteConnectionString(databasePath))
+            .UseSqlite(CreateOpenSqliteConnection(BuildSqliteConnectionString(databasePath)), contextOwnsConnection: true)
             .Options;
         return new QuickBooksCloneDbContext(options);
+    }
+
+    private static SqliteConnection CreateOpenSqliteConnection(string connectionString)
+    {
+        var connection = new SqliteConnection(connectionString);
+        connection.Open();
+        return connection;
     }
 
     private static string BuildSqliteConnectionString(string databasePath)
@@ -124,8 +130,19 @@ public static class QuickBooksClonePersistence
 
         return new SqliteConnectionStringBuilder
         {
-            DataSource = fullPath
+            DataSource = fullPath,
+            Pooling = false
         }.ToString();
+    }
+
+    private static async Task<bool> SqliteDatabaseHasUserTablesAsync(string databasePath, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqliteConnection(BuildSqliteConnectionString(databasePath));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';";
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return Convert.ToInt64(value) > 0;
     }
 
     private static async Task AdoptExistingSqliteSchemaAsync(QuickBooksCloneDbContext dbContext)

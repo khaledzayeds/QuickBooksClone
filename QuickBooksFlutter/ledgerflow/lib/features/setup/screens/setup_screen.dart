@@ -71,20 +71,28 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       initialAdminSecret: _adminSecretCtrl.text,
     );
 
-    final error = await ref
-        .read(setupProvider.notifier)
-        .initializeCompany(request);
-    if (!mounted) return;
+    try {
+      final error = await ref
+          .read(setupProvider.notifier)
+          .initializeCompany(request);
+      if (!mounted) return;
 
-    if (error == null) {
-      context.go('/login');
-      return;
+      if (error == null) {
+        context.go('/login');
+        return;
+      }
+
+      setState(() {
+        _saving = false;
+        _errorMessage = error.message;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _errorMessage = 'Company setup failed: $error';
+      });
     }
-
-    setState(() {
-      _saving = false;
-      _errorMessage = error.message;
-    });
   }
 
   @override

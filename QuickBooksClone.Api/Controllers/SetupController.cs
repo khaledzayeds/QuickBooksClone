@@ -21,26 +21,47 @@ public sealed class SetupController : ControllerBase
     private readonly IPasswordHasher _passwordHasher;
     private readonly IDefaultAccountsSeeder _defaultAccountsSeeder;
     private readonly ICompanyRuntimeService _companyRuntime;
+    private readonly ILogger<SetupController> _logger;
 
     public SetupController(
         ICompanySettingsRepository companySettings,
         ISecurityRepository security,
         IPasswordHasher passwordHasher,
         IDefaultAccountsSeeder defaultAccountsSeeder,
-        ICompanyRuntimeService companyRuntime)
+        ICompanyRuntimeService companyRuntime,
+        ILogger<SetupController> logger)
     {
         _companySettings = companySettings;
         _security = security;
         _passwordHasher = passwordHasher;
         _defaultAccountsSeeder = defaultAccountsSeeder;
         _companyRuntime = companyRuntime;
+        _logger = logger;
     }
 
     [HttpGet("status")]
     [ProducesResponseType(typeof(SetupStatusResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<SetupStatusResponse>> GetStatus(CancellationToken cancellationToken = default)
     {
-        return Ok(await BuildStatusAsync(cancellationToken));
+        try
+        {
+            _logger.LogInformation("Setup status requested: before BuildStatusAsync.");
+            var status = await BuildStatusAsync(cancellationToken);
+            _logger.LogInformation(
+                "Setup status completed: initialized={IsInitialized}, company={CompanyName}.",
+                status.IsInitialized,
+                status.CompanyName);
+
+            return Ok(status);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Setup status failed.");
+            return Problem(
+                title: "Setup status failed",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
     }
 
     [HttpPost("initialize-company")]
@@ -49,50 +70,90 @@ public sealed class SetupController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<InitializeCompanyResponse>> InitializeCompany(InitializeCompanyRequest request, CancellationToken cancellationToken = default)
     {
-        var status = await BuildStatusAsync(cancellationToken);
-        if (status.IsInitialized)
-        {
-            return Conflict("Company is already initialized.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.InitialAdminSecret) || request.InitialAdminSecret.Length < 8)
-        {
-            return BadRequest("Initial admin secret must be at least 8 characters.");
-        }
-
-        if (await _security.UserNameExistsAsync(request.AdminUserName, null, cancellationToken))
-        {
-            return Conflict("Admin user name already exists.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.AdminEmail) && await _security.UserEmailExistsAsync(request.AdminEmail, null, cancellationToken))
-        {
-            return Conflict("Admin email already exists.");
-        }
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        var setupCancellationToken = timeout.Token;
 
         try
         {
-            var company = await EnsureCompanySettingsAsync(request, cancellationToken);
-            var adminRole = await EnsureAdminRoleAsync(cancellationToken);
+            _logger.LogInformation("Initialize company requested for {CompanyName}: before BuildStatusAsync.", request.CompanyName);
+            var status = await BuildStatusAsync(setupCancellationToken);
+            _logger.LogInformation("Initialize company for {CompanyName}: BuildStatusAsync completed.", request.CompanyName);
+
+            if (status.IsInitialized)
+            {
+                return Conflict("Company is already initialized.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.InitialAdminSecret) || request.InitialAdminSecret.Length < 8)
+            {
+                return BadRequest("Initial admin secret must be at least 8 characters.");
+            }
+
+            if (await _security.UserNameExistsAsync(request.AdminUserName, null, setupCancellationToken))
+            {
+                return Conflict("Admin user name already exists.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.AdminEmail) && await _security.UserEmailExistsAsync(request.AdminEmail, null, setupCancellationToken))
+            {
+                return Conflict("Admin email already exists.");
+            }
+
+            _logger.LogInformation("Initialize company for {CompanyName}: before EnsureCompanySettingsAsync.", request.CompanyName);
+            var company = await EnsureCompanySettingsAsync(request, setupCancellationToken);
+            _logger.LogInformation("Initialize company for {CompanyName}: EnsureCompanySettingsAsync completed.", request.CompanyName);
+
+            _logger.LogInformation("Initialize company for {CompanyName}: before EnsureAdminRoleAsync.", request.CompanyName);
+            var adminRole = await EnsureAdminRoleAsync(setupCancellationToken);
+            _logger.LogInformation("Initialize company for {CompanyName}: EnsureAdminRoleAsync completed.", request.CompanyName);
+
+            _logger.LogInformation("Initialize company for {CompanyName}: before AddUserAsync.", request.CompanyName);
             var adminUser = new SecurityUser(
                 request.AdminUserName,
                 request.AdminDisplayName,
                 request.AdminEmail,
                 _passwordHasher.HashPassword(request.InitialAdminSecret));
 
-            await _security.AddUserAsync(adminUser, [adminRole.Id], cancellationToken);
-            await _defaultAccountsSeeder.SeedAsync(cancellationToken);
-            await _companyRuntime.MarkSetupInitializedAsync(cancellationToken);
+            await _security.AddUserAsync(adminUser, [adminRole.Id], setupCancellationToken);
+            _logger.LogInformation("Initialize company for {CompanyName}: AddUserAsync completed.", request.CompanyName);
 
+            _logger.LogInformation("Initialize company for {CompanyName}: before DefaultAccountsSeeder.SeedAsync.", request.CompanyName);
+            await _defaultAccountsSeeder.SeedAsync(setupCancellationToken);
+            _logger.LogInformation("Initialize company for {CompanyName}: DefaultAccountsSeeder.SeedAsync completed.", request.CompanyName);
+
+            _logger.LogInformation("Initialize company for {CompanyName}: before MarkSetupInitializedAsync.", request.CompanyName);
+            await _companyRuntime.MarkSetupInitializedAsync(setupCancellationToken);
+            _logger.LogInformation("Initialize company for {CompanyName}: MarkSetupInitializedAsync completed.", request.CompanyName);
+
+            _logger.LogInformation("Initialize company for {CompanyName}: before returning OK.", request.CompanyName);
             return Ok(new InitializeCompanyResponse(true, company.CompanyName, adminUser.UserName, adminRole.RoleKey));
         }
         catch (ArgumentException exception)
         {
+            _logger.LogWarning(exception, "Initialize company validation failed for {CompanyName}.", request.CompanyName);
             return BadRequest(exception.Message);
         }
         catch (InvalidOperationException exception)
         {
+            _logger.LogWarning(exception, "Initialize company operation failed for {CompanyName}.", request.CompanyName);
             return BadRequest(exception.Message);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogError(exception, "Initialize company timed out for {CompanyName}.", request.CompanyName);
+            return Problem(
+                title: "Company setup timed out",
+                detail: "Company setup did not finish within the expected time. Check the server log for the last completed setup step.",
+                statusCode: StatusCodes.Status504GatewayTimeout);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Initialize company failed for {CompanyName}.", request.CompanyName);
+            return Problem(
+                title: "Company setup failed",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
         }
     }
 

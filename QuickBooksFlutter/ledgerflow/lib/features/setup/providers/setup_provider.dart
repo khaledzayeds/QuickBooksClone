@@ -44,7 +44,8 @@ class SetupNotifier extends AsyncNotifier<SetupStatus> {
         .initializeCompany(request);
     switch (result) {
       case Success<InitializeCompanyResponse>():
-        return refreshStatus();
+        ref.invalidateSelf();
+        return null;
       case Failure<InitializeCompanyResponse>(error: final error):
         return error;
     }

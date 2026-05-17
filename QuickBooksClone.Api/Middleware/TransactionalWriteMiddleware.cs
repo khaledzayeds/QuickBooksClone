@@ -7,6 +7,7 @@ namespace QuickBooksClone.Api.Middleware;
 
 public sealed class TransactionalWriteMiddleware
 {
+    private static readonly PathString CompaniesRuntimePath = new("/api/companies");
     private static readonly PathString DatabaseMaintenancePath = new("/api/database");
     private static readonly HashSet<string> WriteMethods = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -23,15 +24,18 @@ public sealed class TransactionalWriteMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, QuickBooksCloneDbContext dbContext, IAuditLogRepository auditLog)
+    public async Task InvokeAsync(HttpContext context)
     {
         if (!WriteMethods.Contains(context.Request.Method) ||
+            context.Request.Path.StartsWithSegments(CompaniesRuntimePath, StringComparison.OrdinalIgnoreCase) ||
             context.Request.Path.StartsWithSegments(DatabaseMaintenancePath, StringComparison.OrdinalIgnoreCase))
         {
             await _next(context);
             return;
         }
 
+        var dbContext = context.RequestServices.GetRequiredService<QuickBooksCloneDbContext>();
+        var auditLog = context.RequestServices.GetRequiredService<IAuditLogRepository>();
         await using var transaction = await dbContext.Database.BeginTransactionAsync(context.RequestAborted);
 
         try

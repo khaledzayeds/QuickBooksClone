@@ -19,6 +19,8 @@ class SetupRemoteDatasource {
       return Success(SetupStatus.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
+    } catch (error) {
+      return Failure(AppError(message: 'Failed to load setup status: $error'));
     }
   }
 
@@ -33,6 +35,8 @@ class SetupRemoteDatasource {
       return Success(InitializeCompanyResponse.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
+    } catch (error) {
+      return Failure(AppError(message: 'Failed to initialize company: $error'));
     }
   }
 }

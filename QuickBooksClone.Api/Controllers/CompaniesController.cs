@@ -10,10 +10,12 @@ namespace QuickBooksClone.Api.Controllers;
 public sealed class CompaniesController : ControllerBase
 {
     private readonly ICompanyRuntimeService _runtime;
+    private readonly ILogger<CompaniesController> _logger;
 
-    public CompaniesController(ICompanyRuntimeService runtime)
+    public CompaniesController(ICompanyRuntimeService runtime, ILogger<CompaniesController> logger)
     {
         _runtime = runtime;
+        _logger = logger;
     }
 
     [HttpGet("active")]
@@ -29,33 +31,65 @@ public sealed class CompaniesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ActiveCompanyRuntimeResponse>> Open(OpenCompanyRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.CompanyId == Guid.Empty)
-        {
-            return BadRequest("Company id is required.");
-        }
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        var openCancellationToken = timeout.Token;
 
-        if (string.IsNullOrWhiteSpace(request.CompanyName))
+        try
         {
-            return BadRequest("Company name is required.");
-        }
+            if (request.CompanyId == Guid.Empty)
+            {
+                return BadRequest("Company id is required.");
+            }
 
-        if (string.IsNullOrWhiteSpace(request.DatabasePath))
+            if (string.IsNullOrWhiteSpace(request.CompanyName))
+            {
+                return BadRequest("Company name is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DatabasePath))
+            {
+                return BadRequest("Database path is required.");
+            }
+
+            _logger.LogInformation("Open company {CompanyId}: before runtime open. DatabasePath={DatabasePath}", request.CompanyId, request.DatabasePath);
+            var runtime = await _runtime.OpenAsync(
+                request.CompanyId,
+                request.CompanyName,
+                request.DatabasePath,
+                openCancellationToken);
+            _logger.LogInformation("Open company {CompanyId}: runtime open completed.", request.CompanyId);
+
+            _logger.LogInformation("Open company {CompanyId}: before ApplyCurrentCompanyDatabaseAsync.", request.CompanyId);
+            await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(openCancellationToken);
+            _logger.LogInformation("Open company {CompanyId}: ApplyCurrentCompanyDatabaseAsync completed.", request.CompanyId);
+
+            _logger.LogInformation("Open company {CompanyId}: before CurrentCompanyDatabaseIsInitializedAsync.", request.CompanyId);
+            if (await HttpContext.RequestServices.CurrentCompanyDatabaseIsInitializedAsync(openCancellationToken))
+            {
+                _logger.LogInformation("Open company {CompanyId}: database is initialized, marking runtime initialized.", request.CompanyId);
+                runtime = await _runtime.MarkSetupInitializedAsync(openCancellationToken);
+            }
+            _logger.LogInformation("Open company {CompanyId}: before returning OK.", request.CompanyId);
+
+            return Ok(ToResponse(runtime));
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
-            return BadRequest("Database path is required.");
+            _logger.LogError(exception, "Open company timed out for {CompanyId}.", request.CompanyId);
+            return Problem(
+                title: "Company open timed out",
+                detail: "The company database did not open within the expected time. Check the server log for the last completed open step.",
+                statusCode: StatusCodes.Status504GatewayTimeout);
         }
-
-        var runtime = await _runtime.OpenAsync(
-            request.CompanyId,
-            request.CompanyName,
-            request.DatabasePath,
-            cancellationToken);
-        await HttpContext.RequestServices.ApplyCurrentCompanyDatabaseAsync(cancellationToken);
-        if (await HttpContext.RequestServices.CurrentCompanyDatabaseIsInitializedAsync(cancellationToken))
+        catch (Exception exception)
         {
-            runtime = await _runtime.MarkSetupInitializedAsync(cancellationToken);
+            _logger.LogError(exception, "Open company failed for {CompanyId}.", request.CompanyId);
+            return Problem(
+                title: "Company open failed",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
         }
-
-        return Ok(ToResponse(runtime));
     }
 
     [HttpPost("close")]
