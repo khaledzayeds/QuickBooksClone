@@ -15,7 +15,23 @@ final companyRegistryProvider =
 class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
   @override
   Future<CompanyRegistry> build() async {
-    return ref.read(companyRegistryRepositoryProvider).load();
+    final registry = await ref.read(companyRegistryRepositoryProvider).load();
+
+    final active = registry.activeCompany;
+    if (active != null) {
+      try {
+        await ref.read(companyRegistryRepositoryProvider).reopenCompany(active);
+      } catch (_) {
+        final cleared = CompanyRegistry(
+          companies: registry.companies,
+          activeCompanyId: null,
+        );
+        await ref.read(companyRegistryRepositoryProvider).save(cleared);
+        return cleared;
+      }
+    }
+
+    return registry;
   }
 
   Future<void> refresh() async {
@@ -23,6 +39,12 @@ class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
     state = await AsyncValue.guard(
       () => ref.read(companyRegistryRepositoryProvider).load(),
     );
+  }
+
+  Future<void> ensureOpen() async {
+    final active = state.value?.activeCompany;
+    if (active == null) throw StateError('No active company selected.');
+    await ref.read(companyRegistryRepositoryProvider).reopenCompany(active);
   }
 
   Future<void> registerCompany({

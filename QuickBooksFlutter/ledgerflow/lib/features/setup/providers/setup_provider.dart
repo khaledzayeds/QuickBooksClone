@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_result.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../companies/providers/company_registry_provider.dart';
 import '../data/datasources/setup_remote_datasource.dart';
 import '../data/models/setup_models.dart';
 
@@ -16,6 +17,16 @@ final setupProvider = AsyncNotifierProvider<SetupNotifier, SetupStatus>(
 class SetupNotifier extends AsyncNotifier<SetupStatus> {
   @override
   Future<SetupStatus> build() async {
+    final registry = await ref.watch(companyRegistryProvider.future);
+    if (registry.activeCompany == null) {
+      return const SetupStatus(
+        hasCompanySettings: false,
+        hasAdminUser: false,
+        isInitialized: false,
+      );
+    }
+
+    await ref.read(companyRegistryProvider.notifier).ensureOpen();
     final result = await ref.read(_setupDatasourceProvider).getStatus();
     return result.when(
       success: (status) => status,
@@ -25,6 +36,28 @@ class SetupNotifier extends AsyncNotifier<SetupStatus> {
 
   Future<AppError?> refreshStatus() async {
     state = const AsyncLoading();
+    final registry = ref.read(companyRegistryProvider).value;
+    if (registry?.activeCompany == null) {
+      state = const AsyncData(
+        SetupStatus(
+          hasCompanySettings: false,
+          hasAdminUser: false,
+          isInitialized: false,
+        ),
+      );
+      return null;
+    }
+
+    try {
+      await ref.read(companyRegistryProvider.notifier).ensureOpen();
+    } catch (error) {
+      final appError = AppError(
+        message: 'Company file could not be opened: $error',
+      );
+      state = AsyncError(appError, StackTrace.current);
+      return appError;
+    }
+
     final result = await ref.read(_setupDatasourceProvider).getStatus();
     return result.when(
       success: (status) {

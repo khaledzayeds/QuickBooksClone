@@ -75,6 +75,7 @@ import '../features/settings/screens/setup_wizard_screen.dart';
 import '../features/settings/screens/tax_settings_screen.dart';
 import '../features/settings/screens/users_permissions_screen.dart';
 import '../features/settings/widgets/license_gate.dart';
+import '../features/setup/data/models/setup_models.dart';
 import '../features/setup/providers/setup_provider.dart';
 import '../features/setup/screens/setup_screen.dart';
 import '../features/snapshots/screens/snapshots_screen.dart';
@@ -203,8 +204,12 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
-  final setupState = ref.watch(setupProvider);
   final companyRegistryState = ref.watch(companyRegistryProvider);
+  final hasActiveCompanyForSetup =
+      companyRegistryState.value?.activeCompany != null;
+  final AsyncValue<SetupStatus>? setupState = hasActiveCompanyForSetup
+      ? ref.watch(setupProvider)
+      : null;
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.companies,
@@ -218,7 +223,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      final hasActiveCompany = companyRegistryState.value?.activeCompany != null;
+      final hasActiveCompany =
+          companyRegistryState.value?.activeCompany != null;
       if (!hasActiveCompany) {
         return isCompaniesRoute ? null : AppRoutes.companies;
       }
@@ -227,16 +233,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      if (setupState.hasError) {
+      if (setupState?.hasError == true) {
         return isSetupRoute ? null : AppRoutes.setup;
       }
 
-      final setup = setupState.value;
+      final setup = setupState?.value;
       if (setup != null && !setup.isInitialized) {
         return isSetupRoute ? null : AppRoutes.setup;
       }
 
-      if (setup != null && setup.isInitialized && (isSetupRoute || isCompaniesRoute)) {
+      if (setup != null &&
+          setup.isInitialized &&
+          (isSetupRoute || isCompaniesRoute)) {
         return AppRoutes.login;
       }
 

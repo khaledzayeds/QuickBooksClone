@@ -111,6 +111,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
 
     try {
+      await ref.read(companyRegistryProvider.notifier).ensureOpen();
+      if (!mounted) return;
+
       final error = await ref
           .read(setupProvider.notifier)
           .initializeCompany(request);
@@ -173,10 +176,16 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   Widget build(BuildContext context) {
     final registryState = ref.watch(companyRegistryProvider);
     final activeCompany = registryState.value?.activeCompany;
+
+    if (registryState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     if (activeCompany == null) {
-      return _ChooseCompanyFileScreen(
-        onChoose: () => context.go(AppRoutes.companies),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go(AppRoutes.companies);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final setupState = ref.watch(setupProvider);
@@ -940,42 +949,6 @@ class _ReviewRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ChooseCompanyFileScreen extends StatelessWidget {
-  const _ChooseCompanyFileScreen({required this.onChoose});
-
-  final VoidCallback onChoose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.folder_open_outlined, size: 44),
-                const SizedBox(height: 12),
-                Text(
-                  'Choose a company file',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: onChoose,
-                  icon: const Icon(Icons.business_outlined),
-                  label: const Text('Choose Company File'),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

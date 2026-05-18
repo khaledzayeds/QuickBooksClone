@@ -9,7 +9,7 @@ import 'models/company_runtime_models.dart';
 
 class CompanyRegistryRepository {
   CompanyRegistryRepository({CompanyRuntimeDatasource? runtimeDatasource})
-      : _runtimeDatasource = runtimeDatasource ?? CompanyRuntimeDatasource();
+    : _runtimeDatasource = runtimeDatasource ?? CompanyRuntimeDatasource();
 
   static const _registryKey = 'ledgerflow.companyRegistry.v1';
   static const _uuid = Uuid();
@@ -46,7 +46,8 @@ class CompanyRegistryRepository {
     }
 
     final existingIndex = registry.companies.indexWhere(
-      (company) => company.databasePath.toLowerCase() == normalizedPath.toLowerCase(),
+      (company) =>
+          company.databasePath.toLowerCase() == normalizedPath.toLowerCase(),
     );
 
     final companies = [...registry.companies];
@@ -105,10 +106,11 @@ class CompanyRegistryRepository {
     final companies = registry.companies.map((company) {
       if (company.id != companyId) return company;
       return company.copyWith(lastOpenedAt: now);
-    }).toList()
-      ..sort((a, b) => b.lastOpenedAt.compareTo(a.lastOpenedAt));
+    }).toList()..sort((a, b) => b.lastOpenedAt.compareTo(a.lastOpenedAt));
 
-    return save(CompanyRegistry(companies: companies, activeCompanyId: companyId));
+    return save(
+      CompanyRegistry(companies: companies, activeCompanyId: companyId),
+    );
   }
 
   Future<CompanyRegistry> closeActiveCompany() async {
@@ -124,7 +126,9 @@ class CompanyRegistryRepository {
 
   Future<CompanyRegistry> removeCompany(String companyId) async {
     final registry = await load();
-    final companies = registry.companies.where((company) => company.id != companyId).toList();
+    final companies = registry.companies
+        .where((company) => company.id != companyId)
+        .toList();
     final clearActive = registry.activeCompanyId == companyId;
     if (clearActive) {
       await _runtimeDatasource.close();
@@ -144,6 +148,8 @@ class CompanyRegistryRepository {
       Failure<ActiveCompanyRuntimeModel>(error: final error) => throw error,
     };
   }
+
+  Future<void> reopenCompany(LocalCompanyInfo company) => _openRuntime(company);
 
   String buildDefaultDatabaseFileName(String companyName) {
     final slug = companyName
