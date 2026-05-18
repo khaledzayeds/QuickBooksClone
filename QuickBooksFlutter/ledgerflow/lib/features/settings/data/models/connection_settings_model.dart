@@ -1,3 +1,5 @@
+import '../../../../core/constants/app_constants.dart';
+
 enum ConnectionProfileType {
   local,
   lan,
@@ -34,9 +36,9 @@ class ConnectionSettingsModel {
   final String? hostedUrl;
   final String? customUrl;
 
-  static const defaultLocalUrl = 'http://localhost:5014';
-  static const defaultLanHost = '192.168.1.100:5014';
-  static const defaultHostedUrl = 'https://your-server.com';
+  static const defaultLocalUrl = AppConstants.localUrl;
+  static const defaultLanHost = AppConstants.defaultLanHost;
+  static const defaultHostedUrl = AppConstants.hostedUrl;
 
   factory ConnectionSettingsModel.defaults() {
     return const ConnectionSettingsModel(
@@ -67,9 +69,7 @@ class ConnectionSettingsModel {
     final resolved = switch (profileType) {
       ConnectionProfileType.local => defaultLocalUrl,
       ConnectionProfileType.lan => _normalizeLanHost(lanHost ?? defaultLanHost),
-      ConnectionProfileType.hosted => _normalizeUrl(
-        hostedUrl ?? defaultHostedUrl,
-      ),
+      ConnectionProfileType.hosted => _normalizeUrl(hostedUrl ?? defaultHostedUrl),
       ConnectionProfileType.custom => _normalizeUrl(customUrl ?? baseUrl),
     };
 
@@ -106,18 +106,24 @@ class ConnectionSettingsModel {
 
   static String _normalizeLanHost(String value) {
     final trimmed = value.trim();
+    if (trimmed.isEmpty) return defaultLocalUrl;
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
+      return _stripTrailingSlash(trimmed);
     }
-    return 'http://$trimmed';
+    return _stripTrailingSlash('http://$trimmed');
   }
 
   static String _normalizeUrl(String value) {
     final trimmed = value.trim();
+    if (trimmed.isEmpty) return defaultLocalUrl;
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
+      return _stripTrailingSlash(trimmed);
     }
-    return 'http://$trimmed';
+    return _stripTrailingSlash('http://$trimmed');
+  }
+
+  static String _stripTrailingSlash(String value) {
+    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
 }
 
