@@ -13,9 +13,7 @@ class LocalBackendBootstrap {
 
     final launch = await _resolveLaunchCommand(baseUrl);
     if (launch == null) {
-      throw StateError(
-        'LedgerFlow local API was not found. Expected a bundled API executable or the backend project in the workspace.',
-      );
+      throw StateError('LedgerFlow service was not found.');
     }
 
     await Process.start(
@@ -32,7 +30,7 @@ class LocalBackendBootstrap {
       await Future<void>.delayed(const Duration(milliseconds: 100));
     }
 
-    throw StateError('LedgerFlow local API did not become ready in time.');
+    throw StateError('LedgerFlow service did not become ready in time.');
   }
 
   static Future<bool> _isReady(String baseUrl) async {

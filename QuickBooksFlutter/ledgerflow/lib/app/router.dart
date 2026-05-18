@@ -64,7 +64,6 @@ import '../features/sales_receipts/screens/sales_receipt_form_page_shell.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
 import '../features/sales_returns/screens/sales_return_list_screen.dart';
-import '../features/settings/data/models/license_settings_model.dart';
 import '../features/settings/screens/backup_settings_screen.dart';
 import '../features/settings/screens/company_settings_screen.dart';
 import '../features/settings/screens/connection_settings_screen.dart';
@@ -669,10 +668,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.backupSettings,
-            builder: (context, state) => const LicenseGate(
-              feature: LicenseFeature.backupRestore,
-              child: BackupSettingsScreen(),
-            ),
+            builder: (context, state) => const BackupSettingsScreen(),
           ),
           GoRoute(
             path: AppRoutes.printingSettings,
@@ -688,10 +684,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.payroll,
-            builder: (context, state) => const LicenseGate(
-              feature: LicenseFeature.payroll,
-              child: PayrollSetupScreen(),
-            ),
+            builder: (context, state) => const PayrollSetupScreen(),
           ),
           GoRoute(
             path: AppRoutes.timeTracking,

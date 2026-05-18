@@ -5,6 +5,7 @@ import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
 import '../../../../core/utils/error_handler.dart';
 import '../models/auth_user.dart';
+import '../models/login_user_option.dart';
 
 class AuthRemoteDatasource {
   final _client = ApiClient.instance;
@@ -20,6 +21,22 @@ class AuthRemoteDatasource {
         data: {'userName': userName, 'password': password},
       );
       return Success(AuthUser.fromLoginResponse(r.data!));
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
+  /// GET /api/auth/login-users
+  Future<ApiResult<List<LoginUserOption>>> loginUsers() async {
+    try {
+      final r = await _client.get<List<dynamic>>('/api/auth/login-users');
+      final data = r.data ?? const [];
+      return Success(
+        data
+            .whereType<Map<String, dynamic>>()
+            .map(LoginUserOption.fromJson)
+            .toList(),
+      );
     } on DioException catch (e) {
       return Failure(parseError(e));
     }

@@ -26,7 +26,7 @@ class LicenseSettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('License Settings'),
+        title: const Text('Online License'),
         actions: [
           TextButton.icon(
             onPressed: state.saving ? null : notifier.reset,
@@ -53,14 +53,14 @@ class LicenseSettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               children: [
                 Text(
-                  'Edition & Activation',
+                  'Online Services License',
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Configure the installed license, activate online through the API, or generate/apply offline activation packages.',
+                  'Use this only for hosted subscriptions, remote access, online activation, and subscription-only services. The offline company file keeps working locally.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -645,7 +645,7 @@ class _ImplementationNoteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Online activation now calls the backend endpoint. Offline activation uses request codes and signed packages. Production still needs backend license enforcement and a full admin panel.',
+                    'Online activation is for hosted and subscription services. Local offline company work does not depend on this screen.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),

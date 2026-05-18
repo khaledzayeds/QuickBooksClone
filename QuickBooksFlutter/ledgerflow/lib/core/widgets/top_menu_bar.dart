@@ -36,7 +36,9 @@ class TopMenuBar extends ConsumerWidget {
     final isArabic = locale.languageCode == 'ar';
     final user = ref.watch(authProvider).value;
     final displayName = user?.displayName ?? 'System Administrator';
-    final initials = displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : 'U';
+    final initials = displayName.isNotEmpty
+        ? displayName.substring(0, 1).toUpperCase()
+        : 'U';
 
     return Container(
       height: 42,
@@ -60,31 +62,83 @@ class TopMenuBar extends ConsumerWidget {
             label: 'File',
             icon: PhosphorIconsRegular.file,
             items: const [
-              _MenuAction('New Company', AppRoutes.companySettings, PhosphorIconsRegular.buildings),
-              _MenuAction('Open Company', AppRoutes.companySettings, PhosphorIconsRegular.folderOpen),
-              _MenuAction('Settings', AppRoutes.settings, PhosphorIconsRegular.gearSix),
-              _MenuAction('Exit', AppRoutes.login, PhosphorIconsRegular.signOut),
+              _MenuAction(
+                'New Company',
+                AppRoutes.companies,
+                PhosphorIconsRegular.buildings,
+              ),
+              _MenuAction(
+                'Open Company',
+                AppRoutes.companies,
+                PhosphorIconsRegular.folderOpen,
+              ),
+              _MenuAction(
+                'Company Settings',
+                AppRoutes.settings,
+                PhosphorIconsRegular.gearSix,
+              ),
+              _MenuAction(
+                'Sign Out',
+                AppRoutes.login,
+                PhosphorIconsRegular.signOut,
+              ),
             ],
           ),
           _MenuButton(
             label: 'Lists',
             icon: PhosphorIconsRegular.listBullets,
             items: const [
-              _MenuAction('Chart of Accounts', AppRoutes.chartOfAccounts, PhosphorIconsRegular.treeStructure),
-              _MenuAction('Item List', AppRoutes.items, PhosphorIconsRegular.package),
-              _MenuAction('Vendor List', AppRoutes.vendors, PhosphorIconsRegular.storefront),
-              _MenuAction('Customer List', AppRoutes.customers, PhosphorIconsRegular.usersThree),
+              _MenuAction(
+                'Chart of Accounts',
+                AppRoutes.chartOfAccounts,
+                PhosphorIconsRegular.treeStructure,
+              ),
+              _MenuAction(
+                'Item List',
+                AppRoutes.items,
+                PhosphorIconsRegular.package,
+              ),
+              _MenuAction(
+                'Vendor List',
+                AppRoutes.vendors,
+                PhosphorIconsRegular.storefront,
+              ),
+              _MenuAction(
+                'Customer List',
+                AppRoutes.customers,
+                PhosphorIconsRegular.usersThree,
+              ),
             ],
           ),
           _MenuButton(
             label: 'Company',
             icon: PhosphorIconsRegular.briefcase,
             items: const [
-              _MenuAction('My Company', AppRoutes.companySettings, PhosphorIconsRegular.buildingOffice),
-              _MenuAction('Inventory Adjustments', AppRoutes.inventoryAdjustments, PhosphorIconsRegular.slidersHorizontal),
-              _MenuAction('Journal Entries', AppRoutes.journalEntries, PhosphorIconsRegular.notebook),
-              _MenuAction('Enter Time', AppRoutes.timeTracking, PhosphorIconsRegular.timer),
-              _MenuAction('Payroll', AppRoutes.payroll, PhosphorIconsRegular.identificationBadge),
+              _MenuAction(
+                'My Company',
+                AppRoutes.companySettings,
+                PhosphorIconsRegular.buildingOffice,
+              ),
+              _MenuAction(
+                'Inventory Adjustments',
+                AppRoutes.inventoryAdjustments,
+                PhosphorIconsRegular.slidersHorizontal,
+              ),
+              _MenuAction(
+                'Journal Entries',
+                AppRoutes.journalEntries,
+                PhosphorIconsRegular.notebook,
+              ),
+              _MenuAction(
+                'Enter Time',
+                AppRoutes.timeTracking,
+                PhosphorIconsRegular.timer,
+              ),
+              _MenuAction(
+                'Payroll',
+                AppRoutes.payroll,
+                PhosphorIconsRegular.identificationBadge,
+              ),
             ],
           ),
           _MenuButton(
@@ -92,45 +146,129 @@ class TopMenuBar extends ConsumerWidget {
             icon: PhosphorIconsRegular.handCoins,
             highlight: true,
             items: const [
-              _MenuAction('Customer Center', AppRoutes.customers, PhosphorIconsRegular.users),
-              _MenuAction('Estimates', AppRoutes.estimates, PhosphorIconsRegular.clipboardText),
-              _MenuAction('Sales Orders', AppRoutes.salesOrders, PhosphorIconsRegular.shoppingCart),
-              _MenuAction('Sales Receipts', AppRoutes.salesReceiptNew, PhosphorIconsRegular.receipt),
-              _MenuAction('Create Invoices', AppRoutes.invoiceNew, PhosphorIconsRegular.fileText),
-              _MenuAction('Receive Payments', AppRoutes.paymentNew, PhosphorIconsRegular.creditCard),
-              _MenuAction('Customer Credits', AppRoutes.customerCredits, PhosphorIconsRegular.arrowCounterClockwise),
+              _MenuAction(
+                'Customer Center',
+                AppRoutes.customers,
+                PhosphorIconsRegular.users,
+              ),
+              _MenuAction(
+                'Estimates',
+                AppRoutes.estimates,
+                PhosphorIconsRegular.clipboardText,
+              ),
+              _MenuAction(
+                'Sales Orders',
+                AppRoutes.salesOrders,
+                PhosphorIconsRegular.shoppingCart,
+              ),
+              _MenuAction(
+                'Sales Receipts',
+                AppRoutes.salesReceiptNew,
+                PhosphorIconsRegular.receipt,
+              ),
+              _MenuAction(
+                'Create Invoices',
+                AppRoutes.invoiceNew,
+                PhosphorIconsRegular.fileText,
+              ),
+              _MenuAction(
+                'Receive Payments',
+                AppRoutes.paymentNew,
+                PhosphorIconsRegular.creditCard,
+              ),
+              _MenuAction(
+                'Customer Credits',
+                AppRoutes.customerCredits,
+                PhosphorIconsRegular.arrowCounterClockwise,
+              ),
             ],
           ),
           _MenuButton(
             label: 'Vendors',
             icon: PhosphorIconsRegular.truck,
             items: const [
-              _MenuAction('Vendor Center', AppRoutes.vendors, PhosphorIconsRegular.storefront),
-              _MenuAction('Purchase Orders', AppRoutes.purchaseOrders, PhosphorIconsRegular.clipboardText),
-              _MenuAction('Receive Inventory', AppRoutes.receiveInventory, PhosphorIconsRegular.package),
-              _MenuAction('Enter Bills', AppRoutes.purchaseBills, PhosphorIconsRegular.receipt),
-              _MenuAction('Pay Bills', AppRoutes.vendorPayments, PhosphorIconsRegular.money),
-              _MenuAction('Vendor Credits', AppRoutes.vendorCredits, PhosphorIconsRegular.arrowUDownLeft),
+              _MenuAction(
+                'Vendor Center',
+                AppRoutes.vendors,
+                PhosphorIconsRegular.storefront,
+              ),
+              _MenuAction(
+                'Purchase Orders',
+                AppRoutes.purchaseOrders,
+                PhosphorIconsRegular.clipboardText,
+              ),
+              _MenuAction(
+                'Receive Inventory',
+                AppRoutes.receiveInventory,
+                PhosphorIconsRegular.package,
+              ),
+              _MenuAction(
+                'Enter Bills',
+                AppRoutes.purchaseBills,
+                PhosphorIconsRegular.receipt,
+              ),
+              _MenuAction(
+                'Pay Bills',
+                AppRoutes.vendorPayments,
+                PhosphorIconsRegular.money,
+              ),
+              _MenuAction(
+                'Vendor Credits',
+                AppRoutes.vendorCredits,
+                PhosphorIconsRegular.arrowUDownLeft,
+              ),
             ],
           ),
           _MenuButton(
             label: 'Banking',
             icon: PhosphorIconsRegular.bank,
             items: const [
-              _MenuAction('Bank Register', AppRoutes.bankingRegister, PhosphorIconsRegular.bookOpen),
-              _MenuAction('Write Checks', AppRoutes.bankingChecks, PhosphorIconsRegular.penNib),
-              _MenuAction('Make Deposits', AppRoutes.bankingDeposits, PhosphorIconsRegular.arrowDown),
-              _MenuAction('Reconcile', AppRoutes.bankingReconcile, PhosphorIconsRegular.checks),
+              _MenuAction(
+                'Bank Register',
+                AppRoutes.bankingRegister,
+                PhosphorIconsRegular.bookOpen,
+              ),
+              _MenuAction(
+                'Write Checks',
+                AppRoutes.bankingChecks,
+                PhosphorIconsRegular.penNib,
+              ),
+              _MenuAction(
+                'Make Deposits',
+                AppRoutes.bankingDeposits,
+                PhosphorIconsRegular.arrowDown,
+              ),
+              _MenuAction(
+                'Reconcile',
+                AppRoutes.bankingReconcile,
+                PhosphorIconsRegular.checks,
+              ),
             ],
           ),
           _MenuButton(
             label: 'Reports',
             icon: PhosphorIconsRegular.chartBar,
             items: const [
-              _MenuAction('Reports Center', AppRoutes.reports, PhosphorIconsRegular.presentationChart),
-              _MenuAction('Transactions', AppRoutes.transactions, PhosphorIconsRegular.listMagnifyingGlass),
-              _MenuAction('Profit & Loss', AppRoutes.reports, PhosphorIconsRegular.trendUp),
-              _MenuAction('Balance Sheet', AppRoutes.reports, PhosphorIconsRegular.scales),
+              _MenuAction(
+                'Reports Center',
+                AppRoutes.reports,
+                PhosphorIconsRegular.presentationChart,
+              ),
+              _MenuAction(
+                'Transactions',
+                AppRoutes.transactions,
+                PhosphorIconsRegular.listMagnifyingGlass,
+              ),
+              _MenuAction(
+                'Profit & Loss',
+                AppRoutes.reports,
+                PhosphorIconsRegular.trendUp,
+              ),
+              _MenuAction(
+                'Balance Sheet',
+                AppRoutes.reports,
+                PhosphorIconsRegular.scales,
+              ),
             ],
           ),
           const Gap(8),
@@ -198,8 +336,16 @@ class _WorkspaceSegment extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _NavTinyButton(icon: PhosphorIconsRegular.arrowLeft, enabled: canGoBack, onPressed: onBack),
-            _NavTinyButton(icon: PhosphorIconsRegular.arrowRight, enabled: canGoForward, onPressed: onForward),
+            _NavTinyButton(
+              icon: PhosphorIconsRegular.arrowLeft,
+              enabled: canGoBack,
+              onPressed: onBack,
+            ),
+            _NavTinyButton(
+              icon: PhosphorIconsRegular.arrowRight,
+              enabled: canGoForward,
+              onPressed: onForward,
+            ),
             const Gap(6),
             Icon(PhosphorIconsRegular.houseLine, size: 15, color: cs.primary),
             const Gap(5),
@@ -208,7 +354,10 @@ class _WorkspaceSegment extends StatelessWidget {
                 _routeTitle(location),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -219,7 +368,11 @@ class _WorkspaceSegment extends StatelessWidget {
 }
 
 class _NavTinyButton extends StatelessWidget {
-  const _NavTinyButton({required this.icon, required this.enabled, required this.onPressed});
+  const _NavTinyButton({
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+  });
   final IconData icon;
   final bool enabled;
   final VoidCallback? onPressed;
@@ -236,7 +389,9 @@ class _NavTinyButton extends StatelessWidget {
         child: Icon(
           icon,
           size: 14,
-          color: enabled ? cs.onSurfaceVariant : cs.onSurfaceVariant.withValues(alpha: 0.35),
+          color: enabled
+              ? cs.onSurfaceVariant
+              : cs.onSurfaceVariant.withValues(alpha: 0.35),
         ),
       ),
     );
@@ -289,9 +444,16 @@ class _LanguageButton extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(PhosphorIconsRegular.globeHemisphereEast, size: 16, color: cs.onSurfaceVariant),
+            Icon(
+              PhosphorIconsRegular.globeHemisphereEast,
+              size: 16,
+              color: cs.onSurfaceVariant,
+            ),
             const Gap(6),
-            Text(isArabic ? 'EN' : 'عربي', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+            Text(
+              isArabic ? 'EN' : 'عربي',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+            ),
           ],
         ),
       ),
@@ -327,8 +489,15 @@ class _UserPill extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(displayName, style: const TextStyle(fontWeight: FontWeight.w800)),
-              if (userName.isNotEmpty) Text(userName, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+              Text(
+                displayName,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              if (userName.isNotEmpty)
+                Text(
+                  userName,
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                ),
             ],
           ),
         ),
@@ -357,15 +526,34 @@ class _UserPill extends StatelessWidget {
             CircleAvatar(
               backgroundColor: cs.primary,
               radius: 12,
-              child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
             const Gap(7),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 145),
-              child: Text(displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+              child: Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
             const Gap(3),
-            Icon(PhosphorIconsRegular.caretDown, size: 11, color: cs.onSurfaceVariant),
+            Icon(
+              PhosphorIconsRegular.caretDown,
+              size: 11,
+              color: cs.onSurfaceVariant,
+            ),
           ],
         ),
       ),
@@ -384,11 +572,25 @@ class _BrandMark extends StatelessWidget {
         Container(
           width: 26,
           height: 26,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-          child: const Icon(PhosphorIconsFill.bookOpenText, color: Colors.white, size: 16),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            PhosphorIconsFill.bookOpenText,
+            color: Colors.white,
+            size: 16,
+          ),
         ),
         const Gap(7),
-        const Text('LedgerFlow', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: -0.2)),
+        const Text(
+          'LedgerFlow',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.2,
+          ),
+        ),
       ],
     );
   }
@@ -402,7 +604,12 @@ class _MenuAction {
 }
 
 class _MenuButton extends StatelessWidget {
-  const _MenuButton({required this.label, required this.icon, required this.items, this.highlight = false});
+  const _MenuButton({
+    required this.label,
+    required this.icon,
+    required this.items,
+    this.highlight = false,
+  });
 
   final String label;
   final IconData icon;
@@ -416,7 +623,13 @@ class _MenuButton extends StatelessWidget {
       child: DropdownButton2<_MenuAction>(
         customButton: _MenuPill(label: label, icon: icon, highlight: highlight),
         items: items
-            .map((action) => DropdownItem<_MenuAction>(value: action, height: 38, child: _MenuRow(action: action)))
+            .map(
+              (action) => DropdownItem<_MenuAction>(
+                value: action,
+                height: 38,
+                child: _MenuRow(action: action),
+              ),
+            )
             .toList(),
         onChanged: (action) {
           if (action != null) context.go(action.path);
@@ -430,17 +643,29 @@ class _MenuButton extends StatelessWidget {
             color: cs.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: cs.outlineVariant),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 22, offset: const Offset(0, 12))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
         ),
-        menuItemStyleData: const MenuItemStyleData(padding: EdgeInsets.symmetric(horizontal: 8)),
+        menuItemStyleData: const MenuItemStyleData(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+        ),
       ),
     );
   }
 }
 
 class _MenuPill extends StatelessWidget {
-  const _MenuPill({required this.label, required this.icon, required this.highlight});
+  const _MenuPill({
+    required this.label,
+    required this.icon,
+    required this.highlight,
+  });
   final String label;
   final IconData icon;
   final bool highlight;
@@ -452,14 +677,34 @@ class _MenuPill extends StatelessWidget {
       height: 30,
       margin: const EdgeInsets.symmetric(horizontal: 1),
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(color: highlight ? cs.primary.withValues(alpha: 0.08) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: highlight
+            ? cs.primary.withValues(alpha: 0.08)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
         children: [
-          Icon(icon, size: 15, color: highlight ? cs.primary : cs.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 15,
+            color: highlight ? cs.primary : cs.onSurfaceVariant,
+          ),
           const Gap(5),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: highlight ? cs.primary : cs.onSurface)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: highlight ? cs.primary : cs.onSurface,
+            ),
+          ),
           const Gap(3),
-          Icon(PhosphorIconsRegular.caretDown, size: 11, color: cs.onSurfaceVariant),
+          Icon(
+            PhosphorIconsRegular.caretDown,
+            size: 11,
+            color: cs.onSurfaceVariant,
+          ),
         ],
       ),
     );
@@ -478,11 +723,20 @@ class _MenuRow extends StatelessWidget {
         Container(
           width: 26,
           height: 26,
-          decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(7)),
+          decoration: BoxDecoration(
+            color: cs.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(7),
+          ),
           child: Icon(action.icon, size: 15, color: cs.primary),
         ),
         const Gap(9),
-        Expanded(child: Text(action.label, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
+        Expanded(
+          child: Text(
+            action.label,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
       ],
     );
   }
@@ -496,7 +750,9 @@ String _routeTitle(String location) {
   if (location.startsWith('/sales/orders')) return 'Sales / Orders';
   if (location.startsWith('/sales/estimates')) return 'Sales / Estimates';
   if (location.startsWith('/purchases/orders')) return 'Purchases / Orders';
-  if (location.startsWith('/purchases/receive')) return 'Purchases / Receive Inventory';
+  if (location.startsWith('/purchases/receive')) {
+    return 'Purchases / Receive Inventory';
+  }
   if (location.startsWith('/purchases/bills')) return 'Purchases / Bills';
   if (location.startsWith('/master/customers')) return 'Customers';
   if (location.startsWith('/master/vendors')) return 'Vendors';

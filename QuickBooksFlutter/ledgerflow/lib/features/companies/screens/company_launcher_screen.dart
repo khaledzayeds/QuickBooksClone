@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/localization/locale_provider.dart';
 import '../../setup/providers/setup_provider.dart';
 import '../data/models/company_registry_models.dart';
 import '../providers/company_registry_provider.dart';
@@ -30,7 +31,7 @@ class CompanyLauncherScreen extends ConsumerWidget {
             child: registryState.when(
               loading: () => const _LauncherLoadingCard(),
               error: (error, _) => _LauncherErrorCard(
-                message: error.toString(),
+                message: _companyTexts(context).loadingFailed,
                 onRetry: () =>
                     ref.read(companyRegistryProvider.notifier).refresh(),
               ),
@@ -71,6 +72,11 @@ class _LauncherBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: _CompanyLanguageToggleButton(),
+        ),
+        const SizedBox(height: 12),
         Row(
           children: [
             Icon(Icons.account_balance_outlined, size: 42, color: cs.primary),
@@ -80,7 +86,7 @@ class _LauncherBody extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'No Company Open',
+                    _companyTexts(context).noCompanyOpen,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: cs.primary,
@@ -88,7 +94,7 @@ class _LauncherBody extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Select a company that you have previously opened and click Open.',
+                    _companyTexts(context).pickCompany,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
@@ -112,7 +118,7 @@ class _LauncherBody extends ConsumerWidget {
             final wide = constraints.maxWidth >= 760;
             final actions = _ActionsCard(hasCompanies: registry.hasCompanies);
             final location = Text(
-              'Location: Documents / LedgerFlow / Companies',
+              _companyTexts(context).defaultLocation,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -133,6 +139,36 @@ class _LauncherBody extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+class _CompanyLanguageToggleButton extends ConsumerWidget {
+  const _CompanyLanguageToggleButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    final isArabic = locale.languageCode == 'ar';
+    final cs = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: isArabic ? 'Switch to English' : 'التحويل إلى العربية',
+      child: OutlinedButton.icon(
+        onPressed: () => ref.read(localeProvider.notifier).toggleLocale(),
+        icon: const Icon(Icons.language_outlined, size: 18),
+        label: Text(
+          isArabic ? 'EN' : 'ع',
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: cs.primary,
+          side: BorderSide(color: cs.outlineVariant),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          minimumSize: const Size(62, 40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
     );
   }
 }
@@ -163,7 +199,7 @@ class _ActiveCompanyCardState extends ConsumerState<_ActiveCompanyCard> {
       if (!mounted) return;
       setState(() {
         _opening = false;
-        _errorMessage = error.toString();
+        _errorMessage = _companyTexts(context).couldNotCreate;
       });
     }
   }
@@ -273,7 +309,7 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
     if (!mounted || companyName == null) return;
 
     final databasePath = await FilePicker.platform.saveFile(
-      dialogTitle: 'Create LedgerFlow company file',
+      dialogTitle: _companyTexts(context).createCompanyFile,
       fileName:
           '${_safeFileName(companyName)}${AppConstants.companyFileExtension}',
       type: FileType.custom,
@@ -301,14 +337,14 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
       if (!mounted) return;
       setState(() {
         _creating = false;
-        _errorMessage = error.toString();
+        _errorMessage = _companyTexts(context).couldNotCreate;
       });
     }
   }
 
   Future<void> _openExistingCompany() async {
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Open LedgerFlow company file',
+      dialogTitle: _companyTexts(context).openCompanyFile,
       type: FileType.custom,
       allowedExtensions: ['ledgerflow', 'db'],
       allowMultiple: false,
@@ -337,7 +373,7 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
       if (!mounted) return;
       setState(() {
         _openingExisting = false;
-        _errorMessage = error.toString();
+        _errorMessage = _companyTexts(context).couldNotOpen;
       });
     }
   }
@@ -347,24 +383,24 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Company name'),
+        title: Text(_companyTexts(context).companyName),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Company name',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: _companyTexts(context).companyName,
+            border: const OutlineInputBorder(),
           ),
           onSubmitted: (_) => Navigator.of(context).pop(controller.text.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(_companyTexts(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Continue'),
+            child: Text(_companyTexts(context).continueText),
           ),
         ],
       ),
@@ -442,8 +478,8 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
                   : const Icon(Icons.add_business_outlined),
               label: Text(
                 widget.hasCompanies
-                    ? 'Create a new company'
-                    : 'Create your first company',
+                    ? _companyTexts(context).createNewCompany
+                    : _companyTexts(context).createFirstCompany,
               ),
             ),
             OutlinedButton.icon(
@@ -451,14 +487,14 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
                   ? null
                   : _openExistingCompany,
               icon: const Icon(Icons.folder_open_outlined),
-              label: const Text('Open or restore existing'),
+              label: Text(_companyTexts(context).openExisting),
             ),
             OutlinedButton.icon(
               onPressed: _creating || _openingExisting
                   ? null
                   : _openExistingCompany,
               icon: const Icon(Icons.search_outlined),
-              label: const Text('Find a company file'),
+              label: Text(_companyTexts(context).findCompany),
             ),
           ],
         ),
@@ -487,7 +523,7 @@ class _RecentCompaniesCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Recent Companies',
+                    _companyTexts(context).recentCompanies,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -496,7 +532,7 @@ class _RecentCompaniesCard extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: companies.isEmpty ? null : () {},
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit List'),
+                  label: Text(_companyTexts(context).editList),
                 ),
               ],
             ),
@@ -509,7 +545,7 @@ class _RecentCompaniesCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'No company files yet. Create your first company to continue.',
+                  _companyTexts(context).noCompanies,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -525,11 +561,20 @@ class _RecentCompaniesCard extends ConsumerWidget {
                     ),
                     color: cs.surfaceContainerHighest.withValues(alpha: 0.45),
                     child: Row(
-                      children: const [
-                        Expanded(flex: 3, child: Text('Company Name')),
-                        Expanded(flex: 2, child: Text('Last Opened')),
-                        Expanded(child: Text('File Size')),
-                        SizedBox(width: 150, child: Text('Action')),
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(_companyTexts(context).companyName),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(_companyTexts(context).lastOpened),
+                        ),
+                        Expanded(child: Text(_companyTexts(context).fileSize)),
+                        SizedBox(
+                          width: 150,
+                          child: Text(_companyTexts(context).action),
+                        ),
                       ],
                     ),
                   ),
@@ -571,7 +616,7 @@ class _CompanyListTileState extends ConsumerState<_CompanyListTile> {
       if (!mounted) return;
       setState(() {
         _opening = false;
-        _errorMessage = error.toString();
+        _errorMessage = _companyTexts(context).couldNotOpen;
       });
     }
   }
@@ -642,14 +687,28 @@ class _CompanyListTileState extends ConsumerState<_CompanyListTile> {
                       )
                     else ...[
                       SizedBox(
-                        width: 68,
+                        width: 92,
+                        height: 40,
                         child: FilledButton(
                           onPressed: _openCompany,
-                          child: const Text('Open'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _companyTexts(context).open,
+                              maxLines: 1,
+                              softWrap: false,
+                            ),
+                          ),
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Remove from list',
+                        tooltip: _companyTexts(context).removeFromList,
                         onPressed: () => ref
                             .read(companyRegistryProvider.notifier)
                             .removeCompany(widget.company.id),
@@ -719,12 +778,125 @@ class _LauncherLoadingCard extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             SizedBox(width: 14),
-            Text('Loading company files...'),
+            Text('Loading companies...'),
           ],
         ),
       ),
     );
   }
+}
+
+_CompanyTexts _companyTexts(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'ar'
+    ? _CompanyTexts.ar
+    : _CompanyTexts.en;
+
+class _CompanyTexts {
+  const _CompanyTexts({
+    required this.noCompanyOpen,
+    required this.pickCompany,
+    required this.defaultLocation,
+    required this.loadingFailed,
+    required this.couldNotCreate,
+    required this.couldNotOpen,
+    required this.createCompanyFile,
+    required this.openCompanyFile,
+    required this.companyName,
+    required this.cancel,
+    required this.continueText,
+    required this.createNewCompany,
+    required this.createFirstCompany,
+    required this.openExisting,
+    required this.findCompany,
+    required this.recentCompanies,
+    required this.editList,
+    required this.noCompanies,
+    required this.lastOpened,
+    required this.fileSize,
+    required this.action,
+    required this.open,
+    required this.removeFromList,
+  });
+
+  final String noCompanyOpen;
+  final String pickCompany;
+  final String defaultLocation;
+  final String loadingFailed;
+  final String couldNotCreate;
+  final String couldNotOpen;
+  final String createCompanyFile;
+  final String openCompanyFile;
+  final String companyName;
+  final String cancel;
+  final String continueText;
+  final String createNewCompany;
+  final String createFirstCompany;
+  final String openExisting;
+  final String findCompany;
+  final String recentCompanies;
+  final String editList;
+  final String noCompanies;
+  final String lastOpened;
+  final String fileSize;
+  final String action;
+  final String open;
+  final String removeFromList;
+
+  static const en = _CompanyTexts(
+    noCompanyOpen: 'Open a company',
+    pickCompany:
+        'Select a recent company, restore an existing file, or create a new company workspace.',
+    defaultLocation: 'Default location: Documents / LedgerFlow / Companies',
+    loadingFailed: 'Companies could not be loaded. Try again.',
+    couldNotCreate:
+        'The company could not be created. Check the selected location and try again.',
+    couldNotOpen:
+        'The company could not be opened. Check the file and try again.',
+    createCompanyFile: 'Create LedgerFlow company file',
+    openCompanyFile: 'Open LedgerFlow company file',
+    companyName: 'Company name',
+    cancel: 'Cancel',
+    continueText: 'Continue',
+    createNewCompany: 'Create new company',
+    createFirstCompany: 'Create first company',
+    openExisting: 'Open or restore',
+    findCompany: 'Find company file',
+    recentCompanies: 'Recent companies',
+    editList: 'Edit list',
+    noCompanies: 'No companies yet. Create a company to continue.',
+    lastOpened: 'Last opened',
+    fileSize: 'File size',
+    action: 'Action',
+    open: 'Open',
+    removeFromList: 'Remove from list',
+  );
+
+  static const ar = _CompanyTexts(
+    noCompanyOpen: 'فتح شركة',
+    pickCompany:
+        'اختر شركة حديثة، أو افتح ملفاً موجوداً، أو أنشئ مساحة عمل جديدة.',
+    defaultLocation: 'الموقع الافتراضي: Documents / LedgerFlow / Companies',
+    loadingFailed: 'تعذر تحميل الشركات. حاول مرة أخرى.',
+    couldNotCreate: 'تعذر إنشاء الشركة. راجع مكان الحفظ وحاول مرة أخرى.',
+    couldNotOpen: 'تعذر فتح الشركة. راجع الملف وحاول مرة أخرى.',
+    createCompanyFile: 'إنشاء ملف شركة LedgerFlow',
+    openCompanyFile: 'فتح ملف شركة LedgerFlow',
+    companyName: 'اسم الشركة',
+    cancel: 'إلغاء',
+    continueText: 'متابعة',
+    createNewCompany: 'إنشاء شركة جديدة',
+    createFirstCompany: 'إنشاء أول شركة',
+    openExisting: 'فتح أو استعادة',
+    findCompany: 'اختيار ملف شركة',
+    recentCompanies: 'الشركات الحديثة',
+    editList: 'تعديل القائمة',
+    noCompanies: 'لا توجد شركات بعد. أنشئ شركة للمتابعة.',
+    lastOpened: 'آخر فتح',
+    fileSize: 'حجم الملف',
+    action: 'الإجراء',
+    open: 'فتح',
+    removeFromList: 'إزالة من القائمة',
+  );
 }
 
 class _LauncherErrorCard extends StatelessWidget {

@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/datasources/auth_remote_datasource.dart';
 import '../data/models/auth_user.dart';
+import '../data/models/login_user_option.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/services/storage_service.dart';
 
@@ -13,6 +14,14 @@ final _authDatasourceProvider = Provider<AuthRemoteDatasource>(
 final authProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
   () => AuthNotifier(),
 );
+
+final loginUsersProvider = FutureProvider<List<LoginUserOption>>((ref) async {
+  final result = await ref.read(_authDatasourceProvider).loginUsers();
+  return result.when(
+    success: (users) => users,
+    failure: (error) => throw Exception(error.message),
+  );
+});
 
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   @override

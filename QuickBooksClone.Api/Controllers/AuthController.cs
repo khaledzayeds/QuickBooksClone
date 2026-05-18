@@ -36,6 +36,36 @@ public sealed class AuthController : ControllerBase
         }
     }
 
+    [HttpGet("login-users")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<LoginUserOptionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<LoginUserOptionDto>>> LoginUsers(CancellationToken cancellationToken = default)
+    {
+        var result = await _security.SearchUsersAsync(new SecurityUserSearch(null, false, 1, 100), cancellationToken);
+        var items = new List<LoginUserOptionDto>();
+
+        foreach (var user in result.Items.Where(user => user.IsActive))
+        {
+            var roles = new List<string>();
+            foreach (var assignment in user.RoleAssignments)
+            {
+                var role = await _security.GetRoleByIdAsync(assignment.RoleId, cancellationToken);
+                if (role is not null && role.IsActive)
+                {
+                    roles.Add(role.RoleKey);
+                }
+            }
+
+            items.Add(new LoginUserOptionDto(
+                user.Id,
+                user.UserName,
+                string.IsNullOrWhiteSpace(user.DisplayName) ? user.UserName : user.DisplayName,
+                roles.OrderBy(role => role).ToList()));
+        }
+
+        return Ok(items.OrderBy(user => user.DisplayName).ThenBy(user => user.UserName).ToList());
+    }
+
     [HttpGet("me")]
     [RequireAuthenticated]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]

@@ -14,23 +14,16 @@ class ApiClient {
     if (_initialized) return;
     _dio = Dio(
       BaseOptions(
-        baseUrl:        baseUrl ?? AppConstants.defaultBaseUrl,
+        baseUrl: baseUrl ?? AppConstants.defaultBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
           'Content-Type': 'application/json',
-          'Accept':       'application/json',
+          'Accept': 'application/json',
         },
       ),
     );
-    _dio.interceptors.addAll([
-      AppInterceptor(),
-      LogInterceptor(
-        requestBody:  true,
-        responseBody: true,
-        logPrint: (obj) => debugLog(obj.toString()),
-      ),
-    ]);
+    _dio.interceptors.addAll([AppInterceptor()]);
     _initialized = true;
   }
 
@@ -55,9 +48,10 @@ class ApiClient {
 
   String? get currentToken => _token;
 
-  Future<Response<T>> get<T>(String path,
-          {Map<String, dynamic>? queryParameters}) =>
-      _dio.get<T>(path, queryParameters: queryParameters);
+  Future<Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) => _dio.get<T>(path, queryParameters: queryParameters);
 
   Future<Response<T>> post<T>(String path, {dynamic data}) =>
       _dio.post<T>(path, data: data);

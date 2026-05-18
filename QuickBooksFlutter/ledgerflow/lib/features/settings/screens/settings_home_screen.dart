@@ -34,13 +34,17 @@ class SettingsHomeScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(24),
         children: [
           Text(
-            'System Settings',
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            'Offline Company Settings',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Manage company profile, local runtime, database, backup, printing, users, license, and setup configuration.',
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            'Manage this desktop company file, local service, users, payroll, time tracking, backup, and document output.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 24),
           companyAsync.when(
@@ -74,65 +78,106 @@ class SettingsHomeScreen extends ConsumerWidget {
               final wide = constraints.maxWidth >= 900;
               final cards = [
                 _SettingsTile(
+                  icon: Icons.folder_open_outlined,
+                  title: 'Company Files',
+                  subtitle:
+                      'Create, open, restore, or switch local company files.',
+                  onTap: () => context.go(AppRoutes.companies),
+                ),
+                _SettingsTile(
                   icon: Icons.business_outlined,
                   title: 'Company Profile',
-                  subtitle: 'Legal name, contacts, address, fiscal year, and language.',
+                  subtitle:
+                      'Legal name, contacts, address, fiscal year, currency, and language.',
                   onTap: () => context.go(AppRoutes.companySettings),
                 ),
                 _SettingsTile(
-                  icon: Icons.computer_outlined,
-                  title: 'Local Runtime',
-                  subtitle: 'Internal offline API endpoint and local runtime health check.',
+                  icon: Icons.dns_outlined,
+                  title: 'Offline Service',
+                  subtitle:
+                      'Local service health, company connection, and desktop runtime status.',
                   onTap: () => context.go(AppRoutes.connectionSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.calculate_outlined,
                   title: 'Tax Settings',
-                  subtitle: 'Sales tax, purchase tax, rounding, and default tax accounts.',
+                  subtitle:
+                      'Sales tax, purchase tax, rounding, and default tax accounts.',
                   onTap: () => context.go(AppRoutes.taxSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.storage_outlined,
                   title: 'Database & Backup',
-                  subtitle: 'Company database, backup folder, restore, and maintenance.',
+                  subtitle:
+                      'Company database, backup folder, restore, and maintenance.',
                   onTap: () => context.go(AppRoutes.backupSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.print_outlined,
                   title: 'Printing',
-                  subtitle: 'A4 invoices, thermal receipts, logos, and document templates.',
+                  subtitle:
+                      'A4 invoices, thermal receipts, logos, and document templates.',
                   onTap: () => context.go(AppRoutes.printingSettings),
                 ),
                 _SettingsTile(
                   icon: Icons.dashboard_customize_outlined,
                   title: 'Print Template Designer',
-                  subtitle: 'Design invoice, receipt, QR, barcode, and A4/thermal templates.',
+                  subtitle:
+                      'Design invoice, receipt, QR, barcode, and A4/thermal templates.',
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const PrintTemplateDesignerPage()),
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PrintTemplateDesignerPage(),
+                    ),
                   ),
                 ),
                 _SettingsTile(
                   icon: Icons.admin_panel_settings_outlined,
                   title: 'Users & Permissions',
-                  subtitle: 'Users, roles, permissions, passwords, and audit access.',
+                  subtitle:
+                      'User list, login passwords, roles, and access permissions.',
                   onTap: () => context.go(AppRoutes.usersPermissions),
                 ),
                 _SettingsTile(
+                  icon: Icons.timer_outlined,
+                  title: 'Time Tracking',
+                  subtitle:
+                      'Employee time entries, billable hours, approvals, and exports.',
+                  onTap: () => context.go(AppRoutes.timeTracking),
+                ),
+                _SettingsTile(
+                  icon: Icons.payments_outlined,
+                  title: 'Payroll',
+                  subtitle:
+                      'Employees, earning types, deductions, posting accounts, and pay runs.',
+                  onTap: () => context.go(AppRoutes.payroll),
+                ),
+                _SettingsTile(
                   icon: Icons.flag_outlined,
-                  title: 'Setup Wizard',
-                  subtitle: 'First-run company setup, restore, local runtime, and demo options.',
+                  title: 'Company Setup',
+                  subtitle:
+                      'Review first company setup, defaults, tax, users, backup, and printing.',
                   onTap: () => context.go(AppRoutes.setupWizard),
                 ),
                 _SettingsTile(
                   icon: Icons.verified_user_outlined,
-                  title: 'License',
-                  subtitle: 'Offline edition, activation key, limits, and device activation.',
+                  title: 'Online License',
+                  subtitle:
+                      'Only for hosted/online services, remote access, and subscription features.',
                   onTap: () => context.go(AppRoutes.licenseSettings),
                 ),
               ];
 
               if (!wide) {
-                return Column(children: cards.map((card) => Padding(padding: const EdgeInsets.only(bottom: 12), child: card)).toList());
+                return Column(
+                  children: cards
+                      .map(
+                        (card) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: card,
+                        ),
+                      )
+                      .toList(),
+                );
               }
 
               return GridView.count(
@@ -170,16 +215,17 @@ class _CompanySummaryCard extends StatelessWidget {
       return _SummaryCard(
         icon: Icons.business_outlined,
         title: 'Company Settings',
-        subtitle: 'No company profile found yet. This will be created by the Setup Wizard.',
-        rows: const [
-          ('Status', 'Not configured'),
-        ],
+        subtitle:
+            'No company profile found yet. This will be created by the Setup Wizard.',
+        rows: const [('Status', 'Not configured')],
       );
     }
 
     return _SummaryCard(
       icon: Icons.business_outlined,
-      title: company.companyName.isEmpty ? 'Company Settings' : company.companyName,
+      title: company.companyName.isEmpty
+          ? 'Company Settings'
+          : company.companyName,
       subtitle: company.legalName ?? 'Company profile is available.',
       rows: [
         ('Currency', company.currency),
@@ -216,9 +262,18 @@ class _RuntimeSummaryCard extends StatelessWidget {
       rows: [
         ('Environment', environmentName),
         ('Provider', databaseProvider),
-        ('Backup/Restore', supportsBackupRestore ? 'Supported' : 'Not supported'),
-        ('Database', liveDatabasePath?.isNotEmpty == true ? liveDatabasePath! : '-'),
-        ('Backup folder', backupDirectory?.isNotEmpty == true ? backupDirectory! : '-'),
+        (
+          'Backup/Restore',
+          supportsBackupRestore ? 'Supported' : 'Not supported',
+        ),
+        (
+          'Database',
+          liveDatabasePath?.isNotEmpty == true ? liveDatabasePath! : '-',
+        ),
+        (
+          'Backup folder',
+          backupDirectory?.isNotEmpty == true ? backupDirectory! : '-',
+        ),
       ],
     );
   }
@@ -261,12 +316,16 @@ class _SummaryCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -274,25 +333,27 @@ class _SummaryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            ...rows.map((row) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 140,
-                    child: Text(
-                      row.$1,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        fontWeight: FontWeight.w800,
+            ...rows.map(
+              (row) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 140,
+                      child: Text(
+                        row.$1,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(child: Text(row.$2.isEmpty ? '-' : row.$2)),
-                ],
+                    Expanded(child: Text(row.$2.isEmpty ? '-' : row.$2)),
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),
@@ -337,14 +398,18 @@ class _SettingsTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -385,7 +450,11 @@ class _LoadingCard extends StatelessWidget {
 }
 
 class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.title, required this.message, required this.onRetry});
+  const _ErrorCard({
+    required this.title,
+    required this.message,
+    required this.onRetry,
+  });
 
   final String title;
   final String message;
@@ -405,7 +474,12 @@ class _ErrorCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(message),
                 ],

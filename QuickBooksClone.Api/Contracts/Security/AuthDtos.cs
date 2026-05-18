@@ -11,5 +11,11 @@ public sealed record AuthResponse(
     DateTimeOffset ExpiresAt,
     SecurityUserDto User);
 
+public sealed record LoginUserOptionDto(
+    Guid Id,
+    string UserName,
+    string DisplayName,
+    IReadOnlyList<string> Roles);
+
 public sealed record SetPasswordRequest(
     [Required, MinLength(4), MaxLength(200)] string NewPassword);

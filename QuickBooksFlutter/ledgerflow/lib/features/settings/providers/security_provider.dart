@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/security_models.dart';
 import '../data/security_repository.dart';
 
-final securityRepositoryProvider = Provider<SecurityRepository>((ref) => SecurityRepository());
+final securityRepositoryProvider = Provider<SecurityRepository>(
+  (ref) => SecurityRepository(),
+);
 
 class SecurityState {
   const SecurityState({
@@ -42,7 +44,9 @@ class SecurityState {
       roles: roles ?? this.roles,
       permissions: permissions ?? this.permissions,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
-      successMessage: clearSuccess ? null : successMessage ?? this.successMessage,
+      successMessage: clearSuccess
+          ? null
+          : successMessage ?? this.successMessage,
     );
   }
 }
@@ -78,14 +82,40 @@ class SecurityNotifier extends Notifier<SecurityState> {
     }
   }
 
-  Future<void> createUser({required String userName, required String displayName, String? email, required List<String> roleIds}) async {
+  Future<void> createUser({
+    required String userName,
+    required String displayName,
+    String? email,
+    required String initialPassword,
+    required List<String> roleIds,
+  }) async {
     state = state.copyWith(working: true, clearError: true, clearSuccess: true);
     try {
-      final user = await _repository.createUser(userName: userName, displayName: displayName, email: email, roleIds: roleIds);
+      final user = await _repository.createUser(
+        userName: userName,
+        displayName: displayName,
+        email: email,
+        roleIds: roleIds,
+      );
+      await _repository.setUserPassword(user.id, initialPassword);
       state = state.copyWith(
         working: false,
         users: [user, ...state.users],
-        successMessage: 'User created: ${user.userName}',
+        successMessage: 'User created and password set: ${user.userName}',
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(working: false, errorMessage: error.toString());
+    }
+  }
+
+  Future<void> setUserPassword(SecurityUserModel user, String password) async {
+    state = state.copyWith(working: true, clearError: true, clearSuccess: true);
+    try {
+      await _repository.setUserPassword(user.id, password);
+      state = state.copyWith(
+        working: false,
+        successMessage: 'Password updated for ${user.userName}.',
         clearError: true,
       );
     } catch (error) {
@@ -110,27 +140,52 @@ class SecurityNotifier extends Notifier<SecurityState> {
           effectivePermissions: item.effectivePermissions,
         );
       }).toList();
-      state = state.copyWith(working: false, users: users, successMessage: 'User status updated.', clearError: true);
+      state = state.copyWith(
+        working: false,
+        users: users,
+        successMessage: 'User status updated.',
+        clearError: true,
+      );
     } catch (error) {
       state = state.copyWith(working: false, errorMessage: error.toString());
     }
   }
 
-  Future<void> replaceUserRoles(SecurityUserModel user, List<String> roleIds) async {
+  Future<void> replaceUserRoles(
+    SecurityUserModel user,
+    List<String> roleIds,
+  ) async {
     state = state.copyWith(working: true, clearError: true, clearSuccess: true);
     try {
       final updated = await _repository.replaceUserRoles(user.id, roleIds);
-      final users = state.users.map((item) => item.id == updated.id ? updated : item).toList();
-      state = state.copyWith(working: false, users: users, successMessage: 'User roles updated.', clearError: true);
+      final users = state.users
+          .map((item) => item.id == updated.id ? updated : item)
+          .toList();
+      state = state.copyWith(
+        working: false,
+        users: users,
+        successMessage: 'User roles updated.',
+        clearError: true,
+      );
     } catch (error) {
       state = state.copyWith(working: false, errorMessage: error.toString());
     }
   }
 
-  Future<void> createRole({required String roleKey, required String name, String? description, required List<String> permissions}) async {
+  Future<void> createRole({
+    required String roleKey,
+    required String name,
+    String? description,
+    required List<String> permissions,
+  }) async {
     state = state.copyWith(working: true, clearError: true, clearSuccess: true);
     try {
-      final role = await _repository.createRole(roleKey: roleKey, name: name, description: description, permissions: permissions);
+      final role = await _repository.createRole(
+        roleKey: roleKey,
+        name: name,
+        description: description,
+        permissions: permissions,
+      );
       state = state.copyWith(
         working: false,
         roles: [role, ...state.roles],
@@ -142,16 +197,31 @@ class SecurityNotifier extends Notifier<SecurityState> {
     }
   }
 
-  Future<void> replaceRolePermissions(SecurityRoleModel role, List<String> permissions) async {
+  Future<void> replaceRolePermissions(
+    SecurityRoleModel role,
+    List<String> permissions,
+  ) async {
     state = state.copyWith(working: true, clearError: true, clearSuccess: true);
     try {
-      final updated = await _repository.replaceRolePermissions(role.id, permissions);
-      final roles = state.roles.map((item) => item.id == updated.id ? updated : item).toList();
-      state = state.copyWith(working: false, roles: roles, successMessage: 'Role permissions updated.', clearError: true);
+      final updated = await _repository.replaceRolePermissions(
+        role.id,
+        permissions,
+      );
+      final roles = state.roles
+          .map((item) => item.id == updated.id ? updated : item)
+          .toList();
+      state = state.copyWith(
+        working: false,
+        roles: roles,
+        successMessage: 'Role permissions updated.',
+        clearError: true,
+      );
     } catch (error) {
       state = state.copyWith(working: false, errorMessage: error.toString());
     }
   }
 }
 
-final securityProvider = NotifierProvider<SecurityNotifier, SecurityState>(SecurityNotifier.new);
+final securityProvider = NotifierProvider<SecurityNotifier, SecurityState>(
+  SecurityNotifier.new,
+);

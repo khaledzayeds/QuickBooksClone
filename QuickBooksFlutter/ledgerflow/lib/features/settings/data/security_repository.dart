@@ -3,12 +3,20 @@ import 'models/security_models.dart';
 
 class SecurityRepository {
   Future<List<SecurityPermissionModel>> listPermissions() async {
-    final response = await ApiClient.instance.get<List<dynamic>>('/api/security/permissions');
+    final response = await ApiClient.instance.get<List<dynamic>>(
+      '/api/security/permissions',
+    );
     final data = response.data ?? const [];
-    return data.whereType<Map<String, dynamic>>().map(SecurityPermissionModel.fromJson).toList();
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(SecurityPermissionModel.fromJson)
+        .toList();
   }
 
-  Future<SecurityRoleListResult> listRoles({String? search, bool includeInactive = false}) async {
+  Future<SecurityRoleListResult> listRoles({
+    String? search,
+    bool includeInactive = false,
+  }) async {
     final response = await ApiClient.instance.get<Map<String, dynamic>>(
       '/api/security/roles',
       queryParameters: {
@@ -21,7 +29,10 @@ class SecurityRepository {
     return SecurityRoleListResult.fromJson(response.data ?? const {});
   }
 
-  Future<SecurityUserListResult> listUsers({String? search, bool includeInactive = false}) async {
+  Future<SecurityUserListResult> listUsers({
+    String? search,
+    bool includeInactive = false,
+  }) async {
     final response = await ApiClient.instance.get<Map<String, dynamic>>(
       '/api/security/users',
       queryParameters: {
@@ -52,6 +63,13 @@ class SecurityRepository {
     return SecurityUserModel.fromJson(response.data ?? const {});
   }
 
+  Future<void> setUserPassword(String id, String password) async {
+    await ApiClient.instance.put<void>(
+      '/api/auth/users/$id/password',
+      data: {'newPassword': password},
+    );
+  }
+
   Future<void> setUserActive(String id, bool isActive) async {
     await ApiClient.instance.patch<void>(
       '/api/security/users/$id/active',
@@ -59,7 +77,10 @@ class SecurityRepository {
     );
   }
 
-  Future<SecurityUserModel> replaceUserRoles(String id, List<String> roleIds) async {
+  Future<SecurityUserModel> replaceUserRoles(
+    String id,
+    List<String> roleIds,
+  ) async {
     final response = await ApiClient.instance.put<Map<String, dynamic>>(
       '/api/security/users/$id/roles',
       data: {'roleIds': roleIds},
@@ -85,7 +106,10 @@ class SecurityRepository {
     return SecurityRoleModel.fromJson(response.data ?? const {});
   }
 
-  Future<SecurityRoleModel> replaceRolePermissions(String id, List<String> permissions) async {
+  Future<SecurityRoleModel> replaceRolePermissions(
+    String id,
+    List<String> permissions,
+  ) async {
     final response = await ApiClient.instance.put<Map<String, dynamic>>(
       '/api/security/roles/$id/permissions',
       data: {'permissions': permissions},
