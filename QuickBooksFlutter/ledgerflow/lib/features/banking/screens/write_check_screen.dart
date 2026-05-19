@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart';
-import '../../../core/widgets/app_text_field.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/banking_models.dart';
 import '../providers/banking_provider.dart';
 
@@ -27,6 +28,10 @@ class _WriteCheckScreenState extends ConsumerState<WriteCheckScreen> {
   final amount = TextEditingController();
   final payee = TextEditingController();
   final memo = TextEditingController();
+  final _moneyFmt = NumberFormat('#,##0.00');
+  final _dateFmt = DateFormat('dd/MM/yyyy');
+
+  double get _amountValue => double.tryParse(amount.text.trim()) ?? 0;
 
   @override
   void dispose() {
@@ -85,189 +90,969 @@ class _WriteCheckScreenState extends ConsumerState<WriteCheckScreen> {
     );
   }
 
+  void _clear() {
+    setState(() {
+      bankId = null;
+      expenseId = null;
+      date = DateTime.now();
+      amount.clear();
+      payee.clear();
+      memo.clear();
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked != null && mounted) setState(() => date = picked);
+  }
+
   @override
   Widget build(BuildContext context) {
     final banks = ref.watch(bankAccountsProvider);
     final accounts = ref.watch(accountsProvider);
     final saving = ref.watch(bankCheckSavingProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Write Check / Spend Money')),
-      body: banks.when(
+    return banks.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text(e.toString())),
+      data: (bankList) => accounts.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(e.toString())),
-        data: (bankList) => accounts.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text(e.toString())),
-          data: (accountList) {
-            final activeBanks = bankList.where((a) => a.isActive).toList();
-            final expenseAccounts = accountList
-                .where((a) => a.isActive)
-                .where(
-                  (a) =>
-                      a.accountType != AccountType.accountsReceivable &&
-                      a.accountType != AccountType.accountsPayable,
-                )
-                .toList();
-            final safeBank = activeBanks.any((a) => a.id == bankId)
-                ? bankId
-                : null;
-            final safeExpense = expenseAccounts.any((a) => a.id == expenseId)
-                ? expenseId
-                : null;
+        data: (accountList) {
+          final activeBanks = bankList.where((a) => a.isActive).toList();
+          final expenseAccounts = accountList
+              .where((a) => a.isActive)
+              .where(
+                (a) =>
+                    a.accountType != AccountType.accountsReceivable &&
+                    a.accountType != AccountType.accountsPayable,
+              )
+              .toList();
+          final safeBank = activeBanks.any((a) => a.id == bankId)
+              ? bankId
+              : null;
+          final safeExpense = expenseAccounts.any((a) => a.id == expenseId)
+              ? expenseId
+              : null;
 
-            return ListView(
-              padding: const EdgeInsets.all(24),
+          final selectedBank = activeBanks
+              .where((account) => account.id == safeBank)
+              .firstOrNull;
+          final selectedExpense = expenseAccounts
+              .where((account) => account.id == safeExpense)
+              .firstOrNull;
+
+          return TransactionWorkspaceShell(
+            workspaceName: 'Write check workspace',
+            saving: saving,
+            posting: false,
+            isEdit: false,
+            readOnly: false,
+            showPagination: false,
+            showSaveDraft: false,
+            showSaveAndPrint: false,
+            showPrint: true,
+            showEmail: false,
+            showEditNotes: false,
+            showVoid: false,
+            onFind: () => context.go(AppRoutes.bankingRegister),
+            onNew: _clear,
+            onSave: saving ? null : save,
+            onClear: _clear,
+            onClose: () => context.go(AppRoutes.bankingRegister),
+            formContent: Column(
               children: [
-                Card(
+                _CheckHeader(
+                  banks: activeBanks,
+                  accounts: expenseAccounts,
+                  bankId: safeBank,
+                  expenseId: safeExpense,
+                  date: date,
+                  dateText: _dateFmt.format(date),
+                  amount: _amountValue,
+                  money: _moneyFmt.format,
+                  onBankChanged: (value) => setState(() => bankId = value),
+                  onExpenseChanged: (value) =>
+                      setState(() => expenseId = value),
+                  onPickDate: _pickDate,
+                ),
+                Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          initialValue: safeBank,
-                          decoration: const InputDecoration(
-                            labelText: 'Pay From',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: activeBanks
-                              .map<DropdownMenuItem<String>>(
-                                (BankAccountModel account) =>
-                                    DropdownMenuItem<String>(
-                                      value: account.id,
-                                      child: Text(account.displayName),
-                                    ),
-                              )
-                              .toList(),
-                          onChanged: (v) => setState(() => bankId = v),
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          initialValue: safeExpense,
-                          decoration: const InputDecoration(
-                            labelText: 'Expense / Offset Account',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: expenseAccounts
-                              .map<DropdownMenuItem<String>>(
-                                (AccountModel account) =>
-                                    DropdownMenuItem<String>(
-                                      value: account.id,
-                                      child: Text(
-                                        '${account.code} - ${account.name}',
-                                      ),
-                                    ),
-                              )
-                              .toList(),
-                          onChanged: (v) => setState(() => expenseId = v),
-                        ),
-                        const SizedBox(height: 16),
-                        _DateField(
-                          label: 'Check Date',
-                          value: date,
-                          onChanged: (v) => setState(() => date = v),
-                        ),
-                        const SizedBox(height: 16),
-                        AppTextField(
-                          label: 'Amount',
-                          controller: amount,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[0-9.]'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        AppTextField(label: 'Payee', controller: payee),
-                        const SizedBox(height: 16),
-                        AppTextField(
-                          label: 'Memo',
-                          controller: memo,
-                          maxLines: 3,
-                        ),
-                      ],
+                    padding: const EdgeInsets.all(10),
+                    child: _CheckEntryPanel(
+                      amountCtrl: amount,
+                      payeeCtrl: payee,
+                      memoCtrl: memo,
+                      bankName:
+                          selectedBank?.displayName ?? 'Select pay account',
+                      expenseName:
+                          selectedExpense?.name ?? 'Select expense account',
+                      onChanged: () => setState(() {}),
                     ),
                   ),
                 ),
+                _CheckFooter(
+                  amount: _amountValue,
+                  money: _moneyFmt.format,
+                  saving: saving,
+                  onClear: _clear,
+                  onSave: saving ? null : save,
+                ),
               ],
-            );
-          },
-        ),
-      ),
-      bottomNavigationBar: _Actions(
-        saving: saving,
-        label: 'Save Check',
-        onSave: save,
+            ),
+            contextPanel: _CheckContextPanel(
+              bank: selectedBank,
+              expense: selectedExpense,
+              amount: _amountValue,
+              payee: payee.text,
+              memo: memo.text,
+              money: _moneyFmt.format,
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
+class _CheckHeader extends StatelessWidget {
+  const _CheckHeader({
+    required this.banks,
+    required this.accounts,
+    required this.bankId,
+    required this.expenseId,
+    required this.date,
+    required this.dateText,
+    required this.amount,
+    required this.money,
+    required this.onBankChanged,
+    required this.onExpenseChanged,
+    required this.onPickDate,
   });
-  final String label;
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
+
+  final List<BankAccountModel> banks;
+  final List<AccountModel> accounts;
+  final String? bankId;
+  final String? expenseId;
+  final DateTime date;
+  final String dateText;
+  final double amount;
+  final String Function(double value) money;
+  final ValueChanged<String?> onBankChanged;
+  final ValueChanged<String?> onExpenseChanged;
+  final VoidCallback onPickDate;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: () async {
-      final picked = await showDatePicker(
-        context: context,
-        initialDate: value,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
-      );
-      if (picked != null) onChanged(picked);
-    },
-    child: InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
+  Widget build(BuildContext context) {
+    final bank = banks.where((account) => account.id == bankId).firstOrNull;
+
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF264D5B),
+              border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+            ),
+            child: Row(
+              children: [
+                const _StripLabel('PAY FROM'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _BankDropdown(
+                    value: bankId,
+                    banks: banks,
+                    onChanged: onBankChanged,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const _StripLabel('EXPENSE / OFFSET ACCOUNT'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _AccountDropdown(
+                    value: expenseId,
+                    accounts: accounts,
+                    onChanged: onExpenseChanged,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 150,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 330,
+                    child: Text(
+                      'Write Check / Spend Money',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFF243E4A),
+                          ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 280,
+                    child: Column(
+                      children: [
+                        _HorizontalField(
+                          label: 'CHECK DATE',
+                          child: _StaticBox(
+                            text: dateText,
+                            icon: Icons.calendar_today_outlined,
+                            onTap: onPickDate,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _HorizontalField(
+                          label: 'CHECK #',
+                          child: const _StaticBox(text: 'AUTO'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _StatBox(
+                          label: 'CURRENT BANK BALANCE',
+                          value: bank == null ? '-' : money(bank.balance),
+                          accent: false,
+                        ),
+                        const SizedBox(height: 6),
+                        _StatBox(
+                          label: 'THIS CHECK',
+                          value: money(amount),
+                          accent: true,
+                        ),
+                        const SizedBox(height: 6),
+                        _StatBox(
+                          label: 'AFTER CHECK',
+                          value: bank == null
+                              ? '-'
+                              : money(bank.balance - amount),
+                          accent: false,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
-      child: Text('${value.day}/${value.month}/${value.year}'),
+    );
+  }
+}
+
+class _CheckEntryPanel extends StatelessWidget {
+  const _CheckEntryPanel({
+    required this.amountCtrl,
+    required this.payeeCtrl,
+    required this.memoCtrl,
+    required this.bankName,
+    required this.expenseName,
+    required this.onChanged,
+  });
+
+  final TextEditingController amountCtrl;
+  final TextEditingController payeeCtrl;
+  final TextEditingController memoCtrl;
+  final String bankName;
+  final String expenseName;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFF9EADB6)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 30,
+            color: const Color(0xFFDDE8ED),
+            child: const Row(
+              children: [
+                _HeaderCell('PAYEE', flex: 3),
+                _HeaderCell('EXPENSE ACCOUNT', flex: 3),
+                _HeaderCell('PAY FROM', flex: 3),
+                _HeaderCell('MEMO', flex: 4),
+                _HeaderCell('AMOUNT', flex: 2, right: true),
+              ],
+            ),
+          ),
+          Container(
+            height: 42,
+            color: const Color(0xFFDDEFF4),
+            child: Row(
+              children: [
+                _InputCell(
+                  controller: payeeCtrl,
+                  flex: 3,
+                  onChanged: onChanged,
+                ),
+                _ReadCell(expenseName, flex: 3),
+                _ReadCell(bankName, flex: 3),
+                _InputCell(controller: memoCtrl, flex: 4, onChanged: onChanged),
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 5,
+                    ),
+                    child: TextField(
+                      controller: amountCtrl,
+                      textAlign: TextAlign.end,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                      ],
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 7,
+                        ),
+                      ),
+                      onChanged: (_) => onChanged(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'One-line check entry. Save posts a bank credit and expense debit.',
+                style: TextStyle(
+                  color: Color(0xFF60747D),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CheckFooter extends StatelessWidget {
+  const _CheckFooter({
+    required this.amount,
+    required this.money,
+    required this.saving,
+    required this.onClear,
+    this.onSave,
+  });
+
+  final double amount;
+  final String Function(double value) money;
+  final bool saving;
+  final VoidCallback onClear;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 88,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF6F8F9),
+        border: Border(top: BorderSide(color: Color(0xFFB7C3CB))),
+      ),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'Check credits the selected bank account and debits the selected expense account.',
+              style: TextStyle(
+                color: Color(0xFF53656E),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 330,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE7F1F4),
+                border: Border.all(color: const Color(0xFF9DB2BC)),
+              ),
+              child: _AmountRow(label: 'CHECK TOTAL', value: money(amount)),
+            ),
+          ),
+          const SizedBox(width: 16),
+          OutlinedButton(
+            onPressed: onSave,
+            style: _smallButton(),
+            child: Text(saving ? 'Saving...' : 'Save & Close'),
+          ),
+          const SizedBox(width: 6),
+          OutlinedButton(
+            onPressed: onClear,
+            style: _smallButton(),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ButtonStyle _smallButton() => OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+    side: const BorderSide(color: Color(0xFF8FA1AB)),
+  );
+}
+
+class _CheckContextPanel extends StatelessWidget {
+  const _CheckContextPanel({
+    required this.bank,
+    required this.expense,
+    required this.amount,
+    required this.payee,
+    required this.memo,
+    required this.money,
+  });
+
+  final BankAccountModel? bank;
+  final AccountModel? expense;
+  final double amount;
+  final String payee;
+  final String memo;
+  final String Function(double value) money;
+
+  @override
+  Widget build(BuildContext context) {
+    if (bank == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.account_balance_outlined,
+                size: 38,
+                color: Color(0xFF8CA0AA),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Select pay from account',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF2D4854),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Choose a bank account to preview the check effect.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF667A84), height: 1.35),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+          decoration: const BoxDecoration(
+            color: Color(0xFF264D5B),
+            border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                bank!.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Write check',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFFD7E6EB),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+          color: const Color(0xFFFFE7C4),
+          child: Text(
+            amount <= 0
+                ? 'Enter amount before saving.'
+                : 'Check is ready to post.',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF714600),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        _SideSection(
+          title: 'Bank Effect',
+          child: Column(
+            children: [
+              _InfoRow(label: 'Current balance', value: money(bank!.balance)),
+              _InfoRow(label: 'Check amount', value: money(amount)),
+              const Divider(height: 14),
+              _InfoRow(
+                label: 'After check',
+                value: money(bank!.balance - amount),
+                strong: true,
+              ),
+            ],
+          ),
+        ),
+        _SideSection(
+          title: 'Entry Preview',
+          child: Column(
+            children: [
+              _InfoRow(label: 'Credit', value: bank!.name),
+              _InfoRow(label: 'Debit', value: expense?.name ?? '-'),
+              _InfoRow(
+                label: 'Payee',
+                value: payee.trim().isEmpty ? '-' : payee.trim(),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _SideSection(
+            title: 'Memo',
+            expanded: true,
+            child: Text(
+              memo.trim().isEmpty ? 'No memo added.' : memo.trim(),
+              style: const TextStyle(color: Color(0xFF4E616A)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BankDropdown extends StatelessWidget {
+  const _BankDropdown({
+    required this.value,
+    required this.banks,
+    required this.onChanged,
+  });
+
+  final String? value;
+  final List<BankAccountModel> banks;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 30,
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          border: OutlineInputBorder(),
+        ),
+        hint: const Text('Select bank'),
+        items: banks
+            .map(
+              (account) => DropdownMenuItem(
+                value: account.id,
+                child: Text(account.displayName),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+class _AccountDropdown extends StatelessWidget {
+  const _AccountDropdown({
+    required this.value,
+    required this.accounts,
+    required this.onChanged,
+  });
+
+  final String? value;
+  final List<AccountModel> accounts;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 30,
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          border: OutlineInputBorder(),
+        ),
+        hint: const Text('Select account'),
+        items: accounts
+            .map(
+              (account) => DropdownMenuItem(
+                value: account.id,
+                child: Text('${account.code}  ${account.name}'),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
+  final String text;
+  final int flex;
+  final bool right;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     ),
   );
 }
 
-class _Actions extends StatelessWidget {
-  const _Actions({
-    required this.saving,
-    required this.label,
-    required this.onSave,
-  });
-  final bool saving;
-  final String label;
-  final VoidCallback onSave;
+class _ReadCell extends StatelessWidget {
+  const _ReadCell(this.text, {required this.flex});
+  final String text;
+  final int flex;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border(
-        top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: Text(
+        text,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF273F4B),
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        OutlinedButton(
-          onPressed: saving
-              ? null
-              : () => context.canPop() ? context.pop() : null,
-          child: const Text('Cancel'),
+  );
+}
+
+class _InputCell extends StatelessWidget {
+  const _InputCell({
+    required this.controller,
+    required this.flex,
+    required this.onChanged,
+  });
+  final TextEditingController controller;
+  final int flex;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      child: TextField(
+        controller: controller,
+        decoration: const InputDecoration(
+          isDense: true,
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.symmetric(horizontal: 7, vertical: 7),
         ),
-        const SizedBox(width: 12),
-        FilledButton(onPressed: saving ? null : onSave, child: Text(label)),
-      ],
+        onChanged: (_) => onChanged(),
+      ),
     ),
+  );
+}
+
+class _StatBox extends StatelessWidget {
+  const _StatBox({
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
+
+  final String label;
+  final String value;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: accent ? const Color(0xFFE7F1F4) : Colors.white,
+        border: Border.all(
+          color: accent ? const Color(0xFF8EABB7) : const Color(0xFFB7C3CB),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _FieldLabel(label)),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF213D49),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SideSection extends StatelessWidget {
+  const _SideSection({
+    required this.title,
+    required this.child,
+    this.expanded = false,
+  });
+
+  final String title;
+  final Widget child;
+  final bool expanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB8C6CE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 30,
+            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE7EEF1),
+              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFF2D4854),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          if (expanded)
+            Expanded(
+              child: Padding(padding: const EdgeInsets.all(8), child: child),
+            )
+          else
+            Padding(padding: const EdgeInsets.all(8), child: child),
+        ],
+      ),
+    );
+
+    return expanded ? Expanded(child: content) : content;
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
+  final String label;
+  final String value;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: const Color(0xFF334A55),
+      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              style: style,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StripLabel extends StatelessWidget {
+  const _StripLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: const Color(0xFF53656E),
+      fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _StaticBox extends StatelessWidget {
+  const _StaticBox({required this.text, this.icon, this.onTap});
+
+  final String text;
+  final IconData? icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Container(
+      height: 34,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB7C3CB)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          if (icon != null) Icon(icon, size: 15),
+        ],
+      ),
+    ),
+  );
+}
+
+class _HorizontalField extends StatelessWidget {
+  const _HorizontalField({required this.label, required this.child});
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      SizedBox(width: 94, child: _FieldLabel(label)),
+      Expanded(child: child),
+    ],
+  );
+}
+
+class _AmountRow extends StatelessWidget {
+  const _AmountRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w900),
+        ),
+      ),
+      Text(
+        value,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w900),
+      ),
+    ],
   );
 }

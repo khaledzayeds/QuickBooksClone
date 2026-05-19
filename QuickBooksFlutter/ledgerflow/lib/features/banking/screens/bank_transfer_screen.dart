@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/banking_models.dart';
 import '../providers/banking_provider.dart';
 
@@ -96,78 +97,176 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
     final accountsAsync = ref.watch(bankAccountsProvider);
     final saving = ref.watch(bankTransferSavingProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bank Transfer'),
-        actions: [
-          IconButton(
-            tooltip: 'Save',
-            onPressed: saving ? null : _save,
-            icon: const Icon(Icons.check),
+    return accountsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text(error.toString())),
+      data: (accounts) {
+        final activeAccounts = accounts
+            .where((account) => account.isActive)
+            .toList();
+        final fromAccount = activeAccounts
+            .where((account) => account.id == _fromAccountId)
+            .firstOrNull;
+        final toAccount = activeAccounts
+            .where((account) => account.id == _toAccountId)
+            .firstOrNull;
+        final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+
+        return TransactionWorkspaceShell(
+          workspaceName: 'Bank transfer workspace',
+          saving: saving,
+          posting: false,
+          isEdit: false,
+          readOnly: false,
+          showPagination: false,
+          showSaveDraft: false,
+          showSaveAndPrint: false,
+          showPrint: true,
+          showEmail: false,
+          showEditNotes: false,
+          showVoid: false,
+          onFind: () => context.go(AppRoutes.bankingRegister),
+          onNew: _clear,
+          onSave: saving ? null : _save,
+          onClear: _clear,
+          onClose: () => context.go(AppRoutes.bankingRegister),
+          formContent: _TransferWorkspace(
+            accounts: activeAccounts,
+            fromAccountId: _fromAccountId,
+            toAccountId: _toAccountId,
+            transferDate: _transferDate,
+            amountCtrl: _amountCtrl,
+            memoCtrl: _memoCtrl,
+            onFromChanged: (value) => setState(() => _fromAccountId = value),
+            onToChanged: (value) => setState(() => _toAccountId = value),
+            onDateChanged: (date) => setState(() => _transferDate = date),
+            onChanged: () => setState(() {}),
+            onSave: saving ? null : _save,
+            onClear: _clear,
+            saving: saving,
           ),
-        ],
-      ),
-      body: accountsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
-        data: (accounts) {
-          final activeAccounts = accounts
-              .where((account) => account.isActive)
-              .toList();
-          return ListView(
-            padding: const EdgeInsets.all(24),
+          contextPanel: _TransferContextPanel(
+            fromAccount: fromAccount,
+            toAccount: toAccount,
+            amount: amount,
+            memo: _memoCtrl.text,
+          ),
+        );
+      },
+    );
+  }
+
+  void _clear() {
+    setState(() {
+      _fromAccountId = null;
+      _toAccountId = null;
+      _transferDate = DateTime.now();
+      _amountCtrl.clear();
+      _memoCtrl.clear();
+    });
+  }
+}
+
+class _TransferWorkspace extends StatelessWidget {
+  const _TransferWorkspace({
+    required this.accounts,
+    required this.fromAccountId,
+    required this.toAccountId,
+    required this.transferDate,
+    required this.amountCtrl,
+    required this.memoCtrl,
+    required this.onFromChanged,
+    required this.onToChanged,
+    required this.onDateChanged,
+    required this.onChanged,
+    required this.onClear,
+    required this.saving,
+    this.onSave,
+  });
+
+  final List<BankAccountModel> accounts;
+  final String? fromAccountId;
+  final String? toAccountId;
+  final DateTime transferDate;
+  final TextEditingController amountCtrl;
+  final TextEditingController memoCtrl;
+  final ValueChanged<String?> onFromChanged;
+  final ValueChanged<String?> onToChanged;
+  final ValueChanged<DateTime> onDateChanged;
+  final VoidCallback onChanged;
+  final VoidCallback onClear;
+  final VoidCallback? onSave;
+  final bool saving;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          child: Column(
             children: [
-              Card(
+              Container(
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF264D5B),
+                  border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+                ),
+                child: Row(
+                  children: [
+                    const _StripLabel('TRANSFER FROM'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _CompactAccountDropdown(
+                        value: fromAccountId,
+                        accounts: accounts,
+                        onChanged: onFromChanged,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const _StripLabel('TRANSFER TO'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _CompactAccountDropdown(
+                        value: toAccountId,
+                        accounts: accounts,
+                        onChanged: onToChanged,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 150,
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Transfer Funds',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
+                      SizedBox(
+                        width: 320,
+                        child: Text(
+                          'Transfer Funds',
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w300,
+                                color: const Color(0xFF243E4A),
+                              ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _AccountDropdown(
-                              label: 'Transfer From',
-                              value: _fromAccountId,
-                              accounts: activeAccounts,
-                              onChanged: (value) =>
-                                  setState(() => _fromAccountId = value),
+                      SizedBox(
+                        width: 300,
+                        child: Column(
+                          children: [
+                            _DatePickerField(
+                              value: transferDate,
+                              onChanged: onDateChanged,
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _AccountDropdown(
-                              label: 'Transfer To',
-                              value: _toAccountId,
-                              accounts: activeAccounts,
-                              onChanged: (value) =>
-                                  setState(() => _toAccountId = value),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DatePickerField(
-                              value: _transferDate,
-                              onChanged: (date) =>
-                                  setState(() => _transferDate = date),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: AppTextField(
+                            const SizedBox(height: 8),
+                            AppTextField(
                               label: 'Amount',
-                              controller: _amountCtrl,
+                              controller: amountCtrl,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -177,74 +276,153 @@ class _BankTransferScreenState extends ConsumerState<BankTransferScreen> {
                                   RegExp(r'[0-9.]'),
                                 ),
                               ],
+                              onChanged: (_) => onChanged(),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      AppTextField(
-                        label: 'Memo',
-                        controller: _memoCtrl,
-                        maxLines: 3,
-                        textInputAction: TextInputAction.done,
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Memo',
+                          controller: memoCtrl,
+                          maxLines: 3,
+                          textInputAction: TextInputAction.done,
+                          onChanged: (_) => onChanged(),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
             ],
-          );
-        },
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        const Expanded(
+          child: Center(
+            child: Text(
+              'Transfer moves cash between two active bank accounts.',
+              style: TextStyle(
+                color: Color(0xFF60747D),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            OutlinedButton(
-              onPressed: saving
-                  ? null
-                  : () => context.canPop()
-                        ? context.pop()
-                        : context.go(AppRoutes.bankingRegister),
-              child: const Text('Cancel'),
+        Container(
+          height: 88,
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF6F8F9),
+            border: Border(top: BorderSide(color: Color(0xFFB7C3CB))),
+          ),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Save posts a withdrawal from the source bank and a deposit to the destination bank.',
+                  style: TextStyle(
+                    color: Color(0xFF53656E),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              OutlinedButton(
+                onPressed: onSave,
+                style: _smallButton(),
+                child: Text(saving ? 'Saving...' : 'Save & Close'),
+              ),
+              const SizedBox(width: 6),
+              OutlinedButton(
+                onPressed: onClear,
+                style: _smallButton(),
+                child: const Text('Clear'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  ButtonStyle _smallButton() => OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+    side: const BorderSide(color: Color(0xFF8FA1AB)),
+  );
+}
+
+class _TransferContextPanel extends StatelessWidget {
+  const _TransferContextPanel({
+    required this.fromAccount,
+    required this.toAccount,
+    required this.amount,
+    required this.memo,
+  });
+
+  final BankAccountModel? fromAccount;
+  final BankAccountModel? toAccount;
+  final double amount;
+  final String memo;
+
+  @override
+  Widget build(BuildContext context) {
+    if (fromAccount == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(18),
+          child: Text(
+            'Select transfer accounts to preview the bank movement.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF2D4854),
+              fontWeight: FontWeight.w900,
             ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: saving ? null : _save,
-              icon: saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.swap_horiz),
-              label: const Text('Save Transfer'),
-            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+          decoration: const BoxDecoration(color: Color(0xFF264D5B)),
+          child: const Text(
+            'Bank Transfer',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+          ),
+        ),
+        _SideBlock(
+          title: 'Transfer Preview',
+          rows: [
+            _InfoPair('From', fromAccount!.name),
+            _InfoPair('To', toAccount?.name ?? '-'),
+            _InfoPair('Amount', amount.toStringAsFixed(2)),
           ],
         ),
-      ),
+        Expanded(
+          child: _SideBlock(
+            title: 'Memo',
+            rows: [
+              _InfoPair('', memo.trim().isEmpty ? 'No memo added.' : memo),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _AccountDropdown extends StatelessWidget {
-  const _AccountDropdown({
-    required this.label,
+class _CompactAccountDropdown extends StatelessWidget {
+  const _CompactAccountDropdown({
     required this.value,
     required this.accounts,
     required this.onChanged,
   });
 
-  final String label;
   final String? value;
   final List<BankAccountModel> accounts;
   final ValueChanged<String?> onChanged;
@@ -254,26 +432,103 @@ class _AccountDropdown extends StatelessWidget {
     final safeValue = accounts.any((account) => account.id == value)
         ? value
         : null;
-    return DropdownButtonFormField<String>(
-      initialValue: safeValue,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        prefixIcon: const Icon(Icons.account_balance_outlined),
-      ),
-      items: accounts
-          .map(
-            (account) => DropdownMenuItem<String>(
-              value: account.id,
-              child: Text(
-                '${account.displayName} — ${account.balance.toStringAsFixed(2)}',
+    return SizedBox(
+      height: 30,
+      child: DropdownButtonFormField<String>(
+        initialValue: safeValue,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          border: OutlineInputBorder(),
+        ),
+        hint: const Text('Select bank'),
+        items: accounts
+            .map(
+              (account) => DropdownMenuItem<String>(
+                value: account.id,
+                child: Text(account.displayName),
               ),
-            ),
-          )
-          .toList(),
-      onChanged: onChanged,
+            )
+            .toList(),
+        onChanged: onChanged,
+      ),
     );
   }
+}
+
+class _StripLabel extends StatelessWidget {
+  const _StripLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _InfoPair {
+  const _InfoPair(this.label, this.value);
+  final String label;
+  final String value;
+}
+
+class _SideBlock extends StatelessWidget {
+  const _SideBlock({required this.title, required this.rows});
+  final String title;
+  final List<_InfoPair> rows;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFB8C6CE)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: const Color(0xFF2D4854),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...rows.map(
+          (row) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              children: [
+                if (row.label.isNotEmpty)
+                  Expanded(
+                    child: Text(row.label, overflow: TextOverflow.ellipsis),
+                  ),
+                Expanded(
+                  child: Text(
+                    row.value,
+                    textAlign: row.label.isEmpty
+                        ? TextAlign.start
+                        : TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _DatePickerField extends StatelessWidget {

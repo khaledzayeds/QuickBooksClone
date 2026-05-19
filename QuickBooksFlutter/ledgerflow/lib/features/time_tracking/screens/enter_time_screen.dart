@@ -11,33 +11,28 @@ class EnterTimeScreen extends ConsumerWidget {
     final entriesAsync = ref.watch(timeEntriesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Enter Time'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () {
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: Column(
+        children: [
+          _TimeToolbar(
+            onRefresh: () {
               ref.invalidate(timeEntriesProvider);
               ref.invalidate(timeEntryLookupsProvider);
               ref.invalidate(timeEntrySummaryReportProvider);
             },
-            icon: const Icon(Icons.refresh),
+            onNew: () => _showEntrySheet(context, ref),
           ),
-          const SizedBox(width: 8),
+          Expanded(
+            child: entriesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _ErrorState(
+                message: error.toString(),
+                onRetry: () => ref.invalidate(timeEntriesProvider),
+              ),
+              data: (entries) => _EnterTimeBody(entries: entries),
+            ),
+          ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showEntrySheet(context, ref),
-        icon: const Icon(Icons.add),
-        label: const Text('New Time Entry'),
-      ),
-      body: entriesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: error.toString(),
-          onRetry: () => ref.invalidate(timeEntriesProvider),
-        ),
-        data: (entries) => _EnterTimeBody(entries: entries),
       ),
     );
   }
@@ -54,7 +49,7 @@ class _EnterTimeBody extends ConsumerWidget {
     final cs = theme.colorScheme;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1227,3 +1222,82 @@ Color _statusColor(BuildContext context, TimeEntryStatus status) =>
 
 String _date(DateTime date) =>
     '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+class _TimeToolbar extends StatelessWidget {
+  const _TimeToolbar({required this.onRefresh, required this.onNew});
+  final VoidCallback onRefresh;
+  final VoidCallback onNew;
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer_outlined, size: 19),
+          const SizedBox(width: 8),
+          const Text(
+            'Employee Center',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Time Tracking',
+            style: TextStyle(
+              fontSize: 12,
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Actions',
+            icon: const Icon(Icons.more_vert),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'weekly',
+                child: _TimeMenuRow(
+                  icon: Icons.calendar_view_week_outlined,
+                  label: 'Weekly Timesheet',
+                ),
+              ),
+              PopupMenuItem(
+                value: 'export',
+                child: _TimeMenuRow(
+                  icon: Icons.download_outlined,
+                  label: 'Export Time Entries',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 6),
+          FilledButton.icon(
+            onPressed: onNew,
+            icon: const Icon(Icons.add, size: 17),
+            label: const Text('New Time Entry'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeMenuRow extends StatelessWidget {
+  const _TimeMenuRow({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [Icon(icon, size: 18), const SizedBox(width: 10), Text(label)],
+  );
+}

@@ -8,8 +8,8 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show AccountType;
-import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../data/models/journal_entry_model.dart';
@@ -48,52 +48,47 @@ class JournalEntryFormScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
     final form = ref.watch(journalEntryFormProvider);
     final saving = ref.watch(journalEntrySavingProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.newText),
-        actions: [
-          AppButton(
-            label: l10n.cancel,
-            variant: AppButtonVariant.secondary,
-            onPressed: saving
-                ? null
-                : () => context.canPop()
-                      ? context.pop()
-                      : context.go(AppRoutes.journalEntries),
-          ),
-          const SizedBox(width: 12),
-          AppButton(
-            label: l10n.saveDraft,
-            variant: AppButtonVariant.secondary,
-            loading: saving,
-            onPressed: saving ? null : () => _save(context, ref, saveMode: 1),
-          ),
-          const SizedBox(width: 12),
-          AppButton(
-            label: l10n.save,
-            loading: saving,
-            onPressed: saving ? null : () => _save(context, ref, saveMode: 2),
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
+    return TransactionWorkspaceShell(
+      workspaceName: 'Journal entry workspace',
+      saving: saving,
+      posting: false,
+      isEdit: false,
+      readOnly: false,
+      showPagination: false,
+      showSaveAndPrint: false,
+      showPrint: true,
+      showEmail: false,
+      showEditNotes: false,
+      showVoid: false,
+      onFind: () => context.go(AppRoutes.journalEntries),
+      onNew: () {
+        ref.read(journalEntryFormProvider.notifier).state =
+            JournalEntryFormState();
+      },
+      onSaveDraft: saving ? null : () => _save(context, ref, saveMode: 1),
+      onSave: saving ? null : () => _save(context, ref, saveMode: 2),
+      onClear: () {
+        ref.read(journalEntryFormProvider.notifier).state =
+            JournalEntryFormState();
+      },
+      onClose: () => context.canPop()
+          ? context.pop()
+          : context.go(AppRoutes.journalEntries),
+      formContent: Column(
         children: [
           _HeaderCard(form: form),
-          const SizedBox(height: 24),
-          _LinesCard(form: form),
-          const SizedBox(height: 24),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: _TotalsCard(form: form),
+          Expanded(child: _LinesCard(form: form)),
+          _JournalFooter(
+            form: form,
+            saving: saving,
+            onSave: () => _save(context, ref, saveMode: 2),
           ),
         ],
       ),
+      contextPanel: _JournalContextPanel(form: form),
     );
   }
 
@@ -189,37 +184,124 @@ class _HeaderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF264D5B),
+              border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+            ),
+            child: Row(
               children: [
+                const _StripLabel('JOURNAL ENTRY'),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: AppTextField(
-                    label: l10n.billDate,
-                    readOnly: true,
-                    initialValue: JournalEntryFormScreen._dateOnly(
-                      form.entryDate,
+                  child: Container(
+                    height: 30,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    alignment: Alignment.centerLeft,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFF9BAAB2)),
+                    ),
+                    child: Text(
+                      'General Journal',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFF263C46),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: AppTextField(
-                    label: l10n.memoInternal,
-                    initialValue: form.memo,
-                    onChanged: (value) {
-                      form.memo = value;
-                      _update(ref, form);
-                    },
+                const _StripLabel('STATUS'),
+                const SizedBox(width: 8),
+                Container(
+                  height: 24,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  alignment: Alignment.center,
+                  color: form.isBalanced
+                      ? const Color(0xFFD9F0DE)
+                      : const Color(0xFFFFE4E4),
+                  child: Text(
+                    form.isBalanced ? 'BALANCED' : 'NOT BALANCED',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: form.isBalanced
+                          ? const Color(0xFF1B7D2B)
+                          : const Color(0xFFC62828),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          SizedBox(
+            height: 150,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 320,
+                    child: Text(
+                      l10n.newText,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFF243E4A),
+                          ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 300,
+                    child: Column(
+                      children: [
+                        _HorizontalField(
+                          label: 'DATE',
+                          child: _StaticBox(
+                            text: JournalEntryFormScreen._dateOnly(
+                              form.entryDate,
+                            ),
+                            icon: Icons.calendar_today_outlined,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _HorizontalField(
+                          label: 'ENTRY #',
+                          child: const _StaticBox(text: 'AUTO'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _StackedField(
+                          label: l10n.memoInternal,
+                          child: AppTextField(
+                            label: '',
+                            initialValue: form.memo,
+                            onChanged: (value) {
+                              form.memo = value;
+                              _update(ref, form);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,37 +316,51 @@ class _LinesCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFF9EADB6)),
+        ),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(flex: 3, child: Text(l10n.chartOfAccounts)),
-                Expanded(flex: 2, child: Text(l10n.description)),
-                Expanded(child: Text(l10n.amount)),
-                Expanded(child: Text(l10n.amount)),
-                const SizedBox(width: 40),
-              ],
-            ),
-            const Divider(),
-            ...form.lines.asMap().entries.map(
-              (entry) => _JournalLineRow(
-                index: entry.key,
-                line: entry.value,
-                form: form,
+            Container(
+              height: 30,
+              color: const Color(0xFFDDE8ED),
+              child: Row(
+                children: [
+                  _HeaderCell(l10n.chartOfAccounts, flex: 4),
+                  _HeaderCell(l10n.description, flex: 4),
+                  _HeaderCell('DEBIT', flex: 2, right: true),
+                  _HeaderCell('CREDIT', flex: 2, right: true),
+                  const SizedBox(width: 40),
+                ],
               ),
             ),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                onPressed: () {
-                  form.lines.add(JournalEntryLineState());
-                  _update(ref, form);
-                },
-                icon: const Icon(Icons.add),
-                label: Text(l10n.addLine),
+            Expanded(
+              child: ListView(
+                children: [
+                  ...form.lines.asMap().entries.map(
+                    (entry) => _JournalLineRow(
+                      index: entry.key,
+                      line: entry.value,
+                      form: form,
+                      shaded: entry.key.isEven,
+                    ),
+                  ),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        form.lines.add(JournalEntryLineState());
+                        _update(ref, form);
+                      },
+                      icon: const Icon(Icons.add, size: 16),
+                      label: Text(l10n.addLine),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -279,11 +375,13 @@ class _JournalLineRow extends ConsumerWidget {
     required this.index,
     required this.line,
     required this.form,
+    required this.shaded,
   });
 
   final int index;
   final JournalEntryLineState line;
   final JournalEntryFormState form;
+  final bool shaded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -304,12 +402,14 @@ class _JournalLineRow extends ConsumerWidget {
         ? line.accountId
         : null;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    return Container(
+      height: 44,
+      color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       child: Row(
         children: [
           Expanded(
-            flex: 3,
+            flex: 4,
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: DropdownButtonFormField<String>(
@@ -334,7 +434,7 @@ class _JournalLineRow extends ConsumerWidget {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: 4,
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
@@ -403,62 +503,401 @@ class _JournalLineRow extends ConsumerWidget {
   }
 }
 
-class _TotalsCard extends StatelessWidget {
-  const _TotalsCard({required this.form});
+class _JournalFooter extends StatelessWidget {
+  const _JournalFooter({
+    required this.form,
+    required this.saving,
+    required this.onSave,
+  });
+
+  final JournalEntryFormState form;
+  final bool saving;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      height: 92,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF6F8F9),
+        border: Border(top: BorderSide(color: Color(0xFFB7C3CB))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Debits and credits must balance before posting the journal entry.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF53656E),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 360,
+            child: Column(
+              children: [
+                _TotalLine(
+                  label: 'TOTAL DEBIT',
+                  value: '${form.totalDebit.toStringAsFixed(2)} ${l10n.egp}',
+                ),
+                _TotalLine(
+                  label: 'TOTAL CREDIT',
+                  value: '${form.totalCredit.toStringAsFixed(2)} ${l10n.egp}',
+                ),
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: form.isBalanced
+                        ? const Color(0xFFE7F1F4)
+                        : const Color(0xFFFFECEC),
+                    border: Border.all(
+                      color: form.isBalanced
+                          ? const Color(0xFF9DB2BC)
+                          : const Color(0xFFE18B8B),
+                    ),
+                  ),
+                  child: _TotalLine(
+                    label: 'STATUS',
+                    value: form.isBalanced ? 'Balanced' : 'Needs balance',
+                    strong: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          OutlinedButton(
+            onPressed: saving ? null : onSave,
+            style: _smallButton(),
+            child: Text(saving ? 'Saving...' : 'Save & Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ButtonStyle _smallButton() => OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+    side: const BorderSide(color: Color(0xFF8FA1AB)),
+  );
+}
+
+class _JournalContextPanel extends StatelessWidget {
+  const _JournalContextPanel({required this.form});
 
   final JournalEntryFormState form;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final cs = Theme.of(context).colorScheme;
-
-    return Card(
-      child: SizedBox(
-        width: 420,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+    final difference = (form.totalDebit - form.totalCredit).abs();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+          decoration: const BoxDecoration(
+            color: Color(0xFF264D5B),
+            border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+          ),
+          child: Text(
+            'Journal Entry',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+          color: form.isBalanced
+              ? const Color(0xFFDFF0E4)
+              : const Color(0xFFFFE7C4),
+          child: Text(
+            form.isBalanced
+                ? 'Ready to post.'
+                : 'Difference ${difference.toStringAsFixed(2)} ${l10n.egp}.',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: form.isBalanced
+                  ? const Color(0xFF1B7D2B)
+                  : const Color(0xFF714600),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        _SideSection(
+          title: 'Totals',
           child: Column(
             children: [
-              _row(
-                l10n.totalAmount,
-                '${form.totalDebit.toStringAsFixed(2)} ${l10n.egp}',
+              _InfoRow(
+                label: 'Debit',
+                value: '${form.totalDebit.toStringAsFixed(2)} ${l10n.egp}',
               ),
-              const SizedBox(height: 8),
-              _row(
-                l10n.totalAmount,
-                '${form.totalCredit.toStringAsFixed(2)} ${l10n.egp}',
+              _InfoRow(
+                label: 'Credit',
+                value: '${form.totalCredit.toStringAsFixed(2)} ${l10n.egp}',
               ),
-              const Divider(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.statusPosted,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Icon(
-                    form.isBalanced
-                        ? Icons.check_circle_outline
-                        : Icons.error_outline,
-                    color: form.isBalanced ? cs.primary : cs.error,
-                  ),
-                ],
+              const Divider(height: 14),
+              _InfoRow(
+                label: 'Difference',
+                value: '${difference.toStringAsFixed(2)} ${l10n.egp}',
+                strong: true,
               ),
             ],
           ),
         ),
+        Expanded(
+          child: _SideSection(
+            title: 'Memo',
+            expanded: true,
+            child: Text(
+              form.memo.trim().isEmpty ? 'No memo added.' : form.memo.trim(),
+              style: const TextStyle(color: Color(0xFF4E616A)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TotalLine extends StatelessWidget {
+  const _TotalLine({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
+
+  final String label;
+  final String value;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+          ),
+        ),
+      ),
+      Text(
+        value,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+        ),
+      ),
+    ],
+  );
+}
+
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell(this.text, {required this.flex, this.right = false});
+  final String text;
+  final int flex;
+  final bool right;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ),
+  );
+}
+
+class _StripLabel extends StatelessWidget {
+  const _StripLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _StackedField extends StatelessWidget {
+  const _StackedField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      const SizedBox(height: 4),
+      SizedBox(height: 34, child: child),
+    ],
+  );
+}
+
+class _StaticBox extends StatelessWidget {
+  const _StaticBox({required this.text, this.icon});
+
+  final String text;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 34,
+    alignment: Alignment.centerLeft,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFB7C3CB)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        if (icon != null) Icon(icon, size: 15),
+      ],
+    ),
+  );
+}
+
+class _HorizontalField extends StatelessWidget {
+  const _HorizontalField({required this.label, required this.child});
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      SizedBox(
+        width: 76,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: const Color(0xFF53656E),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+      Expanded(child: child),
+    ],
+  );
+}
+
+class _SideSection extends StatelessWidget {
+  const _SideSection({
+    required this.title,
+    required this.child,
+    this.expanded = false,
+  });
+
+  final String title;
+  final Widget child;
+  final bool expanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB8C6CE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 30,
+            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE7EEF1),
+              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFF2D4854),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          if (expanded)
+            Expanded(
+              child: Padding(padding: const EdgeInsets.all(8), child: child),
+            )
+          else
+            Padding(padding: const EdgeInsets.all(8), child: child),
+        ],
+      ),
+    );
+
+    return expanded ? Expanded(child: content) : content;
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
+  final String label;
+  final String value;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: const Color(0xFF334A55),
+      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              style: style,
+            ),
+          ),
+        ],
       ),
     );
   }
-
-  Widget _row(String label, String value) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(label),
-      Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
-    ],
-  );
 }
 
 void _update(WidgetRef ref, JournalEntryFormState old) {

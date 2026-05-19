@@ -1,10 +1,17 @@
 // item_bulk_edit_screen.dart
+import 'dart:io';
+import 'package:excel/excel.dart' hide Border, TextSpan, BorderStyle;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/navigation/safe_navigation.dart';
 import '../../../app/router.dart';
+import '../../../core/constants/api_enums.dart' as api;
+import '../../accounts/data/models/account_model.dart';
+import '../../accounts/providers/accounts_provider.dart';
 import '../data/models/item_model.dart';
 import '../providers/items_provider.dart';
 
@@ -15,24 +22,64 @@ class ItemBulkEditScreen extends ConsumerStatefulWidget {
 }
 
 class _Row {
-  final ItemModel item;
+  final ItemModel? item;
   late final TextEditingController nameCtrl;
   late final TextEditingController barcodeCtrl;
   late final TextEditingController skuCtrl;
   late final TextEditingController unitCtrl;
   late final TextEditingController salesCtrl;
   late final TextEditingController purchaseCtrl;
+  ItemType itemType;
+  String? incomeAccountId;
+  String? inventoryAssetAccountId;
+  String? cogsAccountId;
+  String? expenseAccountId;
   bool isActive;
   bool dirty = false;
+  bool get isNew => item == null;
 
-  _Row(this.item) : isActive = item.isActive {
-    nameCtrl = TextEditingController(text: item.name);
-    barcodeCtrl = TextEditingController(text: item.barcode ?? '');
-    skuCtrl = TextEditingController(text: item.sku ?? '');
-    unitCtrl = TextEditingController(text: item.unit ?? '');
-    salesCtrl = TextEditingController(text: item.salesPrice.toStringAsFixed(2));
+  _Row(ItemModel existing)
+    : item = existing,
+      isActive = existing.isActive,
+      itemType = existing.itemType,
+      incomeAccountId = existing.incomeAccountId,
+      inventoryAssetAccountId = existing.inventoryAssetAccountId,
+      cogsAccountId = existing.cogsAccountId,
+      expenseAccountId = existing.expenseAccountId {
+    nameCtrl = TextEditingController(text: existing.name);
+    barcodeCtrl = TextEditingController(text: existing.barcode ?? '');
+    skuCtrl = TextEditingController(text: existing.sku ?? '');
+    unitCtrl = TextEditingController(text: existing.unit ?? '');
+    salesCtrl = TextEditingController(
+      text: existing.salesPrice.toStringAsFixed(2),
+    );
     purchaseCtrl = TextEditingController(
-      text: item.purchasePrice.toStringAsFixed(2),
+      text: existing.purchasePrice.toStringAsFixed(2),
+    );
+  }
+
+  _Row.newItem({
+    String name = '',
+    String barcode = '',
+    String sku = '',
+    String unit = 'pcs',
+    double salesPrice = 0,
+    double purchasePrice = 0,
+    this.itemType = ItemType.inventory,
+    this.incomeAccountId,
+    this.inventoryAssetAccountId,
+    this.cogsAccountId,
+    this.expenseAccountId,
+  }) : item = null,
+       isActive = true,
+       dirty = true {
+    nameCtrl = TextEditingController(text: name);
+    barcodeCtrl = TextEditingController(text: barcode);
+    skuCtrl = TextEditingController(text: sku);
+    unitCtrl = TextEditingController(text: unit);
+    salesCtrl = TextEditingController(text: salesPrice.toStringAsFixed(2));
+    purchaseCtrl = TextEditingController(
+      text: purchasePrice.toStringAsFixed(2),
     );
   }
 
@@ -48,7 +95,9 @@ class _Row {
 
 class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
   List<_Row> _rows = [];
+  List<AccountModel> _accounts = [];
   bool _loaded = false;
+  bool _accountsLoaded = false;
   bool _saving = false;
   String _search = '';
   final _searchCtrl = TextEditingController();
@@ -56,6 +105,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
   @override
   void initState() {
     super.initState();
+    _loadAccounts();
     _load();
   }
 
@@ -85,8 +135,26 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
     );
   }
 
+  Future<void> _loadAccounts() async {
+    final result = await ref
+        .read(accountsRepositoryProvider)
+        .getAccounts(includeInactive: false);
+    if (!mounted) return;
+    result.when(
+      success: (accounts) {
+        setState(() {
+          _accounts = accounts;
+          _accountsLoaded = true;
+        });
+      },
+      failure: (_) => setState(() => _accountsLoaded = true),
+    );
+  }
+
   Future<void> _saveAll() async {
-    final dirty = _rows.where((r) => r.dirty).toList();
+    final dirty = _rows
+        .where((r) => r.dirty && r.nameCtrl.text.trim().isNotEmpty)
+        .toList();
     if (dirty.isEmpty) {
       _snack('No changes to save.');
       return;
@@ -96,30 +164,46 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
     for (final row in dirty) {
       final body = <String, dynamic>{
         'name': row.nameCtrl.text.trim(),
-        'itemType': row.item.itemType.value,
+        'itemType': row.itemType.value,
         'salesPrice':
-            double.tryParse(row.salesCtrl.text) ?? row.item.salesPrice,
+            double.tryParse(row.salesCtrl.text) ?? row.item?.salesPrice ?? 0,
         'purchasePrice':
-            double.tryParse(row.purchaseCtrl.text) ?? row.item.purchasePrice,
+            double.tryParse(row.purchaseCtrl.text) ??
+            row.item?.purchasePrice ??
+            0,
         if (row.barcodeCtrl.text.trim().isNotEmpty)
           'barcode': row.barcodeCtrl.text.trim(),
         if (row.skuCtrl.text.trim().isNotEmpty) 'sku': row.skuCtrl.text.trim(),
         if (row.unitCtrl.text.trim().isNotEmpty)
           'unit': row.unitCtrl.text.trim(),
-        'isActive': row.isActive,
-        if (row.item.incomeAccountId != null)
-          'incomeAccountId': row.item.incomeAccountId,
-        if (row.item.inventoryAssetAccountId != null)
-          'inventoryAssetAccountId': row.item.inventoryAssetAccountId,
-        if (row.item.cogsAccountId != null)
-          'cogsAccountId': row.item.cogsAccountId,
-        if (row.item.expenseAccountId != null)
-          'expenseAccountId': row.item.expenseAccountId,
+        if (row.isNew && _tracksInventory(row.itemType)) 'quantityOnHand': 0,
+        if (row.incomeAccountId != null) 'incomeAccountId': row.incomeAccountId,
+        if (row.inventoryAssetAccountId != null)
+          'inventoryAssetAccountId': row.inventoryAssetAccountId,
+        if (row.cogsAccountId != null) 'cogsAccountId': row.cogsAccountId,
+        if (row.expenseAccountId != null)
+          'expenseAccountId': row.expenseAccountId,
       };
-      final result = await ref
-          .read(itemsProvider.notifier)
-          .updateItem(row.item.id, body);
-      result.when(success: (_) => saved++, failure: (_) {});
+      final result = row.isNew
+          ? await ref.read(itemsProvider.notifier).createItem(body)
+          : await ref
+                .read(itemsProvider.notifier)
+                .updateItem(row.item!.id, body);
+      await result.when(
+        success: (savedItem) async {
+          saved++;
+          if (!row.isActive && savedItem.isActive) {
+            await ref
+                .read(itemsProvider.notifier)
+                .toggleActive(savedItem.id, false);
+          } else if (!row.isNew && row.isActive != row.item!.isActive) {
+            await ref
+                .read(itemsProvider.notifier)
+                .toggleActive(row.item!.id, row.isActive);
+          }
+        },
+        failure: (_) async {},
+      );
     }
     setState(() => _saving = false);
     if (!mounted) return;
@@ -149,6 +233,365 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
         )
         .toList();
   }
+
+  void _addRows([int count = 5]) {
+    setState(() {
+      for (var i = 0; i < count; i++) {
+        final row = _Row.newItem();
+        _applyDefaultAccounts(row, force: true);
+        _rows.insert(0, row);
+      }
+    });
+  }
+
+  void _applyDefaultAccounts(_Row row, {bool force = false}) {
+    if (_accounts.isEmpty) return;
+    String? find(List<api.AccountType> types, List<String> keywords) {
+      final pool = _accounts
+          .where((a) => a.isActive && types.contains(a.accountType))
+          .toList();
+      for (final keyword in keywords) {
+        final match = pool.cast<AccountModel?>().firstWhere(
+          (a) => a!.name.toLowerCase().contains(keyword),
+          orElse: () => null,
+        );
+        if (match != null) return match.id;
+      }
+      return pool.isEmpty ? null : pool.first.id;
+    }
+
+    if (force || row.incomeAccountId == null) {
+      row.incomeAccountId = find(
+        [api.AccountType.income, api.AccountType.otherIncome],
+        ['sales income', 'sales', 'income'],
+      );
+    }
+    if (force || row.inventoryAssetAccountId == null) {
+      row.inventoryAssetAccountId = find(
+        [api.AccountType.inventoryAsset, api.AccountType.otherCurrentAsset],
+        ['inventory asset', 'inventory'],
+      );
+    }
+    if (force || row.cogsAccountId == null) {
+      row.cogsAccountId = find(
+        [api.AccountType.costOfGoodsSold],
+        ['cost of goods', 'cogs'],
+      );
+    }
+    if (force || row.expenseAccountId == null) {
+      row.expenseAccountId = find(
+        [
+          api.AccountType.expense,
+          api.AccountType.otherExpense,
+          api.AccountType.costOfGoodsSold,
+        ],
+        ['expense', 'cost'],
+      );
+    }
+  }
+
+  void _applyDefaultAccountsToRows({required bool allRows}) {
+    setState(() {
+      for (final row in _rows) {
+        if (allRows || row.isNew) {
+          _applyDefaultAccounts(row, force: true);
+          row.dirty = true;
+        }
+      }
+    });
+    _snack(
+      allRows
+          ? 'Accounts applied to all rows.'
+          : 'Accounts applied to new rows.',
+    );
+  }
+
+  Future<void> _importRows() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'csv'],
+    );
+    final path = picked?.files.single.path;
+    if (path == null) return;
+
+    final imported = path.toLowerCase().endsWith('.csv')
+        ? await _readCsvRows(path)
+        : await _readExcelRows(path);
+    if (imported.isEmpty) {
+      _snack('No valid rows found.', isError: true);
+      return;
+    }
+    setState(() {
+      for (final row in imported.reversed) {
+        _applyDefaultAccounts(row, force: true);
+        _rows.insert(0, row);
+      }
+    });
+    _snack('Imported ${imported.length} row(s). Review then Save All Changes.');
+  }
+
+  Future<List<_Row>> _readCsvRows(String path) async {
+    final lines = await File(path).readAsLines();
+    if (lines.length < 2) return [];
+    final headers = _splitCsv(lines.first).map((h) => h.toLowerCase()).toList();
+    final rows = <_Row>[];
+    for (var i = 1; i < lines.length; i++) {
+      final cells = _splitCsv(lines[i]);
+      final row = _rowFromCells(
+        headers,
+        (idx) => cells.elementAtOrNull(idx) ?? '',
+      );
+      if (row != null) rows.add(row);
+    }
+    return rows;
+  }
+
+  Future<List<_Row>> _readExcelRows(String path) async {
+    final bytes = await File(path).readAsBytes();
+    final excel = Excel.decodeBytes(bytes);
+    final sheet = excel.tables.values.firstOrNull;
+    if (sheet == null || sheet.rows.length < 2) return [];
+    final headers = sheet.rows.first
+        .map((c) => c?.value?.toString().toLowerCase() ?? '')
+        .toList();
+    final rows = <_Row>[];
+    for (var i = 1; i < sheet.rows.length; i++) {
+      final cells = sheet.rows[i];
+      final row = _rowFromCells(
+        headers,
+        (idx) => cells.elementAtOrNull(idx)?.value?.toString() ?? '',
+      );
+      if (row != null) rows.add(row);
+    }
+    return rows;
+  }
+
+  _Row? _rowFromCells(List<String> headers, String Function(int idx) cell) {
+    int idx(String key, int fallback) {
+      final found = headers.indexWhere((h) => h.contains(key));
+      return found >= 0 ? found : fallback;
+    }
+
+    final name = cell(idx('name', 0)).trim();
+    if (name.isEmpty) return null;
+    final typeText = cell(idx('type', 1));
+    final barcode = cell(idx('barcode', 2)).trim();
+    final unit = cell(idx('unit', 3)).trim();
+    final sales =
+        double.tryParse(cell(idx('sales', 4)).replaceAll(',', '')) ?? 0;
+    final purchase =
+        double.tryParse(cell(idx('purchase', 5)).replaceAll(',', '')) ?? 0;
+    final skuIndex = headers.indexWhere(
+      (h) => h.contains('sku') || h.contains('part'),
+    );
+    return _Row.newItem(
+      name: name,
+      itemType: _parseType(typeText),
+      barcode: barcode,
+      unit: unit.isEmpty ? 'pcs' : unit,
+      salesPrice: sales,
+      purchasePrice: purchase,
+      sku: skuIndex >= 0 ? cell(skuIndex).trim() : '',
+    );
+  }
+
+  List<String> _splitCsv(String line) {
+    final result = <String>[];
+    var inQuotes = false;
+    final buffer = StringBuffer();
+    for (var i = 0; i < line.length; i++) {
+      final char = line[i];
+      if (char == '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (char == ',' && !inQuotes) {
+        result.add(buffer.toString());
+        buffer.clear();
+        continue;
+      }
+      buffer.write(char);
+    }
+    result.add(buffer.toString());
+    return result;
+  }
+
+  Future<void> _exportExcel() async {
+    final excel = Excel.createExcel();
+    final sheet = excel['Items'];
+    excel.delete('Sheet1');
+    final headers = [
+      'Name',
+      'Type',
+      'Barcode',
+      'Unit',
+      'Sales Price',
+      'Purchase Cost',
+      'Part No. (optional)',
+      'Active',
+    ];
+    for (var i = 0; i < headers.length; i++) {
+      final cell = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0),
+      );
+      cell.value = TextCellValue(headers[i]);
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: ExcelColor.fromHexString('#1f7a1f'),
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+      );
+    }
+    for (var r = 0; r < _rows.length; r++) {
+      final row = _rows[r];
+      final values = [
+        row.nameCtrl.text,
+        row.itemType.label,
+        row.barcodeCtrl.text,
+        row.unitCtrl.text,
+        row.salesCtrl.text,
+        row.purchaseCtrl.text,
+        row.skuCtrl.text,
+        row.isActive ? 'Yes' : 'No',
+      ];
+      for (var c = 0; c < values.length; c++) {
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r + 1))
+            .value = TextCellValue(
+          values[c],
+        );
+      }
+    }
+    for (var i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 22);
+    }
+    final bytes = excel.encode();
+    if (bytes == null) {
+      _snack('Excel export failed.', isError: true);
+      return;
+    }
+    final dir =
+        await getDownloadsDirectory() ??
+        await getApplicationDocumentsDirectory();
+    final file = File(
+      '${dir.path}/items-bulk-${DateTime.now().millisecondsSinceEpoch}.xlsx',
+    );
+    await file.writeAsBytes(bytes);
+    _snack('Excel saved: ${file.path}');
+  }
+
+  Future<void> _showBulkAccountsDialog() async {
+    String? income = _rows
+        .map((r) => r.incomeAccountId)
+        .firstWhere((id) => id != null, orElse: () => null);
+    String? asset = _rows
+        .map((r) => r.inventoryAssetAccountId)
+        .firstWhere((id) => id != null, orElse: () => null);
+    String? cogs = _rows
+        .map((r) => r.cogsAccountId)
+        .firstWhere((id) => id != null, orElse: () => null);
+    String? expense = _rows
+        .map((r) => r.expenseAccountId)
+        .firstWhere((id) => id != null, orElse: () => null);
+    var target = 'new';
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Product Accounts'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'new', label: Text('New rows')),
+                    ButtonSegment(value: 'all', label: Text('All rows')),
+                  ],
+                  selected: {target},
+                  onSelectionChanged: (v) =>
+                      setDialogState(() => target = v.first),
+                ),
+                const SizedBox(height: 14),
+                _AccountDrop(
+                  label: 'Income / Deposit Account',
+                  value: income,
+                  accounts: _filterAccounts([
+                    api.AccountType.income,
+                    api.AccountType.otherIncome,
+                  ]),
+                  onChanged: (v) => setDialogState(() => income = v),
+                ),
+                const SizedBox(height: 10),
+                _AccountDrop(
+                  label: 'Inventory Asset Account',
+                  value: asset,
+                  accounts: _filterAccounts([
+                    api.AccountType.inventoryAsset,
+                    api.AccountType.otherCurrentAsset,
+                  ]),
+                  onChanged: (v) => setDialogState(() => asset = v),
+                ),
+                const SizedBox(height: 10),
+                _AccountDrop(
+                  label: 'COGS Account',
+                  value: cogs,
+                  accounts: _filterAccounts([api.AccountType.costOfGoodsSold]),
+                  onChanged: (v) => setDialogState(() => cogs = v),
+                ),
+                const SizedBox(height: 10),
+                _AccountDrop(
+                  label: 'Expense / Purchase Account',
+                  value: expense,
+                  accounts: _filterAccounts([
+                    api.AccountType.expense,
+                    api.AccountType.otherExpense,
+                    api.AccountType.costOfGoodsSold,
+                  ]),
+                  onChanged: (v) => setDialogState(() => expense = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                setState(() {
+                  for (final row in _rows) {
+                    if (target == 'all' || row.isNew) {
+                      row.incomeAccountId = income;
+                      row.inventoryAssetAccountId = asset;
+                      row.cogsAccountId = cogs;
+                      row.expenseAccountId = expense;
+                      row.dirty = true;
+                    }
+                  }
+                });
+                Navigator.of(ctx).pop();
+                _snack(
+                  target == 'all'
+                      ? 'Accounts applied to all rows.'
+                      : 'Accounts applied to new rows.',
+                );
+              },
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<AccountModel> _filterAccounts(List<api.AccountType> types) =>
+      _accounts
+          .where((a) => a.isActive && types.contains(a.accountType))
+          .toList()
+        ..sort((a, b) => a.code.compareTo(b.code));
 
   @override
   Widget build(BuildContext context) {
@@ -226,6 +669,86 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _addRows(1),
+                  icon: const Icon(Icons.add, size: 15),
+                  label: const Text('Add Row', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                OutlinedButton.icon(
+                  onPressed: _importRows,
+                  icon: const Icon(Icons.upload_file_outlined, size: 15),
+                  label: const Text('Import', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                OutlinedButton.icon(
+                  onPressed: _exportExcel,
+                  icon: const Icon(Icons.grid_on_outlined, size: 15),
+                  label: const Text('Export', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'Bulk accounts and tools',
+                  icon: const Icon(Icons.more_vert, size: 19),
+                  onSelected: (value) {
+                    if (value == 'defaults_new') {
+                      _applyDefaultAccountsToRows(allRows: false);
+                    }
+                    if (value == 'defaults_all') {
+                      _applyDefaultAccountsToRows(allRows: true);
+                    }
+                    if (value == 'accounts') _showBulkAccountsDialog();
+                    if (value == 'add5') _addRows(5);
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'add5',
+                      child: _MenuRow(
+                        icon: Icons.add_box_outlined,
+                        label: 'Add 5 blank rows',
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'accounts',
+                      enabled: _accountsLoaded && _accounts.isNotEmpty,
+                      child: const _MenuRow(
+                        icon: Icons.tune_outlined,
+                        label: 'Choose accounts...',
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'defaults_new',
+                      enabled: _accountsLoaded && _accounts.isNotEmpty,
+                      child: const _MenuRow(
+                        icon: Icons.auto_fix_high_outlined,
+                        label: 'Apply default accounts to new rows',
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'defaults_all',
+                      enabled: _accountsLoaded && _accounts.isNotEmpty,
+                      child: const _MenuRow(
+                        icon: Icons.account_tree_outlined,
+                        label: 'Apply default accounts to all rows',
+                      ),
+                    ),
+                  ],
                 ),
                 const Spacer(),
                 if (dirtyCount > 0)
@@ -408,24 +931,36 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
               onChanged: (_) => setState(() => row.dirty = true),
             ),
           ),
-          // Type chip
+          // Type
           Expanded(
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: cs.secondaryContainer,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  row.item.itemType.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: cs.onSecondaryContainer,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<ItemType>(
+                  value: row.itemType,
+                  isDense: true,
+                  isExpanded: true,
+                  style: TextStyle(fontSize: 11, color: cs.onSurface),
+                  items: ItemType.values
+                      .map(
+                        (type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(
+                            type.label,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (type) {
+                    if (type == null) return;
+                    setState(() {
+                      row.itemType = type;
+                      _applyDefaultAccounts(row);
+                      row.dirty = true;
+                    });
+                  },
                 ),
               ),
             ),
@@ -448,6 +983,74 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
       ),
     );
   }
+
+  ItemType _parseType(String value) {
+    final lower = value.toLowerCase();
+    if (lower.contains('service')) return ItemType.service;
+    if (lower.contains('non')) return ItemType.nonInventory;
+    if (lower.contains('assembly')) return ItemType.inventoryAssembly;
+    if (lower.contains('fixed')) return ItemType.fixedAsset;
+    if (lower.contains('charge')) return ItemType.otherCharge;
+    if (lower.contains('subtotal')) return ItemType.subtotal;
+    if (lower.contains('group')) return ItemType.group;
+    if (lower.contains('discount')) return ItemType.discount;
+    if (lower.contains('payment')) return ItemType.payment;
+    if (lower.contains('bundle')) return ItemType.bundle;
+    return ItemType.inventory;
+  }
+
+  static bool _tracksInventory(ItemType type) =>
+      type == ItemType.inventory || type == ItemType.inventoryAssembly;
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 17),
+      const SizedBox(width: 10),
+      Flexible(child: Text(label)),
+    ],
+  );
+}
+
+class _AccountDrop extends StatelessWidget {
+  const _AccountDrop({
+    required this.label,
+    required this.value,
+    required this.accounts,
+    required this.onChanged,
+  });
+  final String label;
+  final String? value;
+  final List<AccountModel> accounts;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String?>(
+    value: accounts.any((a) => a.id == value) ? value : null,
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+      isDense: true,
+    ),
+    items: [
+      const DropdownMenuItem<String?>(value: null, child: Text('Not selected')),
+      ...accounts.map(
+        (account) => DropdownMenuItem<String?>(
+          value: account.id,
+          child: Text(
+            '${account.code} - ${account.name}',
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    ],
+    onChanged: onChanged,
+  );
 }
 
 class _H extends StatelessWidget {

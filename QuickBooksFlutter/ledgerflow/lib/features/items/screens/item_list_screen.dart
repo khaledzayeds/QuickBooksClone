@@ -664,174 +664,139 @@ class _D extends StatelessWidget {
 }
 
 // ── Dense Item Center ────────────────────────────────────────────────────────
-class _DenseItemCenter extends StatelessWidget {
+class _DenseItemCenter extends StatefulWidget {
   const _DenseItemCenter({required this.items, required this.onToggleActive});
   final List<ItemModel> items;
   final Future<void> Function(ItemModel) onToggleActive;
 
   @override
+  State<_DenseItemCenter> createState() => _DenseItemCenterState();
+}
+
+class _DenseItemCenterState extends State<_DenseItemCenter> {
+  String? _selectedId;
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final sorted = [...items]
+    final sorted = [...widget.items]
       ..sort((a, b) {
         final type = a.itemType.value.compareTo(b.itemType.value);
         return type == 0 ? a.name.compareTo(b.name) : type;
       });
+    final selected = sorted.isEmpty
+        ? null
+        : sorted.firstWhere(
+            (item) => item.id == _selectedId,
+            orElse: () => sorted.first,
+          );
+    if (selected != null && _selectedId != selected.id) {
+      _selectedId = selected.id;
+    }
 
-    return Column(
+    return Row(
       children: [
-        Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          color: cs.surfaceContainerHighest,
-          child: const Row(
+        SizedBox(
+          width: 350,
+          child: Column(
             children: [
-              _TableHead('Name', flex: 4),
-              _TableHead('Type', flex: 2),
-              _TableHead('Barcode', flex: 2),
-              _TableHead('Sales', flex: 2),
-              _TableHead('Cost', flex: 2),
-              _TableHead('On Hand', flex: 2),
-              _TableHead('Status', flex: 2),
-              SizedBox(width: 92),
+              Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                color: cs.surfaceContainerHighest,
+                child: const Row(
+                  children: [
+                    Expanded(flex: 5, child: _MiniHead('Name')),
+                    Expanded(flex: 3, child: _MiniHead('Price', end: true)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: sorted.length,
+                  itemBuilder: (ctx, index) {
+                    final item = sorted[index];
+                    return _ItemListEntry(
+                      item: item,
+                      selected: item.id == selected?.id,
+                      onTap: () => setState(() => _selectedId = item.id),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
+        VerticalDivider(width: 1, color: cs.outlineVariant),
         Expanded(
-          child: ListView.builder(
-            itemCount: sorted.length,
-            itemBuilder: (ctx, index) {
-              final item = sorted[index];
-              return _DenseItemRow(
-                item: item,
-                index: index,
-                onOpen: () =>
-                    ctx.go(AppRoutes.itemDetails.replaceFirst(':id', item.id)),
-                onEdit: () =>
-                    ctx.go(AppRoutes.itemEdit.replaceFirst(':id', item.id)),
-                onToggleActive: () => onToggleActive(item),
-              );
-            },
-          ),
+          child: selected == null
+              ? Center(
+                  child: Text(
+                    'No items found',
+                    style: TextStyle(color: cs.onSurfaceVariant),
+                  ),
+                )
+              : _ItemInfoPane(
+                  item: selected,
+                  onOpen: () => context.go(
+                    AppRoutes.itemDetails.replaceFirst(':id', selected.id),
+                  ),
+                  onEdit: () => context.go(
+                    AppRoutes.itemEdit.replaceFirst(':id', selected.id),
+                  ),
+                  onToggleActive: () => widget.onToggleActive(selected),
+                ),
         ),
       ],
     );
   }
 }
 
-class _DenseItemRow extends StatelessWidget {
-  const _DenseItemRow({
+class _ItemListEntry extends StatelessWidget {
+  const _ItemListEntry({
     required this.item,
-    required this.index,
-    required this.onOpen,
-    required this.onEdit,
-    required this.onToggleActive,
+    required this.selected,
+    required this.onTap,
   });
   final ItemModel item;
-  final int index;
-  final VoidCallback onOpen;
-  final VoidCallback onEdit;
-  final VoidCallback onToggleActive;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bg = index.isEven ? cs.surface : cs.surfaceContainerLowest;
     return InkWell(
-      onTap: onOpen,
+      onTap: onTap,
       child: Container(
-        height: 42,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          border: Border(
-            bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.35)),
-          ),
-        ),
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        color: selected ? cs.primary.withValues(alpha: 0.16) : null,
         child: Row(
           children: [
+            Icon(
+              _rowIcon(item.itemType),
+              size: 15,
+              color: selected ? cs.primary : cs.onSurfaceVariant,
+            ),
+            const SizedBox(width: 7),
             Expanded(
-              flex: 4,
-              child: Row(
-                children: [
-                  Icon(_rowIcon(item.itemType), size: 16, color: cs.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: item.isActive ? null : cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  if (!item.hasRequiredPostingAccounts)
-                    Tooltip(
-                      message: 'Needs account setup',
-                      child: Icon(
-                        Icons.warning_amber_outlined,
-                        size: 15,
-                        color: cs.error,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            _Cell(item.itemType.label, flex: 2),
-            _Cell(
-              item.barcode?.isNotEmpty == true ? item.barcode! : '-',
-              flex: 2,
-            ),
-            _Cell(item.salesPrice.toStringAsFixed(2), flex: 2, alignEnd: true),
-            _Cell(
-              item.purchasePrice.toStringAsFixed(2),
-              flex: 2,
-              alignEnd: true,
-            ),
-            _Cell(
-              item.isInventory
-                  ? '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}'
-                  : '-',
-              flex: 2,
-              alignEnd: true,
-            ),
-            Expanded(
-              flex: 2,
+              flex: 5,
               child: Text(
-                item.isActive ? 'Active' : 'Inactive',
+                item.name,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: item.isActive ? cs.primary : cs.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  color: item.isActive ? null : cs.onSurfaceVariant,
                 ),
               ),
             ),
-            SizedBox(
-              width: 92,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    tooltip: 'Edit',
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 17,
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                  IconButton(
-                    tooltip: item.isActive ? 'Make inactive' : 'Make active',
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 17,
-                    onPressed: onToggleActive,
-                    icon: Icon(
-                      item.isActive
-                          ? Icons.toggle_on_outlined
-                          : Icons.toggle_off_outlined,
-                    ),
-                  ),
-                ],
+            Expanded(
+              flex: 3,
+              child: Text(
+                item.salesPrice.toStringAsFixed(2),
+                textAlign: TextAlign.end,
+                style: const TextStyle(fontSize: 12),
               ),
             ),
           ],
@@ -841,40 +806,251 @@ class _DenseItemRow extends StatelessWidget {
   }
 }
 
-class _TableHead extends StatelessWidget {
-  const _TableHead(this.label, {required this.flex});
+class _MiniHead extends StatelessWidget {
+  const _MiniHead(this.label, {this.end = false});
   final String label;
-  final int flex;
+  final bool end;
   @override
-  Widget build(BuildContext context) => Expanded(
-    flex: flex,
-    child: Text(
-      label,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w900,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-      overflow: TextOverflow.ellipsis,
+  Widget build(BuildContext context) => Text(
+    label,
+    textAlign: end ? TextAlign.end : TextAlign.start,
+    style: TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w900,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+    overflow: TextOverflow.ellipsis,
+  );
+}
+
+class _ItemInfoPane extends StatelessWidget {
+  const _ItemInfoPane({
+    required this.item,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onToggleActive,
+  });
+  final ItemModel item;
+  final VoidCallback onOpen;
+  final VoidCallback onEdit;
+  final VoidCallback onToggleActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Item Information',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Open',
+                onPressed: onOpen,
+                icon: const Icon(Icons.open_in_new_outlined),
+              ),
+              IconButton(
+                tooltip: 'Edit',
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(42, 22, 22, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _InfoLine('Name', item.name),
+                _InfoLine('Type', item.itemType.label),
+                _InfoLine('Barcode', item.barcode ?? '-'),
+                _InfoLine('Part No.', item.sku ?? '-'),
+                _InfoLine('Unit', item.unit ?? '-'),
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _ValueBox(
+                      'Sales price',
+                      '${item.salesPrice.toStringAsFixed(2)} EGP',
+                    ),
+                    _ValueBox(
+                      'Purchase cost',
+                      '${item.purchasePrice.toStringAsFixed(2)} EGP',
+                    ),
+                    _ValueBox(
+                      'On hand',
+                      item.isInventory
+                          ? '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}'
+                          : '-',
+                    ),
+                    _ValueBox(
+                      'Inventory value',
+                      '${item.inventoryValue.toStringAsFixed(2)} EGP',
+                      highlight: item.inventoryValue > 0,
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('Edit Item'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: onToggleActive,
+                      icon: const Icon(Icons.toggle_on_outlined, size: 16),
+                      label: Text(
+                        item.isActive ? 'Make Inactive' : 'Make Active',
+                      ),
+                    ),
+                    if (item.isInventory)
+                      OutlinedButton.icon(
+                        onPressed: () => context.go(
+                          '${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}',
+                        ),
+                        icon: const Icon(Icons.tune_outlined, size: 16),
+                        label: const Text('Adjust Stock'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(flex: 2, child: _MiniActivityTable(item: item)),
+      ],
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine(this.label, this.value);
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 9),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 115,
+          child: Text(
+            label,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(width: 18),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     ),
   );
 }
 
-class _Cell extends StatelessWidget {
-  const _Cell(this.value, {required this.flex, this.alignEnd = false});
+class _ValueBox extends StatelessWidget {
+  const _ValueBox(this.label, this.value, {this.highlight = false});
+  final String label;
   final String value;
-  final int flex;
-  final bool alignEnd;
+  final bool highlight;
   @override
-  Widget build(BuildContext context) => Expanded(
-    flex: flex,
-    child: Text(
-      value,
-      textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-      style: const TextStyle(fontSize: 12),
-      overflow: TextOverflow.ellipsis,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: highlight ? cs.primaryContainer : cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniActivityTable extends StatelessWidget {
+  const _MiniActivityTable({required this.item});
+  final ItemModel item;
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.centerLeft,
+          color: cs.surfaceContainerHighest,
+          child: const Text(
+            'Transactions',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+        Container(
+          height: 28,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: const Row(
+            children: [
+              Expanded(child: _MiniHead('Type')),
+              Expanded(child: _MiniHead('Date')),
+              Expanded(child: _MiniHead('Account')),
+              Expanded(child: _MiniHead('Amount', end: true)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Text(
+              item.isInventory
+                  ? 'Stock activity appears from sales, purchases, and adjustments.'
+                  : 'Sales and purchase activity appears here.',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 IconData _rowIcon(ItemType type) => switch (type) {

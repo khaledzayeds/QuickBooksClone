@@ -17,179 +17,179 @@ class SettingsHomeScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () {
+      backgroundColor: theme.colorScheme.surface,
+      body: Column(
+        children: [
+          _SettingsToolbar(
+            onRefresh: () {
               ref.invalidate(companySettingsProvider);
               ref.invalidate(runtimeSettingsProvider);
             },
-            icon: const Icon(Icons.refresh),
           ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Text(
-            'Offline Company Settings',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage this desktop company file, local service, users, payroll, time tracking, backup, and document output.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 24),
-          companyAsync.when(
-            loading: () => const _LoadingCard(title: 'Company'),
-            error: (error, _) => _ErrorCard(
-              title: 'Company Settings',
-              message: error.toString(),
-              onRetry: () => ref.invalidate(companySettingsProvider),
-            ),
-            data: (company) => _CompanySummaryCard(company: company),
-          ),
-          const SizedBox(height: 16),
-          runtimeAsync.when(
-            loading: () => const _LoadingCard(title: 'Runtime'),
-            error: (error, _) => _ErrorCard(
-              title: 'Runtime Settings',
-              message: error.toString(),
-              onRetry: () => ref.invalidate(runtimeSettingsProvider),
-            ),
-            data: (runtime) => _RuntimeSummaryCard(
-              environmentName: runtime.environmentName,
-              databaseProvider: runtime.databaseProvider,
-              supportsBackupRestore: runtime.supportsBackupRestore,
-              liveDatabasePath: runtime.liveDatabasePath,
-              backupDirectory: runtime.backupDirectory,
-            ),
-          ),
-          const SizedBox(height: 24),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 900;
-              final cards = [
-                _SettingsTile(
-                  icon: Icons.folder_open_outlined,
-                  title: 'Company Files',
-                  subtitle:
-                      'Create, open, restore, or switch local company files.',
-                  onTap: () => context.go(AppRoutes.companies),
-                ),
-                _SettingsTile(
-                  icon: Icons.business_outlined,
-                  title: 'Company Profile',
-                  subtitle:
-                      'Legal name, contacts, address, fiscal year, currency, and language.',
-                  onTap: () => context.go(AppRoutes.companySettings),
-                ),
-                _SettingsTile(
-                  icon: Icons.dns_outlined,
-                  title: 'Offline Service',
-                  subtitle:
-                      'Local service health, company connection, and desktop runtime status.',
-                  onTap: () => context.go(AppRoutes.connectionSettings),
-                ),
-                _SettingsTile(
-                  icon: Icons.calculate_outlined,
-                  title: 'Tax Settings',
-                  subtitle:
-                      'Sales tax, purchase tax, rounding, and default tax accounts.',
-                  onTap: () => context.go(AppRoutes.taxSettings),
-                ),
-                _SettingsTile(
-                  icon: Icons.storage_outlined,
-                  title: 'Database & Backup',
-                  subtitle:
-                      'Company database, backup folder, restore, and maintenance.',
-                  onTap: () => context.go(AppRoutes.backupSettings),
-                ),
-                _SettingsTile(
-                  icon: Icons.print_outlined,
-                  title: 'Printing',
-                  subtitle:
-                      'A4 invoices, thermal receipts, logos, and document templates.',
-                  onTap: () => context.go(AppRoutes.printingSettings),
-                ),
-                _SettingsTile(
-                  icon: Icons.dashboard_customize_outlined,
-                  title: 'Print Template Designer',
-                  subtitle:
-                      'Design invoice, receipt, QR, barcode, and A4/thermal templates.',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const PrintTemplateDesignerPage(),
-                    ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              children: [
+                Text(
+                  'Offline Company Settings',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                _SettingsTile(
-                  icon: Icons.admin_panel_settings_outlined,
-                  title: 'Users & Permissions',
-                  subtitle:
-                      'User list, login passwords, roles, and access permissions.',
-                  onTap: () => context.go(AppRoutes.usersPermissions),
+                const SizedBox(height: 8),
+                Text(
+                  'Manage this desktop company file, local service, users, payroll, time tracking, backup, and document output.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-                _SettingsTile(
-                  icon: Icons.timer_outlined,
-                  title: 'Time Tracking',
-                  subtitle:
-                      'Employee time entries, billable hours, approvals, and exports.',
-                  onTap: () => context.go(AppRoutes.timeTracking),
+                const SizedBox(height: 24),
+                companyAsync.when(
+                  loading: () => const _LoadingCard(title: 'Company'),
+                  error: (error, _) => _ErrorCard(
+                    title: 'Company Settings',
+                    message: error.toString(),
+                    onRetry: () => ref.invalidate(companySettingsProvider),
+                  ),
+                  data: (company) => _CompanySummaryCard(company: company),
                 ),
-                _SettingsTile(
-                  icon: Icons.payments_outlined,
-                  title: 'Payroll',
-                  subtitle:
-                      'Employees, earning types, deductions, posting accounts, and pay runs.',
-                  onTap: () => context.go(AppRoutes.payroll),
+                const SizedBox(height: 16),
+                runtimeAsync.when(
+                  loading: () => const _LoadingCard(title: 'Runtime'),
+                  error: (error, _) => _ErrorCard(
+                    title: 'Runtime Settings',
+                    message: error.toString(),
+                    onRetry: () => ref.invalidate(runtimeSettingsProvider),
+                  ),
+                  data: (runtime) => _RuntimeSummaryCard(
+                    environmentName: runtime.environmentName,
+                    databaseProvider: runtime.databaseProvider,
+                    supportsBackupRestore: runtime.supportsBackupRestore,
+                    liveDatabasePath: runtime.liveDatabasePath,
+                    backupDirectory: runtime.backupDirectory,
+                  ),
                 ),
-                _SettingsTile(
-                  icon: Icons.flag_outlined,
-                  title: 'Company Setup',
-                  subtitle:
-                      'Review first company setup, defaults, tax, users, backup, and printing.',
-                  onTap: () => context.go(AppRoutes.setupWizard),
-                ),
-                _SettingsTile(
-                  icon: Icons.verified_user_outlined,
-                  title: 'Online License',
-                  subtitle:
-                      'Only for hosted/online services, remote access, and subscription features.',
-                  onTap: () => context.go(AppRoutes.licenseSettings),
-                ),
-              ];
-
-              if (!wide) {
-                return Column(
-                  children: cards
-                      .map(
-                        (card) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: card,
+                const SizedBox(height: 24),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 900;
+                    final cards = [
+                      _SettingsTile(
+                        icon: Icons.folder_open_outlined,
+                        title: 'Company Files',
+                        subtitle:
+                            'Create, open, restore, or switch local company files.',
+                        onTap: () => context.go(AppRoutes.companies),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.business_outlined,
+                        title: 'Company Profile',
+                        subtitle:
+                            'Legal name, contacts, address, fiscal year, currency, and language.',
+                        onTap: () => context.go(AppRoutes.companySettings),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.dns_outlined,
+                        title: 'Offline Service',
+                        subtitle:
+                            'Local service health, company connection, and desktop runtime status.',
+                        onTap: () => context.go(AppRoutes.connectionSettings),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.calculate_outlined,
+                        title: 'Tax Settings',
+                        subtitle:
+                            'Sales tax, purchase tax, rounding, and default tax accounts.',
+                        onTap: () => context.go(AppRoutes.taxSettings),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.storage_outlined,
+                        title: 'Database & Backup',
+                        subtitle:
+                            'Company database, backup folder, restore, and maintenance.',
+                        onTap: () => context.go(AppRoutes.backupSettings),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.print_outlined,
+                        title: 'Printing',
+                        subtitle:
+                            'A4 invoices, thermal receipts, logos, and document templates.',
+                        onTap: () => context.go(AppRoutes.printingSettings),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.dashboard_customize_outlined,
+                        title: 'Print Template Designer',
+                        subtitle:
+                            'Design invoice, receipt, QR, barcode, and A4/thermal templates.',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const PrintTemplateDesignerPage(),
+                          ),
                         ),
-                      )
-                      .toList(),
-                );
-              }
+                      ),
+                      _SettingsTile(
+                        icon: Icons.admin_panel_settings_outlined,
+                        title: 'Users & Permissions',
+                        subtitle:
+                            'User list, login passwords, roles, and access permissions.',
+                        onTap: () => context.go(AppRoutes.usersPermissions),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.timer_outlined,
+                        title: 'Time Tracking',
+                        subtitle:
+                            'Employee time entries, billable hours, approvals, and exports.',
+                        onTap: () => context.go(AppRoutes.timeTracking),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.payments_outlined,
+                        title: 'Payroll',
+                        subtitle:
+                            'Employees, earning types, deductions, posting accounts, and pay runs.',
+                        onTap: () => context.go(AppRoutes.payroll),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.flag_outlined,
+                        title: 'Company Setup',
+                        subtitle:
+                            'Review first company setup, defaults, tax, users, backup, and printing.',
+                        onTap: () => context.go(AppRoutes.setupWizard),
+                      ),
+                      _SettingsTile(
+                        icon: Icons.verified_user_outlined,
+                        title: 'Online License',
+                        subtitle:
+                            'Only for hosted/online services, remote access, and subscription features.',
+                        onTap: () => context.go(AppRoutes.licenseSettings),
+                      ),
+                    ];
 
-              return GridView.count(
-                crossAxisCount: 2,
-                childAspectRatio: 3.9,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                children: cards,
-              );
-            },
+                    if (!wide) {
+                      return Column(
+                        children: cards
+                            .map(
+                              (card) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: card,
+                              ),
+                            )
+                            .toList(),
+                      );
+                    }
+
+                    return GridView.count(
+                      crossAxisCount: 2,
+                      childAspectRatio: 3.9,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      children: cards,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -492,6 +492,48 @@ class _ErrorCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SettingsToolbar extends StatelessWidget {
+  const _SettingsToolbar({required this.onRefresh});
+  final VoidCallback onRefresh;
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.business_outlined, size: 19),
+          const SizedBox(width: 8),
+          const Text(
+            'Company Center',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Settings',
+            style: TextStyle(
+              fontSize: 12,
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
     );
   }

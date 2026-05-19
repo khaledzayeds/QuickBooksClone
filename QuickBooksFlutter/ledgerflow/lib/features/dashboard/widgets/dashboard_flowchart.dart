@@ -19,7 +19,7 @@ class DashboardFlowchart extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
-      color: const Color(0xFFECEFF4),
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.all(10),
       child: Center(
         child: FittedBox(
@@ -45,13 +45,55 @@ class DashboardFlowchart extends StatelessWidget {
                             _Line(492, 62, 578, 62),
                           ],
                           children: [
-                            _node(38, 26, l10n.purchaseOrders, AppRoutes.purchaseOrderNew, PhosphorIconsRegular.clipboardText),
-                            _node(218, 26, l10n.receiveInventory, AppRoutes.receiveInventoryNew, PhosphorIconsRegular.package),
-                            _node(398, 26, l10n.enterBills, AppRoutes.purchaseBillNew, PhosphorIconsRegular.receipt),
-                            _node(578, 26, l10n.payBills, AppRoutes.vendorPaymentNew, PhosphorIconsRegular.money),
-                            _small(92, 98, 'Vendor Credits', AppRoutes.vendorCreditNew, PhosphorIconsRegular.arrowUDownLeft),
-                            _small(278, 98, 'Purchase Returns', AppRoutes.purchaseReturnNew, PhosphorIconsRegular.arrowCounterClockwise),
-                            _small(464, 98, l10n.vendors, AppRoutes.vendors, PhosphorIconsRegular.storefront),
+                            _node(
+                              38,
+                              26,
+                              l10n.purchaseOrders,
+                              AppRoutes.purchaseOrderNew,
+                              PhosphorIconsRegular.clipboardText,
+                            ),
+                            _node(
+                              218,
+                              26,
+                              l10n.receiveInventory,
+                              AppRoutes.receiveInventoryNew,
+                              PhosphorIconsRegular.package,
+                            ),
+                            _node(
+                              398,
+                              26,
+                              l10n.enterBills,
+                              AppRoutes.purchaseBillNew,
+                              PhosphorIconsRegular.receipt,
+                            ),
+                            _node(
+                              578,
+                              26,
+                              l10n.payBills,
+                              AppRoutes.vendorPaymentNew,
+                              PhosphorIconsRegular.money,
+                            ),
+                            _small(
+                              92,
+                              98,
+                              'Vendor Credits',
+                              AppRoutes.vendorCreditNew,
+                              PhosphorIconsRegular.arrowUDownLeft,
+                            ),
+                            _small(
+                              278,
+                              98,
+                              'Purchase Returns',
+                              AppRoutes.purchaseReturnNew,
+                              PhosphorIconsRegular.arrowCounterClockwise,
+                            ),
+                            _small(
+                              464,
+                              98,
+                              l10n.vendors,
+                              AppRoutes.vendors,
+                              PhosphorIconsRegular.storefront,
+                            ),
                           ],
                         ),
                       ),
@@ -68,15 +110,69 @@ class DashboardFlowchart extends StatelessWidget {
                             _Line(446, 80, 446, 106),
                           ],
                           children: [
-                            _node(38, 24, l10n.salesOrders, AppRoutes.salesOrderNew, PhosphorIconsRegular.shoppingCart),
-                            _node(38, 106, l10n.estimates, AppRoutes.estimateNew, PhosphorIconsRegular.tag),
-                            _node(252, 106, l10n.createInvoices, AppRoutes.invoiceNew, PhosphorIconsRegular.fileText),
-                            _node(398, 24, l10n.salesReceipts, AppRoutes.salesReceiptNew, PhosphorIconsRegular.receipt),
-                            _node(398, 106, l10n.receivePayments, AppRoutes.paymentNew, PhosphorIconsRegular.creditCard),
-                            _node(578, 106, l10n.recordDeposits, AppRoutes.bankingDeposits, PhosphorIconsRegular.arrowDown),
-                            _small(74, 198, 'Customer Credits', AppRoutes.customerCreditNew, PhosphorIconsRegular.arrowCounterClockwise),
-                            _small(258, 198, 'Sales Returns', AppRoutes.salesReturnNew, PhosphorIconsRegular.arrowBendUpLeft),
-                            _small(442, 198, 'Customer Center', AppRoutes.customers, PhosphorIconsRegular.usersThree),
+                            _node(
+                              38,
+                              24,
+                              l10n.salesOrders,
+                              AppRoutes.salesOrderNew,
+                              PhosphorIconsRegular.shoppingCart,
+                            ),
+                            _node(
+                              38,
+                              106,
+                              l10n.estimates,
+                              AppRoutes.estimateNew,
+                              PhosphorIconsRegular.tag,
+                            ),
+                            _node(
+                              252,
+                              106,
+                              l10n.createInvoices,
+                              AppRoutes.invoiceNew,
+                              PhosphorIconsRegular.fileText,
+                            ),
+                            _node(
+                              398,
+                              24,
+                              l10n.salesReceipts,
+                              AppRoutes.salesReceiptNew,
+                              PhosphorIconsRegular.receipt,
+                            ),
+                            _node(
+                              398,
+                              106,
+                              l10n.receivePayments,
+                              AppRoutes.paymentNew,
+                              PhosphorIconsRegular.creditCard,
+                            ),
+                            _node(
+                              578,
+                              106,
+                              l10n.recordDeposits,
+                              AppRoutes.bankingDeposits,
+                              PhosphorIconsRegular.arrowDown,
+                            ),
+                            _small(
+                              74,
+                              198,
+                              'Customer Credits',
+                              AppRoutes.customerCreditNew,
+                              PhosphorIconsRegular.arrowCounterClockwise,
+                            ),
+                            _small(
+                              258,
+                              198,
+                              'Sales Returns',
+                              AppRoutes.salesReturnNew,
+                              PhosphorIconsRegular.arrowBendUpLeft,
+                            ),
+                            _small(
+                              442,
+                              198,
+                              'Customer Center',
+                              AppRoutes.customers,
+                              PhosphorIconsRegular.usersThree,
+                            ),
                           ],
                         ),
                       ),
@@ -87,8 +183,20 @@ class DashboardFlowchart extends StatelessWidget {
                         child: _PanelBody(
                           lines: const [_Line(196, 62, 300, 62)],
                           children: [
-                            _node(102, 28, l10n.enterTime, AppRoutes.timeTracking, PhosphorIconsRegular.timer),
-                            _node(300, 28, l10n.payEmployees, AppRoutes.payroll, PhosphorIconsRegular.identificationBadge),
+                            _node(
+                              102,
+                              28,
+                              l10n.enterTime,
+                              AppRoutes.timeTracking,
+                              PhosphorIconsRegular.timer,
+                            ),
+                            _node(
+                              300,
+                              28,
+                              l10n.payEmployees,
+                              AppRoutes.payroll,
+                              PhosphorIconsRegular.identificationBadge,
+                            ),
                           ],
                         ),
                       ),
@@ -104,12 +212,36 @@ class DashboardFlowchart extends StatelessWidget {
                         title: l10n.company,
                         height: 250,
                         items: [
-                          _SideAction(l10n.chartOfAccounts, AppRoutes.chartOfAccounts, PhosphorIconsRegular.treeStructure),
-                          _SideAction(l10n.itemsAndServices, AppRoutes.items, PhosphorIconsRegular.package),
-                          _SideAction(l10n.inventoryAdjustments, AppRoutes.inventoryAdjustmentNew, PhosphorIconsRegular.slidersHorizontal),
-                          _SideAction(l10n.journalEntries, AppRoutes.journalEntryNew, PhosphorIconsRegular.notebook),
-                          _SideAction(l10n.reports, AppRoutes.reports, PhosphorIconsRegular.presentationChart),
-                          _SideAction(l10n.settings, AppRoutes.settings, PhosphorIconsRegular.gearSix),
+                          _SideAction(
+                            l10n.chartOfAccounts,
+                            AppRoutes.chartOfAccounts,
+                            PhosphorIconsRegular.treeStructure,
+                          ),
+                          _SideAction(
+                            l10n.itemsAndServices,
+                            AppRoutes.items,
+                            PhosphorIconsRegular.package,
+                          ),
+                          _SideAction(
+                            l10n.inventoryAdjustments,
+                            AppRoutes.inventoryAdjustmentNew,
+                            PhosphorIconsRegular.slidersHorizontal,
+                          ),
+                          _SideAction(
+                            l10n.journalEntries,
+                            AppRoutes.journalEntryNew,
+                            PhosphorIconsRegular.notebook,
+                          ),
+                          _SideAction(
+                            l10n.reports,
+                            AppRoutes.reports,
+                            PhosphorIconsRegular.presentationChart,
+                          ),
+                          _SideAction(
+                            l10n.settings,
+                            AppRoutes.settings,
+                            PhosphorIconsRegular.gearSix,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -117,12 +249,36 @@ class DashboardFlowchart extends StatelessWidget {
                         title: 'Banking',
                         height: 300,
                         items: [
-                          _SideAction('Bank Register', AppRoutes.bankingRegister, PhosphorIconsRegular.bookOpen),
-                          _SideAction('Write Checks', AppRoutes.bankingChecks, PhosphorIconsRegular.penNib),
-                          _SideAction(l10n.recordDeposits, AppRoutes.bankingDeposits, PhosphorIconsRegular.arrowDown),
-                          _SideAction('Bank Transfer', AppRoutes.bankingTransfers, PhosphorIconsRegular.arrowsLeftRight),
-                          _SideAction('Reconcile', AppRoutes.bankingReconcile, PhosphorIconsRegular.checks),
-                          _SideAction('Transactions', AppRoutes.transactions, PhosphorIconsRegular.listMagnifyingGlass),
+                          _SideAction(
+                            'Bank Register',
+                            AppRoutes.bankingRegister,
+                            PhosphorIconsRegular.bookOpen,
+                          ),
+                          _SideAction(
+                            'Write Checks',
+                            AppRoutes.bankingChecks,
+                            PhosphorIconsRegular.penNib,
+                          ),
+                          _SideAction(
+                            l10n.recordDeposits,
+                            AppRoutes.bankingDeposits,
+                            PhosphorIconsRegular.arrowDown,
+                          ),
+                          _SideAction(
+                            'Bank Transfer',
+                            AppRoutes.bankingTransfers,
+                            PhosphorIconsRegular.arrowsLeftRight,
+                          ),
+                          _SideAction(
+                            'Reconcile',
+                            AppRoutes.bankingReconcile,
+                            PhosphorIconsRegular.checks,
+                          ),
+                          _SideAction(
+                            'Transactions',
+                            AppRoutes.transactions,
+                            PhosphorIconsRegular.listMagnifyingGlass,
+                          ),
                         ],
                       ),
                     ],
@@ -136,7 +292,13 @@ class DashboardFlowchart extends StatelessWidget {
     );
   }
 
-  static Widget _node(double left, double top, String label, String path, IconData icon) {
+  static Widget _node(
+    double left,
+    double top,
+    String label,
+    String path,
+    IconData icon,
+  ) {
     return Positioned(
       left: left,
       top: top,
@@ -146,7 +308,13 @@ class DashboardFlowchart extends StatelessWidget {
     );
   }
 
-  static Widget _small(double left, double top, String label, String path, IconData icon) {
+  static Widget _small(
+    double left,
+    double top,
+    String label,
+    String path,
+    IconData icon,
+  ) {
     return Positioned(
       left: left,
       top: top,
@@ -158,7 +326,11 @@ class DashboardFlowchart extends StatelessWidget {
 }
 
 class _HomePanel extends StatelessWidget {
-  const _HomePanel({required this.title, required this.height, required this.child});
+  const _HomePanel({
+    required this.title,
+    required this.height,
+    required this.child,
+  });
 
   final String title;
   final double height;
@@ -172,7 +344,7 @@ class _HomePanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         border: Border.all(color: const Color(0xFF9AA7B7)),
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(6),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -182,7 +354,9 @@ class _HomePanel extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: cs.primary.withValues(alpha: 0.18),
-              border: const Border(bottom: BorderSide(color: Color(0xFF9AA7B7))),
+              border: const Border(
+                bottom: BorderSide(color: Color(0xFF9AA7B7)),
+              ),
             ),
             child: Text(
               title.toUpperCase(),
@@ -214,7 +388,10 @@ class _PanelBody extends StatelessWidget {
       children: [
         Positioned.fill(
           child: CustomPaint(
-            painter: _LinesPainter(lines: lines, color: const Color(0xFF7B8794)),
+            painter: _LinesPainter(
+              lines: lines,
+              color: const Color(0xFF7B8794),
+            ),
           ),
         ),
         ...children,
@@ -250,7 +427,11 @@ class _QbNode extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, height: 1.05),
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1.05,
+                ),
               ),
             ),
           ],
@@ -261,7 +442,11 @@ class _QbNode extends StatelessWidget {
 }
 
 class _SmallNode extends StatelessWidget {
-  const _SmallNode({required this.label, required this.path, required this.icon});
+  const _SmallNode({
+    required this.label,
+    required this.path,
+    required this.icon,
+  });
 
   final String label;
   final String path;
@@ -287,7 +472,11 @@ class _SmallNode extends StatelessWidget {
 }
 
 class _SidePanel extends StatelessWidget {
-  const _SidePanel({required this.title, required this.height, required this.items});
+  const _SidePanel({
+    required this.title,
+    required this.height,
+    required this.items,
+  });
 
   final String title;
   final double height;
@@ -347,7 +536,11 @@ class _SideButton extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 10.2, height: 1.05, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 10.2,
+                  height: 1.05,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ],
           ),

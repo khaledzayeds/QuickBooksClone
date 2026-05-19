@@ -16,28 +16,27 @@ class PayrollSetupScreen extends ConsumerWidget {
     final setupAsync = ref.watch(payrollSetupProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payroll'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () {
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: Column(
+        children: [
+          _PayrollToolbar(
+            onRefresh: () {
               ref.invalidate(payrollSetupProvider);
               ref.invalidate(payrollAccountSettingsProvider);
               ref.invalidate(payrollSummaryReportProvider);
             },
-            icon: const Icon(Icons.refresh),
           ),
-          const SizedBox(width: 8),
+          Expanded(
+            child: setupAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _ErrorState(
+                message: error.toString(),
+                onRetry: () => ref.invalidate(payrollSetupProvider),
+              ),
+              data: (setup) => _PayrollSetupBody(setup: setup),
+            ),
+          ),
         ],
-      ),
-      body: setupAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorState(
-          message: error.toString(),
-          onRetry: () => ref.invalidate(payrollSetupProvider),
-        ),
-        data: (setup) => _PayrollSetupBody(setup: setup),
       ),
     );
   }
@@ -54,7 +53,7 @@ class _PayrollSetupBody extends ConsumerWidget {
     final cs = theme.colorScheme;
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1201,3 +1200,82 @@ String? _required(String? value) =>
     value == null || value.trim().isEmpty ? 'Required' : null;
 String _date(DateTime date) =>
     '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+class _PayrollToolbar extends StatelessWidget {
+  const _PayrollToolbar({required this.onRefresh});
+  final VoidCallback onRefresh;
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.badge_outlined, size: 19),
+          const SizedBox(width: 8),
+          const Text(
+            'Employee Center',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Payroll',
+            style: TextStyle(
+              fontSize: 12,
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Actions',
+            icon: const Icon(Icons.more_vert),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'settings',
+                child: _PayrollMenuRow(
+                  icon: Icons.settings_outlined,
+                  label: 'Payroll Settings',
+                ),
+              ),
+              PopupMenuItem(
+                value: 'runs',
+                child: _PayrollMenuRow(
+                  icon: Icons.payments_outlined,
+                  label: 'Pay Runs',
+                ),
+              ),
+              PopupMenuItem(
+                value: 'export',
+                child: _PayrollMenuRow(
+                  icon: Icons.download_outlined,
+                  label: 'Export Payroll List',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PayrollMenuRow extends StatelessWidget {
+  const _PayrollMenuRow({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [Icon(icon, size: 18), const SizedBox(width: 10), Text(label)],
+  );
+}
