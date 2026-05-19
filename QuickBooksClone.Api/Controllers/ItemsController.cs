@@ -206,7 +206,7 @@ public sealed class ItemsController : ControllerBase
             return NotFound();
         }
 
-        if (item.ItemType == ItemType.Inventory)
+        if (item.ItemType is ItemType.Inventory or ItemType.InventoryAssembly)
         {
             return BadRequest("Direct inventory quantity edits are disabled. Use inventory adjustments so stock and accounting stay in sync.");
         }
@@ -297,11 +297,11 @@ public sealed class ItemsController : ControllerBase
     {
         var result = await _items.SearchAsync(new ItemSearch(null, true, 1, 10000), cancellationToken);
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Id,Name,Type,SKU,Barcode,Unit,SalesPrice,PurchasePrice,QuantityOnHand,IsActive,IncomeAccountId,InventoryAssetAccountId,CogsAccountId,ExpenseAccountId");
+        sb.AppendLine("Id,Name,Type,Barcode,Unit,SalesPrice,PurchasePrice,QuantityOnHand,IsActive,PartNo,IncomeAccountId,InventoryAssetAccountId,CogsAccountId,ExpenseAccountId");
         foreach (var item in result.Items)
         {
             sb.AppendLine(
-                $"\"{item.Id}\",\"{item.Name}\",{item.ItemType},\"{item.Sku}\",\"{item.Barcode}\",{item.Unit},{item.SalesPrice},{item.PurchasePrice},{item.QuantityOnHand},{item.IsActive},\"{item.IncomeAccountId}\",\"{item.InventoryAssetAccountId}\",\"{item.CogsAccountId}\",\"{item.ExpenseAccountId}\"");
+                $"\"{item.Id}\",\"{item.Name}\",{item.ItemType},\"{item.Barcode}\",{item.Unit},{item.SalesPrice},{item.PurchasePrice},{item.QuantityOnHand},{item.IsActive},\"{item.Sku}\",\"{item.IncomeAccountId}\",\"{item.InventoryAssetAccountId}\",\"{item.CogsAccountId}\",\"{item.ExpenseAccountId}\"");
         }
         var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
         return File(bytes, "text/csv", $"items-export-{DateTime.UtcNow:yyyyMMdd}.csv");
@@ -358,7 +358,7 @@ public sealed class ItemsController : ControllerBase
         Guid? cogsAccountId,
         Guid? expenseAccountId)
     {
-        if (itemType is ItemType.Inventory)
+        if (itemType is ItemType.Inventory or ItemType.InventoryAssembly)
         {
             if (inventoryAssetAccountId is null)
             {
@@ -376,17 +376,27 @@ public sealed class ItemsController : ControllerBase
             }
         }
 
-        if (itemType is ItemType.Service or ItemType.NonInventory)
+        if (itemType is ItemType.Service or ItemType.NonInventory or ItemType.OtherCharge or ItemType.Discount)
         {
             if (incomeAccountId is null && expenseAccountId is null)
             {
-                return "Service and non-inventory items require at least an income account or an expense account.";
+                return "This item type requires at least an income account or an expense account.";
             }
         }
 
-        if (itemType is ItemType.Bundle && incomeAccountId is not null)
+        if (itemType is ItemType.FixedAsset && inventoryAssetAccountId is null && expenseAccountId is null)
         {
-            return "Bundle items should not post directly to an income account. Their component items should control posting.";
+            return "Fixed asset items require an asset account or an expense account.";
+        }
+
+        if (itemType is ItemType.Payment && incomeAccountId is null)
+        {
+            return "Payment items require a deposit or income account.";
+        }
+
+        if ((itemType is ItemType.Bundle or ItemType.Group or ItemType.Subtotal) && incomeAccountId is not null)
+        {
+            return "Group and subtotal items should not post directly to an income account. Their component items should control posting.";
         }
 
         return null;
@@ -412,7 +422,7 @@ public sealed class ItemsController : ControllerBase
 
     private static string? ValidateInventoryOpeningBalance(CreateItemRequest request)
     {
-        if (request.ItemType != ItemType.Inventory || request.QuantityOnHand <= 0)
+        if (request.ItemType is not (ItemType.Inventory or ItemType.InventoryAssembly) || request.QuantityOnHand <= 0)
         {
             return null;
         }

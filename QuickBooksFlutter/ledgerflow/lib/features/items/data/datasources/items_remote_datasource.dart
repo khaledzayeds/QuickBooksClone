@@ -119,16 +119,16 @@ class ItemsRemoteDatasource {
           .toList();
 
       final buf = StringBuffer();
-      buf.writeln('Name,Type,SKU,Barcode,Unit,Sales Price,Purchase Cost,Qty on Hand,Active');
+      buf.writeln('Name,Type,Barcode,Unit,Sales Price,Purchase Cost,Qty on Hand,Active,Part No. (optional)');
       for (final r in rows) {
         String esc(dynamic v) {
           final s = v?.toString() ?? '';
           return s.contains(',') || s.contains('"') ? '"${s.replaceAll('"', '""')}"' : s;
         }
         buf.writeln([
-          esc(r['name']), esc(r['itemType']), esc(r['sku']), esc(r['barcode']),
+          esc(r['name']), esc(r['itemType']), esc(r['barcode']),
           esc(r['unit']), esc(r['salesPrice']), esc(r['purchasePrice']),
-          esc(r['quantityOnHand']), r['isActive'] == true ? 'Yes' : 'No',
+          esc(r['quantityOnHand']), r['isActive'] == true ? 'Yes' : 'No', esc(r['sku']),
         ].join(','));
       }
       return Success(buf.toString());

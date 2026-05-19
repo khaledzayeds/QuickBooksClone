@@ -43,20 +43,24 @@ class ItemDetailsScreen extends ConsumerWidget {
                   onPressed: () => context.go(AppRoutes.items),
                 ),
                 const Spacer(),
-                itemAsync.whenData((item) => _ToolBtn(
-                      icon: Icons.edit_outlined,
-                      label: l10n.edit,
-                      onPressed: () => context.go(
-                        AppRoutes.itemEdit.replaceFirst(':id', id),
-                      ),
-                    )).value ?? const SizedBox.shrink(),
+                itemAsync
+                        .whenData(
+                          (item) => _ToolBtn(
+                            icon: Icons.edit_outlined,
+                            label: l10n.edit,
+                            onPressed: () => context.go(
+                              AppRoutes.itemEdit.replaceFirst(':id', id),
+                            ),
+                          ),
+                        )
+                        .value ??
+                    const SizedBox.shrink(),
                 const SizedBox(width: 8),
               ],
             ),
           ),
           Expanded(
-            child:
-            itemAsync.when(
+            child: itemAsync.when(
               loading: () => const LoadingWidget(),
               error: (e, _) => Center(child: Text(e.toString())),
               data: (item) => ListView(
@@ -88,11 +92,7 @@ class ItemDetailsScreen extends ConsumerWidget {
 
                       if (!wide) {
                         return Column(
-                          children: [
-                            left,
-                            const SizedBox(height: 16),
-                            right,
-                          ],
+                          children: [left, const SizedBox(height: 16), right],
                         );
                       }
                       return Row(
@@ -106,13 +106,7 @@ class ItemDetailsScreen extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(height: 16),
-                  _FutureActivityCard(item: item),
-                  const SizedBox(height: 16),
-                  Text(
-                    'QuickBooks-style note: item activity will later show related invoices, sales receipts, purchase orders, bills, receive inventory documents, and inventory adjustments.',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: cs.onSurfaceVariant),
-                  ),
+                  _ActivityCard(item: item),
                 ],
               ),
             ),
@@ -177,28 +171,63 @@ class _HeaderCard extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(18)),
-              child: Icon(_itemIcon(item.itemType), color: cs.onPrimaryContainer, size: 34),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(
+                _itemIcon(item.itemType),
+                color: cs.onPrimaryContainer,
+                size: 34,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    item.name,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      Chip(label: Text(item.itemType.label), avatar: Icon(_itemIcon(item.itemType), size: 18)),
-                      Chip(label: Text(item.isActive ? 'Active' : 'Inactive'), avatar: Icon(item.isActive ? Icons.check_circle_outline : Icons.block_outlined, size: 18)),
-                      if (item.sku?.isNotEmpty == true) Chip(label: Text('SKU: ${item.sku}')),
-                      if (!item.hasRequiredPostingAccounts) const Chip(label: Text('Needs account setup'), avatar: Icon(Icons.warning_amber_outlined, size: 18)),
+                      Chip(
+                        label: Text(item.itemType.label),
+                        avatar: Icon(_itemIcon(item.itemType), size: 18),
+                      ),
+                      Chip(
+                        label: Text(item.isActive ? 'Active' : 'Inactive'),
+                        avatar: Icon(
+                          item.isActive
+                              ? Icons.check_circle_outline
+                              : Icons.block_outlined,
+                          size: 18,
+                        ),
+                      ),
+                      if (item.barcode?.isNotEmpty == true)
+                        Chip(label: Text('Barcode: ${item.barcode}')),
+                      if (item.sku?.isNotEmpty == true)
+                        Chip(label: Text('Part No.: ${item.sku}')),
+                      if (!item.hasRequiredPostingAccounts)
+                        const Chip(
+                          label: Text('Needs account setup'),
+                          avatar: Icon(Icons.warning_amber_outlined, size: 18),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(_typeDescription(item.itemType), style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                  Text(
+                    _typeDescription(item.itemType),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -218,7 +247,10 @@ class _WarningCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: cs.errorContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -227,7 +259,10 @@ class _WarningCard extends StatelessWidget {
           Expanded(
             child: Text(
               _missingAccountText(item),
-              style: TextStyle(color: cs.onErrorContainer, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: cs.onErrorContainer,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -246,16 +281,44 @@ class _PriceAndStockCard extends StatelessWidget {
       icon: Icons.price_change_outlined,
       title: 'Sales, purchase, and stock',
       children: [
-        _MetricGrid(metrics: [
-          _MetricData('Sales price', '${item.salesPrice.toStringAsFixed(2)} EGP', Icons.sell_outlined),
-          _MetricData('Purchase cost', '${item.purchasePrice.toStringAsFixed(2)} EGP', Icons.shopping_cart_outlined),
-          _MetricData('Gross margin', '${item.grossMargin.toStringAsFixed(2)} EGP', Icons.trending_up_outlined),
-          if (item.isInventory) _MetricData('Quantity on hand', '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}', Icons.inventory_outlined),
-          if (item.isInventory) _MetricData('Inventory value', '${item.inventoryValue.toStringAsFixed(2)} EGP', Icons.warehouse_outlined),
-        ]),
+        _MetricGrid(
+          metrics: [
+            _MetricData(
+              'Sales price',
+              '${item.salesPrice.toStringAsFixed(2)} EGP',
+              Icons.sell_outlined,
+            ),
+            _MetricData(
+              'Purchase cost',
+              '${item.purchasePrice.toStringAsFixed(2)} EGP',
+              Icons.shopping_cart_outlined,
+            ),
+            _MetricData(
+              'Gross margin',
+              '${item.grossMargin.toStringAsFixed(2)} EGP',
+              Icons.trending_up_outlined,
+            ),
+            if (item.isInventory)
+              _MetricData(
+                'Quantity on hand',
+                '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}',
+                Icons.inventory_outlined,
+              ),
+            if (item.isInventory)
+              _MetricData(
+                'Inventory value',
+                '${item.inventoryValue.toStringAsFixed(2)} EGP',
+                Icons.warehouse_outlined,
+              ),
+          ],
+        ),
         if (item.isInventory && item.quantityOnHand <= 0) ...[
           const SizedBox(height: 12),
-          const _InfoBox(icon: Icons.inventory_outlined, text: 'This inventory item has zero or negative quantity on hand. Use Inventory Adjustment, Receive Inventory, or Bills to update stock correctly.'),
+          const _InfoBox(
+            icon: Icons.inventory_outlined,
+            text:
+                'This inventory item has zero or negative quantity on hand. Use Inventory Adjustment, Receive Inventory, or Bills to update stock correctly.',
+          ),
         ],
       ],
     );
@@ -273,8 +336,8 @@ class _IdentifiersCard extends StatelessWidget {
       title: 'Identifiers',
       children: [
         _InfoRow(label: 'Item ID', value: item.id),
-        _InfoRow(label: 'SKU / Part No.', value: item.sku ?? '-'),
         _InfoRow(label: 'Barcode', value: item.barcode ?? '-'),
+        _InfoRow(label: 'Part No. / SKU', value: item.sku ?? '-'),
         _InfoRow(label: 'Unit', value: item.unit ?? '-'),
       ],
     );
@@ -291,11 +354,37 @@ class _PostingAccountsCard extends StatelessWidget {
       icon: Icons.account_tree_outlined,
       title: 'Posting accounts',
       children: [
-        _InfoRow(label: 'Income account', value: _accountValue(item.incomeAccountName, item.incomeAccountId)),
-        if (item.isInventory) _InfoRow(label: 'Inventory asset account', value: _accountValue(item.inventoryAssetAccountName, item.inventoryAssetAccountId)),
-        if (item.isInventory) _InfoRow(label: 'COGS account', value: _accountValue(item.cogsAccountName, item.cogsAccountId)),
-        if (item.isService || item.isNonInventory) _InfoRow(label: 'Expense / purchase account', value: _accountValue(item.expenseAccountName, item.expenseAccountId)),
-        if (item.isBundle) const _InfoBox(icon: Icons.widgets_outlined, text: 'Bundle/group items should not post directly. Component items will control income, COGS, and inventory behavior later.'),
+        _InfoRow(
+          label: 'Income account',
+          value: _accountValue(item.incomeAccountName, item.incomeAccountId),
+        ),
+        if (item.isInventory)
+          _InfoRow(
+            label: 'Inventory asset account',
+            value: _accountValue(
+              item.inventoryAssetAccountName,
+              item.inventoryAssetAccountId,
+            ),
+          ),
+        if (item.isInventory)
+          _InfoRow(
+            label: 'COGS account',
+            value: _accountValue(item.cogsAccountName, item.cogsAccountId),
+          ),
+        if (item.isService || item.isNonInventory)
+          _InfoRow(
+            label: 'Expense / purchase account',
+            value: _accountValue(
+              item.expenseAccountName,
+              item.expenseAccountId,
+            ),
+          ),
+        if (item.isBundle)
+          const _InfoBox(
+            icon: Icons.widgets_outlined,
+            text:
+                'Bundle/group items should not post directly. Component items will control income, COGS, and inventory behavior later.',
+          ),
       ],
     );
   }
@@ -322,18 +411,22 @@ class _QuickActionsCard extends StatelessWidget {
           runSpacing: 10,
           children: [
             OutlinedButton.icon(
-              onPressed: () => context.go('${AppRoutes.invoiceNew}?itemId=${item.id}'),
+              onPressed: () =>
+                  context.go('${AppRoutes.invoiceNew}?itemId=${item.id}'),
               icon: const Icon(Icons.description_outlined, size: 16),
               label: const Text('Create invoice'),
             ),
             if (item.isInventory)
               OutlinedButton.icon(
-                onPressed: () => context.go('${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}'),
+                onPressed: () => context.go(
+                  '${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}',
+                ),
                 icon: const Icon(Icons.tune_outlined, size: 16),
                 label: const Text('Inventory adjustment'),
               ),
             OutlinedButton.icon(
-              onPressed: () => context.go(AppRoutes.itemEdit.replaceFirst(':id', item.id)),
+              onPressed: () =>
+                  context.go(AppRoutes.itemEdit.replaceFirst(':id', item.id)),
               icon: const Icon(Icons.edit_outlined, size: 16),
               label: const Text('Edit item'),
             ),
@@ -344,8 +437,8 @@ class _QuickActionsCard extends StatelessWidget {
   }
 }
 
-class _FutureActivityCard extends StatelessWidget {
-  const _FutureActivityCard({required this.item});
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({required this.item});
   final ItemModel item;
 
   @override
@@ -353,10 +446,12 @@ class _FutureActivityCard extends StatelessWidget {
     return _SectionCard(
       icon: Icons.history_outlined,
       title: 'Related activity',
-      children: const [
+      children: [
         _InfoBox(
-          icon: Icons.pending_actions_outlined,
-          text: 'Activity history is scheduled after invoice, purchase, receive inventory, and adjustment screens are polished. This area will become the item activity center.',
+          icon: Icons.receipt_long_outlined,
+          text: item.isInventory
+              ? 'Use sales, purchase, receive inventory, and adjustment screens to build this item activity trail.'
+              : 'Use sales and purchase screens to build this item activity trail.',
         ),
       ],
     );
@@ -364,7 +459,11 @@ class _FutureActivityCard extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.icon, required this.title, required this.children});
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.children,
+  });
   final IconData icon;
   final String title;
   final List<Widget> children;
@@ -381,9 +480,19 @@ class _SectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(icon, color: cs.onPrimaryContainer)),
+                CircleAvatar(
+                  backgroundColor: cs.primaryContainer,
+                  child: Icon(icon, color: cs.onPrimaryContainer),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -419,7 +528,10 @@ class _MetricCard extends StatelessWidget {
     return Container(
       width: 190,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Row(
         children: [
           Icon(metric.icon, color: cs.primary),
@@ -428,9 +540,17 @@ class _MetricCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(metric.label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+                Text(
+                  metric.label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
                 const SizedBox(height: 4),
-                Text(metric.value, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  metric.value,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
               ],
             ),
           ),
@@ -460,8 +580,16 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 190, child: Text(label, style: TextStyle(color: cs.onSurfaceVariant))),
-          Expanded(child: SelectableText(value.isEmpty ? '-' : value, style: const TextStyle(fontWeight: FontWeight.w700))),
+          SizedBox(
+            width: 190,
+            child: Text(label, style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          Expanded(
+            child: SelectableText(
+              value.isEmpty ? '-' : value,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );
@@ -479,29 +607,73 @@ class _InfoBox extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: cs.onSecondaryContainer), const SizedBox(width: 10), Expanded(child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)))]),
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: cs.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)),
+          ),
+        ],
+      ),
     );
   }
 }
 
 IconData _itemIcon(ItemType type) => switch (type) {
-      ItemType.inventory => Icons.inventory_2_outlined,
-      ItemType.nonInventory => Icons.category_outlined,
-      ItemType.service => Icons.design_services_outlined,
-      ItemType.bundle => Icons.widgets_outlined,
-    };
+  ItemType.inventory => Icons.inventory_2_outlined,
+  ItemType.nonInventory => Icons.category_outlined,
+  ItemType.service => Icons.design_services_outlined,
+  ItemType.bundle => Icons.widgets_outlined,
+  ItemType.inventoryAssembly => Icons.precision_manufacturing_outlined,
+  ItemType.fixedAsset => Icons.business_center_outlined,
+  ItemType.otherCharge => Icons.add_card_outlined,
+  ItemType.subtotal => Icons.functions_outlined,
+  ItemType.group => Icons.view_module_outlined,
+  ItemType.discount => Icons.percent_outlined,
+  ItemType.payment => Icons.payments_outlined,
+};
 
 String _typeDescription(ItemType type) => switch (type) {
-      ItemType.inventory => 'Tracks quantity on hand and posts to Inventory Asset and COGS.',
-      ItemType.nonInventory => 'Used for goods you buy or sell but do not track as stock.',
-      ItemType.service => 'Used for services you sell, purchase, or charge back to customers.',
-      ItemType.bundle => 'Groups multiple items; component-driven posting will be added later.',
-    };
+  ItemType.inventory =>
+    'Tracks quantity on hand and posts to Inventory Asset and COGS.',
+  ItemType.nonInventory =>
+    'Used for goods you buy or sell but do not track as stock.',
+  ItemType.service =>
+    'Used for services you sell, purchase, or charge back to customers.',
+  ItemType.bundle => 'Groups multiple items without posting directly.',
+  ItemType.inventoryAssembly =>
+    'Built from inventory components and tracks quantity on hand.',
+  ItemType.fixedAsset =>
+    'Used for property or equipment you buy and may sell later.',
+  ItemType.otherCharge =>
+    'Used for delivery, setup, service fees, and other charges.',
+  ItemType.subtotal => 'Adds a subtotal line on sales or purchase forms.',
+  ItemType.group => 'Groups several items together without direct posting.',
+  ItemType.discount =>
+    'Subtracts a fixed amount or percentage from a subtotal.',
+  ItemType.payment =>
+    'Records a payment item linked to a deposit or income account.',
+};
 
 String _missingAccountText(ItemModel item) {
-  if (item.isInventory) return 'Inventory Part requires Income, Inventory Asset, and COGS accounts before it is safe for posting.';
-  if (item.isService || item.isNonInventory) return 'This item needs at least an Income account or Expense/Purchase account before it is safe for posting.';
-  if (item.isBundle) return 'Bundle/group items should not have direct income posting. Posting should come from component items later.';
+  if (item.isInventory)
+    return 'Inventory Part requires Income, Inventory Asset, and COGS accounts before it is safe for posting.';
+  if (item.isService ||
+      item.isNonInventory ||
+      item.isOtherCharge ||
+      item.isDiscount)
+    return 'This item needs at least an Income account or Expense/Purchase account before it is safe for posting.';
+  if (item.isFixedAsset)
+    return 'Fixed Asset needs an asset or expense account before it is safe for posting.';
+  if (item.isPayment)
+    return 'Payment needs a deposit or income account before it is safe for posting.';
+  if (item.isBundle || item.isSubtotal)
+    return 'Group and subtotal items should not have direct income posting. Posting should come from component lines.';
   return 'This item has incomplete posting setup.';
 }

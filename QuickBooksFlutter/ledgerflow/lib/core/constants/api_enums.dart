@@ -1,4 +1,4 @@
-﻿// api_enums.dart
+// api_enums.dart
 
 // ─── Account Types ───────────────────────────────
 enum AccountType {
@@ -30,7 +30,14 @@ enum ItemType {
   inventory(1),
   nonInventory(2),
   service(3),
-  bundle(4);
+  bundle(4),
+  inventoryAssembly(5),
+  fixedAsset(6),
+  otherCharge(7),
+  subtotal(8),
+  group(9),
+  discount(10),
+  payment(11);
 
   const ItemType(this.value);
   final int value;
@@ -48,11 +55,16 @@ enum SyncStatus {
 
   static SyncStatus fromString(String value) {
     switch (value) {
-      case 'LocalOnly':    return SyncStatus.localOnly;
-      case 'PendingSync':  return SyncStatus.pendingSync;
-      case 'Synced':       return SyncStatus.synced;
-      case 'SyncFailed':   return SyncStatus.syncFailed;
-      default:             return SyncStatus.localOnly;
+      case 'LocalOnly':
+        return SyncStatus.localOnly;
+      case 'PendingSync':
+        return SyncStatus.pendingSync;
+      case 'Synced':
+        return SyncStatus.synced;
+      case 'SyncFailed':
+        return SyncStatus.syncFailed;
+      default:
+        return SyncStatus.localOnly;
     }
   }
 }
@@ -80,16 +92,26 @@ enum DocumentStatus {
 
   static DocumentStatus fromString(String value) {
     switch (value) {
-      case 'Draft':         return DocumentStatus.draft;
-      case 'Sent':          return DocumentStatus.sent;
-      case 'Posted':        return DocumentStatus.posted;
-      case 'PartiallyPaid': return DocumentStatus.partiallyPaid;
-      case 'Paid':          return DocumentStatus.paid;
-      case 'Void':          return DocumentStatus.void_;
-      case 'Closed':        return DocumentStatus.closed;
-      case 'Accepted':      return DocumentStatus.accepted;
-      case 'Open':          return DocumentStatus.open;
-      default:              return DocumentStatus.draft;
+      case 'Draft':
+        return DocumentStatus.draft;
+      case 'Sent':
+        return DocumentStatus.sent;
+      case 'Posted':
+        return DocumentStatus.posted;
+      case 'PartiallyPaid':
+        return DocumentStatus.partiallyPaid;
+      case 'Paid':
+        return DocumentStatus.paid;
+      case 'Void':
+        return DocumentStatus.void_;
+      case 'Closed':
+        return DocumentStatus.closed;
+      case 'Accepted':
+        return DocumentStatus.accepted;
+      case 'Open':
+        return DocumentStatus.open;
+      default:
+        return DocumentStatus.draft;
     }
   }
 }
@@ -103,20 +125,29 @@ enum PaymentMethod {
 
   static PaymentMethod fromString(String value) {
     switch (value) {
-      case 'Cash':         return PaymentMethod.cash;
-      case 'Check':        return PaymentMethod.check;
-      case 'BankTransfer': return PaymentMethod.bankTransfer;
-      case 'CreditCard':   return PaymentMethod.creditCard;
-      default:             return PaymentMethod.cash;
+      case 'Cash':
+        return PaymentMethod.cash;
+      case 'Check':
+        return PaymentMethod.check;
+      case 'BankTransfer':
+        return PaymentMethod.bankTransfer;
+      case 'CreditCard':
+        return PaymentMethod.creditCard;
+      default:
+        return PaymentMethod.cash;
     }
   }
 
   String toApiString() {
     switch (this) {
-      case PaymentMethod.cash:         return 'Cash';
-      case PaymentMethod.check:        return 'Check';
-      case PaymentMethod.bankTransfer: return 'BankTransfer';
-      case PaymentMethod.creditCard:   return 'CreditCard';
+      case PaymentMethod.cash:
+        return 'Cash';
+      case PaymentMethod.check:
+        return 'Check';
+      case PaymentMethod.bankTransfer:
+        return 'BankTransfer';
+      case PaymentMethod.creditCard:
+        return 'CreditCard';
     }
   }
 }
@@ -131,21 +162,31 @@ enum AdjustmentReason {
 
   static AdjustmentReason fromString(String value) {
     switch (value) {
-      case 'Shrinkage':    return AdjustmentReason.shrinkage;
-      case 'DamagedGoods': return AdjustmentReason.damagedGoods;
-      case 'StockCount':   return AdjustmentReason.stockCount;
-      case 'Theft':        return AdjustmentReason.theft;
-      default:             return AdjustmentReason.other;
+      case 'Shrinkage':
+        return AdjustmentReason.shrinkage;
+      case 'DamagedGoods':
+        return AdjustmentReason.damagedGoods;
+      case 'StockCount':
+        return AdjustmentReason.stockCount;
+      case 'Theft':
+        return AdjustmentReason.theft;
+      default:
+        return AdjustmentReason.other;
     }
   }
 
   String toApiString() {
     switch (this) {
-      case AdjustmentReason.shrinkage:    return 'Shrinkage';
-      case AdjustmentReason.damagedGoods: return 'DamagedGoods';
-      case AdjustmentReason.stockCount:   return 'StockCount';
-      case AdjustmentReason.theft:        return 'Theft';
-      case AdjustmentReason.other:        return 'Other';
+      case AdjustmentReason.shrinkage:
+        return 'Shrinkage';
+      case AdjustmentReason.damagedGoods:
+        return 'DamagedGoods';
+      case AdjustmentReason.stockCount:
+        return 'StockCount';
+      case AdjustmentReason.theft:
+        return 'Theft';
+      case AdjustmentReason.other:
+        return 'Other';
     }
   }
 }
@@ -169,20 +210,34 @@ enum SyncDocumentType {
 
   String toApiString() {
     switch (this) {
-      case SyncDocumentType.estimate:            return 'estimate';
-      case SyncDocumentType.salesOrder:          return 'sales-order';
-      case SyncDocumentType.invoice:             return 'invoice';
-      case SyncDocumentType.payment:             return 'payment';
-      case SyncDocumentType.purchaseOrder:       return 'purchase-order';
-      case SyncDocumentType.inventoryReceipt:    return 'inventory-receipt';
-      case SyncDocumentType.purchaseBill:        return 'purchase-bill';
-      case SyncDocumentType.vendorPayment:       return 'vendor-payment';
-      case SyncDocumentType.salesReturn:         return 'sales-return';
-      case SyncDocumentType.purchaseReturn:      return 'purchase-return';
-      case SyncDocumentType.customerCredit:      return 'customer-credit';
-      case SyncDocumentType.vendorCredit:        return 'vendor-credit';
-      case SyncDocumentType.journalEntry:        return 'journal-entry';
-      case SyncDocumentType.inventoryAdjustment: return 'inventory-adjustment';
+      case SyncDocumentType.estimate:
+        return 'estimate';
+      case SyncDocumentType.salesOrder:
+        return 'sales-order';
+      case SyncDocumentType.invoice:
+        return 'invoice';
+      case SyncDocumentType.payment:
+        return 'payment';
+      case SyncDocumentType.purchaseOrder:
+        return 'purchase-order';
+      case SyncDocumentType.inventoryReceipt:
+        return 'inventory-receipt';
+      case SyncDocumentType.purchaseBill:
+        return 'purchase-bill';
+      case SyncDocumentType.vendorPayment:
+        return 'vendor-payment';
+      case SyncDocumentType.salesReturn:
+        return 'sales-return';
+      case SyncDocumentType.purchaseReturn:
+        return 'purchase-return';
+      case SyncDocumentType.customerCredit:
+        return 'customer-credit';
+      case SyncDocumentType.vendorCredit:
+        return 'vendor-credit';
+      case SyncDocumentType.journalEntry:
+        return 'journal-entry';
+      case SyncDocumentType.inventoryAdjustment:
+        return 'inventory-adjustment';
     }
   }
 }
@@ -196,7 +251,10 @@ enum VendorCreditAction {
   final int value;
 
   static VendorCreditAction fromValue(int value) =>
-      VendorCreditAction.values.firstWhere((e) => e.value == value, orElse: () => VendorCreditAction.applyToBill);
+      VendorCreditAction.values.firstWhere(
+        (e) => e.value == value,
+        orElse: () => VendorCreditAction.applyToBill,
+      );
 }
 
 // ─── Customer Credit Action ───────────────────────
@@ -208,5 +266,8 @@ enum CustomerCreditAction {
   final int value;
 
   static CustomerCreditAction fromValue(int value) =>
-      CustomerCreditAction.values.firstWhere((e) => e.value == value, orElse: () => CustomerCreditAction.applyToInvoice);
+      CustomerCreditAction.values.firstWhere(
+        (e) => e.value == value,
+        orElse: () => CustomerCreditAction.applyToInvoice,
+      );
 }

@@ -38,7 +38,11 @@ class ItemCard extends StatelessWidget {
                   color: cs.primary.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(_itemIcon(item.itemType), size: 22, color: cs.primary),
+                child: Icon(
+                  _itemIcon(item.itemType),
+                  size: 22,
+                  color: cs.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -60,7 +64,11 @@ class ItemCard extends StatelessWidget {
                         if (!item.hasRequiredPostingAccounts)
                           Tooltip(
                             message: 'Missing required posting accounts',
-                            child: Icon(Icons.warning_amber_outlined, color: cs.error, size: 20),
+                            child: Icon(
+                              Icons.warning_amber_outlined,
+                              color: cs.error,
+                              size: 20,
+                            ),
                           ),
                       ],
                     ),
@@ -69,10 +77,26 @@ class ItemCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _MiniChip(label: item.itemType.label, icon: _itemIcon(item.itemType)),
-                        if (item.sku?.isNotEmpty == true) _MiniChip(label: 'SKU ${item.sku}', icon: Icons.tag_outlined),
-                        if (item.barcode?.isNotEmpty == true) _MiniChip(label: 'Barcode', icon: Icons.qr_code_outlined),
-                        _MiniChip(label: item.isActive ? 'Active' : 'Inactive', icon: item.isActive ? Icons.check_circle_outline : Icons.block_outlined),
+                        _MiniChip(
+                          label: item.itemType.label,
+                          icon: _itemIcon(item.itemType),
+                        ),
+                        if (item.barcode?.isNotEmpty == true)
+                          _MiniChip(
+                            label: item.barcode!,
+                            icon: Icons.qr_code_outlined,
+                          ),
+                        if (item.sku?.isNotEmpty == true)
+                          _MiniChip(
+                            label: 'Part ${item.sku}',
+                            icon: Icons.tag_outlined,
+                          ),
+                        _MiniChip(
+                          label: item.isActive ? 'Active' : 'Inactive',
+                          icon: item.isActive
+                              ? Icons.check_circle_outline
+                              : Icons.block_outlined,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -80,11 +104,30 @@ class ItemCard extends StatelessWidget {
                       spacing: 10,
                       runSpacing: 8,
                       children: [
-                        _Metric(label: 'Sales', value: '${item.salesPrice.toStringAsFixed(2)} EGP'),
-                        _Metric(label: 'Cost', value: '${item.purchasePrice.toStringAsFixed(2)} EGP'),
-                        _Metric(label: 'Margin', value: '${item.grossMargin.toStringAsFixed(2)} EGP'),
-                        if (item.isInventory) _Metric(label: 'On hand', value: '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}'),
-                        if (item.isInventory) _Metric(label: 'Value', value: '${item.inventoryValue.toStringAsFixed(2)} EGP'),
+                        _Metric(
+                          label: 'Sales',
+                          value: '${item.salesPrice.toStringAsFixed(2)} EGP',
+                        ),
+                        _Metric(
+                          label: 'Cost',
+                          value: '${item.purchasePrice.toStringAsFixed(2)} EGP',
+                        ),
+                        _Metric(
+                          label: 'Margin',
+                          value: '${item.grossMargin.toStringAsFixed(2)} EGP',
+                        ),
+                        if (item.isInventory)
+                          _Metric(
+                            label: 'On hand',
+                            value:
+                                '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}',
+                          ),
+                        if (item.isInventory)
+                          _Metric(
+                            label: 'Value',
+                            value:
+                                '${item.inventoryValue.toStringAsFixed(2)} EGP',
+                          ),
                       ],
                     ),
                   ],
@@ -103,7 +146,9 @@ class ItemCard extends StatelessWidget {
                   if (onToggleActive != null)
                     IconButton(
                       icon: Icon(
-                        item.isActive ? Icons.toggle_on_outlined : Icons.toggle_off_outlined,
+                        item.isActive
+                            ? Icons.toggle_on_outlined
+                            : Icons.toggle_off_outlined,
                         color: item.isActive ? cs.primary : theme.disabledColor,
                       ),
                       onPressed: onToggleActive,
@@ -119,11 +164,18 @@ class ItemCard extends StatelessWidget {
   }
 
   IconData _itemIcon(ItemType type) => switch (type) {
-        ItemType.inventory => Icons.inventory_2_outlined,
-        ItemType.nonInventory => Icons.category_outlined,
-        ItemType.service => Icons.design_services_outlined,
-        ItemType.bundle => Icons.widgets_outlined,
-      };
+    ItemType.inventory => Icons.inventory_2_outlined,
+    ItemType.nonInventory => Icons.category_outlined,
+    ItemType.service => Icons.design_services_outlined,
+    ItemType.bundle => Icons.widgets_outlined,
+    ItemType.inventoryAssembly => Icons.precision_manufacturing_outlined,
+    ItemType.fixedAsset => Icons.business_center_outlined,
+    ItemType.otherCharge => Icons.add_card_outlined,
+    ItemType.subtotal => Icons.functions_outlined,
+    ItemType.group => Icons.view_module_outlined,
+    ItemType.discount => Icons.percent_outlined,
+    ItemType.payment => Icons.payments_outlined,
+  };
 }
 
 class _MiniChip extends StatelessWidget {
@@ -136,7 +188,10 @@ class _MiniChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -161,8 +216,17 @@ class _Metric extends StatelessWidget {
       text: TextSpan(
         style: Theme.of(context).textTheme.bodySmall,
         children: [
-          TextSpan(text: '$label: ', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
-          TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.w800)),
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ],
       ),
     );
