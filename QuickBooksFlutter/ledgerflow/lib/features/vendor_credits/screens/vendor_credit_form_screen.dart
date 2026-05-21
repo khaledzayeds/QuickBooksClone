@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart'
     show AccountType, PaymentMethod, VendorCreditAction;
@@ -206,26 +207,37 @@ class _VendorCreditFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    final vendors = ref.watch(vendorsProvider).maybeWhen(
+    final vendors = ref
+        .watch(vendorsProvider)
+        .maybeWhen(
           data: (items) => items.where((vendor) => vendor.isActive).toList(),
           orElse: () => const <VendorModel>[],
         );
-    final bills = ref.watch(purchaseBillsProvider).maybeWhen(
+    final bills = ref
+        .watch(purchaseBillsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => const <PurchaseBillModel>[],
         );
-    final accounts = ref.watch(accountsProvider).maybeWhen(
+    final accounts = ref
+        .watch(accountsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => const <AccountModel>[],
         );
 
-    final selectedVendor = vendors.where((vendor) => vendor.id == _vendorId).firstOrNull;
-    final openBills = bills
-        .where((bill) => _vendorId == null || bill.vendorId == _vendorId)
-        .where((bill) => bill.canPay)
-        .toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-    final selectedBill = openBills.where((bill) => bill.id == _purchaseBillId).firstOrNull;
+    final selectedVendor = vendors
+        .where((vendor) => vendor.id == _vendorId)
+        .firstOrNull;
+    final openBills =
+        bills
+            .where((bill) => _vendorId == null || bill.vendorId == _vendorId)
+            .where((bill) => bill.canPay)
+            .toList()
+          ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    final selectedBill = openBills
+        .where((bill) => bill.id == _purchaseBillId)
+        .firstOrNull;
     final depositAccounts = accounts
         .where(
           (account) =>
@@ -235,23 +247,27 @@ class _VendorCreditFormScreenState
                   account.accountType == AccountType.creditCard),
         )
         .toList();
-    final selectedAccount =
-        depositAccounts.where((account) => account.id == _depositAccountId).firstOrNull;
+    final selectedAccount = depositAccounts
+        .where((account) => account.id == _depositAccountId)
+        .firstOrNull;
 
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final credits = ref.watch(vendorCreditsProvider).maybeWhen(
-          data: (items) => items,
-          orElse: () => <VendorCreditModel>[],
-        );
+    final credits = ref
+        .watch(vendorCreditsProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <VendorCreditModel>[]);
 
-    final currentIdx = widget.id != null ? credits.indexWhere((c) => c.id == widget.id) : -1;
+    final currentIdx = widget.id != null
+        ? credits.indexWhere((c) => c.id == widget.id)
+        : -1;
 
     void navigateTo(int idx) {
       if (idx >= 0 && idx < credits.length) {
-        context.go(AppRoutes.vendorCreditDetails.replaceFirst(':id', credits[idx].id));
+        context.go(
+          AppRoutes.vendorCreditDetails.replaceFirst(':id', credits[idx].id),
+        );
       }
     }
 
@@ -310,10 +326,10 @@ class _VendorCreditFormScreenState
                     accounts: depositAccounts,
                     selectedAccount: selectedAccount,
                     paymentMethod: _paymentMethod,
-                    onAccountChanged: (account) => setState(
-                      () => _depositAccountId = account?.id,
-                    ),
-                    onPaymentMethodChanged: (method) => setState(() => _paymentMethod = method),
+                    onAccountChanged: (account) =>
+                        setState(() => _depositAccountId = account?.id),
+                    onPaymentMethodChanged: (method) =>
+                        setState(() => _paymentMethod = method),
                   ),
           ),
           _CreditFooter(
@@ -379,11 +395,20 @@ class _VendorCreditContextPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SidebarStat(label: 'AMOUNT', value: money(amount), isTotal: true),
-                if (vendor != null) _SidebarStat(label: 'VENDOR', value: vendor!.displayName),
+                _SidebarStat(
+                  label: 'AMOUNT',
+                  value: money(amount),
+                  isTotal: true,
+                ),
+                if (vendor != null)
+                  _SidebarStat(label: 'VENDOR', value: vendor!.displayName),
                 if (action == VendorCreditAction.applyToBill && bill != null)
-                  _SidebarStat(label: 'APPLIED TO', value: 'Bill #${bill!.billNumber}'),
-                if (action == VendorCreditAction.refundReceipt && depositAccount != null)
+                  _SidebarStat(
+                    label: 'APPLIED TO',
+                    value: 'Bill #${bill!.billNumber}',
+                  ),
+                if (action == VendorCreditAction.refundReceipt &&
+                    depositAccount != null)
                   _SidebarStat(label: 'REFUND TO', value: depositAccount!.name),
               ],
             ),
@@ -395,7 +420,11 @@ class _VendorCreditContextPanel extends StatelessWidget {
 }
 
 class _SidebarStat extends StatelessWidget {
-  const _SidebarStat({required this.label, required this.value, this.isTotal = false});
+  const _SidebarStat({
+    required this.label,
+    required this.value,
+    this.isTotal = false,
+  });
   final String label;
   final String value;
   final bool isTotal;
@@ -407,16 +436,28 @@ class _SidebarStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF7D8B93), fontWeight: FontWeight.w900)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF7D8B93),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700, color: const Color(0xFF264D5B))),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
+              color: const Color(0xFF264D5B),
+            ),
+          ),
         ],
       ),
     );
   }
 }
-
-
 
 class _CreditHeader extends StatelessWidget {
   const _CreditHeader({
@@ -458,7 +499,7 @@ class _CreditHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('VENDOR'),
+                const QbStripLabel('VENDOR'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
@@ -469,7 +510,7 @@ class _CreditHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('ACTION'),
+                const QbStripLabel('ACTION'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 4,
@@ -503,18 +544,14 @@ class _CreditHeader extends StatelessWidget {
                     width: 280,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _StaticBox(
-                            text: dateText,
-                            icon: Icons.calendar_today_outlined,
-                            onTap: onPickDate,
-                          ),
+                          child: QbDateBox(text: dateText, onTap: onPickDate),
                         ),
                         const SizedBox(height: 8),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'CREDIT #',
-                          child: _StaticBox(text: reference),
+                          child: QbStaticBox(text: reference),
                         ),
                       ],
                     ),
@@ -892,7 +929,7 @@ class _CreditFooter extends StatelessWidget {
             width: 340,
             child: Row(
               children: [
-                const SizedBox(width: 115, child: _FieldLabel('AMOUNT')),
+                const SizedBox(width: 115, child: QbFieldLabel('AMOUNT')),
                 Expanded(
                   child: TextField(
                     controller: amountCtrl,
@@ -1104,20 +1141,20 @@ class _CreditSidePanelState extends State<_CreditSidePanel> {
             ),
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Vendor Summary',
           child: Column(
             children: [
-              _InfoRow(
+              QbInfoRow(
                 label: 'Open balance',
                 value: widget.money(vendor.balance),
               ),
-              _InfoRow(
+              QbInfoRow(
                 label: 'Credit balance',
                 value: widget.money(vendor.creditBalance),
               ),
               const Divider(height: 14),
-              _InfoRow(
+              QbInfoRow(
                 label: 'This credit',
                 value: widget.money(widget.amount),
                 strong: true,
@@ -1125,16 +1162,16 @@ class _CreditSidePanelState extends State<_CreditSidePanel> {
             ],
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: applyToBill ? 'Selected Bill' : 'Refund Deposit',
           child: Column(
             children: applyToBill
                 ? [
-                    _InfoRow(
+                    QbInfoRow(
                       label: 'Bill #',
                       value: widget.bill?.billNumber ?? '-',
                     ),
-                    _InfoRow(
+                    QbInfoRow(
                       label: 'Balance due',
                       value: widget.bill == null
                           ? '-'
@@ -1142,18 +1179,17 @@ class _CreditSidePanelState extends State<_CreditSidePanel> {
                     ),
                   ]
                 : [
-                    _InfoRow(
+                    QbInfoRow(
                       label: 'Deposit to',
                       value: widget.depositAccount?.name ?? '-',
                     ),
-                    _InfoRow(label: 'Method', value: 'Refund receipt'),
+                    QbInfoRow(label: 'Method', value: 'Refund receipt'),
                   ],
           ),
         ),
         const Expanded(
-          child: _SideSection(
+          child: QbSideSection(
             title: 'Notes',
-            expanded: true,
             child: Text(
               'No notes added.',
               style: TextStyle(color: Color(0xFF4E616A)),
@@ -1330,7 +1366,7 @@ class _StatBox extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Expanded(child: _FieldLabel(label)),
+        Expanded(child: QbFieldLabel(label)),
         Text(
           value,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -1340,166 +1376,6 @@ class _StatBox extends StatelessWidget {
         ),
       ],
     ),
-  );
-}
-
-class _SideSection extends StatelessWidget {
-  const _SideSection({
-    required this.title,
-    required this.child,
-    this.expanded = false,
-  });
-  final String title;
-  final Widget child;
-  final bool expanded;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = Container(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB8C6CE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 30,
-            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE7EEF1),
-              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF2D4854),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          if (expanded)
-            Expanded(
-              child: Padding(padding: const EdgeInsets.all(8), child: child),
-            )
-          else
-            Padding(padding: const EdgeInsets.all(8), child: child),
-        ],
-      ),
-    );
-    return expanded ? Expanded(child: content) : content;
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF334A55),
-      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: style)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-              style: style,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text, this.icon, this.onTap});
-  final String text;
-  final IconData? icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Container(
-      height: 34,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB7C3CB)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          if (icon != null) Icon(icon, size: 15),
-        ],
-      ),
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 86, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
   );
 }
 
@@ -1533,5 +1409,3 @@ class _AmountRow extends StatelessWidget {
     ],
   );
 }
-
-

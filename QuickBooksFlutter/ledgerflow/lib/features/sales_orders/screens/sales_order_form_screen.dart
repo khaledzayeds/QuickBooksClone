@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../../core/widgets/qb/qb_transaction_line_grid.dart';
 import '../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../customers/data/models/customer_model.dart';
@@ -225,8 +226,9 @@ class _SalesOrderFormScreenState extends ConsumerState<SalesOrderFormScreen> {
     final orders = ref
         .watch(salesOrdersProvider)
         .maybeWhen(data: (items) => items, orElse: () => <SalesOrderModel>[]);
-    final currentIdx =
-        _isEdit ? orders.indexWhere((o) => o.id == widget.id) : -1;
+    final currentIdx = _isEdit
+        ? orders.indexWhere((o) => o.id == widget.id)
+        : -1;
 
     if (_loadingExisting) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -252,8 +254,7 @@ class _SalesOrderFormScreenState extends ConsumerState<SalesOrderFormScreen> {
                 setState(() => _expectedDate = date),
           ),
           _LinesHeader(
-            onAddLine: () =>
-                setState(() => _lines.add(TransactionLineEntry())),
+            onAddLine: () => setState(() => _lines.add(TransactionLineEntry())),
           ),
           Expanded(
             child: Padding(
@@ -315,8 +316,6 @@ class _SalesOrderFormScreenState extends ConsumerState<SalesOrderFormScreen> {
   }
 }
 
-
-
 class _SalesOrderHeader extends StatelessWidget {
   const _SalesOrderHeader({
     required this.customers,
@@ -354,7 +353,7 @@ class _SalesOrderHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('CUSTOMER:JOB'),
+                const QbStripLabel('CUSTOMER:JOB'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
@@ -365,11 +364,11 @@ class _SalesOrderHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('TEMPLATE'),
+                const QbStripLabel('TEMPLATE'),
                 const SizedBox(width: 8),
                 const Expanded(
                   flex: 3,
-                  child: _StaticBox(text: 'Standard Sales Order'),
+                  child: QbStaticBox(text: 'Standard Sales Order'),
                 ),
               ],
             ),
@@ -395,17 +394,28 @@ class _SalesOrderHeader extends StatelessWidget {
                     width: 260,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _DateBox(
-                            value: orderDate,
-                            onChanged: onOrderDateChanged,
+                          labelWidth: 82,
+                          child: QbDateBox(
+                            text:
+                                '${orderDate.day}/${orderDate.month}/${orderDate.year}',
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: orderDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2035),
+                              );
+                              if (picked != null) onOrderDateChanged(picked);
+                            },
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'ORDER #',
-                          child: _StaticBox(text: orderNumber),
+                          labelWidth: 82,
+                          child: QbStaticBox(text: orderNumber),
                         ),
                       ],
                     ),
@@ -416,11 +426,20 @@ class _SalesOrderHeader extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const _FieldLabel('EXPECTED DATE'),
+                        const QbFieldLabel('EXPECTED DATE'),
                         const SizedBox(height: 4),
-                        _DateBox(
-                          value: expectedDate,
-                          onChanged: onExpectedDateChanged,
+                        QbDateBox(
+                          text:
+                              '${expectedDate.day}/${expectedDate.month}/${expectedDate.year}',
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: expectedDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2035),
+                            );
+                            if (picked != null) onExpectedDateChanged(picked);
+                          },
                         ),
                       ],
                     ),
@@ -560,7 +579,7 @@ class _SalesOrderFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _FieldLabel('CUSTOMER MESSAGE'),
+                const QbFieldLabel('CUSTOMER MESSAGE'),
                 const SizedBox(height: 4),
                 Container(
                   height: 30,
@@ -576,7 +595,7 @@ class _SalesOrderFooter extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const _FieldLabel('MEMO'),
+                const QbFieldLabel('MEMO'),
                 const SizedBox(height: 4),
                 Container(
                   height: 30,
@@ -646,8 +665,6 @@ class _SalesOrderFooter extends StatelessWidget {
     side: const BorderSide(color: Color(0xFF8FA1AB)),
   );
 }
-
-
 
 class _SalesOrderContextPanel extends StatelessWidget {
   const _SalesOrderContextPanel({
@@ -724,109 +741,6 @@ class _SalesOrderContextPanel extends StatelessWidget {
     if (order.isOpen) return 'Open';
     return 'Draft';
   }
-}
-
-
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 34,
-    alignment: Alignment.centerLeft,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB7C3CB)),
-    ),
-    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-  );
-}
-
-class _DateBox extends StatelessWidget {
-  const _DateBox({required this.value, required this.onChanged});
-
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2035),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: Container(
-        height: 34,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFB7C3CB)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${value.day}/${value.month}/${value.year}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-            const Icon(Icons.calendar_today_outlined, size: 15),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 82, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
-  );
 }
 
 class _AmountRow extends StatelessWidget {

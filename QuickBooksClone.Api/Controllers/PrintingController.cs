@@ -27,24 +27,25 @@ public sealed class PrintingController : ControllerBase
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var mode = NormalizeDocumentType(documentType);
-        if (mode is null)
-        {
-            return BadRequest("Unsupported printable document type.");
-        }
-
-        var (data, error) = await _salesPrintService.GetPrintDataAsync(id, mode.Value, cancellationToken);
+        var (data, error) = await GetDataAsync(documentType, id, cancellationToken);
         return error is not null ? NotFound(error) : Ok(data);
     }
 
-    private static InvoicePaymentMode? NormalizeDocumentType(string documentType)
+    private Task<(SalesPrintDataDto? Data, string? Error)> GetDataAsync(
+        string documentType,
+        Guid id,
+        CancellationToken cancellationToken)
     {
         return documentType.Trim().ToLowerInvariant() switch
         {
-            "invoice" => InvoicePaymentMode.Credit,
-            "sales-receipt" => InvoicePaymentMode.Cash,
-            "salesreceipt" => InvoicePaymentMode.Cash,
-            _ => null,
+            "invoice" => _salesPrintService.GetPrintDataAsync(id, InvoicePaymentMode.Credit, cancellationToken),
+            "sales-receipt" or "salesreceipt" => _salesPrintService.GetPrintDataAsync(id, InvoicePaymentMode.Cash, cancellationToken),
+            "estimate" => _salesPrintService.GetEstimatePrintDataAsync(id, cancellationToken),
+            "sales-return" or "salesreturn" => _salesPrintService.GetSalesReturnPrintDataAsync(id, cancellationToken),
+            "purchase-order" or "purchaseorder" => _salesPrintService.GetPurchaseOrderPrintDataAsync(id, cancellationToken),
+            "receive-inventory" or "receiveinventory" or "inventory-receipt" or "inventoryreceipt" => _salesPrintService.GetInventoryReceiptPrintDataAsync(id, cancellationToken),
+            "inventory-adjustment" or "inventoryadjustment" => _salesPrintService.GetInventoryAdjustmentPrintDataAsync(id, cancellationToken),
+            _ => Task.FromResult<(SalesPrintDataDto? Data, string? Error)>((null, "Unsupported printable document type.")),
         };
     }
 }

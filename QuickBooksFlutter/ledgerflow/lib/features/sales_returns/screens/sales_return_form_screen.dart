@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router.dart';
 import '../../invoices/data/models/invoice_model.dart';
 import '../../invoices/providers/invoices_provider.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/sales_return_model.dart';
 import '../providers/sales_returns_provider.dart';
@@ -39,7 +40,8 @@ class SalesReturnFormScreen extends ConsumerStatefulWidget {
   final String? invoiceId;
 
   @override
-  ConsumerState<SalesReturnFormScreen> createState() => _SalesReturnFormScreenState();
+  ConsumerState<SalesReturnFormScreen> createState() =>
+      _SalesReturnFormScreenState();
 }
 
 class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
@@ -72,7 +74,9 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
         error: (error, _) => _workspaceShell(
           readOnly: true,
           isExisting: true,
-          formContent: Center(child: Text(error.toString(), textAlign: TextAlign.center)),
+          formContent: Center(
+            child: Text(error.toString(), textAlign: TextAlign.center),
+          ),
         ),
         data: (doc) => _buildWorkspace(invoices: invoices, doc: doc),
       );
@@ -85,12 +89,17 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
     return _buildWorkspace(invoices: invoices);
   }
 
-  Widget _buildWorkspace({required List<InvoiceModel> invoices, SalesReturnModel? doc}) {
+  Widget _buildWorkspace({
+    required List<InvoiceModel> invoices,
+    SalesReturnModel? doc,
+  }) {
     final isExisting = doc != null;
     final readOnly = isExisting;
     final lines = isExisting ? _linesFromDoc(doc) : _lines;
     final total = isExisting ? doc.totalAmount : _draftTotal;
-    final selectedInvoice = invoices.where((invoice) => invoice.id == _invoiceId).firstOrNull;
+    final selectedInvoice = invoices
+        .where((invoice) => invoice.id == _invoiceId)
+        .firstOrNull;
 
     return _workspaceShell(
       isExisting: isExisting,
@@ -121,14 +130,17 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
             onInvoiceChanged: _selectInvoice,
             onOpenInvoice: doc == null
                 ? null
-                : () => context.push(AppRoutes.invoiceDetails.replaceFirst(':id', doc.invoiceId)),
+                : () => context.push(
+                    AppRoutes.invoiceDetails.replaceFirst(':id', doc.invoiceId),
+                  ),
           ),
           Expanded(
             child: _LinesPanel(
               lines: lines,
               readOnly: readOnly,
               onQuantityChanged: (index, quantity) {
-                if (!readOnly) setState(() => _lines[index].quantity = quantity);
+                if (!readOnly)
+                  setState(() => _lines[index].quantity = quantity);
               },
             ),
           ),
@@ -161,13 +173,21 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
       onFind: _close,
       onNew: _goNew,
       onSave: onSave,
+      onPrint: isExisting
+          ? () => printDocumentUsingSettings(
+              context: context,
+              ref: ref,
+              documentType: 'sales-return',
+              documentId: widget.id!,
+            )
+          : null,
       onVoid: onVoid,
       onClear: isExisting ? _goNew : _clearDraft,
       onClose: _close,
       showPagination: false,
       showSaveDraft: false,
       showSaveAndPrint: false,
-      showPrint: false,
+      showPrint: true,
       showEmail: false,
       showEditNotes: false,
       showPayment: false,
@@ -193,7 +213,9 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
           .map(
             (line) => SalesReturnLineState(
               invoiceLineId: line.id,
-              description: line.description.isEmpty ? line.itemId : line.description,
+              description: line.description.isEmpty
+                  ? line.itemId
+                  : line.description,
               originalQuantity: line.quantity,
               unitPrice: line.unitPrice,
               discountPercent: line.discountPercent,
@@ -203,19 +225,22 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
     });
   }
 
-  List<InvoiceModel> _returnableInvoices(List<InvoiceModel> invoices) => invoices
-      .where(
-        (invoice) =>
-            invoice.isCreditInvoice &&
-            !invoice.isVoid &&
-            invoice.lines.isNotEmpty &&
-            invoice.postedTransactionId != null,
-      )
-      .toList();
+  List<InvoiceModel> _returnableInvoices(List<InvoiceModel> invoices) =>
+      invoices
+          .where(
+            (invoice) =>
+                invoice.isCreditInvoice &&
+                !invoice.isVoid &&
+                invoice.lines.isNotEmpty &&
+                invoice.postedTransactionId != null,
+          )
+          .toList();
 
   void _applyInvoicePrefill(List<InvoiceModel> invoices) {
     if (_prefillApplied || (widget.invoiceId ?? '').isEmpty) return;
-    final invoice = invoices.where((item) => item.id == widget.invoiceId).firstOrNull;
+    final invoice = invoices
+        .where((item) => item.id == widget.invoiceId)
+        .firstOrNull;
     if (invoice == null) return;
     _prefillApplied = true;
     _selectInvoice(invoice);
@@ -225,7 +250,9 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
       .map(
         (line) => SalesReturnLineState(
           invoiceLineId: line.invoiceLineId,
-          description: line.description.isEmpty ? line.itemId : line.description,
+          description: line.description.isEmpty
+              ? line.itemId
+              : line.description,
           originalQuantity: 0,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
@@ -304,15 +331,23 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
         title: Text('Void ${_returnNumber(doc)}?'),
         content: const Text('This reverses the sales return when allowed.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Void')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Void'),
+          ),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
 
     setState(() => _saving = true);
-    final result = await ref.read(salesReturnsProvider.notifier).voidReturn(doc.id);
+    final result = await ref
+        .read(salesReturnsProvider.notifier)
+        .voidReturn(doc.id);
     if (!mounted) return;
     setState(() => _saving = false);
 
@@ -341,13 +376,16 @@ class _SalesReturnFormScreenState extends ConsumerState<SalesReturnFormScreen> {
   }
 
   static String _statusMessage(SalesReturnModel doc) {
-    if (doc.isVoid || doc.status == 3) return 'This sales return is void and financial fields are locked.';
-    if (doc.status == 1) return 'This sales return is saved as draft. Financial fields are locked until update support is added.';
+    if (doc.isVoid || doc.status == 3)
+      return 'This sales return is void and financial fields are locked.';
+    if (doc.status == 1)
+      return 'This sales return is saved as draft. Financial fields are locked until update support is added.';
     return 'This sales return is posted. Financial fields are read-only.';
   }
 
   static Color _statusColor(SalesReturnModel doc, BuildContext context) {
-    if (doc.isVoid || doc.status == 3) return Theme.of(context).colorScheme.error;
+    if (doc.isVoid || doc.status == 3)
+      return Theme.of(context).colorScheme.error;
     if (doc.status == 1) return const Color(0xFF6D7880);
     return const Color(0xFF2E7D32);
   }
@@ -394,11 +432,13 @@ class _HeaderPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            doc == null ? 'Sales Return / مرتجع بيع جديد' : _SalesReturnFormScreenState._returnNumber(doc!),
+            doc == null
+                ? 'Sales Return / مرتجع بيع جديد'
+                : _SalesReturnFormScreenState._returnNumber(doc!),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: const Color(0xFF243E4A),
-                  fontWeight: FontWeight.w300,
-                ),
+              color: const Color(0xFF243E4A),
+              fontWeight: FontWeight.w300,
+            ),
           ),
           const SizedBox(height: 14),
           if (readOnly && doc != null)
@@ -406,10 +446,23 @@ class _HeaderPanel extends StatelessWidget {
               spacing: 12,
               runSpacing: 12,
               children: [
-                _ReadBox(label: 'Customer', value: doc!.customerName ?? doc!.customerId),
-                _ReadBox(label: 'Invoice', value: doc!.invoiceNumber ?? doc!.invoiceId, onTap: onOpenInvoice),
-                _ReadBox(label: 'Return date', value: _dateDisplay(doc!.returnDate)),
-                _ReadBox(label: 'Return #', value: _SalesReturnFormScreenState._returnNumber(doc!)),
+                _ReadBox(
+                  label: 'Customer',
+                  value: doc!.customerName ?? doc!.customerId,
+                ),
+                _ReadBox(
+                  label: 'Invoice',
+                  value: doc!.invoiceNumber ?? doc!.invoiceId,
+                  onTap: onOpenInvoice,
+                ),
+                _ReadBox(
+                  label: 'Return date',
+                  value: _dateDisplay(doc!.returnDate),
+                ),
+                _ReadBox(
+                  label: 'Return #',
+                  value: _SalesReturnFormScreenState._returnNumber(doc!),
+                ),
               ],
             )
           else
@@ -429,7 +482,9 @@ class _HeaderPanel extends StatelessWidget {
                   width: 180,
                   child: TextFormField(
                     readOnly: true,
-                    initialValue: _SalesReturnFormScreenState._dateOnly(returnDate),
+                    initialValue: _SalesReturnFormScreenState._dateOnly(
+                      returnDate,
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'تاريخ المرتجع',
                       border: OutlineInputBorder(),
@@ -447,7 +502,11 @@ class _HeaderPanel extends StatelessWidget {
 }
 
 class _LinesPanel extends StatelessWidget {
-  const _LinesPanel({required this.lines, required this.readOnly, required this.onQuantityChanged});
+  const _LinesPanel({
+    required this.lines,
+    required this.readOnly,
+    required this.onQuantityChanged,
+  });
 
   final List<SalesReturnLineState> lines;
   final bool readOnly;
@@ -455,7 +514,8 @@ class _LinesPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (lines.isEmpty) return const Center(child: Text('اختر فاتورة لعرض سطورها.'));
+    if (lines.isEmpty)
+      return const Center(child: Text('اختر فاتورة لعرض سطورها.'));
     return Column(
       children: [
         Container(
@@ -512,35 +572,59 @@ class _LineRow extends StatelessWidget {
       child: Row(
         children: [
           _Cell(line.description, flex: 4),
-          _Cell(line.originalQuantity <= 0 ? '-' : line.originalQuantity.toStringAsFixed(2), flex: 2, right: true),
+          _Cell(
+            line.originalQuantity <= 0
+                ? '-'
+                : line.originalQuantity.toStringAsFixed(2),
+            flex: 2,
+            right: true,
+          ),
           Expanded(
             flex: 2,
             child: Container(
               height: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: const BoxDecoration(border: Border(right: BorderSide(color: Color(0xFFB8C6CE)))),
+              decoration: const BoxDecoration(
+                border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+              ),
               child: readOnly
                   ? Align(
                       alignment: Alignment.centerRight,
-                      child: Text(line.quantity.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.w800)),
+                      child: Text(
+                        line.quantity.toStringAsFixed(2),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     )
                   : TextFormField(
                       key: ValueKey(line.invoiceLineId),
-                      initialValue: line.quantity == 0 ? '' : line.quantity.toString(),
+                      initialValue: line.quantity == 0
+                          ? ''
+                          : line.quantity.toString(),
                       textAlign: TextAlign.end,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
                       ),
-                      onChanged: (value) => onQuantityChanged(index, double.tryParse(value) ?? 0),
+                      onChanged: (value) =>
+                          onQuantityChanged(index, double.tryParse(value) ?? 0),
                     ),
             ),
           ),
           _Cell(line.unitPrice.toStringAsFixed(2), flex: 2, right: true),
           _Cell(line.discountPercent.toStringAsFixed(2), flex: 2, right: true),
-          _Cell(line.amount.toStringAsFixed(2), flex: 2, right: true, strong: true),
+          _Cell(
+            line.amount.toStringAsFixed(2),
+            flex: 2,
+            right: true,
+            strong: true,
+          ),
         ],
       ),
     );
@@ -553,39 +637,47 @@ class _FooterPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8FAFB),
-          border: Border(top: BorderSide(color: Color(0xFFCAD5DC))),
+    height: 64,
+    padding: const EdgeInsets.symmetric(horizontal: 18),
+    decoration: const BoxDecoration(
+      color: Color(0xFFF8FAFB),
+      border: Border(top: BorderSide(color: Color(0xFFCAD5DC))),
+    ),
+    child: Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Official totals, stock impact, customer credit, and accounting posting are recalculated by the backend after save.',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
         ),
-        child: Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Official totals, stock impact, customer credit, and accounting posting are recalculated by the backend after save.',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: 20),
-            const Text('Return Total', style: TextStyle(fontWeight: FontWeight.w900)),
-            const SizedBox(width: 12),
-            Text(
-              total.toStringAsFixed(2),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-          ],
+        const SizedBox(width: 20),
+        const Text(
+          'Return Total',
+          style: TextStyle(fontWeight: FontWeight.w900),
         ),
-      );
+        const SizedBox(width: 12),
+        Text(
+          total.toStringAsFixed(2),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ContextPanel extends StatelessWidget {
-  const _ContextPanel({required this.doc, required this.selectedInvoice, required this.total, required this.lineCount});
+  const _ContextPanel({
+    required this.doc,
+    required this.selectedInvoice,
+    required this.total,
+    required this.lineCount,
+  });
 
   final SalesReturnModel? doc;
   final InvoiceModel? selectedInvoice;
@@ -594,27 +686,52 @@ class _ContextPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(14, 42, 14, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Sales Return', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 12),
-            _ContextLine(label: 'Customer', value: doc?.customerName ?? selectedInvoice?.customerName ?? 'Not selected'),
-            _ContextLine(label: 'Invoice', value: doc?.invoiceNumber ?? selectedInvoice?.invoiceNumber ?? 'Not selected'),
-            _ContextLine(label: 'Status', value: doc == null ? 'New' : _SalesReturnFormScreenState._statusLabel(doc!)),
-            _ContextLine(label: 'Lines', value: lineCount.toString()),
-            _ContextLine(label: 'Total', value: total.toStringAsFixed(2)),
-            const Divider(height: 28),
-            const Text('Return policy', style: TextStyle(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 8),
-            const Text(
-              'Sales returns stay linked to the original invoice. Saved records open here in the same workspace and financial fields stay locked.',
-              style: TextStyle(fontSize: 12, height: 1.35),
-            ),
-          ],
+    padding: const EdgeInsets.fromLTRB(14, 42, 14, 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Sales Return',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
-      );
+        const SizedBox(height: 12),
+        _ContextLine(
+          label: 'Customer',
+          value:
+              doc?.customerName ??
+              selectedInvoice?.customerName ??
+              'Not selected',
+        ),
+        _ContextLine(
+          label: 'Invoice',
+          value:
+              doc?.invoiceNumber ??
+              selectedInvoice?.invoiceNumber ??
+              'Not selected',
+        ),
+        _ContextLine(
+          label: 'Status',
+          value: doc == null
+              ? 'New'
+              : _SalesReturnFormScreenState._statusLabel(doc!),
+        ),
+        _ContextLine(label: 'Lines', value: lineCount.toString()),
+        _ContextLine(label: 'Total', value: total.toStringAsFixed(2)),
+        const Divider(height: 28),
+        const Text(
+          'Return policy',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Sales returns stay linked to the original invoice. Saved records open here in the same workspace and financial fields stay locked.',
+          style: TextStyle(fontSize: 12, height: 1.35),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ReadBox extends StatelessWidget {
@@ -626,18 +743,27 @@ class _ReadBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final child = InputDecorator(
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
       child: Text(
         value,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontWeight: FontWeight.w800,
-          color: onTap == null ? const Color(0xFF273F4B) : Theme.of(context).colorScheme.primary,
+          color: onTap == null
+              ? const Color(0xFF273F4B)
+              : Theme.of(context).colorScheme.primary,
           decoration: onTap == null ? null : TextDecoration.underline,
         ),
       ),
     );
-    return SizedBox(width: 220, child: onTap == null ? child : InkWell(onTap: onTap, child: child));
+    return SizedBox(
+      width: 220,
+      child: onTap == null ? child : InkWell(onTap: onTap, child: child),
+    );
   }
 }
 
@@ -649,23 +775,28 @@ class _Head extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-        flex: flex,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            text,
-            textAlign: right ? TextAlign.end : TextAlign.start,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF53656E),
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
+    flex: flex,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        text,
+        textAlign: right ? TextAlign.end : TextAlign.start,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: const Color(0xFF53656E),
+          fontWeight: FontWeight.w900,
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _Cell extends StatelessWidget {
-  const _Cell(this.text, {required this.flex, this.right = false, this.strong = false});
+  const _Cell(
+    this.text, {
+    required this.flex,
+    this.right = false,
+    this.strong = false,
+  });
   final String text;
   final int flex;
   final bool right;
@@ -673,22 +804,24 @@ class _Cell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-        flex: flex,
-        child: Container(
-          height: double.infinity,
-          alignment: right ? Alignment.centerRight : Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: const BoxDecoration(border: Border(right: BorderSide(color: Color(0xFFB8C6CE)))),
-          child: Text(
-            text,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-                  color: const Color(0xFF273F4B),
-                ),
-          ),
+    flex: flex,
+    child: Container(
+      height: double.infinity,
+      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: Color(0xFFB8C6CE))),
+      ),
+      child: Text(
+        text,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
+          color: const Color(0xFF273F4B),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _ContextLine extends StatelessWidget {
@@ -698,17 +831,28 @@ class _ContextLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            Text(label, style: const TextStyle(color: Color(0xFF667A84), fontWeight: FontWeight.w700)),
-            const Spacer(),
-            Flexible(
-              child: Text(value, textAlign: TextAlign.end, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
-            ),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF667A84),
+            fontWeight: FontWeight.w700,
+          ),
         ),
-      );
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 String _dateDisplay(DateTime value) =>
@@ -764,7 +908,10 @@ class _InvoiceTypeAheadField extends StatelessWidget {
           filled: true,
           fillColor: Colors.white,
           border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 9,
+          ),
           prefixIcon: const Icon(Icons.receipt_long_outlined, size: 18),
           suffixIcon: selectedInvoice != null
               ? IconButton(
@@ -782,7 +929,11 @@ class _InvoiceTypeAheadField extends StatelessWidget {
       suggestionsCallback: _matches,
       itemBuilder: (context, invoice) => ListTile(
         dense: true,
-        leading: const Icon(Icons.receipt_long_outlined, size: 18, color: Color(0xFF264D5B)),
+        leading: const Icon(
+          Icons.receipt_long_outlined,
+          size: 18,
+          color: Color(0xFF264D5B),
+        ),
         title: Text(
           '${invoice.invoiceNumber} — ${invoice.customerName ?? invoice.customerId}',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
@@ -808,4 +959,3 @@ class _InvoiceTypeAheadField extends StatelessWidget {
     );
   }
 }
-

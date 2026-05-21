@@ -3,13 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ledgerflow/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 
 import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' show AccountType, PaymentMethod;
-import '../../transactions/widgets/transaction_models.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
@@ -211,10 +210,9 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
   }
 
   void _navigatePrevious() {
-    final payments = ref.read(paymentsProvider).maybeWhen(
-      data: (items) => items,
-      orElse: () => <PaymentModel>[],
-    );
+    final payments = ref
+        .read(paymentsProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <PaymentModel>[]);
     if (payments.isEmpty) return;
     // Since we are in "New" mode, Prev takes us to the latest existing payment
     context.go(AppRoutes.paymentDetails.replaceFirst(':id', payments.first.id));
@@ -222,14 +220,12 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final customersAsync = ref.watch(customersProvider);
     final invoicesAsync = ref.watch(invoicesProvider);
     final accountsAsync = ref.watch(accountsProvider);
-    final payments = ref.watch(paymentsProvider).maybeWhen(
-      data: (items) => items,
-      orElse: () => <PaymentModel>[],
-    );
+    final payments = ref
+        .watch(paymentsProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <PaymentModel>[]);
 
     final customers = customersAsync.maybeWhen(
       data: (items) => items.where((customer) => customer.isActive).toList(),
@@ -344,8 +340,6 @@ class _PaymentFormScreenState extends ConsumerState<PaymentFormScreen> {
   }
 }
 
-
-
 class _PaymentHeader extends StatelessWidget {
   const _PaymentHeader({
     required this.customers,
@@ -414,7 +408,7 @@ class _PaymentHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('CUSTOMER:JOB'),
+                const QbStripLabel('CUSTOMER:JOB'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
@@ -425,7 +419,7 @@ class _PaymentHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('DEPOSIT TO'),
+                const QbStripLabel('DEPOSIT TO'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 4,
@@ -487,16 +481,16 @@ class _PaymentHeader extends StatelessWidget {
                     width: 260,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _StaticBox(
+                          child: QbDateBox(
                             text: dateText,
-                            icon: Icons.calendar_today_outlined,
+                            enabled: true,
                             onTap: onPickDate,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'METHOD',
                           child: _MethodField(
                             value: paymentMethod,
@@ -504,9 +498,9 @@ class _PaymentHeader extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'PAYMENT #',
-                          child: const _StaticBox(text: 'AUTO'),
+                          child: const QbStaticBox(text: 'AUTO'),
                         ),
                       ],
                     ),
@@ -703,7 +697,7 @@ class _PaymentStat extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _FieldLabel(label)),
+          Expanded(child: QbFieldLabel(label)),
           Text(
             value,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -1283,24 +1277,24 @@ class _PaymentSidePanelState extends State<_PaymentSidePanel> {
             ),
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Payment Snapshot',
           child: Column(
             children: [
-              _InfoRow(
+              QbInfoRow(
                 label: 'Open balance',
                 value: widget.money(widget.openBalance),
               ),
-              _InfoRow(
+              QbInfoRow(
                 label: 'Selected invoices',
                 value: selected.length.toString(),
               ),
-              _InfoRow(
+              QbInfoRow(
                 label: 'Payment method',
                 value: widget.paymentMethod.toApiString(),
               ),
               const Divider(height: 14),
-              _InfoRow(
+              QbInfoRow(
                 label: 'Amount received',
                 value: widget.money(widget.amountReceived),
                 strong: true,
@@ -1308,24 +1302,26 @@ class _PaymentSidePanelState extends State<_PaymentSidePanel> {
             ],
           ),
         ),
-        _SideSection(
-          title: 'Applied Invoices',
-          expanded: true,
-          child: selected.isEmpty
-              ? const Center(child: Text('No invoices selected.'))
-              : ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: selected.length,
-                  itemBuilder: (context, index) {
-                    final item = selected[index];
-                    return _AppliedLine(
-                      title: item.invoiceNumber,
-                      amount: widget.money(item.amount),
-                    );
-                  },
-                ),
+        Expanded(
+          child: QbSideSection(
+            title: 'Applied Invoices',
+            expanded: true,
+            child: selected.isEmpty
+                ? const Center(child: Text('No invoices selected.'))
+                : ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: selected.length,
+                    itemBuilder: (context, index) {
+                      final item = selected[index];
+                      return _AppliedLine(
+                        title: item.invoiceNumber,
+                        amount: widget.money(item.amount),
+                      );
+                    },
+                  ),
+          ),
         ),
-        const _SideSection(
+        const QbSideSection(
           title: 'Notes',
           child: Text(
             'No notes added.',
@@ -1333,89 +1329,6 @@ class _PaymentSidePanelState extends State<_PaymentSidePanel> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SideSection extends StatelessWidget {
-  const _SideSection({
-    required this.title,
-    required this.child,
-    this.expanded = false,
-  });
-
-  final String title;
-  final Widget child;
-  final bool expanded;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = Container(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB8C6CE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 30,
-            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE7EEF1),
-              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF2D4854),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          if (expanded)
-            Expanded(
-              child: Padding(padding: const EdgeInsets.all(8), child: child),
-            )
-          else
-            Padding(padding: const EdgeInsets.all(8), child: child),
-        ],
-      ),
-    );
-
-    return expanded ? Expanded(child: content) : content;
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF334A55),
-      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: style)),
-          Text(value, style: style),
-        ],
-      ),
     );
   }
 }
@@ -1458,83 +1371,6 @@ class _AppliedLine extends StatelessWidget {
   }
 }
 
-
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text, this.icon, this.onTap});
-
-  final String text;
-  final IconData? icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Container(
-      height: 34,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB7C3CB)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          if (icon != null) Icon(icon, size: 15),
-        ],
-      ),
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 86, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
-  );
-}
-
 class _AmountRow extends StatelessWidget {
   const _AmountRow({
     required this.label,
@@ -1566,5 +1402,3 @@ class _AmountRow extends StatelessWidget {
     ],
   );
 }
-
-

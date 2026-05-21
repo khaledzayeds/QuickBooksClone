@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/banking_models.dart';
 import '../providers/banking_provider.dart';
@@ -117,7 +118,7 @@ class _BankReconcileScreenState extends ConsumerState<BankReconcileScreen> {
                       ),
                       child: Row(
                         children: [
-                          const _StripLabel('BANK ACCOUNT'),
+                          const QbStripLabel('BANK ACCOUNT'),
                           const SizedBox(width: 8),
                           Expanded(
                             child: _CompactBankDropdown(
@@ -153,11 +154,25 @@ class _BankReconcileScreenState extends ConsumerState<BankReconcileScreen> {
                               width: 300,
                               child: Column(
                                 children: [
-                                  _DateField(
-                                    label: 'Statement Date',
-                                    value: statementDate,
-                                    onChanged: (v) =>
-                                        setState(() => statementDate = v),
+                                  QbStackedField(
+                                    label: 'STATEMENT DATE',
+                                    child: QbDateBox(
+                                      text:
+                                          '${statementDate.day}/${statementDate.month}/${statementDate.year}',
+                                      onTap: () async {
+                                        final picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: statementDate,
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2030),
+                                        );
+                                        if (picked != null) {
+                                          setState(
+                                            () => statementDate = picked,
+                                          );
+                                        }
+                                      },
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
                                   AppTextField(
@@ -376,15 +391,22 @@ class _ReconcileSidePanel extends StatelessWidget {
             ),
           ),
         ),
-        _SideBlock(
+        QbSideSection(
           title: 'Register',
-          rows: [
-            _InfoPair('Current balance', account!.balance.toStringAsFixed(2)),
-            _InfoPair(
-              'Difference',
-              preview == null ? '-' : preview!.difference.toStringAsFixed(2),
-            ),
-          ],
+          child: Column(
+            children: [
+              QbInfoRow(
+                label: 'Current balance',
+                value: account!.balance.toStringAsFixed(2),
+              ),
+              QbInfoRow(
+                label: 'Difference',
+                value: preview == null
+                    ? '-'
+                    : preview!.difference.toStringAsFixed(2),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -432,104 +454,4 @@ class _CompactBankDropdown extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _InfoPair {
-  const _InfoPair(this.label, this.value);
-  final String label;
-  final String value;
-}
-
-class _SideBlock extends StatelessWidget {
-  const _SideBlock({required this.title, required this.rows});
-  final String title;
-  final List<_InfoPair> rows;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-    padding: const EdgeInsets.all(8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB8C6CE)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: const Color(0xFF2D4854),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...rows.map(
-          (row) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(row.label, overflow: TextOverflow.ellipsis),
-                ),
-                Expanded(
-                  child: Text(
-                    row.value,
-                    textAlign: TextAlign.end,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-  final String label;
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: () async {
-      final picked = await showDatePicker(
-        context: context,
-        initialDate: value,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
-      );
-      if (picked != null) onChanged(picked);
-    },
-    child: InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-      child: Text('${value.day}/${value.month}/${value.year}'),
-    ),
-  );
 }

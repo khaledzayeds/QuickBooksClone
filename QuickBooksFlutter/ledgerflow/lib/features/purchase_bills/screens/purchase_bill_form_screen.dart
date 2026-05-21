@@ -8,6 +8,8 @@ import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/app/router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/widgets/qb/qb_widgets.dart';
 
 import '../../../../core/widgets/qb/qb_transaction_line_grid.dart';
 import '../../../../core/widgets/qb/transaction_line_price_mode.dart';
@@ -473,6 +475,26 @@ class _BillHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dateFmt = DateFormat('dd/MM/yyyy');
+    Future<void> pickBillDate() async {
+      final d = await showDatePicker(
+        context: context,
+        initialDate: billDate,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2030),
+      );
+      if (d != null) onBillDateChanged(d);
+    }
+    Future<void> pickDueDate() async {
+      final d = await showDatePicker(
+        context: context,
+        initialDate: dueDate,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2030),
+      );
+      if (d != null) onDueDateChanged(d);
+    }
+
     final theme = Theme.of(context);
     return Container(
       color: Colors.white,
@@ -487,7 +509,7 @@ class _BillHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('VENDOR'),
+                const QbStripLabel('VENDOR'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
@@ -500,7 +522,7 @@ class _BillHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('RECEIPT'),
+                const QbStripLabel('RECEIPT'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
@@ -535,18 +557,18 @@ class _BillHeader extends StatelessWidget {
                     width: 260,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _DatePickerField(
-                            label: '',
-                            value: billDate,
-                            onChanged: onBillDateChanged,
+                          child: QbDateBox(
+                            text: dateFmt.format(billDate),
+                            enabled: true,
+                            onTap: pickBillDate,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const _HorizontalField(
+                        const QbHorizontalField(
                           label: 'BILL #',
-                          child: _StaticBox(text: 'AUTO'),
+                          child: QbStaticBox(text: 'AUTO'),
                         ),
                       ],
                     ),
@@ -554,10 +576,13 @@ class _BillHeader extends StatelessWidget {
                   const SizedBox(width: 20),
                   SizedBox(
                     width: 240,
-                    child: _DatePickerField(
+                    child: QbStackedField(
                       label: 'DUE DATE',
-                      value: dueDate,
-                      onChanged: onDueDateChanged,
+                      child: QbDateBox(
+                        text: dateFmt.format(dueDate),
+                        enabled: true,
+                        onTap: pickDueDate,
+                      ),
                     ),
                   ),
                   const Spacer(),
@@ -752,7 +777,7 @@ class _BillFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _FieldLabel('MEMO'),
+                const QbFieldLabel('MEMO'),
                 const SizedBox(height: 4),
                 SizedBox(
                   height: 34,
@@ -891,98 +916,7 @@ class _BillContextPanel extends StatelessWidget {
 
 
 
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
 
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 34,
-    alignment: Alignment.centerLeft,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB7C3CB)),
-    ),
-    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 82, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
-  );
-}
-
-class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-  final String label;
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final d = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-        );
-        if (d != null) onChanged(d);
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          prefixIcon: const Icon(Icons.calendar_today, size: 18),
-        ),
-        child: Text('${value.day}/${value.month}/${value.year}'),
-      ),
-    );
-  }
-}
 
 class _ReceiptPicker extends ConsumerWidget {
   const _ReceiptPicker({

@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/router.dart';
+import '../../../../core/widgets/qb/qb_widgets.dart';
 import '../../../../core/widgets/qb/qb_transaction_line_grid.dart';
 import '../../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../invoices/widgets/notes_edit_dialog.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../../transactions/widgets/transaction_context_sidebar.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
@@ -310,6 +312,20 @@ class _PurchaseOrderWorkspaceScreenState
     context.push('${AppRoutes.receiveInventoryNew}?poId=${order.id}');
   }
 
+  Future<void> _handlePrint() async {
+    final id = _editingOrder?.id ?? widget.id;
+    if (id == null || id.isEmpty) {
+      _showError('Save the purchase order before printing.');
+      return;
+    }
+    await printDocumentUsingSettings(
+      context: context,
+      ref: ref,
+      documentType: 'purchase-order',
+      documentId: id,
+    );
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -385,6 +401,7 @@ class _PurchaseOrderWorkspaceScreenState
               onSaveDraft: _canSaveDraft ? () => _save(SaveMode.draft) : null,
               onSaveOpen: _canOpen ? () => _save(SaveMode.saveAsOpen) : null,
               onReceive: _canReceive ? _receiveInventory : null,
+              onPrint: _saving ? null : _handlePrint,
               onClear: _clear,
               onClose: () => context.go(AppRoutes.purchaseOrders),
             ),
@@ -526,12 +543,14 @@ class _PoHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('VENDOR'),
+                const QbStripLabel('VENDOR'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
                   child: readOnly
-                      ? _StaticBox(text: vendor?.displayName ?? 'Select vendor')
+                      ? QbStaticBox(
+                          text: vendor?.displayName ?? 'Select vendor',
+                        )
                       : _InlineVendorField(
                           vendors: vendors,
                           selected: vendor,
@@ -539,11 +558,11 @@ class _PoHeader extends StatelessWidget {
                         ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('TEMPLATE'),
+                const QbStripLabel('TEMPLATE'),
                 const SizedBox(width: 8),
                 const Expanded(
                   flex: 3,
-                  child: _StaticBox(text: 'Standard Purchase Order'),
+                  child: QbStaticBox(text: 'Standard Purchase Order'),
                 ),
               ],
             ),
@@ -572,18 +591,18 @@ class _PoHeader extends StatelessWidget {
                     width: 260,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _DateBox(
+                          child: QbDateBox(
                             text: fmt.format(orderDate),
                             enabled: !readOnly,
                             onTap: onOrderDateTap,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'P.O. #',
-                          child: _StaticBox(text: poNumber),
+                          child: QbStaticBox(text: poNumber),
                         ),
                       ],
                     ),
@@ -594,7 +613,7 @@ class _PoHeader extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const _FieldLabel('VENDOR / SHIP FROM'),
+                        const QbFieldLabel('VENDOR / SHIP FROM'),
                         const SizedBox(height: 4),
                         Container(
                           height: 96,
@@ -620,9 +639,9 @@ class _PoHeader extends StatelessWidget {
                   const SizedBox(width: 20),
                   Expanded(
                     flex: 3,
-                    child: _StackedField(
+                    child: QbStackedField(
                       label: 'EXPECTED DATE',
-                      child: _DateBox(
+                      child: QbDateBox(
                         text: fmt.format(expectedDate),
                         enabled: !readOnly,
                         onTap: onExpectedDateTap,
@@ -932,6 +951,7 @@ class _PoCommandBar extends StatelessWidget {
     this.onSaveDraft,
     this.onSaveOpen,
     this.onReceive,
+    this.onPrint,
   });
   final bool saving;
   final VoidCallback? onPrevious;
@@ -941,6 +961,7 @@ class _PoCommandBar extends StatelessWidget {
   final VoidCallback? onSaveDraft;
   final VoidCallback? onSaveOpen;
   final VoidCallback? onReceive;
+  final VoidCallback? onPrint;
   final VoidCallback onClear;
   final VoidCallback onClose;
 
@@ -991,7 +1012,11 @@ class _PoCommandBar extends StatelessWidget {
             onTap: saving ? null : onClear,
           ),
           const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
+          _Tool(
+            icon: Icons.print_outlined,
+            label: 'Print',
+            onTap: saving ? null : onPrint,
+          ),
           const _Tool(icon: Icons.mail_outline, label: 'Email'),
           _Tool(
             icon: Icons.inventory_2_outlined,
@@ -1252,110 +1277,6 @@ class _PoStatusStrip extends StatelessWidget {
         ),
       ],
     ),
-  );
-}
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-      letterSpacing: 0.4,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text});
-  final String text;
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 30,
-    alignment: Alignment.centerLeft,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB7C3CB)),
-    ),
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.bodySmall,
-    ),
-  );
-}
-
-class _DateBox extends StatelessWidget {
-  const _DateBox({
-    required this.text,
-    required this.enabled,
-    required this.onTap,
-  });
-  final String text;
-  final bool enabled;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: enabled ? onTap : null,
-    child: Container(
-      height: 34,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB7C3CB)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          const Icon(Icons.calendar_today_outlined, size: 15),
-        ],
-      ),
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 82, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
-  );
-}
-
-class _StackedField extends StatelessWidget {
-  const _StackedField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [_FieldLabel(label), const SizedBox(height: 4), child],
   );
 }
 

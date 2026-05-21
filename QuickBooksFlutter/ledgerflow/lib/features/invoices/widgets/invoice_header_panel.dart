@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../customers/data/models/customer_model.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 
 class InvoiceHeaderPanel extends StatelessWidget {
   const InvoiceHeaderPanel({
@@ -40,35 +41,18 @@ class InvoiceHeaderPanel extends StatelessWidget {
             ),
             child: Row(
               children: [
-                _StripLabel('CUSTOMER:JOB'),
+                const QbStripLabel('CUSTOMER:JOB'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
                   child: SizedBox(height: 30, child: customerField),
                 ),
                 const SizedBox(width: 16),
-                _StripLabel('TEMPLATE'),
+                const QbStripLabel('TEMPLATE'),
                 const SizedBox(width: 8),
-                Expanded(
+                const Expanded(
                   flex: 3,
-                  child: Container(
-                    height: 30,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    alignment: Alignment.centerLeft,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFF9BAAB2)),
-                    ),
-                    child: Text(
-                      'Standard Invoice',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF263C46),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  child: QbStaticBox(text: 'Standard Invoice'),
                 ),
               ],
             ),
@@ -106,13 +90,15 @@ class InvoiceHeaderPanel extends StatelessWidget {
                             : 260,
                         child: Column(
                           children: [
-                            _HorizontalField(
+                            QbHorizontalField(
                               label: 'DATE',
+                              labelWidth: 74,
                               child: invoiceDateField,
                             ),
                             const SizedBox(height: 8),
-                            _HorizontalField(
+                            QbHorizontalField(
                               label: 'INVOICE #',
+                              labelWidth: 74,
                               child: invoiceNumberField,
                             ),
                           ],
@@ -129,14 +115,14 @@ class InvoiceHeaderPanel extends StatelessWidget {
                             Row(
                               children: [
                                 Expanded(
-                                  child: _StackedField(
+                                  child: QbStackedField(
                                     label: 'P.O. NO.',
-                                    child: const _StaticBox(text: ''),
+                                    child: const QbStaticBox(text: ''),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                  child: _StackedField(
+                                  child: QbStackedField(
                                     label: 'TERMS',
                                     child: billingTermsField,
                                   ),
@@ -144,7 +130,7 @@ class InvoiceHeaderPanel extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            _StackedField(
+                            QbStackedField(
                               label: 'DUE DATE',
                               child: dueDateField,
                             ),
@@ -163,94 +149,7 @@ class InvoiceHeaderPanel extends StatelessWidget {
   }
 }
 
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
 
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: Colors.white,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 0.4,
-      ),
-    );
-  }
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 74,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF53656E),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        Expanded(child: SizedBox(height: 34, child: child)),
-      ],
-    );
-  }
-}
-
-class _StackedField extends StatelessWidget {
-  const _StackedField({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: const Color(0xFF53656E),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(height: 34, child: child),
-      ],
-    );
-  }
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB7C3CB)),
-      ),
-      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-    );
-  }
-}
 
 class _BillToBox extends StatelessWidget {
   const _BillToBox({required this.customer});

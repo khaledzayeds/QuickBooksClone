@@ -8,8 +8,11 @@ import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../../printing/data/models/print_data_contracts.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../data/models/banking_models.dart';
 import '../providers/banking_provider.dart';
 
@@ -29,6 +32,8 @@ class _MakeDepositScreenState extends ConsumerState<MakeDepositScreen> {
   final _memoCtrl = TextEditingController();
   final _moneyFmt = NumberFormat('#,##0.00');
   final _dateFmt = DateFormat('dd/MM/yyyy');
+  List<BankAccountModel> _printBanks = const [];
+  List<AccountModel> _printOffsets = const [];
 
   double get _amount => double.tryParse(_amountCtrl.text.trim()) ?? 0;
 
@@ -107,6 +112,84 @@ class _MakeDepositScreenState extends ConsumerState<MakeDepositScreen> {
     );
   }
 
+  Future<void> _printDraft(
+    List<BankAccountModel> banks,
+    List<AccountModel> offsets,
+  ) async {
+    if (_bankId == null || _offsetId == null || _amount <= 0) {
+      _showError('Complete deposit details before printing.');
+      return;
+    }
+    final bank = banks.where((item) => item.id == _bankId).firstOrNull;
+    final offset = offsets.where((item) => item.id == _offsetId).firstOrNull;
+    final data = DocumentPrintDataModel(
+      documentId: 'draft-deposit',
+      documentType: 'deposit',
+      documentNumber: 'AUTO',
+      status: 'Draft',
+      company: const PrintCompanyModel(
+        companyName: 'LedgerFlow',
+        currency: 'EGP',
+        country: 'Egypt',
+      ),
+      customer: PrintCustomerModel(
+        customerId: _offsetId ?? '',
+        displayName: _receivedFromCtrl.text.trim().isEmpty
+            ? offset?.name ?? 'From Account'
+            : _receivedFromCtrl.text.trim(),
+        currency: 'EGP',
+        openBalance: 0,
+        creditBalance: 0,
+      ),
+      payment: PrintPaymentModel(
+        depositAccountId: _bankId,
+        depositAccountName: bank?.displayName,
+        paymentMethod: 'Deposit',
+      ),
+      documentDate: _depositDate,
+      dueDate: _depositDate,
+      subtotal: _amount,
+      discountAmount: 0,
+      taxAmount: 0,
+      totalAmount: _amount,
+      paidAmount: _amount,
+      creditAppliedAmount: 0,
+      returnedAmount: 0,
+      balanceDue: 0,
+      lines: [
+        PrintLineModel(
+          lineNumber: 1,
+          itemId: _offsetId ?? '',
+          itemName: offset?.name ?? 'Deposit line',
+          description: _memoCtrl.text.trim().isEmpty
+              ? 'Bank deposit'
+              : _memoCtrl.text.trim(),
+          quantity: 1,
+          unitPrice: _amount,
+          discountPercent: 0,
+          taxRatePercent: 0,
+          taxAmount: 0,
+          lineTotal: _amount,
+        ),
+      ],
+      summaryRows: [
+        PrintSummaryRowModel(
+          label: 'Deposit Total',
+          amount: _amount,
+          isStrong: true,
+        ),
+      ],
+      generatedAt: DateTime.now(),
+      notes: _memoCtrl.text.trim().isEmpty ? null : _memoCtrl.text.trim(),
+      terms: bank == null ? null : 'Deposit to ${bank.displayName}',
+    );
+    await printDocumentDataUsingSettings(
+      context: context,
+      ref: ref,
+      data: data,
+    );
+  }
+
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -130,6 +213,9 @@ class _MakeDepositScreenState extends ConsumerState<MakeDepositScreen> {
               onFind: () => context.go(AppRoutes.bankingRegister),
               onNew: _clear,
               onSave: saving ? null : _save,
+              onPrint: saving
+                  ? null
+                  : () => _printDraft(_printBanks, _printOffsets),
               onClear: _clear,
               onClose: () => context.go(AppRoutes.dashboard),
             ),
@@ -155,6 +241,8 @@ class _MakeDepositScreenState extends ConsumerState<MakeDepositScreen> {
                                   AccountType.accountsPayable,
                         )
                         .toList();
+                    _printBanks = banks;
+                    _printOffsets = offsets;
                     final selectedBank = banks
                         .where((account) => account.id == _bankId)
                         .firstOrNull;
@@ -249,6 +337,7 @@ class _DepositCommandBar extends StatelessWidget {
     required this.onClear,
     required this.onClose,
     this.onSave,
+    this.onPrint,
   });
 
   final bool saving;
@@ -257,6 +346,7 @@ class _DepositCommandBar extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback onClose;
   final VoidCallback? onSave;
+  final VoidCallback? onPrint;
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +370,11 @@ class _DepositCommandBar extends StatelessWidget {
           ),
           _Tool(icon: Icons.delete_outline, label: 'Clear', onTap: onClear),
           const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
+          _Tool(
+            icon: Icons.print_outlined,
+            label: 'Print',
+            onTap: saving ? null : onPrint,
+          ),
           const Spacer(),
           _Tool(icon: Icons.close, label: 'Close', onTap: onClose),
           const SizedBox(width: 8),
@@ -340,7 +434,7 @@ class _DepositHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('DEPOSIT TO'),
+                const QbStripLabel('DEPOSIT TO'),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _BankDropdown(
@@ -350,7 +444,7 @@ class _DepositHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('FROM ACCOUNT'),
+                const QbStripLabel('FROM ACCOUNT'),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _AccountDropdown(
@@ -384,18 +478,20 @@ class _DepositHeader extends StatelessWidget {
                     width: 280,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _StaticBox(
+                          labelWidth: 86,
+                          child: QbDateBox(
                             text: dateText,
-                            icon: Icons.calendar_today_outlined,
+                            enabled: true,
                             onTap: onPickDate,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DEPOSIT #',
-                          child: const _StaticBox(text: 'AUTO'),
+                          labelWidth: 86,
+                          child: const QbStaticBox(text: 'AUTO'),
                         ),
                       ],
                     ),
@@ -750,20 +846,20 @@ class _DepositSidePanelState extends State<_DepositSidePanel> {
             ),
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Deposit Summary',
           child: Column(
             children: [
-              _InfoRow(
+              QbInfoRow(
                 label: 'Current balance',
                 value: widget.money(bank.balance),
               ),
-              _InfoRow(
+              QbInfoRow(
                 label: 'Deposit amount',
                 value: widget.money(widget.amount),
               ),
               const Divider(height: 14),
-              _InfoRow(
+              QbInfoRow(
                 label: 'After deposit',
                 value: widget.money(bank.balance + widget.amount),
                 strong: true,
@@ -771,13 +867,13 @@ class _DepositSidePanelState extends State<_DepositSidePanel> {
             ],
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Entry Preview',
           child: Column(
             children: [
-              _InfoRow(label: 'Debit', value: bank.name),
-              _InfoRow(label: 'Credit', value: widget.offset?.name ?? '-'),
-              _InfoRow(
+              QbInfoRow(label: 'Debit', value: bank.name),
+              QbInfoRow(label: 'Credit', value: widget.offset?.name ?? '-'),
+              QbInfoRow(
                 label: 'Received from',
                 value: widget.receivedFrom.trim().isEmpty
                     ? '-'
@@ -787,9 +883,8 @@ class _DepositSidePanelState extends State<_DepositSidePanel> {
           ),
         ),
         Expanded(
-          child: _SideSection(
+          child: QbSideSection(
             title: 'Memo',
-            expanded: true,
             child: Text(
               widget.memo.trim().isEmpty
                   ? 'No memo added.'
@@ -979,101 +1074,12 @@ class _StatBox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _FieldLabel(label)),
+          Expanded(child: QbFieldLabel(label)),
           Text(
             value,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: const Color(0xFF213D49),
               fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SideSection extends StatelessWidget {
-  const _SideSection({
-    required this.title,
-    required this.child,
-    this.expanded = false,
-  });
-
-  final String title;
-  final Widget child;
-  final bool expanded;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = Container(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB8C6CE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 30,
-            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE7EEF1),
-              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF2D4854),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          if (expanded)
-            Expanded(
-              child: Padding(padding: const EdgeInsets.all(8), child: child),
-            )
-          else
-            Padding(padding: const EdgeInsets.all(8), child: child),
-        ],
-      ),
-    );
-
-    return expanded ? Expanded(child: content) : content;
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF334A55),
-      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: style)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-              style: style,
             ),
           ),
         ],
@@ -1127,78 +1133,6 @@ class _Separator extends StatelessWidget {
     height: 48,
     margin: const EdgeInsets.symmetric(horizontal: 8),
     color: const Color(0xFFC4D0D6),
-  );
-}
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text, this.icon, this.onTap});
-
-  final String text;
-  final IconData? icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Container(
-      height: 34,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB7C3CB)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          if (icon != null) Icon(icon, size: 15),
-        ],
-      ),
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 86, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
   );
 }
 

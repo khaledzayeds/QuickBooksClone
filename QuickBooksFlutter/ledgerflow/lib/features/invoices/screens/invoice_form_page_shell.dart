@@ -24,7 +24,6 @@ import '../widgets/invoice_header_panel.dart';
 import '../widgets/invoice_lines_panel.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../widgets/notes_edit_dialog.dart';
-import '../widgets/notes_edit_dialog.dart';
 
 const _kInvoiceTerms = [
   'Due on receipt',

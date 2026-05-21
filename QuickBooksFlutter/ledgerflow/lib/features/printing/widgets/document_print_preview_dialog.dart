@@ -1,9 +1,15 @@
 // document_print_preview_dialog.dart
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 
+import '../../print_templates/data/models/print_template_model.dart';
+import '../../print_templates/data/print_template_repository.dart';
+import '../../print_templates/data/sample_templates.dart';
+import '../../print_templates/logic/print_template_pdf_service.dart';
 import '../../settings/data/models/printing_settings_model.dart';
 import '../../settings/providers/printing_settings_provider.dart';
 import '../data/models/print_data_contracts.dart';
@@ -26,15 +32,35 @@ Future<void> showDocumentPrintPreviewDialog({
   );
 }
 
+Future<void> showDocumentDataPrintPreviewDialog({
+  required BuildContext context,
+  required DocumentPrintDataModel data,
+  required PrintingSettingsModel settings,
+}) {
+  return showDialog<void>(
+    context: context,
+    builder: (_) => Dialog(
+      insetPadding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 980, maxHeight: 760),
+        child: _PrintPreviewContent(
+          data: data,
+          settings: settings.effectiveFor(data.documentType),
+        ),
+      ),
+    ),
+  );
+}
+
 Future<void> printDocumentUsingSettings({
   required BuildContext context,
   required WidgetRef ref,
   required String documentType,
   required String documentId,
 }) async {
-  final settings = ref.read(printingSettingsProvider).settings;
-  if (settings.printPreviewBeforePrint ||
-      settings.printMode == PrintMode.both) {
+  final globalSettings = ref.read(printingSettingsProvider).settings;
+  final settings = globalSettings.effectiveFor(documentType);
+  if (settings.printPreviewBeforePrint) {
     return showDocumentPrintPreviewDialog(
       context: context,
       ref: ref,
@@ -50,19 +76,171 @@ Future<void> printDocumentUsingSettings({
   final data = await ref.read(documentPrintDataProvider(request).future);
   switch (settings.printMode) {
     case PrintMode.a4:
-      await Printing.layoutPdf(
+      await _printPdf(
         name: '${data.documentType}-${data.documentNumber}-A4.pdf',
-        onLayout: (_) => const A4DocumentPdfService().build(data, settings),
+        printerName: settings.a4PrinterName,
+        bytesBuilder: () => _buildA4Bytes(data, settings),
       );
     case PrintMode.thermal:
-      await Printing.layoutPdf(
+      await _printPdf(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
-        onLayout: (_) =>
-            const ThermalDocumentPdfService().build(data, settings),
+        printerName: settings.thermalPrinterName,
+        bytesBuilder: () => _buildThermalBytes(data, settings),
       );
     case PrintMode.both:
-      break;
+      await _printPdf(
+        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        printerName: settings.a4PrinterName,
+        bytesBuilder: () => _buildA4Bytes(data, settings),
+      );
+      await _printPdf(
+        name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        printerName: settings.thermalPrinterName,
+        bytesBuilder: () => _buildThermalBytes(data, settings),
+      );
   }
+}
+
+Future<void> printDocumentDataUsingSettings({
+  required BuildContext context,
+  required WidgetRef ref,
+  required DocumentPrintDataModel data,
+}) async {
+  final settings = ref
+      .read(printingSettingsProvider)
+      .settings
+      .effectiveFor(data.documentType);
+  if (settings.printPreviewBeforePrint) {
+    return showDocumentDataPrintPreviewDialog(
+      context: context,
+      data: data,
+      settings: settings,
+    );
+  }
+
+  switch (settings.printMode) {
+    case PrintMode.a4:
+      await _printPdf(
+        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        printerName: settings.a4PrinterName,
+        bytesBuilder: () => _buildA4Bytes(data, settings),
+      );
+    case PrintMode.thermal:
+      await _printPdf(
+        name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        printerName: settings.thermalPrinterName,
+        bytesBuilder: () => _buildThermalBytes(data, settings),
+      );
+    case PrintMode.both:
+      await _printPdf(
+        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        printerName: settings.a4PrinterName,
+        bytesBuilder: () => _buildA4Bytes(data, settings),
+      );
+      await _printPdf(
+        name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        printerName: settings.thermalPrinterName,
+        bytesBuilder: () => _buildThermalBytes(data, settings),
+      );
+  }
+}
+
+Future<Uint8List> _buildA4Bytes(
+  DocumentPrintDataModel data,
+  PrintingSettingsModel settings,
+) async {
+  final template = await _resolveTemplate(data.documentType, settings);
+  if (template != null && !_isThermalTemplate(template)) {
+    return const PrintTemplatePdfService().build(
+      template,
+      data: data,
+      settings: settings,
+    );
+  }
+  return const A4DocumentPdfService().build(data, settings);
+}
+
+Future<Uint8List> _buildThermalBytes(
+  DocumentPrintDataModel data,
+  PrintingSettingsModel settings,
+) async {
+  final template = await _resolveTemplate(data.documentType, settings);
+  if (template != null && _isThermalTemplate(template)) {
+    return const PrintTemplatePdfService().build(
+      template,
+      data: data,
+      settings: settings,
+    );
+  }
+  return const ThermalDocumentPdfService().build(data, settings);
+}
+
+Future<PrintTemplateModel?> _resolveTemplate(
+  String documentType,
+  PrintingSettingsModel settings,
+) async {
+  try {
+    final profile = settings.profileFor(documentType);
+    final builtIns = SamplePrintTemplates.defaults()
+        .where((template) => template.documentType == documentType)
+        .toList();
+    final configuredId = profile.templateBackendId?.trim();
+    if (configuredId != null && configuredId.isNotEmpty) {
+      final builtInId = configuredId.startsWith('builtin:')
+          ? configuredId.substring('builtin:'.length)
+          : configuredId;
+      for (final template in builtIns) {
+        if (template.id == builtInId) return template;
+      }
+    }
+
+    final templates = await const PrintTemplateRepository().list(
+      documentType: documentType,
+    );
+    if (configuredId != null && configuredId.isNotEmpty) {
+      for (final template in templates) {
+        if (template.backendId == configuredId) return template;
+      }
+    }
+    for (final template in templates) {
+      if (template.isDefault) return template;
+    }
+    for (final template in builtIns) {
+      if (template.isDefault) return template;
+    }
+    if (templates.isNotEmpty) return templates.first;
+    return builtIns.isEmpty ? null : builtIns.first;
+  } catch (_) {
+    final builtIns = SamplePrintTemplates.defaults()
+        .where((template) => template.documentType == documentType)
+        .toList();
+    return builtIns.isEmpty ? null : builtIns.first;
+  }
+}
+
+bool _isThermalTemplate(PrintTemplateModel template) {
+  final size = template.pageSize.toLowerCase();
+  return size.contains('receipt') ||
+      size.contains('thermal') ||
+      template.page.widthMm <= 90;
+}
+
+Future<void> _printPdf({
+  required String name,
+  required String? printerName,
+  required Future<Uint8List> Function() bytesBuilder,
+}) async {
+  final trimmedPrinter = printerName?.trim();
+  if (trimmedPrinter != null && trimmedPrinter.isNotEmpty) {
+    await Printing.directPrintPdf(
+      printer: Printer(url: trimmedPrinter),
+      name: name,
+      onLayout: (_) => bytesBuilder(),
+    );
+    return;
+  }
+
+  await Printing.layoutPdf(name: name, onLayout: (_) => bytesBuilder());
 }
 
 class DocumentPrintPreviewDialog extends ConsumerWidget {
@@ -94,7 +272,7 @@ class DocumentPrintPreviewDialog extends ConsumerWidget {
               _PrintPreviewError(message: error.toString()),
           data: (data) => _PrintPreviewContent(
             data: data,
-            settings: settingsState.settings,
+            settings: settingsState.settings.effectiveFor(data.documentType),
           ),
         ),
       ),
@@ -176,10 +354,9 @@ class _PrintPreviewContent extends StatelessWidget {
 
   Future<void> _printA4(BuildContext context) async {
     try {
-      final service = const A4DocumentPdfService();
       await Printing.layoutPdf(
         name: '${data.documentType}-${data.documentNumber}-A4.pdf',
-        onLayout: (_) => service.build(data, settings),
+        onLayout: (_) async => _buildA4Bytes(data, settings),
       );
     } catch (error) {
       if (context.mounted) {
@@ -192,10 +369,9 @@ class _PrintPreviewContent extends StatelessWidget {
 
   Future<void> _printThermal(BuildContext context) async {
     try {
-      final service = const ThermalDocumentPdfService();
       await Printing.layoutPdf(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
-        onLayout: (_) => service.build(data, settings),
+        onLayout: (_) => _buildThermalBytes(data, settings),
       );
     } catch (error) {
       if (context.mounted) {

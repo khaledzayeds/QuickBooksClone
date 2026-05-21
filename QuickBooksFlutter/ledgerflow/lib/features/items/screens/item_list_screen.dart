@@ -73,6 +73,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                   width: 180,
                   child: DropdownButtonFormField<int?>(
                     value: _selectedType,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Type',
                       border: OutlineInputBorder(),
@@ -85,12 +86,15 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                     items: [
                       const DropdownMenuItem<int?>(
                         value: null,
-                        child: Text('All item types'),
+                        child: Text(
+                          'All item types',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       ...ItemType.values.map(
                         (t) => DropdownMenuItem<int?>(
                           value: t.value,
-                          child: Text(t.label),
+                          child: Text(t.label, overflow: TextOverflow.ellipsis),
                         ),
                       ),
                     ],
@@ -872,70 +876,72 @@ class _ItemInfoPane extends StatelessWidget {
         ),
         Expanded(
           flex: 3,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(42, 22, 22, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _InfoLine('Name', item.name),
-                _InfoLine('Type', item.itemType.label),
-                _InfoLine('Barcode', item.barcode ?? '-'),
-                _InfoLine('Part No.', item.sku ?? '-'),
-                _InfoLine('Unit', item.unit ?? '-'),
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _ValueBox(
-                      'Sales price',
-                      '${item.salesPrice.toStringAsFixed(2)} EGP',
-                    ),
-                    _ValueBox(
-                      'Purchase cost',
-                      '${item.purchasePrice.toStringAsFixed(2)} EGP',
-                    ),
-                    _ValueBox(
-                      'On hand',
-                      item.isInventory
-                          ? '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}'
-                          : '-',
-                    ),
-                    _ValueBox(
-                      'Inventory value',
-                      '${item.inventoryValue.toStringAsFixed(2)} EGP',
-                      highlight: item.inventoryValue > 0,
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Edit Item'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: onToggleActive,
-                      icon: const Icon(Icons.toggle_on_outlined, size: 16),
-                      label: Text(
-                        item.isActive ? 'Make Inactive' : 'Make Active',
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(42, 22, 22, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InfoLine('Name', item.name),
+                  _InfoLine('Type', item.itemType.label),
+                  _InfoLine('Barcode', item.barcode ?? '-'),
+                  _InfoLine('Part No.', item.sku ?? '-'),
+                  _InfoLine('Unit', item.unit ?? '-'),
+                  const SizedBox(height: 18),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      _ValueBox(
+                        'Sales price',
+                        '${item.salesPrice.toStringAsFixed(2)} EGP',
                       ),
-                    ),
-                    if (item.isInventory)
+                      _ValueBox(
+                        'Purchase cost',
+                        '${item.purchasePrice.toStringAsFixed(2)} EGP',
+                      ),
+                      _ValueBox(
+                        'On hand',
+                        item.isInventory
+                            ? '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}'
+                            : '-',
+                      ),
+                      _ValueBox(
+                        'Inventory value',
+                        '${item.inventoryValue.toStringAsFixed(2)} EGP',
+                        highlight: item.inventoryValue > 0,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: onEdit,
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: const Text('Edit Item'),
+                      ),
                       OutlinedButton.icon(
-                        onPressed: () => context.go(
-                          '${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}',
+                        onPressed: onToggleActive,
+                        icon: const Icon(Icons.toggle_on_outlined, size: 16),
+                        label: Text(
+                          item.isActive ? 'Make Inactive' : 'Make Active',
                         ),
-                        icon: const Icon(Icons.tune_outlined, size: 16),
-                        label: const Text('Adjust Stock'),
                       ),
-                  ],
-                ),
-              ],
+                      if (item.isInventory)
+                        OutlinedButton.icon(
+                          onPressed: () => context.go(
+                            '${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}',
+                          ),
+                          icon: const Icon(Icons.tune_outlined, size: 16),
+                          label: const Text('Adjust Stock'),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

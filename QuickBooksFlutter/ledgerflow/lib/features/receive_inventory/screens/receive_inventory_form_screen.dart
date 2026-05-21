@@ -8,9 +8,11 @@ import 'package:intl/intl.dart';
 import 'package:ledgerflow/app/router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../invoices/widgets/notes_edit_dialog.dart';
 import '../../items/data/models/item_model.dart';
 import '../../items/providers/items_provider.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../../purchase_orders/data/models/purchase_order_model.dart';
 import '../../purchase_orders/providers/purchase_orders_provider.dart';
 import '../../transactions/widgets/transaction_context_sidebar.dart';
@@ -297,7 +299,7 @@ class _ReceiveInventoryFormScreenState
     );
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool printAfterSave = false}) async {
     final l10n = AppLocalizations.of(context)!;
 
     if (_selectedVendor == null) {
@@ -323,8 +325,8 @@ class _ReceiveInventoryFormScreenState
       );
 
       final result = await ref.read(receiveInventoryRepoProvider).create(dto);
-      result.when(
-        success: (_) {
+      await result.when<Future<void>>(
+        success: (saved) async {
           ref.invalidate(receiveInventoryListProvider);
           ref.invalidate(openPurchaseOrdersProvider);
           ref.read(purchaseOrdersProvider.notifier).refresh();
@@ -332,6 +334,15 @@ class _ReceiveInventoryFormScreenState
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text('${l10n.riSavedSuccess} ✅')));
+            if (printAfterSave) {
+              await printDocumentUsingSettings(
+                context: context,
+                ref: ref,
+                documentType: 'receive-inventory',
+                documentId: saved.id,
+              );
+              if (!mounted) return;
+            }
             if (context.canPop()) {
               context.pop();
             } else {
@@ -339,7 +350,7 @@ class _ReceiveInventoryFormScreenState
             }
           }
         },
-        failure: (error) => _showError(error.message),
+        failure: (error) async => _showError(error.message),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -440,12 +451,15 @@ class _ReceiveInventoryFormScreenState
             onPrevious: null, // TODO: Implement previous
             onNext: null, // TODO: Implement next
             onNew: () => context.go(AppRoutes.receiveInventoryNew),
-            onSave: _saving || _loadingPlan ? null : _save,
+            onSave: _saving || _loadingPlan ? null : () => _save(),
             onClear: _clear,
-            onPrint: null, // TODO: Implement print
+            onPrint: _saving || _loadingPlan
+                ? null
+                : () => _save(printAfterSave: true),
             onEmail: null, // TODO: Implement email
-            showSaveDraft: false, // Receive inventory doesn't support draft saving
-            showSaveAndPrint: false, // Hide for now until print is supported
+            showSaveDraft:
+                false, // Receive inventory doesn't support draft saving
+            showSaveAndPrint: true,
             onClose: () => context.go(AppRoutes.receiveInventory),
             formContent: Column(
               children: [
@@ -502,7 +516,7 @@ class _ReceiveInventoryFormScreenState
                   lines: _manualLines,
                   notesCtrl: _notesCtrl,
                   saving: _saving,
-                  onSave: _saving || _loadingPlan ? null : _save,
+                  onSave: _saving || _loadingPlan ? null : () => _save(),
                   onClear: _clear,
                 ),
               ],
@@ -683,12 +697,14 @@ class _ReceiveCommandBar extends StatelessWidget {
     required this.onClear,
     required this.onClose,
     this.onSave,
+    this.onPrint,
   });
 
   final bool saving;
   final VoidCallback onFind;
   final VoidCallback onNew;
   final VoidCallback? onSave;
+  final VoidCallback? onPrint;
   final VoidCallback onClear;
   final VoidCallback onClose;
 
@@ -722,7 +738,11 @@ class _ReceiveCommandBar extends StatelessWidget {
             onTap: saving ? null : onClear,
           ),
           const _Separator(),
-          const _Tool(icon: Icons.print_outlined, label: 'Print'),
+          _Tool(
+            icon: Icons.print_outlined,
+            label: 'Print',
+            onTap: saving ? null : onPrint,
+          ),
           const _Tool(icon: Icons.mail_outline, label: 'Email'),
           const Spacer(),
           _Tool(
@@ -778,7 +798,7 @@ class _ReceiveHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('VENDOR'),
+                const QbStripLabel('VENDOR'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
@@ -789,7 +809,7 @@ class _ReceiveHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('P.O.'),
+                const QbStripLabel('P.O.'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
@@ -825,17 +845,19 @@ class _ReceiveHeader extends StatelessWidget {
                     width: 260,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _DateBox(
+                          labelWidth: 82,
+                          child: QbDateBox(
                             text: fmt.format(receiptDate),
                             onTap: onDateTap,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const _HorizontalField(
+                        const QbHorizontalField(
                           label: 'RECEIPT #',
-                          child: _StaticBox(text: 'AUTO'),
+                          labelWidth: 82,
+                          child: QbStaticBox(text: 'AUTO'),
                         ),
                       ],
                     ),
@@ -845,7 +867,7 @@ class _ReceiveHeader extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const _FieldLabel('VENDOR / SHIP FROM'),
+                        const QbFieldLabel('VENDOR / SHIP FROM'),
                         const SizedBox(height: 4),
                         Container(
                           height: 96,
@@ -1211,7 +1233,7 @@ class _ReceiveFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _FieldLabel('MEMO'),
+                const QbFieldLabel('MEMO'),
                 const SizedBox(height: 4),
                 TextField(
                   controller: notesCtrl,
@@ -1506,104 +1528,6 @@ class _Separator extends StatelessWidget {
     height: 52,
     margin: const EdgeInsets.symmetric(horizontal: 6),
     color: const Color(0xFFC7D0D6),
-  );
-}
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-      letterSpacing: 0.4,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 30,
-    alignment: Alignment.centerLeft,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB7C3CB)),
-    ),
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.bodySmall,
-    ),
-  );
-}
-
-class _DateBox extends StatelessWidget {
-  const _DateBox({required this.text, required this.onTap});
-
-  final String text;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Container(
-      height: 34,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB7C3CB)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          const Icon(Icons.calendar_today_outlined, size: 15),
-        ],
-      ),
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 82, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
   );
 }
 

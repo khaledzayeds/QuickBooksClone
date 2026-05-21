@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../../core/constants/api_enums.dart' show AccountType;
 import '../../../core/widgets/app_text_field.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
@@ -197,28 +198,11 @@ class _HeaderCard extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('JOURNAL ENTRY'),
+                const QbStripLabel('JOURNAL ENTRY'),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    height: 30,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    alignment: Alignment.centerLeft,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFF9BAAB2)),
-                    ),
-                    child: Text(
-                      'General Journal',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF263C46),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
+                const Expanded(child: QbStaticBox(text: 'General Journal')),
                 const SizedBox(width: 16),
-                const _StripLabel('STATUS'),
+                const QbStripLabel('STATUS'),
                 const SizedBox(width: 8),
                 Container(
                   height: 24,
@@ -262,19 +246,21 @@ class _HeaderCard extends ConsumerWidget {
                     width: 300,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _StaticBox(
+                          labelWidth: 76,
+                          child: QbDateBox(
                             text: JournalEntryFormScreen._dateOnly(
                               form.entryDate,
                             ),
-                            icon: Icons.calendar_today_outlined,
+                            enabled: false,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'ENTRY #',
-                          child: const _StaticBox(text: 'AUTO'),
+                          labelWidth: 76,
+                          child: const QbStaticBox(text: 'AUTO'),
                         ),
                       ],
                     ),
@@ -283,7 +269,7 @@ class _HeaderCard extends ConsumerWidget {
                   Expanded(
                     child: Column(
                       children: [
-                        _StackedField(
+                        QbStackedField(
                           label: l10n.memoInternal,
                           child: AppTextField(
                             label: '',
@@ -403,7 +389,7 @@ class _JournalLineRow extends ConsumerWidget {
         : null;
 
     return Container(
-      height: 44,
+      height: 52,
       color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       child: Row(
@@ -414,15 +400,23 @@ class _JournalLineRow extends ConsumerWidget {
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: DropdownButtonFormField<String>(
                 initialValue: safeAccountId,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                 ),
                 items: accounts
                     .map<DropdownMenuItem<String>>(
                       (AccountModel account) => DropdownMenuItem<String>(
                         value: account.id,
-                        child: Text('${account.code} - ${account.name}'),
+                        child: Text(
+                          '${account.code} - ${account.name}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(),
@@ -448,6 +442,7 @@ class _JournalLineRow extends ConsumerWidget {
             ),
           ),
           Expanded(
+            flex: 2,
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
@@ -467,6 +462,7 @@ class _JournalLineRow extends ConsumerWidget {
             ),
           ),
           Expanded(
+            flex: 2,
             child: Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
               child: AppTextField(
@@ -634,20 +630,20 @@ class _JournalContextPanel extends StatelessWidget {
             ),
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Totals',
           child: Column(
             children: [
-              _InfoRow(
+              QbInfoRow(
                 label: 'Debit',
                 value: '${form.totalDebit.toStringAsFixed(2)} ${l10n.egp}',
               ),
-              _InfoRow(
+              QbInfoRow(
                 label: 'Credit',
                 value: '${form.totalCredit.toStringAsFixed(2)} ${l10n.egp}',
               ),
               const Divider(height: 14),
-              _InfoRow(
+              QbInfoRow(
                 label: 'Difference',
                 value: '${difference.toStringAsFixed(2)} ${l10n.egp}',
                 strong: true,
@@ -656,9 +652,8 @@ class _JournalContextPanel extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: _SideSection(
+          child: QbSideSection(
             title: 'Memo',
-            expanded: true,
             child: Text(
               form.memo.trim().isEmpty ? 'No memo added.' : form.memo.trim(),
               style: const TextStyle(color: Color(0xFF4E616A)),
@@ -723,181 +718,6 @@ class _HeaderCell extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StackedField extends StatelessWidget {
-  const _StackedField({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: const Color(0xFF53656E),
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      const SizedBox(height: 4),
-      SizedBox(height: 34, child: child),
-    ],
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text, this.icon});
-
-  final String text;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 34,
-    alignment: Alignment.centerLeft,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB7C3CB)),
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-        ),
-        if (icon != null) Icon(icon, size: 15),
-      ],
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(
-        width: 76,
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: const Color(0xFF53656E),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-      Expanded(child: child),
-    ],
-  );
-}
-
-class _SideSection extends StatelessWidget {
-  const _SideSection({
-    required this.title,
-    required this.child,
-    this.expanded = false,
-  });
-
-  final String title;
-  final Widget child;
-  final bool expanded;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = Container(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB8C6CE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 30,
-            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE7EEF1),
-              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF2D4854),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          if (expanded)
-            Expanded(
-              child: Padding(padding: const EdgeInsets.all(8), child: child),
-            )
-          else
-            Padding(padding: const EdgeInsets.all(8), child: child),
-        ],
-      ),
-    );
-
-    return expanded ? Expanded(child: content) : content;
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF334A55),
-      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: style)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-              style: style,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 void _update(WidgetRef ref, JournalEntryFormState old) {

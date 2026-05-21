@@ -7,10 +7,12 @@ import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../app/router.dart';
 import '../../../core/widgets/qb/qb_transaction_line_grid.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../../core/widgets/qb/transaction_line_price_mode.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../data/models/estimate_model.dart';
 import '../providers/estimates_provider.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
@@ -179,6 +181,20 @@ class _EstimateFormScreenState extends ConsumerState<EstimateFormScreen> {
     });
   }
 
+  Future<void> _handlePrint() async {
+    final id = _editingEstimate?.id ?? widget.id;
+    if (id == null || id.isEmpty) {
+      _showError('Save the estimate before printing.');
+      return;
+    }
+    await printDocumentUsingSettings(
+      context: context,
+      ref: ref,
+      documentType: 'estimate',
+      documentId: id,
+    );
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
@@ -213,7 +229,7 @@ class _EstimateFormScreenState extends ConsumerState<EstimateFormScreen> {
       onSaveDraft: null, // TODO: Implement draft
       onSave: _saving ? null : _save,
       onClear: _clear,
-      onPrint: null, // TODO: Implement print
+      onPrint: _saving ? null : _handlePrint,
       onEmail: null, // TODO: Implement email
       onClose: () => context.go(AppRoutes.estimates),
       formContent: Column(
@@ -232,9 +248,7 @@ class _EstimateFormScreenState extends ConsumerState<EstimateFormScreen> {
                 setState(() => _expirationDate = date),
           ),
           _LinesHeader(
-            onAddLine: () => setState(
-              () => _lines.add(TransactionLineEntry()),
-            ),
+            onAddLine: () => setState(() => _lines.add(TransactionLineEntry())),
           ),
           Expanded(
             child: Padding(
@@ -308,7 +322,7 @@ class _EstimateHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('CUSTOMER:JOB'),
+                const QbStripLabel('CUSTOMER:JOB'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
@@ -319,11 +333,11 @@ class _EstimateHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('TEMPLATE'),
+                const QbStripLabel('TEMPLATE'),
                 const SizedBox(width: 8),
                 const Expanded(
                   flex: 3,
-                  child: _StaticBox(text: 'Standard Estimate'),
+                  child: QbStaticBox(text: 'Standard Estimate'),
                 ),
               ],
             ),
@@ -349,17 +363,29 @@ class _EstimateHeader extends StatelessWidget {
                     width: 260,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _DateBox(
-                            value: estimateDate,
-                            onChanged: onEstimateDateChanged,
+                          labelWidth: 82,
+                          child: QbDateBox(
+                            text:
+                                '${estimateDate.day}/${estimateDate.month}/${estimateDate.year}',
+                            enabled: true,
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: estimateDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2035),
+                              );
+                              if (picked != null) onEstimateDateChanged(picked);
+                            },
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'ESTIMATE #',
-                          child: _StaticBox(text: estimateNumber),
+                          labelWidth: 82,
+                          child: QbStaticBox(text: estimateNumber),
                         ),
                       ],
                     ),
@@ -367,16 +393,22 @@ class _EstimateHeader extends StatelessWidget {
                   const SizedBox(width: 32),
                   SizedBox(
                     width: 240,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _FieldLabel('EXPIRATION DATE'),
-                        const SizedBox(height: 4),
-                        _DateBox(
-                          value: expirationDate,
-                          onChanged: onExpirationDateChanged,
-                        ),
-                      ],
+                    child: QbStackedField(
+                      label: 'EXPIRATION DATE',
+                      child: QbDateBox(
+                        text:
+                            '${expirationDate.day}/${expirationDate.month}/${expirationDate.year}',
+                        enabled: true,
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: expirationDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) onExpirationDateChanged(picked);
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -514,7 +546,7 @@ class _EstimateFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _FieldLabel('CUSTOMER MESSAGE'),
+                const QbFieldLabel('CUSTOMER MESSAGE'),
                 const SizedBox(height: 4),
                 Container(
                   height: 30,
@@ -530,7 +562,7 @@ class _EstimateFooter extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const _FieldLabel('MEMO'),
+                const QbFieldLabel('MEMO'),
                 const SizedBox(height: 4),
                 Container(
                   height: 30,
@@ -677,107 +709,6 @@ class _EstimateContextPanel extends StatelessWidget {
     if (estimate.sentAt != null) return 'Sent';
     return 'Draft';
   }
-}
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 34,
-    alignment: Alignment.centerLeft,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB7C3CB)),
-    ),
-    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-  );
-}
-
-class _DateBox extends StatelessWidget {
-  const _DateBox({required this.value, required this.onChanged});
-
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2035),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: Container(
-        height: 34,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFB7C3CB)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${value.day}/${value.month}/${value.year}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-            const Icon(Icons.calendar_today_outlined, size: 15),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 82, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
-  );
 }
 
 class _AmountRow extends StatelessWidget {

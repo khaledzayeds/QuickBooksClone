@@ -19,7 +19,11 @@ class PrintingSettingsRepository {
       'showCompanyAddress': prefs.getString('${_prefix}showCompanyAddress'),
       'useArabicFonts': prefs.getString('${_prefix}useArabicFonts'),
       'autoPrintAfterSave': prefs.getString('${_prefix}autoPrintAfterSave'),
-      'printPreviewBeforePrint': prefs.getString('${_prefix}printPreviewBeforePrint'),
+      'printPreviewBeforePrint': prefs.getString(
+        '${_prefix}printPreviewBeforePrint',
+      ),
+      'documentProfiles': prefs.getString('${_prefix}documentProfiles'),
+      'selectedDocumentType': prefs.getString('${_prefix}selectedDocumentType'),
       'logoPath': prefs.getString('${_prefix}logoPath'),
       'a4PrinterName': prefs.getString('${_prefix}a4PrinterName'),
       'thermalPrinterName': prefs.getString('${_prefix}thermalPrinterName'),
@@ -39,7 +43,10 @@ class PrintingSettingsRepository {
 
   Future<PrintingSettingsModel> reset() async {
     final prefs = await SharedPreferences.getInstance();
-    final keys = prefs.getKeys().where((key) => key.startsWith(_prefix)).toList();
+    final keys = prefs
+        .getKeys()
+        .where((key) => key.startsWith(_prefix))
+        .toList();
     for (final key in keys) {
       await prefs.remove(key);
     }

@@ -13,8 +13,8 @@ import '../../transactions/widgets/transaction_models.dart';
 import '../../vendors/data/models/vendor_model.dart';
 import '../../vendors/providers/vendors_provider.dart';
 import 'package:ledgerflow/features/accounts/providers/accounts_provider.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
-import '../../transactions/widgets/transaction_context_sidebar.dart';
 import '../data/models/vendor_payment_model.dart';
 import '../providers/vendor_payments_provider.dart';
 
@@ -241,7 +241,9 @@ class _VendorPaymentFormScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final vendors = ref.watch(vendorsProvider).maybeWhen(
+    final vendors = ref
+        .watch(vendorsProvider)
+        .maybeWhen(
           data: (items) => items.where((vendor) => vendor.isActive).toList(),
           orElse: () => const <VendorModel>[],
         );
@@ -250,7 +252,9 @@ class _VendorPaymentFormScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final payments = ref.watch(vendorPaymentsProvider).maybeWhen(
+    final payments = ref
+        .watch(vendorPaymentsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => <VendorPaymentModel>[],
         );
@@ -265,7 +269,12 @@ class _VendorPaymentFormScreenState
       readOnly: false,
       onFind: () => context.go(AppRoutes.vendorPayments),
       onPrevious: payments.isNotEmpty
-          ? () => context.go(AppRoutes.vendorPaymentDetails.replaceFirst(':id', payments.first.id))
+          ? () => context.go(
+              AppRoutes.vendorPaymentDetails.replaceFirst(
+                ':id',
+                payments.first.id,
+              ),
+            )
           : null,
       onNew: _clear,
       onSave: _saving ? null : _save,
@@ -282,28 +291,30 @@ class _VendorPaymentFormScreenState
             paymentAccountId: _paymentAccountId,
             onVendorChanged: _onVendorChanged,
             onPaymentDateChanged: (d) => setState(() => _paymentDate = d),
-            onPaymentMethodChanged: (value) => setState(() => _paymentMethod = value),
-            onPaymentAccountChanged: (value) => setState(() => _paymentAccountId = value),
+            onPaymentMethodChanged: (value) =>
+                setState(() => _paymentMethod = value),
+            onPaymentAccountChanged: (value) =>
+                setState(() => _paymentAccountId = value),
           ),
           const _BillsHeader(),
           Expanded(
             child: _loadingBills
                 ? const Center(child: CircularProgressIndicator())
                 : _openBills.isEmpty
-                    ? Center(
-                        child: Text(
-                          _selectedVendor == null
-                              ? l10n.selectVendorHint
-                              : l10n.noRecentTransactions,
-                        ),
-                      )
-                    : _PayBillsGrid(
-                        bills: _openBills,
-                        selectedBillIds: _selectedBillIds,
-                        amountControllers: _amountControllers,
-                        currency: l10n.egp,
-                        onChanged: () => setState(() {}),
-                      ),
+                ? Center(
+                    child: Text(
+                      _selectedVendor == null
+                          ? l10n.selectVendorHint
+                          : l10n.noRecentTransactions,
+                    ),
+                  )
+                : _PayBillsGrid(
+                    bills: _openBills,
+                    selectedBillIds: _selectedBillIds,
+                    amountControllers: _amountControllers,
+                    currency: l10n.egp,
+                    onChanged: () => setState(() {}),
+                  ),
           ),
           _PaymentFooter(
             total: total,
@@ -319,7 +330,9 @@ class _VendorPaymentFormScreenState
         openBills: _openBills,
         total: total,
         currency: l10n.egp,
-        onViewAll: _selectedVendor == null ? null : () => context.go(AppRoutes.purchaseBills),
+        onViewAll: _selectedVendor == null
+            ? null
+            : () => context.go(AppRoutes.purchaseBills),
       ),
     );
   }
@@ -332,8 +345,6 @@ class _VendorPaymentFormScreenState
     return total;
   }
 }
-
-
 
 class _PaymentHeader extends StatelessWidget {
   const _PaymentHeader({
@@ -376,7 +387,7 @@ class _PaymentHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('VENDOR'),
+                const QbStripLabel('VENDOR'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 5,
@@ -389,7 +400,7 @@ class _PaymentHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('ACCOUNT'),
+                const QbStripLabel('ACCOUNT'),
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
@@ -422,15 +433,24 @@ class _PaymentHeader extends StatelessWidget {
                     width: 280,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _DateBox(
-                            value: paymentDate,
-                            onChanged: onPaymentDateChanged,
+                          child: QbDateBox(
+                            text:
+                                '${paymentDate.day}/${paymentDate.month}/${paymentDate.year}',
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: paymentDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2035),
+                              );
+                              if (picked != null) onPaymentDateChanged(picked);
+                            },
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'METHOD',
                           child: _PaymentMethodField(
                             value: paymentMethod,
@@ -445,7 +465,7 @@ class _PaymentHeader extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const _FieldLabel('PAYING VENDOR'),
+                        const QbFieldLabel('PAYING VENDOR'),
                         const SizedBox(height: 4),
                         Container(
                           height: 70,
@@ -595,48 +615,6 @@ class _PaymentMethodField extends StatelessWidget {
       onChanged: (value) {
         if (value != null) onChanged(value);
       },
-    );
-  }
-}
-
-class _DateBox extends StatelessWidget {
-  const _DateBox({required this.value, required this.onChanged});
-
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2035),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: Container(
-        height: 34,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFB7C3CB)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${value.day}/${value.month}/${value.year}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-            const Icon(Icons.calendar_today_outlined, size: 15),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -982,50 +960,6 @@ class _PaymentContextPanel extends StatelessWidget {
     final parts = trimmed.split(RegExp(r'\s+'));
     return parts.take(2).map((part) => part[0].toUpperCase()).join();
   }
-}
-
-
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 82, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
-  );
 }
 
 class _HeaderCell extends StatelessWidget {

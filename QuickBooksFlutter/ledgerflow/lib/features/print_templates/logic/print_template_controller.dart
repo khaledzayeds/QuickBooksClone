@@ -11,9 +11,10 @@ class PrintTemplateController extends ChangeNotifier {
     PrintTemplateModel? initialTemplate,
     PrintTemplateRepository? repository,
     PrintTemplatePdfService? pdfService,
-  })  : _template = initialTemplate ?? SamplePrintTemplates.classicA4Invoice(),
-        _repository = repository ?? const PrintTemplateRepository(),
-        _pdfService = pdfService ?? const PrintTemplatePdfService();
+  }) : _template =
+           initialTemplate ?? SamplePrintTemplates.arabicThermalSalesReceipt(),
+       _repository = repository ?? const PrintTemplateRepository(),
+       _pdfService = pdfService ?? const PrintTemplatePdfService();
 
   final PrintTemplateRepository _repository;
   final PrintTemplatePdfService _pdfService;
@@ -26,10 +27,15 @@ class PrintTemplateController extends ChangeNotifier {
 
   PrintTemplateModel get template => _template;
   String? get selectedElementId => _selectedElementId;
-  PrintElementModel? get selectedElement => _template.elementById(_selectedElementId);
+  PrintElementModel? get selectedElement =>
+      _template.elementById(_selectedElementId);
   bool get isBusy => _isBusy;
   String? get lastMessage => _lastMessage;
   List<PrintTemplateModel> get savedTemplates => _savedTemplates;
+  List<PrintTemplateModel> get visibleTemplates => [
+    ...SamplePrintTemplates.defaults(),
+    ..._savedTemplates,
+  ];
 
   void selectElement(String? elementId) {
     _selectedElementId = elementId;
@@ -43,9 +49,42 @@ class PrintTemplateController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void loadDefaultForDocument(String documentType, {String? pageKind}) {
+    final defaults = SamplePrintTemplates.defaults();
+    final preferred = defaults.where((item) {
+      if (item.documentType != documentType) return false;
+      if (pageKind == null) return true;
+      return _pageMatches(item, pageKind);
+    });
+    final template = preferred.isNotEmpty
+        ? preferred.first
+        : _fallbackTemplateFor(documentType, pageKind ?? 'thermal');
+    loadTemplate(template);
+  }
+
+  void loadA4Default() {
+    loadDefaultForDocument(_template.documentType, pageKind: 'a4');
+  }
+
+  void loadThermalDefault() {
+    loadDefaultForDocument(_template.documentType, pageKind: 'thermal');
+  }
+
+  void duplicateCurrentAsCustom() {
+    final now = DateTime.now();
+    _template = _template.copyWith(
+      id: '${_template.documentType}_${now.millisecondsSinceEpoch}',
+      backendId: '',
+      name: '${_template.name} - Custom',
+      isDefault: false,
+    );
+    _lastMessage = 'Custom copy ready. Rename and save it.';
+    notifyListeners();
+  }
+
   Future<void> loadTemplates() async {
     await _runBusy(() async {
-      _savedTemplates = await _repository.list(documentType: _template.documentType);
+      _savedTemplates = await _repository.list();
       _lastMessage = 'Loaded ${_savedTemplates.length} template(s)';
     });
   }
@@ -53,7 +92,9 @@ class PrintTemplateController extends ChangeNotifier {
   Future<void> saveTemplate() async {
     await _runBusy(() async {
       _template = await _repository.save(_template);
-      _savedTemplates = await _repository.list(documentType: _template.documentType);
+      _savedTemplates = await _repository.list(
+        documentType: _template.documentType,
+      );
       _lastMessage = 'Template saved';
     });
   }
@@ -86,9 +127,17 @@ class PrintTemplateController extends ChangeNotifier {
       binding: type == 'field' ? '{{Invoice.Number}}' : null,
       columns: type == 'table'
           ? const [
-              PrintTableColumnModel(title: 'Item', field: 'itemName', width: 60),
+              PrintTableColumnModel(
+                title: 'Item',
+                field: 'itemName',
+                width: 60,
+              ),
               PrintTableColumnModel(title: 'Qty', field: 'quantity', width: 20),
-              PrintTableColumnModel(title: 'Total', field: 'lineTotal', width: 30),
+              PrintTableColumnModel(
+                title: 'Total',
+                field: 'lineTotal',
+                width: 30,
+              ),
             ]
           : const [],
       style: PrintElementStyleModel(
@@ -124,27 +173,53 @@ class PrintTemplateController extends ChangeNotifier {
   void moveSelectedBy(double dxMm, double dyMm) {
     final element = selectedElement;
     if (element == null) return;
-    updateSelectedPosition(x: _snap(element.x + dxMm), y: _snap(element.y + dyMm));
+    updateSelectedPosition(
+      x: _snap(element.x + dxMm),
+      y: _snap(element.y + dyMm),
+    );
   }
 
   void resizeSelectedBy(double dwMm, double dhMm) {
     final element = selectedElement;
     if (element == null) return;
     updateSelectedPosition(
-      width: _snap((element.width + dwMm).clamp(4, template.page.effectiveWidthMm)),
-      height: _snap((element.height + dhMm).clamp(2, template.page.effectiveHeightMm)),
+      width: _snap(
+        (element.width + dwMm).clamp(4, template.page.effectiveWidthMm),
+      ),
+      height: _snap(
+        (element.height + dhMm).clamp(2, template.page.effectiveHeightMm),
+      ),
     );
   }
 
-  void updateSelectedPosition({double? x, double? y, double? width, double? height}) {
+  void updateSelectedPosition({
+    double? x,
+    double? y,
+    double? width,
+    double? height,
+  }) {
     final element = selectedElement;
     if (element == null) return;
     updateSelected(
       element.copyWith(
-        x: x == null ? null : _snap(x).clamp(0, template.page.effectiveWidthMm - element.width).toDouble(),
-        y: y == null ? null : _snap(y).clamp(0, template.page.effectiveHeightMm - element.height).toDouble(),
-        width: width == null ? null : _snap(width).clamp(4, template.page.effectiveWidthMm).toDouble(),
-        height: height == null ? null : _snap(height).clamp(2, template.page.effectiveHeightMm).toDouble(),
+        x: x == null
+            ? null
+            : _snap(x)
+                  .clamp(0, template.page.effectiveWidthMm - element.width)
+                  .toDouble(),
+        y: y == null
+            ? null
+            : _snap(y)
+                  .clamp(0, template.page.effectiveHeightMm - element.height)
+                  .toDouble(),
+        width: width == null
+            ? null
+            : _snap(width).clamp(4, template.page.effectiveWidthMm).toDouble(),
+        height: height == null
+            ? null
+            : _snap(
+                height,
+              ).clamp(2, template.page.effectiveHeightMm).toDouble(),
       ),
     );
   }
@@ -164,6 +239,42 @@ class PrintTemplateController extends ChangeNotifier {
   String exportJson() => _template.toPrettyJson();
 
   double _snap(double value) => (value * 2).roundToDouble() / 2;
+
+  bool _pageMatches(PrintTemplateModel template, String pageKind) {
+    final normalized = pageKind.toLowerCase();
+    final size = template.pageSize.toLowerCase();
+    if (normalized == 'a4') return size.contains('a4');
+    if (normalized == 'thermal' || normalized == 'receipt') {
+      return size.contains('receipt') ||
+          size.contains('thermal') ||
+          template.page.widthMm <= 90;
+    }
+    return true;
+  }
+
+  PrintTemplateModel _fallbackTemplateFor(
+    String documentType,
+    String pageKind,
+  ) {
+    final source = pageKind.toLowerCase() == 'a4'
+        ? SamplePrintTemplates.arabicA4Invoice()
+        : SamplePrintTemplates.arabicThermalSalesReceipt();
+    return source.copyWith(
+      id: '${documentType}_${pageKind}_default',
+      documentType: documentType,
+      name: '${_documentLabel(documentType)} - ${source.pageSize} الافتراضي',
+      backendId: '',
+      isDefault: true,
+    );
+  }
+
+  String _documentLabel(String documentType) {
+    return documentType
+        .split('-')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
 
   Future<void> _runBusy(Future<void> Function() action) async {
     _isBusy = true;

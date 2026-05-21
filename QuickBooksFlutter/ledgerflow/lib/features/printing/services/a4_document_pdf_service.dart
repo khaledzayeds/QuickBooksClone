@@ -14,10 +14,15 @@ class A4DocumentPdfService {
 
   final PrintingAssetLoader assetLoader;
 
-  Future<Uint8List> build(DocumentPrintDataModel data, PrintingSettingsModel settings) async {
+  Future<Uint8List> build(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) async {
     final logo = await assetLoader.loadLogo(settings);
     final arabicFont = await assetLoader.loadArabicFont(settings);
-    final theme = arabicFont == null ? null : pw.ThemeData.withFont(base: arabicFont, bold: arabicFont);
+    final theme = arabicFont == null
+        ? null
+        : pw.ThemeData.withFont(base: arabicFont, bold: arabicFont);
     final doc = pw.Document(theme: theme);
     final margin = switch (settings.a4TemplateStyle) {
       A4TemplateStyle.compact => 20.0,
@@ -29,15 +34,26 @@ class A4DocumentPdfService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: pw.EdgeInsets.all(margin),
+        textDirection: pw.TextDirection.rtl,
         build: (context) => [
           _header(data, settings, logo),
-          pw.SizedBox(height: settings.a4TemplateStyle == A4TemplateStyle.compact ? 12 : 18),
+          pw.SizedBox(
+            height: settings.a4TemplateStyle == A4TemplateStyle.compact
+                ? 12
+                : 18,
+          ),
           _partyAndMeta(data, settings),
-          pw.SizedBox(height: settings.a4TemplateStyle == A4TemplateStyle.compact ? 12 : 18),
+          pw.SizedBox(
+            height: settings.a4TemplateStyle == A4TemplateStyle.compact
+                ? 12
+                : 18,
+          ),
           _linesTable(data, settings),
           pw.SizedBox(height: 14),
           _summary(data, settings),
-          if ((data.terms ?? '').isNotEmpty || (data.notes ?? '').isNotEmpty || (settings.invoiceFooterMessage ?? '').isNotEmpty) ...[
+          if ((data.terms ?? '').isNotEmpty ||
+              (data.notes ?? '').isNotEmpty ||
+              (settings.invoiceFooterMessage ?? '').isNotEmpty) ...[
             pw.SizedBox(height: 18),
             _notes(data, settings),
           ],
@@ -45,8 +61,15 @@ class A4DocumentPdfService {
         footer: (context) => pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text('Generated: ${_formatDateTime(data.generatedAt)}', style: const pw.TextStyle(fontSize: 8)),
-            pw.Text('Page ${context.pageNumber} of ${context.pagesCount}', style: const pw.TextStyle(fontSize: 8)),
+            pw.Text(
+              'تم الإنشاء: ${_formatDateTime(data.generatedAt)}',
+              textDirection: pw.TextDirection.rtl,
+              style: const pw.TextStyle(fontSize: 8),
+            ),
+            pw.Text(
+              'Page ${context.pageNumber} of ${context.pagesCount}',
+              style: const pw.TextStyle(fontSize: 8),
+            ),
           ],
         ),
       ),
@@ -55,7 +78,11 @@ class A4DocumentPdfService {
     return doc.save();
   }
 
-  pw.Widget _header(DocumentPrintDataModel data, PrintingSettingsModel settings, pw.ImageProvider? logo) {
+  pw.Widget _header(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+    pw.ImageProvider? logo,
+  ) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -69,18 +96,43 @@ class A4DocumentPdfService {
                   height: 46,
                   alignment: pw.Alignment.center,
                   margin: const pw.EdgeInsets.only(right: 10),
-                  decoration: logo == null ? pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500, width: .5), borderRadius: pw.BorderRadius.circular(4)) : null,
-                  child: logo == null ? pw.Text('LOGO', style: const pw.TextStyle(fontSize: 8)) : pw.Image(logo, fit: pw.BoxFit.contain),
+                  decoration: logo == null
+                      ? pw.BoxDecoration(
+                          border: pw.Border.all(
+                            color: PdfColors.grey500,
+                            width: .5,
+                          ),
+                          borderRadius: pw.BorderRadius.circular(4),
+                        )
+                      : null,
+                  child: logo == null
+                      ? pw.Text('LOGO', style: const pw.TextStyle(fontSize: 8))
+                      : pw.Image(logo, fit: pw.BoxFit.contain),
                 ),
               pw.Expanded(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(data.company.companyName, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                    if ((data.company.legalName ?? '').isNotEmpty) pw.Text(data.company.legalName!),
-                    if (settings.showCompanyAddress) pw.Text('${data.company.country} • ${data.company.currency}'),
-                    if ((data.company.phone ?? '').isNotEmpty) pw.Text('Phone: ${data.company.phone}'),
-                    if ((data.company.email ?? '').isNotEmpty) pw.Text('Email: ${data.company.email}'),
+                    pw.Text(
+                      data.company.companyName,
+                      style: pw.TextStyle(
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    if ((data.company.legalName ?? '').isNotEmpty)
+                      pw.Text(data.company.legalName!),
+                    if (settings.showCompanyAddress)
+                      pw.Text(
+                        '${data.company.country} - ${data.company.currency}',
+                      ),
+                    if ((data.company.phone ?? '').isNotEmpty)
+                      pw.Text(
+                        'تليفون: ${data.company.phone}',
+                        textDirection: pw.TextDirection.rtl,
+                      ),
+                    if ((data.company.email ?? '').isNotEmpty)
+                      pw.Text('Email: ${data.company.email}'),
                   ],
                 ),
               ),
@@ -90,13 +142,29 @@ class A4DocumentPdfService {
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            pw.Text(data.documentType.toUpperCase(), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-            pw.Text('#${data.documentNumber}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              _arabicDocumentTitle(data.documentType),
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text(
+              '#${data.documentNumber}',
+              style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 4),
             pw.Container(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey600), borderRadius: pw.BorderRadius.circular(4)),
-              child: pw.Text(data.status, style: const pw.TextStyle(fontSize: 9)),
+              padding: const pw.EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey600),
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Text(
+                data.status,
+                style: const pw.TextStyle(fontSize: 9),
+              ),
             ),
           ],
         ),
@@ -104,51 +172,77 @@ class A4DocumentPdfService {
     );
   }
 
-  pw.Widget _partyAndMeta(DocumentPrintDataModel data, PrintingSettingsModel settings) {
+  pw.Widget _partyAndMeta(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Expanded(
-          child: _box(
-            'Bill To',
-            [
-              pw.Text(data.customer.displayName, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              if ((data.customer.phone ?? '').isNotEmpty) pw.Text('Phone: ${data.customer.phone}'),
-              if ((data.customer.email ?? '').isNotEmpty) pw.Text('Email: ${data.customer.email}'),
-              if (settings.showCustomerBalance) ...[
-                pw.Text('Balance: ${_money(data.customer.openBalance, data.customer.currency)}'),
-                pw.Text('Credits: ${_money(data.customer.creditBalance, data.customer.currency)}'),
-              ],
+          child: _box('العميل', [
+            pw.Text(
+              data.customer.displayName,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            if ((data.customer.phone ?? '').isNotEmpty)
+              pw.Text(
+                'تليفون: ${data.customer.phone}',
+                textDirection: pw.TextDirection.rtl,
+              ),
+            if ((data.customer.email ?? '').isNotEmpty)
+              pw.Text('Email: ${data.customer.email}'),
+            if (settings.showCustomerBalance) ...[
+              pw.Text(
+                'الرصيد: ${_money(data.customer.openBalance, data.customer.currency)}',
+                textDirection: pw.TextDirection.rtl,
+              ),
+              pw.Text(
+                'الائتمان: ${_money(data.customer.creditBalance, data.customer.currency)}',
+                textDirection: pw.TextDirection.rtl,
+              ),
             ],
-          ),
+          ]),
         ),
         pw.SizedBox(width: 12),
         pw.Expanded(
-          child: _box(
-            'Document',
-            [
-              _kv('Date', _formatDate(data.documentDate)),
-              _kv('Due date', _formatDate(data.dueDate)),
-              if ((data.payment?.paymentMethod ?? '').isNotEmpty) _kv('Payment', data.payment!.paymentMethod!),
-              if ((data.payment?.depositAccountName ?? '').isNotEmpty) _kv('Deposit', data.payment!.depositAccountName!),
-            ],
-          ),
+          child: _box('بيانات المستند', [
+            _kv('التاريخ', _formatDate(data.documentDate)),
+            _kv('تاريخ الاستحقاق', _formatDate(data.dueDate)),
+            if ((data.payment?.paymentMethod ?? '').isNotEmpty)
+              _kv('الدفع', data.payment!.paymentMethod!),
+            if ((data.payment?.depositAccountName ?? '').isNotEmpty)
+              _kv('الإيداع', data.payment!.depositAccountName!),
+          ]),
         ),
       ],
     );
   }
 
-  pw.Widget _linesTable(DocumentPrintDataModel data, PrintingSettingsModel settings) {
-    final headers = ['#', settings.showItemSku ? 'Item / SKU' : 'Item', 'Qty', 'Price', if (settings.showTaxSummary) 'Tax', 'Total'];
+  pw.Widget _linesTable(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    final headers = [
+      'الإجمالي',
+      if (settings.showTaxSummary) 'الضريبة',
+      'السعر',
+      'الكمية',
+      settings.showItemSku ? 'الصنف / الكود' : 'الصنف',
+      '#',
+    ];
     final rows = data.lines
-        .map((line) => [
-              line.lineNumber.toString(),
-              line.description.isNotEmpty ? line.description : line.itemName,
-              line.quantity.toStringAsFixed(2),
-              _money(line.unitPrice, data.company.currency),
-              if (settings.showTaxSummary) _money(line.taxAmount, data.company.currency),
-              _money(line.lineTotal, data.company.currency),
-            ])
+        .map(
+          (line) => [
+            _money(line.lineTotal, data.company.currency),
+            if (settings.showTaxSummary)
+              _money(line.taxAmount, data.company.currency),
+            _money(line.unitPrice, data.company.currency),
+            _qty(line.quantity),
+            line.description.isNotEmpty ? line.description : line.itemName,
+            line.lineNumber.toString(),
+          ],
+        )
         .toList();
 
     return pw.TableHelper.fromTextArray(
@@ -158,12 +252,22 @@ class A4DocumentPdfService {
       headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
       cellStyle: const pw.TextStyle(fontSize: 8),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-      cellPadding: pw.EdgeInsets.all(settings.a4TemplateStyle == A4TemplateStyle.compact ? 3 : 5),
+      cellAlignment: pw.Alignment.center,
+      cellPadding: pw.EdgeInsets.all(
+        settings.a4TemplateStyle == A4TemplateStyle.compact ? 3 : 5,
+      ),
     );
   }
 
-  pw.Widget _summary(DocumentPrintDataModel data, PrintingSettingsModel settings) {
-    final rows = settings.showTaxSummary ? data.summaryRows : data.summaryRows.where((row) => row.label.toLowerCase() != 'tax').toList();
+  pw.Widget _summary(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    final rows = settings.showTaxSummary
+        ? data.summaryRows
+        : data.summaryRows
+              .where((row) => row.label.toLowerCase() != 'tax')
+              .toList();
     return pw.Align(
       alignment: pw.Alignment.centerRight,
       child: pw.SizedBox(
@@ -175,8 +279,25 @@ class A4DocumentPdfService {
                   padding: const pw.EdgeInsets.symmetric(vertical: 3),
                   child: pw.Row(
                     children: [
-                      pw.Expanded(child: pw.Text(row.label, style: pw.TextStyle(fontWeight: row.isStrong ? pw.FontWeight.bold : pw.FontWeight.normal))),
-                      pw.Text(_money(row.amount, data.company.currency), style: pw.TextStyle(fontWeight: row.isStrong ? pw.FontWeight.bold : pw.FontWeight.normal)),
+                      pw.Expanded(
+                        child: pw.Text(
+                          _arabicSummaryLabel(row.label),
+                          textDirection: pw.TextDirection.rtl,
+                          style: pw.TextStyle(
+                            fontWeight: row.isStrong
+                                ? pw.FontWeight.bold
+                                : pw.FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      pw.Text(
+                        _money(row.amount, data.company.currency),
+                        style: pw.TextStyle(
+                          fontWeight: row.isStrong
+                              ? pw.FontWeight.bold
+                              : pw.FontWeight.normal,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -187,15 +308,21 @@ class A4DocumentPdfService {
     );
   }
 
-  pw.Widget _notes(DocumentPrintDataModel data, PrintingSettingsModel settings) {
-    return _box(
-      'Notes / Terms',
-      [
-        if ((data.terms ?? '').isNotEmpty) pw.Text('Terms: ${data.terms}'),
-        if ((data.notes ?? '').isNotEmpty) pw.Text(data.notes!),
-        if ((settings.invoiceFooterMessage ?? '').isNotEmpty) pw.Text(settings.invoiceFooterMessage!),
-      ],
-    );
+  pw.Widget _notes(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    return _box('ملاحظات', [
+      if ((data.terms ?? '').isNotEmpty)
+        pw.Text('الشروط: ${data.terms}', textDirection: pw.TextDirection.rtl),
+      if ((data.notes ?? '').isNotEmpty)
+        pw.Text(data.notes!, textDirection: pw.TextDirection.rtl),
+      if ((settings.invoiceFooterMessage ?? '').isNotEmpty)
+        pw.Text(
+          settings.invoiceFooterMessage!,
+          textDirection: pw.TextDirection.rtl,
+        ),
+    ]);
   }
 
   pw.Widget _box(String title, List<pw.Widget> children) {
@@ -208,7 +335,11 @@ class A4DocumentPdfService {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(title, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            title,
+            textDirection: pw.TextDirection.rtl,
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
           pw.SizedBox(height: 5),
           ...children,
         ],
@@ -219,13 +350,45 @@ class A4DocumentPdfService {
   pw.Widget _kv(String label, String value) {
     return pw.Row(
       children: [
-        pw.Expanded(child: pw.Text(label)),
+        pw.Expanded(child: pw.Text(label, textDirection: pw.TextDirection.rtl)),
         pw.Text(value, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
       ],
     );
   }
 
-  String _money(double value, String currency) => '${value.toStringAsFixed(2)} $currency';
-  String _formatDate(DateTime date) => '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  String _formatDateTime(DateTime date) => '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  String _money(double value, String currency) =>
+      '${value.toStringAsFixed(2)} $currency';
+  String _qty(double value) => value.truncateToDouble() == value
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(2);
+  String _formatDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  String _formatDateTime(DateTime date) =>
+      '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
+  String _arabicDocumentTitle(String type) {
+    final normalized = type.toLowerCase().replaceAll(' ', '-');
+    if (normalized.contains('receipt')) return 'فاتورة بيع';
+    if (normalized.contains('invoice')) return 'فاتورة بيع';
+    if (normalized.contains('return')) return 'مرتجع بيع';
+    if (normalized.contains('estimate')) return 'عرض سعر';
+    if (normalized.contains('purchase')) return 'أمر شراء';
+    if (normalized.contains('adjustment')) return 'تسوية مخزون';
+    if (normalized.contains('deposit')) return 'إيداع بنكي';
+    return type;
+  }
+
+  String _arabicSummaryLabel(String label) {
+    return switch (label.toLowerCase()) {
+      'subtotal' => 'الإجمالي قبل الضريبة',
+      'discount' => 'الخصم',
+      'tax' => 'الضريبة',
+      'total' => 'الإجمالي',
+      'paid' => 'المدفوع',
+      'credits' => 'ائتمان',
+      'returns' => 'مرتجعات',
+      'balance due' => 'المتبقي',
+      _ => label,
+    };
+  }
 }

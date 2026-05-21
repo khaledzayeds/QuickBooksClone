@@ -2,6 +2,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../print_templates/data/models/print_template_model.dart';
+import '../../print_templates/data/print_template_repository.dart';
+import '../../print_templates/data/sample_templates.dart';
 import '../data/models/printing_settings_model.dart';
 import '../providers/printing_settings_provider.dart';
 import '../widgets/printing_test_preview_card.dart';
@@ -75,6 +78,8 @@ class PrintingSettingsScreen extends ConsumerWidget {
                     final wide = constraints.maxWidth >= 980;
                     final left = Column(
                       children: [
+                        _DocumentProfileCard(state: state, notifier: notifier),
+                        const SizedBox(height: 16),
                         _ModeCard(state: state, notifier: notifier),
                         const SizedBox(height: 16),
                         _A4Card(state: state, notifier: notifier),
@@ -182,6 +187,216 @@ class _ModeCard extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DocumentProfileCard extends StatelessWidget {
+  const _DocumentProfileCard({required this.state, required this.notifier});
+  final PrintingSettingsState state;
+  final PrintingSettingsNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = state.settings.selectedDocumentType;
+    final option = printDocumentTypeOptions.any((item) => item.key == selected)
+        ? selected
+        : printDocumentTypeOptions.first.key;
+    final profile = state.settings.profileFor(option);
+    final inherited = state.settings.effectiveFor(option);
+
+    void updateProfile(DocumentPrintProfile next) {
+      notifier.update((current) => current.updateProfile(next));
+    }
+
+    return _SectionCard(
+      icon: Icons.assignment_outlined,
+      title: 'Per-Screen Print Profile',
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: option,
+          decoration: const InputDecoration(
+            labelText: 'Screen / Document',
+            border: OutlineInputBorder(),
+          ),
+          items: printDocumentTypeOptions
+              .map(
+                (item) => DropdownMenuItem<String>(
+                  value: item.key,
+                  child: Text('${item.group} - ${item.label}'),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            notifier.update(
+              (current) => current.copyWith(selectedDocumentType: value),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<PrintMode>(
+          initialValue: inherited.printMode,
+          decoration: const InputDecoration(
+            labelText: 'Print format for this screen',
+            border: OutlineInputBorder(),
+          ),
+          items: PrintMode.values
+              .map(
+                (mode) => DropdownMenuItem<PrintMode>(
+                  value: mode,
+                  child: Text(mode.label),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            updateProfile(profile.copyWith(printMode: value));
+          },
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<A4TemplateStyle>(
+          initialValue: inherited.a4TemplateStyle,
+          decoration: const InputDecoration(
+            labelText: 'A4 style for this screen',
+            border: OutlineInputBorder(),
+          ),
+          items: A4TemplateStyle.values
+              .map(
+                (style) => DropdownMenuItem<A4TemplateStyle>(
+                  value: style,
+                  child: Text(style.label),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            updateProfile(profile.copyWith(a4TemplateStyle: value));
+          },
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<ThermalWidth>(
+          initialValue: inherited.thermalWidth,
+          decoration: const InputDecoration(
+            labelText: 'Thermal width for this screen',
+            border: OutlineInputBorder(),
+          ),
+          items: ThermalWidth.values
+              .map(
+                (width) => DropdownMenuItem<ThermalWidth>(
+                  value: width,
+                  child: Text(width.label),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            updateProfile(profile.copyWith(thermalWidth: value));
+          },
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<List<_TemplateChoice>>(
+          future: _loadTemplateChoices(option),
+          builder: (context, snapshot) {
+            final choices = snapshot.data ?? _fallbackTemplateChoices(option);
+            final currentValue =
+                choices.any((item) => item.id == profile.templateBackendId)
+                ? profile.templateBackendId
+                : '';
+            return DropdownButtonFormField<String>(
+              initialValue: currentValue,
+              decoration: const InputDecoration(
+                labelText: 'Template design',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.view_quilt_outlined),
+              ),
+              items: choices
+                  .map(
+                    (choice) => DropdownMenuItem<String>(
+                      value: choice.id,
+                      child: Text(choice.displayLabel),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                final selected = choices.firstWhere(
+                  (item) => item.id == value,
+                  orElse: () => choices.first,
+                );
+                updateProfile(
+                  profile.copyWith(
+                    templateBackendId: selected.id,
+                    templateName: selected.label,
+                    clearTemplate: selected.id.isEmpty,
+                  ),
+                );
+              },
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Saved designs from Print Template Designer appear here. Built-in Arabic thermal receipts are available as the default starting point.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<List<_TemplateChoice>> _loadTemplateChoices(
+    String documentType,
+  ) async {
+    final saved = await const PrintTemplateRepository().list(
+      documentType: documentType,
+    );
+    return [
+      ..._fallbackTemplateChoices(documentType),
+      ...saved.map(_TemplateChoice.saved),
+    ];
+  }
+
+  List<_TemplateChoice> _fallbackTemplateChoices(String documentType) {
+    return [
+      const _TemplateChoice(
+        id: '',
+        label: 'Automatic default',
+        source: 'System',
+      ),
+      ...SamplePrintTemplates.defaults()
+          .where((template) => template.documentType == documentType)
+          .map(_TemplateChoice.builtIn),
+    ];
+  }
+}
+
+class _TemplateChoice {
+  const _TemplateChoice({
+    required this.id,
+    required this.label,
+    required this.source,
+  });
+
+  factory _TemplateChoice.builtIn(PrintTemplateModel template) {
+    return _TemplateChoice(
+      id: 'builtin:${template.id}',
+      label: template.name,
+      source: 'Built-in',
+    );
+  }
+
+  factory _TemplateChoice.saved(PrintTemplateModel template) {
+    return _TemplateChoice(
+      id: template.backendId ?? template.id,
+      label: template.name,
+      source: 'Saved',
+    );
+  }
+
+  final String id;
+  final String label;
+  final String source;
+
+  String get displayLabel => '$label  •  $source';
 }
 
 class _A4Card extends StatelessWidget {

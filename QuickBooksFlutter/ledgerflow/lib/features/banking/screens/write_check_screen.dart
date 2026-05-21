@@ -10,6 +10,7 @@ import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/banking_models.dart';
 import '../providers/banking_provider.dart';
@@ -264,7 +265,7 @@ class _CheckHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('PAY FROM'),
+                const QbStripLabel('PAY FROM'),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _BankDropdown(
@@ -274,7 +275,7 @@ class _CheckHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('EXPENSE / OFFSET ACCOUNT'),
+                const QbStripLabel('EXPENSE / OFFSET ACCOUNT'),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _AccountDropdown(
@@ -308,18 +309,20 @@ class _CheckHeader extends StatelessWidget {
                     width: 280,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'CHECK DATE',
-                          child: _StaticBox(
+                          labelWidth: 94,
+                          child: QbDateBox(
                             text: dateText,
-                            icon: Icons.calendar_today_outlined,
+                            enabled: true,
                             onTap: onPickDate,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'CHECK #',
-                          child: const _StaticBox(text: 'AUTO'),
+                          labelWidth: 94,
+                          child: const QbStaticBox(text: 'AUTO'),
                         ),
                       ],
                     ),
@@ -630,14 +633,14 @@ class _CheckContextPanel extends StatelessWidget {
             ),
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Bank Effect',
           child: Column(
             children: [
-              _InfoRow(label: 'Current balance', value: money(bank!.balance)),
-              _InfoRow(label: 'Check amount', value: money(amount)),
+              QbInfoRow(label: 'Current balance', value: money(bank!.balance)),
+              QbInfoRow(label: 'Check amount', value: money(amount)),
               const Divider(height: 14),
-              _InfoRow(
+              QbInfoRow(
                 label: 'After check',
                 value: money(bank!.balance - amount),
                 strong: true,
@@ -645,13 +648,13 @@ class _CheckContextPanel extends StatelessWidget {
             ],
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Entry Preview',
           child: Column(
             children: [
-              _InfoRow(label: 'Credit', value: bank!.name),
-              _InfoRow(label: 'Debit', value: expense?.name ?? '-'),
-              _InfoRow(
+              QbInfoRow(label: 'Credit', value: bank!.name),
+              QbInfoRow(label: 'Debit', value: expense?.name ?? '-'),
+              QbInfoRow(
                 label: 'Payee',
                 value: payee.trim().isEmpty ? '-' : payee.trim(),
               ),
@@ -659,9 +662,8 @@ class _CheckContextPanel extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: _SideSection(
+          child: QbSideSection(
             title: 'Memo',
-            expanded: true,
             child: Text(
               memo.trim().isEmpty ? 'No memo added.' : memo.trim(),
               style: const TextStyle(color: Color(0xFF4E616A)),
@@ -855,7 +857,7 @@ class _StatBox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _FieldLabel(label)),
+          Expanded(child: QbFieldLabel(label)),
           Text(
             value,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -867,167 +869,6 @@ class _StatBox extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SideSection extends StatelessWidget {
-  const _SideSection({
-    required this.title,
-    required this.child,
-    this.expanded = false,
-  });
-
-  final String title;
-  final Widget child;
-  final bool expanded;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = Container(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB8C6CE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 30,
-            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE7EEF1),
-              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF2D4854),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          if (expanded)
-            Expanded(
-              child: Padding(padding: const EdgeInsets.all(8), child: child),
-            )
-          else
-            Padding(padding: const EdgeInsets.all(8), child: child),
-        ],
-      ),
-    );
-
-    return expanded ? Expanded(child: content) : content;
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF334A55),
-      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: style)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-              style: style,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: const Color(0xFF53656E),
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text, this.icon, this.onTap});
-
-  final String text;
-  final IconData? icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Container(
-      height: 34,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB7C3CB)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-          ),
-          if (icon != null) Icon(icon, size: 15),
-        ],
-      ),
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(width: 94, child: _FieldLabel(label)),
-      Expanded(child: child),
-    ],
-  );
 }
 
 class _AmountRow extends StatelessWidget {

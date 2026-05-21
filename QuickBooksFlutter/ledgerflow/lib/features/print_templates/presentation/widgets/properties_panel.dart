@@ -29,9 +29,15 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Properties', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        Text(
+          'Properties',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
         SizedBox(height: 20),
-        Text('Select an element on the page to edit it.', style: TextStyle(color: Color(0xFF64748B))),
+        Text(
+          'Select an element on the page to edit it.',
+          style: TextStyle(color: Color(0xFF64748B)),
+        ),
       ],
     );
   }
@@ -41,68 +47,151 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Properties', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            'Properties',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 4),
-          Text('${element.type} • ${element.id}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+          Text(
+            '${element.type} • ${element.id}',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          ),
           const SizedBox(height: 14),
-          Row(children: [
-            Expanded(child: _numberField('X', element.x, (v) => widget.controller.updateSelectedPosition(x: v))),
-            const SizedBox(width: 8),
-            Expanded(child: _numberField('Y', element.y, (v) => widget.controller.updateSelectedPosition(y: v))),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: _numberField(
+                  'X',
+                  element.x,
+                  (v) => widget.controller.updateSelectedPosition(x: v),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _numberField(
+                  'Y',
+                  element.y,
+                  (v) => widget.controller.updateSelectedPosition(y: v),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-          Row(children: [
-            Expanded(child: _numberField('W', element.width, (v) => widget.controller.updateSelectedPosition(width: v))),
-            const SizedBox(width: 8),
-            Expanded(child: _numberField('H', element.height, (v) => widget.controller.updateSelectedPosition(height: v))),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: _numberField(
+                  'W',
+                  element.width,
+                  (v) => widget.controller.updateSelectedPosition(width: v),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _numberField(
+                  'H',
+                  element.height,
+                  (v) => widget.controller.updateSelectedPosition(height: v),
+                ),
+              ),
+            ],
+          ),
           const Divider(height: 28),
           if (element.type == 'text')
             TextFormField(
               key: ValueKey('value-${element.id}-${element.value}'),
               initialValue: element.value,
-              decoration: const InputDecoration(labelText: 'Text value', border: OutlineInputBorder()),
-              onFieldSubmitted: (value) => widget.controller.updateSelectedText(value: value),
+              decoration: const InputDecoration(
+                labelText: 'Text value',
+                border: OutlineInputBorder(),
+              ),
+              onFieldSubmitted: (value) =>
+                  widget.controller.updateSelectedText(value: value),
             ),
           if (element.type == 'field') ...[
             TextFormField(
               key: ValueKey('binding-${element.id}-${element.binding}'),
               initialValue: element.binding ?? '',
-              decoration: const InputDecoration(labelText: 'Binding', border: OutlineInputBorder()),
-              onFieldSubmitted: (value) => widget.controller.updateSelectedText(binding: value),
+              decoration: const InputDecoration(
+                labelText: 'Binding',
+                border: OutlineInputBorder(),
+              ),
+              onFieldSubmitted: (value) =>
+                  widget.controller.updateSelectedText(binding: value),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: TemplateFieldRegistry.fields.any((field) => field.key == element.binding) ? element.binding : null,
-              decoration: const InputDecoration(labelText: 'Known fields', border: OutlineInputBorder()),
-              items: TemplateFieldRegistry.fields.map((field) => DropdownMenuItem(value: field.key, child: Text(field.label))).toList(),
+              isExpanded: true,
+              initialValue:
+                  TemplateFieldRegistry.fields.any(
+                    (field) => field.key == element.binding,
+                  )
+                  ? element.binding
+                  : null,
+              decoration: const InputDecoration(
+                labelText: 'Known fields',
+                border: OutlineInputBorder(),
+              ),
+              items: TemplateFieldRegistry.fields
+                  .map(
+                    (field) => DropdownMenuItem(
+                      value: field.key,
+                      child: Text(field.label, overflow: TextOverflow.ellipsis),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) {
-                if (value != null) widget.controller.updateSelectedText(binding: value);
+                if (value != null) {
+                  widget.controller.updateSelectedText(binding: value);
+                }
               },
             ),
           ],
           const Divider(height: 28),
           _numberField('Font size', element.style.fontSize, (value) {
-            widget.controller.updateSelectedStyle(element.style.copyWith(fontSize: value));
+            widget.controller.updateSelectedStyle(
+              element.style.copyWith(fontSize: value),
+            );
           }),
           const SizedBox(height: 8),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Bold'),
             value: element.style.bold,
-            onChanged: (value) => widget.controller.updateSelectedStyle(element.style.copyWith(bold: value)),
+            onChanged: (value) => widget.controller.updateSelectedStyle(
+              element.style.copyWith(bold: value),
+            ),
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: element.style.align,
-            decoration: const InputDecoration(labelText: 'Alignment', border: OutlineInputBorder()),
+            isExpanded: true,
+            initialValue: element.style.align,
+            decoration: const InputDecoration(
+              labelText: 'Alignment',
+              border: OutlineInputBorder(),
+            ),
             items: const [
-              DropdownMenuItem(value: 'left', child: Text('Left')),
-              DropdownMenuItem(value: 'center', child: Text('Center')),
-              DropdownMenuItem(value: 'right', child: Text('Right')),
+              DropdownMenuItem(
+                value: 'left',
+                child: Text('Left', overflow: TextOverflow.ellipsis),
+              ),
+              DropdownMenuItem(
+                value: 'center',
+                child: Text('Center', overflow: TextOverflow.ellipsis),
+              ),
+              DropdownMenuItem(
+                value: 'right',
+                child: Text('Right', overflow: TextOverflow.ellipsis),
+              ),
             ],
             onChanged: (value) {
-              if (value != null) widget.controller.updateSelectedStyle(element.style.copyWith(align: value));
+              if (value != null) {
+                widget.controller.updateSelectedStyle(
+                  element.style.copyWith(align: value),
+                );
+              }
             },
           ),
         ],
@@ -110,11 +199,21 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
     );
   }
 
-  Widget _numberField(String label, double value, ValueChanged<double> onChanged) {
+  Widget _numberField(
+    String label,
+    double value,
+    ValueChanged<double> onChanged,
+  ) {
     return TextFormField(
       key: ValueKey('$label-$value'),
-      initialValue: value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1),
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true),
+      initialValue: value.toStringAsFixed(
+        value.truncateToDouble() == value ? 0 : 1,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onFieldSubmitted: (text) {
         final parsed = double.tryParse(text);

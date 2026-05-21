@@ -9,12 +9,15 @@ import 'package:intl/intl.dart';
 import 'package:ledgerflow/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
+import '../../../core/widgets/qb/qb_item_cell.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../../core/constants/api_enums.dart' show AccountType;
 import '../../../core/widgets/app_text_field.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../../items/data/models/item_model.dart';
 import '../../items/providers/items_provider.dart';
+import '../../printing/widgets/document_print_preview_dialog.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../data/models/inventory_adjustment_model.dart';
 import '../providers/inventory_adjustments_provider.dart';
@@ -97,6 +100,14 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
       onNext: null,
       onNew: () => _reset(ref),
       onSave: saving ? null : () => _save(context, ref, resetAfterSave: false),
+      onPrint: saving
+          ? null
+          : () => _save(
+              context,
+              ref,
+              resetAfterSave: false,
+              printAfterSave: true,
+            ),
       onSaveAndNew: saving
           ? null
           : () => _save(context, ref, resetAfterSave: true),
@@ -125,6 +136,7 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required bool resetAfterSave,
+    bool printAfterSave = false,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final form = ref.read(inventoryAdjustmentFormProvider);
@@ -141,6 +153,7 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
 
     ref.read(inventoryAdjustmentSavingProvider.notifier).state = true;
     String? failure;
+    String? firstSavedId;
     for (final line in lines) {
       final dto = CreateInventoryAdjustmentDto(
         itemId: line.itemId!,
@@ -158,7 +171,7 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
           .create(dto);
       if (!context.mounted) return;
       result.when(
-        success: (_) {},
+        success: (saved) => firstSavedId ??= saved.id,
         failure: (error) => failure ??= error.message,
       );
       if (failure != null) break;
@@ -175,6 +188,15 @@ class InventoryAdjustmentFormScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.inventoryAdjustmentSavedSuccess)),
     );
+    if (printAfterSave && firstSavedId != null) {
+      await printDocumentUsingSettings(
+        context: context,
+        ref: ref,
+        documentType: 'inventory-adjustment',
+        documentId: firstSavedId!,
+      );
+      if (!context.mounted) return;
+    }
     if (resetAfterSave) {
       _reset(ref);
     } else {
@@ -337,7 +359,7 @@ class _AdjustmentHeader extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const _StripLabel('ADJUSTMENT ACCOUNT'),
+                const QbStripLabel('ADJUSTMENT ACCOUNT'),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _AccountDropdown(
@@ -348,7 +370,7 @@ class _AdjustmentHeader extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const _StripLabel('ADJUSTMENT TYPE'),
+                const QbStripLabel('ADJUSTMENT TYPE'),
                 const SizedBox(width: 8),
                 SizedBox(
                   width: 190,
@@ -403,24 +425,37 @@ class _AdjustmentHeader extends ConsumerWidget {
                     width: 300,
                     child: Column(
                       children: [
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'DATE',
-                          child: _StaticBox(
+                          labelWidth: 100,
+                          child: QbDateBox(
                             text: dateFmt.format(form.adjustmentDate),
-                            icon: Icons.calendar_today_outlined,
+                            enabled: true,
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: form.adjustmentDate,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                _update(ref, form..adjustmentDate = picked);
+                              }
+                            },
                           ),
                         ),
                         const SizedBox(height: 6),
-                        _HorizontalField(
+                        QbHorizontalField(
                           label: 'REFERENCE NO.',
-                          child: _StaticBox(text: form.referenceNo),
+                          labelWidth: 100,
+                          child: QbStaticBox(text: form.referenceNo),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 20),
                   Expanded(
-                    child: _StackedField(
+                    child: QbStackedField(
                       label: 'MEMO',
                       child: AppTextField(
                         label: '',
@@ -492,7 +527,7 @@ class _AdjustmentLinesGrid extends ConsumerWidget {
   }
 }
 
-class _AdjustmentLineRow extends StatelessWidget {
+class _AdjustmentLineRow extends StatefulWidget {
   const _AdjustmentLineRow({
     required this.shaded,
     required this.line,
@@ -508,91 +543,114 @@ class _AdjustmentLineRow extends StatelessWidget {
   final VoidCallback onChanged;
 
   @override
+  State<_AdjustmentLineRow> createState() => _AdjustmentLineRowState();
+}
+
+class _AdjustmentLineRowState extends State<_AdjustmentLineRow> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hasFocus = _focusNode.hasFocus;
+
     return Container(
       height: 44,
-      color: shaded ? const Color(0xFFDDEFF4) : Colors.white,
+      color: widget.shaded ? const Color(0xFFDDEFF4) : Colors.white,
       child: Row(
         children: [
           Expanded(
             flex: 4,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-              child: DropdownButtonFormField<String>(
-                initialValue: selectedItem?.id,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 7,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: hasFocus ? cs.primary : const Color(0xFFB7C3CB),
+                    width: hasFocus ? 1.5 : 1.0,
                   ),
+                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.white,
                 ),
-                hint: const Text('Select item'),
-                items: items
-                    .map(
-                      (item) => DropdownMenuItem<String>(
-                        value: item.id,
-                        child: Text(item.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  final item = items.where((i) => i.id == value).firstOrNull;
-                  line
-                    ..itemId = value
-                    ..quantityOnHand = item?.quantityOnHand ?? 0
-                    ..newQuantity = item?.quantityOnHand ?? 0
-                    ..quantityDifference = 0
-                    ..unitCost = item?.purchasePrice ?? 0
-                    ..description = item?.name ?? '';
-                  onChanged();
-                },
+                child: QbItemCell(
+                  initialValue: widget.selectedItem?.name ?? '',
+                  items: widget.items,
+                  loadingItems: false,
+                  compact: true,
+                  focusNode: _focusNode,
+                  rateForItem: (item) => item.purchasePrice,
+                  onPicked: (item) {
+                    widget.line
+                      ..itemId = item.id
+                      ..quantityOnHand = item.quantityOnHand
+                      ..newQuantity = item.quantityOnHand
+                      ..quantityDifference = 0
+                      ..unitCost = item.purchasePrice
+                      ..description = item.name;
+                    widget.onChanged();
+                  },
+                ),
               ),
             ),
           ),
-          _TextCell(line.description, flex: 5),
+          _TextCell(widget.line.description, flex: 5),
           _TextCell(
-            line.quantityOnHand.toStringAsFixed(2),
+            widget.line.quantityOnHand.toStringAsFixed(2),
             flex: 2,
             right: true,
           ),
           _NumberCell(
-            value: line.itemId == null
+            value: widget.line.itemId == null
                 ? ''
-                : line.newQuantity.toStringAsFixed(2),
+                : widget.line.newQuantity.toStringAsFixed(2),
             flex: 2,
             onChanged: (value) {
               final parsed = double.tryParse(value);
               if (parsed == null) return;
-              line
+              widget.line
                 ..newQuantity = parsed
-                ..quantityDifference = parsed - line.quantityOnHand;
-              onChanged();
+                ..quantityDifference = parsed - widget.line.quantityOnHand;
+              widget.onChanged();
             },
           ),
           _NumberCell(
-            value: line.quantityDifference == 0
+            value: widget.line.quantityDifference == 0
                 ? ''
-                : line.quantityDifference.toStringAsFixed(2),
+                : widget.line.quantityDifference.toStringAsFixed(2),
             flex: 2,
             signed: true,
             onChanged: (value) {
               final parsed = double.tryParse(value);
               if (parsed == null) return;
-              line
+              widget.line
                 ..quantityDifference = parsed
-                ..newQuantity = line.quantityOnHand + parsed;
-              onChanged();
+                ..newQuantity = widget.line.quantityOnHand + parsed;
+              widget.onChanged();
             },
           ),
           _NumberCell(
-            value: line.unitCost == 0 ? '' : line.unitCost.toStringAsFixed(2),
+            value: widget.line.unitCost == 0
+                ? ''
+                : widget.line.unitCost.toStringAsFixed(2),
             flex: 2,
             onChanged: (value) {
-              line.unitCost = double.tryParse(value) ?? 0;
-              onChanged();
+              widget.line.unitCost = double.tryParse(value) ?? 0;
+              widget.onChanged();
             },
           ),
         ],
@@ -628,33 +686,6 @@ class _AdjustmentFooter extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 280,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFB8C6CE)),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ITEM INFO AFTER ADJUSTMENT',
-                    style: TextStyle(
-                      color: Color(0xFF2D4854),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  Text('Quantity on Hand'),
-                  Text('Avg Cost per Item'),
-                  Text('Value'),
-                ],
-              ),
-            ),
-          ),
           const Spacer(),
           SizedBox(
             width: 320,
@@ -747,13 +778,13 @@ class _InventoryAdjustmentSidePanel extends StatelessWidget {
             ),
           ),
         ),
-        _SideSection(
+        QbSideSection(
           title: 'Summary',
           child: Column(
             children: [
-              _InfoRow(label: 'Type', value: form.adjustmentType),
-              _InfoRow(label: 'Items', value: form.adjustedItems.toString()),
-              _InfoRow(
+              QbInfoRow(label: 'Type', value: form.adjustmentType),
+              QbInfoRow(label: 'Items', value: form.adjustedItems.toString()),
+              QbInfoRow(
                 label: 'Value',
                 value: form.total.toStringAsFixed(2),
                 strong: true,
@@ -762,9 +793,8 @@ class _InventoryAdjustmentSidePanel extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: _SideSection(
+          child: QbSideSection(
             title: 'Memo',
-            expanded: true,
             child: Text(
               form.memo.trim().isEmpty ? 'No memo added.' : form.memo.trim(),
               style: const TextStyle(color: Color(0xFF4E616A)),
@@ -908,90 +938,6 @@ class _NumberCell extends StatelessWidget {
   );
 }
 
-class _StripLabel extends StatelessWidget {
-  const _StripLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
-    ),
-  );
-}
-
-class _StackedField extends StatelessWidget {
-  const _StackedField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: const Color(0xFF53656E),
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      const SizedBox(height: 4),
-      SizedBox(height: 34, child: child),
-    ],
-  );
-}
-
-class _StaticBox extends StatelessWidget {
-  const _StaticBox({required this.text, this.icon});
-  final String text;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 34,
-    alignment: Alignment.centerLeft,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: const Color(0xFFB7C3CB)),
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-        ),
-        if (icon != null) Icon(icon, size: 15),
-      ],
-    ),
-  );
-}
-
-class _HorizontalField extends StatelessWidget {
-  const _HorizontalField({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(
-        width: 100,
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: const Color(0xFF53656E),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-      Expanded(child: child),
-    ],
-  );
-}
-
 class _TotalLine extends StatelessWidget {
   const _TotalLine({required this.label, required this.value});
   final String label;
@@ -1018,95 +964,6 @@ class _TotalLine extends StatelessWidget {
       ),
     ],
   );
-}
-
-class _SideSection extends StatelessWidget {
-  const _SideSection({
-    required this.title,
-    required this.child,
-    this.expanded = false,
-  });
-
-  final String title;
-  final Widget child;
-  final bool expanded;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = Container(
-      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFB8C6CE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 30,
-            padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE7EEF1),
-              border: Border(bottom: BorderSide(color: Color(0xFFB8C6CE))),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF2D4854),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-          if (expanded)
-            Expanded(
-              child: Padding(padding: const EdgeInsets.all(8), child: child),
-            )
-          else
-            Padding(padding: const EdgeInsets.all(8), child: child),
-        ],
-      ),
-    );
-
-    return expanded ? Expanded(child: content) : content;
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF334A55),
-      fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: style)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-              style: style,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 void _ensureBlankLine(WidgetRef ref, InventoryAdjustmentFormState form) {
