@@ -10,6 +10,8 @@ class DocumentPrintDataModel {
     required this.status,
     required this.company,
     required this.customer,
+    required this.partyLabel,
+    required this.partyType,
     required this.documentDate,
     required this.dueDate,
     required this.subtotal,
@@ -34,6 +36,8 @@ class DocumentPrintDataModel {
   final String status;
   final PrintCompanyModel company;
   final PrintCustomerModel customer;
+  final String partyLabel;
+  final String partyType;
   final PrintPaymentModel? payment;
   final DateTime documentDate;
   final DateTime dueDate;
@@ -51,14 +55,25 @@ class DocumentPrintDataModel {
   final String? notes;
   final String? terms;
 
-  factory DocumentPrintDataModel.fromJson(Map<String, dynamic> json) => DocumentPrintDataModel(
+  factory DocumentPrintDataModel.fromJson(Map<String, dynamic> json) =>
+      DocumentPrintDataModel(
         documentId: JsonUtils.asString(json['documentId']),
         documentType: JsonUtils.asString(json['documentType']),
         documentNumber: JsonUtils.asString(json['documentNumber']),
         status: JsonUtils.asString(json['status']),
-        company: PrintCompanyModel.fromJson(json['company'] as Map<String, dynamic>? ?? const {}),
-        customer: PrintCustomerModel.fromJson(json['customer'] as Map<String, dynamic>? ?? const {}),
-        payment: json['payment'] == null ? null : PrintPaymentModel.fromJson(json['payment'] as Map<String, dynamic>),
+        company: PrintCompanyModel.fromJson(
+          json['company'] as Map<String, dynamic>? ?? const {},
+        ),
+        customer: PrintCustomerModel.fromJson(
+          json['customer'] as Map<String, dynamic>? ?? const {},
+        ),
+        partyLabel: _partyLabelFromJson(json),
+        partyType: _partyTypeFromJson(json),
+        payment: json['payment'] == null
+            ? null
+            : PrintPaymentModel.fromJson(
+                json['payment'] as Map<String, dynamic>,
+              ),
         documentDate: _parseDate(json['documentDate']),
         dueDate: _parseDate(json['dueDate']),
         subtotal: JsonUtils.asDouble(json['subtotal']),
@@ -69,16 +84,37 @@ class DocumentPrintDataModel {
         creditAppliedAmount: JsonUtils.asDouble(json['creditAppliedAmount']),
         returnedAmount: JsonUtils.asDouble(json['returnedAmount']),
         balanceDue: JsonUtils.asDouble(json['balanceDue']),
-        lines: JsonUtils.asList(json['lines'], (line) => PrintLineModel.fromJson(line)),
-        summaryRows: JsonUtils.asList(json['summaryRows'], (row) => PrintSummaryRowModel.fromJson(row)),
+        lines: JsonUtils.asList(
+          json['lines'],
+          (line) => PrintLineModel.fromJson(line),
+        ),
+        summaryRows: JsonUtils.asList(
+          json['summaryRows'],
+          (row) => PrintSummaryRowModel.fromJson(row),
+        ),
         generatedAt: _parseDate(json['generatedAt']),
         notes: JsonUtils.asNullableString(json['notes']),
         terms: JsonUtils.asNullableString(json['terms']),
       );
+
+  bool get isCustomerParty => partyType.toLowerCase() == 'customer';
+
+  String get arabicPartyLabel => switch (partyType.toLowerCase()) {
+    'vendor' => 'المورد',
+    'account' => 'الحساب',
+    _ => 'العميل',
+  };
 }
 
 class PrintCompanyModel {
-  const PrintCompanyModel({required this.companyName, required this.currency, required this.country, this.legalName, this.email, this.phone});
+  const PrintCompanyModel({
+    required this.companyName,
+    required this.currency,
+    required this.country,
+    this.legalName,
+    this.email,
+    this.phone,
+  });
 
   final String companyName;
   final String? legalName;
@@ -87,7 +123,8 @@ class PrintCompanyModel {
   final String currency;
   final String country;
 
-  factory PrintCompanyModel.fromJson(Map<String, dynamic> json) => PrintCompanyModel(
+  factory PrintCompanyModel.fromJson(Map<String, dynamic> json) =>
+      PrintCompanyModel(
         companyName: JsonUtils.asString(json['companyName']),
         legalName: JsonUtils.asNullableString(json['legalName']),
         email: JsonUtils.asNullableString(json['email']),
@@ -98,7 +135,15 @@ class PrintCompanyModel {
 }
 
 class PrintCustomerModel {
-  const PrintCustomerModel({required this.customerId, required this.displayName, required this.currency, required this.openBalance, required this.creditBalance, this.email, this.phone});
+  const PrintCustomerModel({
+    required this.customerId,
+    required this.displayName,
+    required this.currency,
+    required this.openBalance,
+    required this.creditBalance,
+    this.email,
+    this.phone,
+  });
 
   final String customerId;
   final String displayName;
@@ -108,7 +153,8 @@ class PrintCustomerModel {
   final double openBalance;
   final double creditBalance;
 
-  factory PrintCustomerModel.fromJson(Map<String, dynamic> json) => PrintCustomerModel(
+  factory PrintCustomerModel.fromJson(Map<String, dynamic> json) =>
+      PrintCustomerModel(
         customerId: JsonUtils.asString(json['customerId']),
         displayName: JsonUtils.asString(json['displayName']),
         email: JsonUtils.asNullableString(json['email']),
@@ -120,23 +166,42 @@ class PrintCustomerModel {
 }
 
 class PrintPaymentModel {
-  const PrintPaymentModel({this.depositAccountId, this.depositAccountName, this.paymentMethod, this.linkedPaymentId});
+  const PrintPaymentModel({
+    this.depositAccountId,
+    this.depositAccountName,
+    this.paymentMethod,
+    this.linkedPaymentId,
+  });
 
   final String? depositAccountId;
   final String? depositAccountName;
   final String? paymentMethod;
   final String? linkedPaymentId;
 
-  factory PrintPaymentModel.fromJson(Map<String, dynamic> json) => PrintPaymentModel(
+  factory PrintPaymentModel.fromJson(Map<String, dynamic> json) =>
+      PrintPaymentModel(
         depositAccountId: JsonUtils.asNullableString(json['depositAccountId']),
-        depositAccountName: JsonUtils.asNullableString(json['depositAccountName']),
+        depositAccountName: JsonUtils.asNullableString(
+          json['depositAccountName'],
+        ),
         paymentMethod: JsonUtils.asNullableString(json['paymentMethod']),
         linkedPaymentId: JsonUtils.asNullableString(json['linkedPaymentId']),
       );
 }
 
 class PrintLineModel {
-  const PrintLineModel({required this.lineNumber, required this.itemId, required this.itemName, required this.description, required this.quantity, required this.unitPrice, required this.discountPercent, required this.taxRatePercent, required this.taxAmount, required this.lineTotal});
+  const PrintLineModel({
+    required this.lineNumber,
+    required this.itemId,
+    required this.itemName,
+    required this.description,
+    required this.quantity,
+    required this.unitPrice,
+    required this.discountPercent,
+    required this.taxRatePercent,
+    required this.taxAmount,
+    required this.lineTotal,
+  });
 
   final int lineNumber;
   final String itemId;
@@ -150,31 +215,61 @@ class PrintLineModel {
   final double lineTotal;
 
   factory PrintLineModel.fromJson(Map<String, dynamic> json) => PrintLineModel(
-        lineNumber: JsonUtils.asInt(json['lineNumber']),
-        itemId: JsonUtils.asString(json['itemId']),
-        itemName: JsonUtils.asString(json['itemName']),
-        description: JsonUtils.asString(json['description']),
-        quantity: JsonUtils.asDouble(json['quantity']),
-        unitPrice: JsonUtils.asDouble(json['unitPrice']),
-        discountPercent: JsonUtils.asDouble(json['discountPercent']),
-        taxRatePercent: JsonUtils.asDouble(json['taxRatePercent']),
-        taxAmount: JsonUtils.asDouble(json['taxAmount']),
-        lineTotal: JsonUtils.asDouble(json['lineTotal']),
-      );
+    lineNumber: JsonUtils.asInt(json['lineNumber']),
+    itemId: JsonUtils.asString(json['itemId']),
+    itemName: JsonUtils.asString(json['itemName']),
+    description: JsonUtils.asString(json['description']),
+    quantity: JsonUtils.asDouble(json['quantity']),
+    unitPrice: JsonUtils.asDouble(json['unitPrice']),
+    discountPercent: JsonUtils.asDouble(json['discountPercent']),
+    taxRatePercent: JsonUtils.asDouble(json['taxRatePercent']),
+    taxAmount: JsonUtils.asDouble(json['taxAmount']),
+    lineTotal: JsonUtils.asDouble(json['lineTotal']),
+  );
 }
 
 class PrintSummaryRowModel {
-  const PrintSummaryRowModel({required this.label, required this.amount, required this.isStrong});
+  const PrintSummaryRowModel({
+    required this.label,
+    required this.amount,
+    required this.isStrong,
+  });
 
   final String label;
   final double amount;
   final bool isStrong;
 
-  factory PrintSummaryRowModel.fromJson(Map<String, dynamic> json) => PrintSummaryRowModel(
+  factory PrintSummaryRowModel.fromJson(Map<String, dynamic> json) =>
+      PrintSummaryRowModel(
         label: JsonUtils.asString(json['label']),
         amount: JsonUtils.asDouble(json['amount']),
         isStrong: json['isStrong'] == true,
       );
 }
 
-DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+DateTime _parseDate(dynamic value) =>
+    DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+
+String _partyTypeFromJson(Map<String, dynamic> json) {
+  final explicit = JsonUtils.asNullableString(json['partyType']);
+  if (explicit != null && explicit.isNotEmpty) {
+    return explicit;
+  }
+
+  final documentType = JsonUtils.asString(json['documentType']).toLowerCase();
+  if (documentType.contains('purchase') || documentType.contains('receive')) {
+    return 'Vendor';
+  }
+  if (documentType.contains('adjustment')) {
+    return 'Account';
+  }
+  return 'Customer';
+}
+
+String _partyLabelFromJson(Map<String, dynamic> json) {
+  final explicit = JsonUtils.asNullableString(json['partyLabel']);
+  if (explicit != null && explicit.isNotEmpty) {
+    return explicit;
+  }
+  return _partyTypeFromJson(json);
+}

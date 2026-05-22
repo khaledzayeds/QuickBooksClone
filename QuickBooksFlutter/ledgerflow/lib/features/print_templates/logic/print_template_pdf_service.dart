@@ -297,10 +297,18 @@ class PrintTemplatePdfService {
       case 'customer.name':
       case 'customer.displayname':
       case 'customername':
+      case 'party.name':
+      case 'party.displayname':
         return data.customer.displayName;
+      case 'party.label':
+        return data.partyLabel;
+      case 'party.type':
+        return data.partyType;
       case 'customer.phone':
+      case 'party.phone':
         return data.customer.phone;
       case 'customer.email':
+      case 'party.email':
         return data.customer.email;
       case 'customer.balance':
         return _money(data.customer.openBalance, data.customer.currency);

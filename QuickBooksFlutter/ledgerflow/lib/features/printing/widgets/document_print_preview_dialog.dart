@@ -151,6 +151,11 @@ Future<Uint8List> _buildA4Bytes(
 ) async {
   final template = await _resolveTemplate(data.documentType, settings);
   if (template != null && !_isThermalTemplate(template)) {
+    // TODO(printing): add true template pagination for long designer tables.
+    // Until then, use the built-in A4 renderer for long documents so lines are not clipped.
+    if (data.lines.length > 24) {
+      return const A4DocumentPdfService().build(data, settings);
+    }
     return const PrintTemplatePdfService().build(
       template,
       data: data,
@@ -232,6 +237,8 @@ Future<void> _printPdf({
 }) async {
   final trimmedPrinter = printerName?.trim();
   if (trimmedPrinter != null && trimmedPrinter.isNotEmpty) {
+    // TODO(printing): store a printer URL from Printing.listPrinters instead of accepting
+    // a free-form display name. Some platforms require the printer.url identifier here.
     await Printing.directPrintPdf(
       printer: Printer(url: trimmedPrinter),
       name: name,
@@ -409,7 +416,7 @@ class _PrintPreviewContent extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${data.customer.displayName} • ${_formatDate(data.documentDate)} • ${settings.printMode.label}',
+                      '${data.partyLabel}: ${data.customer.displayName} • ${_formatDate(data.documentDate)} • ${settings.printMode.label}',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],
@@ -574,7 +581,7 @@ class _PartyAndMeta extends StatelessWidget {
       children: [
         Expanded(
           child: _InfoBox(
-            title: 'Bill To',
+            title: data.partyLabel,
             children: [
               Text(
                 data.customer.displayName,
@@ -584,7 +591,7 @@ class _PartyAndMeta extends StatelessWidget {
                 Text('Phone: ${data.customer.phone}'),
               if ((data.customer.email ?? '').isNotEmpty)
                 Text('Email: ${data.customer.email}'),
-              if (settings.showCustomerBalance) ...[
+              if (settings.showCustomerBalance && data.isCustomerParty) ...[
                 Text(
                   'Balance: ${_money(data.customer.openBalance, data.customer.currency)}',
                 ),

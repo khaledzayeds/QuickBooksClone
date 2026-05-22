@@ -100,6 +100,12 @@ const printDocumentTypeOptions = <PrintDocumentTypeOption>[
     label: 'Inventory Adjustment',
     group: 'Inventory',
   ),
+  // TODO(printing): enable these once /api/printing supports their print data contracts.
+  // Bank deposits and checks currently use draft/local print data, while statements
+  // still need backend endpoints before they can safely appear in per-screen settings.
+];
+
+const unsupportedPrintDocumentTypeOptions = <PrintDocumentTypeOption>[
   PrintDocumentTypeOption(
     key: 'deposit',
     label: 'Bank Deposit',

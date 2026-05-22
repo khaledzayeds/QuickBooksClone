@@ -58,7 +58,9 @@ public sealed record SalesPrintDataDto(
     IReadOnlyList<SalesPrintSummaryRowDto> SummaryRows,
     DateTimeOffset GeneratedAt,
     string? Notes = null,
-    string? Terms = null);
+    string? Terms = null,
+    string PartyLabel = "Customer",
+    string PartyType = "Customer");
 
 public sealed record SalesPrintCompanyDto(
     string CompanyName,

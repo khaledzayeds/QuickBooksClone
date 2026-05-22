@@ -75,6 +75,24 @@ class TemplateFieldRegistry {
       sampleValue: '0.00 EGP',
     ),
     TemplateFieldInfo(
+      key: '{{Party.Label}}',
+      label: 'Party Label',
+      group: 'Party',
+      sampleValue: 'Customer',
+    ),
+    TemplateFieldInfo(
+      key: '{{Party.Type}}',
+      label: 'Party Type',
+      group: 'Party',
+      sampleValue: 'Customer',
+    ),
+    TemplateFieldInfo(
+      key: '{{Party.Name}}',
+      label: 'Party Name',
+      group: 'Party',
+      sampleValue: 'Ahmed Mohamed',
+    ),
+    TemplateFieldInfo(
       key: '{{Invoice.Number}}',
       label: 'Invoice Number',
       group: 'Document',

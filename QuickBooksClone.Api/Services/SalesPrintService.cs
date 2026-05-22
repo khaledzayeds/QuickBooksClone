@@ -133,7 +133,9 @@ public sealed class SalesPrintService
             summary,
             DateTimeOffset.UtcNow,
             Notes: null,
-            Terms: invoice.PaymentMode == InvoicePaymentMode.Cash ? "Paid at sale" : null), null);
+            Terms: invoice.PaymentMode == InvoicePaymentMode.Cash ? "Paid at sale" : null,
+            PartyLabel: "Customer",
+            PartyType: "Customer"), null);
     }
 
     public async Task<(SalesPrintDataDto? Data, string? Error)> GetEstimatePrintDataAsync(Guid documentId, CancellationToken cancellationToken)
@@ -189,7 +191,9 @@ public sealed class SalesPrintService
             lines,
             BuildSummary("Subtotal", estimate.Subtotal, estimate.TaxAmount, estimate.TotalAmount),
             DateTimeOffset.UtcNow,
-            Terms: "Estimate valid until expiration date"), null);
+            Terms: "Estimate valid until expiration date",
+            PartyLabel: "Customer",
+            PartyType: "Customer"), null);
     }
 
     public async Task<(SalesPrintDataDto? Data, string? Error)> GetSalesReturnPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
@@ -245,7 +249,9 @@ public sealed class SalesPrintService
             lines,
             BuildSummary("Returned Total", salesReturn.TotalAmount, 0, salesReturn.TotalAmount),
             DateTimeOffset.UtcNow,
-            Terms: "Posted sales return"), null);
+            Terms: "Posted sales return",
+            PartyLabel: "Customer",
+            PartyType: "Customer"), null);
     }
 
     public async Task<(SalesPrintDataDto? Data, string? Error)> GetPurchaseOrderPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
@@ -301,7 +307,9 @@ public sealed class SalesPrintService
             lines,
             BuildSummary("Subtotal", order.Subtotal, order.TaxAmount, order.TotalAmount),
             DateTimeOffset.UtcNow,
-            Terms: "Purchase order"), null);
+            Terms: "Purchase order",
+            PartyLabel: "Vendor",
+            PartyType: "Vendor"), null);
     }
 
     public async Task<(SalesPrintDataDto? Data, string? Error)> GetInventoryReceiptPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
@@ -357,7 +365,9 @@ public sealed class SalesPrintService
             lines,
             BuildSummary("Receipt Total", receipt.TotalAmount, 0, receipt.TotalAmount),
             DateTimeOffset.UtcNow,
-            Terms: receipt.PurchaseOrderId is null ? "Manual receive inventory" : $"PO {receipt.PurchaseOrderId}"), null);
+            Terms: receipt.PurchaseOrderId is null ? "Manual receive inventory" : $"PO {receipt.PurchaseOrderId}",
+            PartyLabel: "Vendor",
+            PartyType: "Vendor"), null);
     }
 
     public async Task<(SalesPrintDataDto? Data, string? Error)> GetInventoryAdjustmentPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
@@ -406,7 +416,9 @@ public sealed class SalesPrintService
             BuildSummary("Adjustment Value", adjustment.TotalCost, 0, adjustment.TotalCost),
             DateTimeOffset.UtcNow,
             Notes: adjustment.Reason,
-            Terms: account?.Name), null);
+            Terms: account?.Name,
+            PartyLabel: "Account",
+            PartyType: "Account"), null);
     }
 
     private static IReadOnlyList<SalesPrintSummaryRowDto> BuildSummary(Invoice invoice)

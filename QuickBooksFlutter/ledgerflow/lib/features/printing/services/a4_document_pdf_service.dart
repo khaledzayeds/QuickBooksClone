@@ -180,7 +180,7 @@ class A4DocumentPdfService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Expanded(
-          child: _box('العميل', [
+          child: _box(data.arabicPartyLabel, [
             pw.Text(
               data.customer.displayName,
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
@@ -192,7 +192,7 @@ class A4DocumentPdfService {
               ),
             if ((data.customer.email ?? '').isNotEmpty)
               pw.Text('Email: ${data.customer.email}'),
-            if (settings.showCustomerBalance) ...[
+            if (settings.showCustomerBalance && data.isCustomerParty) ...[
               pw.Text(
                 'الرصيد: ${_money(data.customer.openBalance, data.customer.currency)}',
                 textDirection: pw.TextDirection.rtl,

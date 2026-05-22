@@ -69,7 +69,7 @@ class ThermalDocumentPdfService {
             pw.SizedBox(height: 4),
             _kv('رقم الفاتورة', data.documentNumber),
             _kv('التاريخ', _formatDateTime(data.documentDate)),
-            _kv('المستخدم', data.customer.displayName),
+            _kv(data.arabicPartyLabel, data.customer.displayName),
             if ((data.payment?.paymentMethod ?? '').isNotEmpty)
               _kv('طريقة الدفع', data.payment!.paymentMethod!),
             _divider(settings),

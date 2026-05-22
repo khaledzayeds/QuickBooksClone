@@ -11,8 +11,12 @@ class PrintingTestPreviewCard extends StatelessWidget {
 
   final PrintingSettingsModel settings;
 
-  bool get _a4Enabled => settings.printMode == PrintMode.a4 || settings.printMode == PrintMode.both;
-  bool get _thermalEnabled => settings.printMode == PrintMode.thermal || settings.printMode == PrintMode.both;
+  bool get _a4Enabled =>
+      settings.printMode == PrintMode.a4 ||
+      settings.printMode == PrintMode.both;
+  bool get _thermalEnabled =>
+      settings.printMode == PrintMode.thermal ||
+      settings.printMode == PrintMode.both;
 
   Future<void> _testA4(BuildContext context) async {
     try {
@@ -24,7 +28,9 @@ class PrintingTestPreviewCard extends StatelessWidget {
       );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('A4 test failed: $error')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('A4 test failed: $error')));
       }
     }
   }
@@ -39,7 +45,9 @@ class PrintingTestPreviewCard extends StatelessWidget {
       );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Thermal test failed: $error')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Thermal test failed: $error')));
       }
     }
   }
@@ -57,15 +65,30 @@ class PrintingTestPreviewCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(Icons.science_outlined, color: cs.onPrimaryContainer)),
+                CircleAvatar(
+                  backgroundColor: cs.primaryContainer,
+                  child: Icon(
+                    Icons.science_outlined,
+                    color: cs.onPrimaryContainer,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: Text('Test Print Preview', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
+                Expanded(
+                  child: Text(
+                    'Test Print Preview',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
               'Generate a sample A4 or thermal document using the current settings before testing real invoices.',
-              style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -78,7 +101,9 @@ class PrintingTestPreviewCard extends StatelessWidget {
                   label: const Text('Test A4 PDF'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _thermalEnabled ? () => _testThermal(context) : null,
+                  onPressed: _thermalEnabled
+                      ? () => _testThermal(context)
+                      : null,
                   icon: const Icon(Icons.receipt_long_outlined),
                   label: Text('Test Thermal ${settings.thermalWidth.label}'),
                 ),
@@ -114,6 +139,8 @@ class PrintingTestPreviewCard extends StatelessWidget {
         openBalance: 1250,
         creditBalance: 150,
       ),
+      partyLabel: 'Customer',
+      partyType: 'Customer',
       payment: const PrintPaymentModel(
         depositAccountId: 'sample-bank',
         depositAccountName: 'Main Cash / Bank',

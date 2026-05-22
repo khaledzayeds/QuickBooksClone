@@ -11,9 +11,14 @@ import 'transaction_print_model.dart';
 class TransactionPrintService {
   const TransactionPrintService();
 
+  // TODO(printing): replace remaining TransactionPrintModel callers with
+  // DocumentPrintDataModel adapters so all screens share the same template,
+  // permissions, settings, and A4/thermal rendering path.
   Future<void> printDocument(TransactionPrintModel model) async {
     final bytes = await buildPdf(model);
-    final safeNumber = model.documentNumber.trim().isEmpty ? 'Draft' : model.documentNumber.trim();
+    final safeNumber = model.documentNumber.trim().isEmpty
+        ? 'Draft'
+        : model.documentNumber.trim();
     await Printing.layoutPdf(
       name: '${model.documentTitle}-$safeNumber.pdf',
       onLayout: (_) async => bytes,
@@ -85,9 +90,12 @@ class TransactionPrintService {
       final manifestRaw = await rootBundle.loadString('AssetManifest.json');
       final manifest = jsonDecode(manifestRaw) as Map<String, dynamic>;
       final fontPaths = manifest.keys
-          .where((path) =>
-              path.startsWith('assets/fonts/') &&
-              (path.toLowerCase().endsWith('.ttf') || path.toLowerCase().endsWith('.otf')))
+          .where(
+            (path) =>
+                path.startsWith('assets/fonts/') &&
+                (path.toLowerCase().endsWith('.ttf') ||
+                    path.toLowerCase().endsWith('.otf')),
+          )
           .toList();
 
       if (fontPaths.isEmpty) return null;
@@ -102,7 +110,8 @@ class TransactionPrintService {
         if (lower.contains('noto')) value += 30;
         if (lower.contains('amiri')) value += 25;
         if (bold && lower.contains('bold')) value += 20;
-        if (!bold && (lower.contains('regular') || lower.contains('medium'))) value += 15;
+        if (!bold && (lower.contains('regular') || lower.contains('medium')))
+          value += 15;
         return value;
       }
 
@@ -131,28 +140,49 @@ class TransactionPrintService {
     return _containsArabic(buffer.toString());
   }
 
-  bool _containsArabic(String text) => RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+  bool _containsArabic(String text) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(text);
 
-  pw.Widget _buildHeader(TransactionPrintModel model, DateFormat dateFmt, bool rtl) {
-    final number = model.documentNumber.trim().isEmpty ? 'Draft' : model.documentNumber.trim();
+  pw.Widget _buildHeader(
+    TransactionPrintModel model,
+    DateFormat dateFmt,
+    bool rtl,
+  ) {
+    final number = model.documentNumber.trim().isEmpty
+        ? 'Draft'
+        : model.documentNumber.trim();
     return pw.Container(
       padding: const pw.EdgeInsets.only(bottom: 12),
       decoration: const pw.BoxDecoration(
-        border: pw.Border(bottom: pw.BorderSide(color: PdfColors.blueGrey600, width: 1.2)),
+        border: pw.Border(
+          bottom: pw.BorderSide(color: PdfColors.blueGrey600, width: 1.2),
+        ),
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Column(
-            crossAxisAlignment: rtl ? pw.CrossAxisAlignment.end : pw.CrossAxisAlignment.start,
+            crossAxisAlignment: rtl
+                ? pw.CrossAxisAlignment.end
+                : pw.CrossAxisAlignment.start,
             children: [
               pw.Text(
                 'LedgerFlow',
-                style: pw.TextStyle(fontSize: 21, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+                style: pw.TextStyle(
+                  fontSize: 21,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blueGrey800,
+                ),
               ),
               pw.SizedBox(height: 4),
-              pw.Text('QuickBooks-style business document', style: const pw.TextStyle(fontSize: 9, color: PdfColors.blueGrey600)),
+              pw.Text(
+                'QuickBooks-style business document',
+                style: const pw.TextStyle(
+                  fontSize: 9,
+                  color: PdfColors.blueGrey600,
+                ),
+              ),
             ],
           ),
           pw.Container(
@@ -163,16 +193,23 @@ class TransactionPrintService {
               border: pw.Border.all(color: PdfColors.blueGrey300),
             ),
             child: pw.Column(
-              crossAxisAlignment: rtl ? pw.CrossAxisAlignment.start : pw.CrossAxisAlignment.end,
+              crossAxisAlignment: rtl
+                  ? pw.CrossAxisAlignment.start
+                  : pw.CrossAxisAlignment.end,
               children: [
                 pw.Text(
                   model.documentTitle.toUpperCase(),
-                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey900),
+                  style: pw.TextStyle(
+                    fontSize: 18,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blueGrey900,
+                  ),
                 ),
                 pw.SizedBox(height: 6),
                 _headerMeta('No.', number),
                 _headerMeta('Date', dateFmt.format(model.documentDate)),
-                if (model.dueDate != null) _headerMeta('Due', dateFmt.format(model.dueDate!)),
+                if (model.dueDate != null)
+                  _headerMeta('Due', dateFmt.format(model.dueDate!)),
               ],
             ),
           ),
@@ -187,8 +224,21 @@ class TransactionPrintService {
       child: pw.Row(
         mainAxisSize: pw.MainAxisSize.min,
         children: [
-          pw.Text('$label: ', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey700)),
-          pw.Text(value, style: const pw.TextStyle(fontSize: 9, color: PdfColors.blueGrey900)),
+          pw.Text(
+            '$label: ',
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.blueGrey700,
+            ),
+          ),
+          pw.Text(
+            value,
+            style: const pw.TextStyle(
+              fontSize: 9,
+              color: PdfColors.blueGrey900,
+            ),
+          ),
         ],
       ),
     );
@@ -212,7 +262,10 @@ class TransactionPrintService {
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.grey400),
             ),
-            child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: rows),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: rows,
+            ),
           ),
         ),
         pw.SizedBox(width: 14),
@@ -226,9 +279,18 @@ class TransactionPrintService {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('CUSTOMER MESSAGE', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'CUSTOMER MESSAGE',
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 5),
-              pw.Text('Thank you for your business.', style: const pw.TextStyle(fontSize: 9)),
+              pw.Text(
+                'Thank you for your business.',
+                style: const pw.TextStyle(fontSize: 9),
+              ),
             ],
           ),
         ),
@@ -236,13 +298,19 @@ class TransactionPrintService {
     );
   }
 
-  pw.Widget _buildLinesTable(TransactionPrintModel model, NumberFormat moneyFmt, bool rtl) {
+  pw.Widget _buildLinesTable(
+    TransactionPrintModel model,
+    NumberFormat moneyFmt,
+    bool rtl,
+  ) {
     final data = model.lines
         .map(
           (line) => [
             line.itemName.trim().isEmpty ? 'Item' : line.itemName.trim(),
             line.quantity.toStringAsFixed(2),
-            line.description.trim().isEmpty ? line.itemName.trim() : line.description.trim(),
+            line.description.trim().isEmpty
+                ? line.itemName.trim()
+                : line.description.trim(),
             moneyFmt.format(line.rate),
             moneyFmt.format(line.amount),
           ],
@@ -257,7 +325,11 @@ class TransactionPrintService {
         border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
         headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey100),
         oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
-        headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5, color: PdfColors.blueGrey900),
+        headerStyle: pw.TextStyle(
+          fontWeight: pw.FontWeight.bold,
+          fontSize: 8.5,
+          color: PdfColors.blueGrey900,
+        ),
         cellStyle: const pw.TextStyle(fontSize: 8),
         cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 5),
         cellAlignments: const {
@@ -292,16 +364,43 @@ class TransactionPrintService {
           child: pw.Column(
             children: [
               _moneyRow('Subtotal', totals.subtotal, totals.currency, moneyFmt),
-              if (totals.discountTotal != 0) _moneyRow('Discount', totals.discountTotal, totals.currency, moneyFmt),
-              if (totals.taxTotal != 0) _moneyRow('Tax', totals.taxTotal, totals.currency, moneyFmt),
+              if (totals.discountTotal != 0)
+                _moneyRow(
+                  'Discount',
+                  totals.discountTotal,
+                  totals.currency,
+                  moneyFmt,
+                ),
+              if (totals.taxTotal != 0)
+                _moneyRow('Tax', totals.taxTotal, totals.currency, moneyFmt),
               pw.Divider(color: PdfColors.grey500),
-              _moneyRow('Total', totals.total, totals.currency, moneyFmt, bold: true),
-              _moneyRow('Payments applied', totals.paid, totals.currency, moneyFmt),
+              _moneyRow(
+                'Total',
+                totals.total,
+                totals.currency,
+                moneyFmt,
+                bold: true,
+              ),
+              _moneyRow(
+                'Payments applied',
+                totals.paid,
+                totals.currency,
+                moneyFmt,
+              ),
               pw.Container(
                 margin: const pw.EdgeInsets.only(top: 4),
-                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 5,
+                ),
                 color: PdfColors.blueGrey50,
-                child: _moneyRow('Balance due', totals.balanceDue, totals.currency, moneyFmt, bold: true),
+                child: _moneyRow(
+                  'Balance due',
+                  totals.balanceDue,
+                  totals.currency,
+                  moneyFmt,
+                  bold: true,
+                ),
               ),
             ],
           ),
@@ -326,7 +425,9 @@ class TransactionPrintService {
   }
 
   pw.Widget _kv(String label, String value) {
-    final direction = _containsArabic('$label $value') ? pw.TextDirection.rtl : pw.TextDirection.ltr;
+    final direction = _containsArabic('$label $value')
+        ? pw.TextDirection.rtl
+        : pw.TextDirection.ltr;
     return pw.Directionality(
       textDirection: direction,
       child: pw.Padding(
@@ -336,9 +437,18 @@ class TransactionPrintService {
           children: [
             pw.SizedBox(
               width: 105,
-              child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5, color: PdfColors.blueGrey800)),
+              child: pw.Text(
+                label,
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 8.5,
+                  color: PdfColors.blueGrey800,
+                ),
+              ),
             ),
-            pw.Expanded(child: pw.Text(value, style: const pw.TextStyle(fontSize: 9))),
+            pw.Expanded(
+              child: pw.Text(value, style: const pw.TextStyle(fontSize: 9)),
+            ),
           ],
         ),
       ),
@@ -352,7 +462,10 @@ class TransactionPrintService {
     NumberFormat moneyFmt, {
     bool bold = false,
   }) {
-    final style = pw.TextStyle(fontSize: 9, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal);
+    final style = pw.TextStyle(
+      fontSize: 9,
+      fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+    );
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 2),
       child: pw.Row(

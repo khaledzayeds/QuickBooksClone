@@ -141,6 +141,8 @@ class _MakeDepositScreenState extends ConsumerState<MakeDepositScreen> {
         openBalance: 0,
         creditBalance: 0,
       ),
+      partyLabel: 'Account',
+      partyType: 'Account',
       payment: PrintPaymentModel(
         depositAccountId: _bankId,
         depositAccountName: bank?.displayName,
