@@ -48,12 +48,25 @@ class PrintTemplatePdfService {
       marginAll: 0,
     );
 
+    pw.ImageProvider? logoImage;
+    if (settings != null) {
+      logoImage = await const PrintingAssetLoader().loadLogo(settings);
+    }
+
+    final showQr = settings?.showQrCode ?? true;
+    final elementsToRender = template.elements.where((element) {
+      if (!showQr && (element.type == 'qr' || element.type == 'barcode')) {
+        return false;
+      }
+      return true;
+    }).toList();
+
     doc.addPage(
       pw.Page(
         pageFormat: pageFormat,
         build: (context) => pw.Stack(
-          children: template.elements
-              .map((element) => _element(element, data: data))
+          children: elementsToRender
+              .map((element) => _element(element, data: data, logoImage: logoImage))
               .toList(),
         ),
       ),
@@ -115,6 +128,7 @@ class PrintTemplatePdfService {
   pw.Widget _element(
     PrintElementModel element, {
     DocumentPrintDataModel? data,
+    pw.ImageProvider? logoImage,
   }) {
     return pw.Positioned(
       left: element.x * PdfPageFormat.mm,
@@ -134,12 +148,16 @@ class PrintTemplatePdfService {
                 ),
         ),
         padding: pw.EdgeInsets.all(element.style.padding),
-        child: _body(element, data: data),
+        child: _body(element, data: data, logoImage: logoImage),
       ),
     );
   }
 
-  pw.Widget _body(PrintElementModel element, {DocumentPrintDataModel? data}) {
+  pw.Widget _body(
+    PrintElementModel element, {
+    DocumentPrintDataModel? data,
+    pw.ImageProvider? logoImage,
+  }) {
     switch (element.type) {
       case 'line':
         return pw.Center(
@@ -147,6 +165,20 @@ class PrintTemplatePdfService {
         );
       case 'rectangle':
         return pw.SizedBox();
+      case 'image':
+        if (logoImage != null) {
+          return pw.Image(logoImage, fit: pw.BoxFit.contain);
+        }
+        return pw.Center(
+          child: pw.Text(
+            'LOGO',
+            style: pw.TextStyle(
+              fontSize: 8,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.grey500,
+            ),
+          ),
+        );
       case 'table':
         return _table(element, data: data);
       case 'qr':

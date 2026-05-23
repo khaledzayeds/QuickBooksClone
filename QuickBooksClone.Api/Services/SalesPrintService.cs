@@ -53,7 +53,7 @@ public sealed class SalesPrintService
         _vendors = vendors;
     }
 
-    public async Task<(SalesPrintDataDto? Data, string? Error)> GetPrintDataAsync(Guid documentId, InvoicePaymentMode expectedMode, CancellationToken cancellationToken)
+    public async Task<(SalesPrintDataDto? Data, string? Error)> GetPrintDataAsync(Guid documentId, InvoicePaymentMode expectedMode, string? createdByName, CancellationToken cancellationToken)
     {
         var invoice = await _invoices.GetByIdAsync(documentId, cancellationToken);
         if (invoice is null || invoice.PaymentMode != expectedMode)
@@ -135,10 +135,11 @@ public sealed class SalesPrintService
             Notes: null,
             Terms: invoice.PaymentMode == InvoicePaymentMode.Cash ? "Paid at sale" : null,
             PartyLabel: "Customer",
-            PartyType: "Customer"), null);
+            PartyType: "Customer",
+            CreatedByName: createdByName), null);
     }
 
-    public async Task<(SalesPrintDataDto? Data, string? Error)> GetEstimatePrintDataAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task<(SalesPrintDataDto? Data, string? Error)> GetEstimatePrintDataAsync(Guid documentId, string? createdByName, CancellationToken cancellationToken)
     {
         var estimate = await _estimates.GetByIdAsync(documentId, cancellationToken);
         if (estimate is null)
@@ -193,10 +194,11 @@ public sealed class SalesPrintService
             DateTimeOffset.UtcNow,
             Terms: "Estimate valid until expiration date",
             PartyLabel: "Customer",
-            PartyType: "Customer"), null);
+            PartyType: "Customer",
+            CreatedByName: createdByName), null);
     }
 
-    public async Task<(SalesPrintDataDto? Data, string? Error)> GetSalesReturnPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task<(SalesPrintDataDto? Data, string? Error)> GetSalesReturnPrintDataAsync(Guid documentId, string? createdByName, CancellationToken cancellationToken)
     {
         var salesReturn = await _salesReturns.GetByIdAsync(documentId, cancellationToken);
         if (salesReturn is null)
@@ -251,10 +253,11 @@ public sealed class SalesPrintService
             DateTimeOffset.UtcNow,
             Terms: "Posted sales return",
             PartyLabel: "Customer",
-            PartyType: "Customer"), null);
+            PartyType: "Customer",
+            CreatedByName: createdByName), null);
     }
 
-    public async Task<(SalesPrintDataDto? Data, string? Error)> GetPurchaseOrderPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task<(SalesPrintDataDto? Data, string? Error)> GetPurchaseOrderPrintDataAsync(Guid documentId, string? createdByName, CancellationToken cancellationToken)
     {
         var order = await _purchaseOrders.GetByIdAsync(documentId, cancellationToken);
         if (order is null)
@@ -309,10 +312,11 @@ public sealed class SalesPrintService
             DateTimeOffset.UtcNow,
             Terms: "Purchase order",
             PartyLabel: "Vendor",
-            PartyType: "Vendor"), null);
+            PartyType: "Vendor",
+            CreatedByName: createdByName), null);
     }
 
-    public async Task<(SalesPrintDataDto? Data, string? Error)> GetInventoryReceiptPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task<(SalesPrintDataDto? Data, string? Error)> GetInventoryReceiptPrintDataAsync(Guid documentId, string? createdByName, CancellationToken cancellationToken)
     {
         var receipt = await _inventoryReceipts.GetByIdAsync(documentId, cancellationToken);
         if (receipt is null)
@@ -367,10 +371,11 @@ public sealed class SalesPrintService
             DateTimeOffset.UtcNow,
             Terms: receipt.PurchaseOrderId is null ? "Manual receive inventory" : $"PO {receipt.PurchaseOrderId}",
             PartyLabel: "Vendor",
-            PartyType: "Vendor"), null);
+            PartyType: "Vendor",
+            CreatedByName: createdByName), null);
     }
 
-    public async Task<(SalesPrintDataDto? Data, string? Error)> GetInventoryAdjustmentPrintDataAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task<(SalesPrintDataDto? Data, string? Error)> GetInventoryAdjustmentPrintDataAsync(Guid documentId, string? createdByName, CancellationToken cancellationToken)
     {
         var adjustment = await _inventoryAdjustments.GetByIdAsync(documentId, cancellationToken);
         if (adjustment is null)
@@ -418,7 +423,8 @@ public sealed class SalesPrintService
             Notes: adjustment.Reason,
             Terms: account?.Name,
             PartyLabel: "Account",
-            PartyType: "Account"), null);
+            PartyType: "Account",
+            CreatedByName: createdByName), null);
     }
 
     private static IReadOnlyList<SalesPrintSummaryRowDto> BuildSummary(Invoice invoice)

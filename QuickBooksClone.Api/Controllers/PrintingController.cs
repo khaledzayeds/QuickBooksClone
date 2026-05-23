@@ -40,24 +40,31 @@ public sealed class PrintingController : ControllerBase
             return StatusCode(StatusCodes.Status403Forbidden, $"Missing permission: {requiredPermission}.");
         }
 
-        var (data, error) = await GetDataAsync(normalizedDocumentType, id, cancellationToken);
+        string? createdByName = null;
+        if (HttpContext.Items[PermissionAuthorizationMiddleware.CurrentUserItemKey] is CurrentUserContext currentUser)
+        {
+            createdByName = currentUser.DisplayName ?? currentUser.UserName;
+        }
+
+        var (data, error) = await GetDataAsync(normalizedDocumentType, id, createdByName, cancellationToken);
         return error is not null ? NotFound(error) : Ok(data);
     }
 
     private Task<(SalesPrintDataDto? Data, string? Error)> GetDataAsync(
         string documentType,
         Guid id,
+        string? createdByName,
         CancellationToken cancellationToken)
     {
         return documentType switch
         {
-            "invoice" => _salesPrintService.GetPrintDataAsync(id, InvoicePaymentMode.Credit, cancellationToken),
-            "sales-receipt" => _salesPrintService.GetPrintDataAsync(id, InvoicePaymentMode.Cash, cancellationToken),
-            "estimate" => _salesPrintService.GetEstimatePrintDataAsync(id, cancellationToken),
-            "sales-return" => _salesPrintService.GetSalesReturnPrintDataAsync(id, cancellationToken),
-            "purchase-order" => _salesPrintService.GetPurchaseOrderPrintDataAsync(id, cancellationToken),
-            "receive-inventory" => _salesPrintService.GetInventoryReceiptPrintDataAsync(id, cancellationToken),
-            "inventory-adjustment" => _salesPrintService.GetInventoryAdjustmentPrintDataAsync(id, cancellationToken),
+            "invoice" => _salesPrintService.GetPrintDataAsync(id, InvoicePaymentMode.Credit, createdByName, cancellationToken),
+            "sales-receipt" => _salesPrintService.GetPrintDataAsync(id, InvoicePaymentMode.Cash, createdByName, cancellationToken),
+            "estimate" => _salesPrintService.GetEstimatePrintDataAsync(id, createdByName, cancellationToken),
+            "sales-return" => _salesPrintService.GetSalesReturnPrintDataAsync(id, createdByName, cancellationToken),
+            "purchase-order" => _salesPrintService.GetPurchaseOrderPrintDataAsync(id, createdByName, cancellationToken),
+            "receive-inventory" => _salesPrintService.GetInventoryReceiptPrintDataAsync(id, createdByName, cancellationToken),
+            "inventory-adjustment" => _salesPrintService.GetInventoryAdjustmentPrintDataAsync(id, createdByName, cancellationToken),
             _ => Task.FromResult<(SalesPrintDataDto? Data, string? Error)>((null, "Unsupported printable document type.")),
         };
     }

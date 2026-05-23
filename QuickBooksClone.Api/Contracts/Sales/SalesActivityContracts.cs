@@ -60,7 +60,8 @@ public sealed record SalesPrintDataDto(
     string? Notes = null,
     string? Terms = null,
     string PartyLabel = "Customer",
-    string PartyType = "Customer");
+    string PartyType = "Customer",
+    string? CreatedByName = null);
 
 public sealed record SalesPrintCompanyDto(
     string CompanyName,

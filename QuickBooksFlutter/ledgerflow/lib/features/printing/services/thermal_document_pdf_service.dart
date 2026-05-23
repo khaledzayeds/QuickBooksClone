@@ -105,9 +105,14 @@ class ThermalDocumentPdfService {
 
     final infoLines = <pw.Widget>[
       pw.Text(
-        'رقم الفاتورة: ${data.documentNumber}',
+        _arabicDocumentTitle(data.documentType),
         textDirection: pw.TextDirection.rtl,
-        style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.Text(
+        '${_getNumberLabel(data.documentType)}: ${data.documentNumber}',
+        textDirection: pw.TextDirection.rtl,
+        style: const pw.TextStyle(fontSize: 8),
       ),
       pw.Text(
         'التاريخ: ${_formatDateTime(data.documentDate)}',
@@ -328,7 +333,7 @@ class ThermalDocumentPdfService {
     PrintingSettingsModel settings,
   ) {
     final rows = <(String, double, bool)>[];
-    rows.add(('قيمة الفاتورة', data.subtotal, false));
+    rows.add((_getSubtotalLabel(data.documentType), data.subtotal, false));
     if (data.discountAmount != 0) {
       rows.add(('الخصم', data.discountAmount, false));
     }
@@ -342,4 +347,67 @@ class ThermalDocumentPdfService {
   }
 
   bool _hasArabic(String text) => RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+
+  String _arabicDocumentTitle(String type) {
+    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+    switch (normalized) {
+      case 'invoice':
+        return 'فاتورة بيع';
+      case 'sales-receipt' || 'salesreceipt':
+        return 'إيصال بيع';
+      case 'estimate':
+        return 'عرض سعر';
+      case 'sales-return' || 'salesreturn':
+        return 'مرتجع بيع';
+      case 'purchase-order' || 'purchaseorder':
+        return 'أمر شراء';
+      case 'receive-inventory' || 'receiveinventory' || 'inventory-receipt' || 'inventoryreceipt':
+        return 'إذن استلام مخزون';
+      case 'inventory-adjustment' || 'inventoryadjustment':
+        return 'تسوية مخزون';
+      default:
+        if (normalized.contains('receipt')) return 'إيصال بيع';
+        if (normalized.contains('invoice')) return 'فاتورة بيع';
+        if (normalized.contains('return')) return 'مرتجع بيع';
+        if (normalized.contains('estimate')) return 'عرض سعر';
+        if (normalized.contains('purchase')) return 'أمر شراء';
+        if (normalized.contains('receive') || normalized.contains('receipt')) return 'إذن استلام مخزون';
+        if (normalized.contains('adjustment')) return 'تسوية مخزون';
+        return type;
+    }
+  }
+
+  String _getNumberLabel(String type) {
+    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+    switch (normalized) {
+      case 'invoice':
+        return 'رقم الفاتورة';
+      case 'sales-receipt' || 'salesreceipt':
+        return 'رقم الإيصال';
+      case 'estimate':
+        return 'رقم عرض السعر';
+      case 'sales-return' || 'salesreturn':
+        return 'رقم إذن المرتجع';
+      case 'purchase-order' || 'purchaseorder':
+        return 'رقم أمر الشراء';
+      case 'receive-inventory' || 'receiveinventory' || 'inventory-receipt' || 'inventoryreceipt':
+        return 'رقم إذن الاستلام';
+      case 'inventory-adjustment' || 'inventoryadjustment':
+        return 'رقم التسوية';
+      default:
+        return 'رقم المستند';
+    }
+  }
+
+  String _getSubtotalLabel(String type) {
+    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+    switch (normalized) {
+      case 'invoice':
+        return 'قيمة الفاتورة';
+      case 'sales-receipt' || 'salesreceipt':
+        return 'قيمة الإيصال';
+      default:
+        return 'قيمة المستند';
+    }
+  }
 }

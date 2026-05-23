@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksClone.Api.Contracts.PrintTemplates;
+using QuickBooksClone.Api.Middleware;
+using QuickBooksClone.Api.Security;
 using QuickBooksClone.Core.PrintTemplates;
 
 namespace QuickBooksClone.Api.Controllers;
 
 [ApiController]
 [Route("api/print-templates")]
+[RequireAuthenticated]
 public sealed class PrintTemplatesController : ControllerBase
 {
     private readonly IPrintTemplateRepository _repository;
@@ -31,6 +34,7 @@ public sealed class PrintTemplatesController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("Settings.PrintTemplates.Manage")]
     public async Task<ActionResult<PrintTemplateResponse>> Create(SavePrintTemplateRequest request, CancellationToken cancellationToken = default)
     {
         var template = PrintTemplate.Create(request.Name, request.DocumentType, request.PageSize, request.JsonContent, request.IsDefault);
@@ -39,6 +43,7 @@ public sealed class PrintTemplatesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission("Settings.PrintTemplates.Manage")]
     public async Task<ActionResult<PrintTemplateResponse>> Update(Guid id, SavePrintTemplateRequest request, CancellationToken cancellationToken = default)
     {
         var existing = await _repository.GetAsync(id, cancellationToken);
@@ -50,6 +55,7 @@ public sealed class PrintTemplatesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/clone")]
+    [RequirePermission("Settings.PrintTemplates.Manage")]
     public async Task<ActionResult<PrintTemplateResponse>> Clone(Guid id, ClonePrintTemplateRequest request, CancellationToken cancellationToken = default)
     {
         var existing = await _repository.GetAsync(id, cancellationToken);
@@ -60,6 +66,7 @@ public sealed class PrintTemplatesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [RequirePermission("Settings.PrintTemplates.Manage")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
         await _repository.DeleteAsync(id, cancellationToken);

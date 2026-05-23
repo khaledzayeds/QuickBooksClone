@@ -367,15 +367,32 @@ class A4DocumentPdfService {
       '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
   String _arabicDocumentTitle(String type) {
-    final normalized = type.toLowerCase().replaceAll(' ', '-');
-    if (normalized.contains('receipt')) return 'فاتورة بيع';
-    if (normalized.contains('invoice')) return 'فاتورة بيع';
-    if (normalized.contains('return')) return 'مرتجع بيع';
-    if (normalized.contains('estimate')) return 'عرض سعر';
-    if (normalized.contains('purchase')) return 'أمر شراء';
-    if (normalized.contains('adjustment')) return 'تسوية مخزون';
-    if (normalized.contains('deposit')) return 'إيداع بنكي';
-    return type;
+    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+    switch (normalized) {
+      case 'invoice':
+        return 'فاتورة بيع';
+      case 'sales-receipt' || 'salesreceipt':
+        return 'إيصال بيع';
+      case 'estimate':
+        return 'عرض سعر';
+      case 'sales-return' || 'salesreturn':
+        return 'مرتجع بيع';
+      case 'purchase-order' || 'purchaseorder':
+        return 'أمر شراء';
+      case 'receive-inventory' || 'receiveinventory' || 'inventory-receipt' || 'inventoryreceipt':
+        return 'إذن استلام مخزون';
+      case 'inventory-adjustment' || 'inventoryadjustment':
+        return 'تسوية مخزون';
+      default:
+        if (normalized.contains('receipt')) return 'إيصال بيع';
+        if (normalized.contains('invoice')) return 'فاتورة بيع';
+        if (normalized.contains('return')) return 'مرتجع بيع';
+        if (normalized.contains('estimate')) return 'عرض سعر';
+        if (normalized.contains('purchase')) return 'أمر شراء';
+        if (normalized.contains('receive') || normalized.contains('receipt')) return 'إذن استلام مخزون';
+        if (normalized.contains('adjustment')) return 'تسوية مخزون';
+        return type;
+    }
   }
 
   String _arabicSummaryLabel(String label) {

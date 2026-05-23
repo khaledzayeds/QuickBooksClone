@@ -265,19 +265,23 @@ bool _isThermalTemplate(PrintTemplateModel template) {
       template.page.widthMm <= 90;
 }
 
-/// Cleans the Windows print spooler queue for ALL printers to prevent error backlogs.
+/// Cleans the Windows print spooler queue for the selected printer to prevent error backlogs.
 /// Filters out recently submitted active jobs to avoid interrupting the current print job.
-Future<void> _clearStalePrintJobs() async {
+Future<void> _clearStalePrintJobs(String? printerName) async {
   if (!Platform.isWindows) return;
+  final name = printerName?.trim();
+  if (name == null || name.isEmpty) return;
   try {
-    // Only remove print jobs that are in an error/paused/offline state,
+    // Only remove print jobs for the selected printer that are in an error/paused/offline state,
     // OR have been in the queue for more than 15 seconds (stale).
     // This prevents deleting the active job we just sent (which is only 2 seconds old).
     await Process.run('powershell', [
       '-NoProfile',
       '-NonInteractive',
       '-Command',
-      r'Get-Printer | ForEach-Object { Get-PrintJob -PrinterName $_.Name -ErrorAction SilentlyContinue } | Where-Object { ((Get-Date) - $_.SubmittedTime -gt (New-TimeSpan -Seconds 15)) -or ($_.JobState -match "Error" -or $_.JobState -match "Paused" -or $_.JobState -match "Offline") } | Remove-PrintJob -ErrorAction SilentlyContinue'
+      'Get-PrintJob -PrinterName "$name" -ErrorAction SilentlyContinue | '
+          r'Where-Object { ((Get-Date) - $_.SubmittedTime -gt (New-TimeSpan -Seconds 15)) -or ($_.JobState -match "Error" -or $_.JobState -match "Paused" -or $_.JobState -match "Offline") } | '
+          'Remove-PrintJob -ErrorAction SilentlyContinue'
     ]);
   } catch (e) {
     // Ignore any failures — printer may not support this operation.
@@ -294,7 +298,7 @@ Future<void> _printDirectOrDialog({
   final url = printerUrl?.trim();
   if (url != null && url.isNotEmpty) {
     // Clear stale/error jobs BEFORE printing to avoid queue backlog.
-    await _clearStalePrintJobs();
+    await _clearStalePrintJobs(url);
     await Printing.directPrintPdf(
       printer: Printer(url: url),
       name: name,
@@ -302,7 +306,7 @@ Future<void> _printDirectOrDialog({
     );
     // Clear completed/error jobs AFTER printing so they don't block the next job.
     await Future.delayed(const Duration(seconds: 2));
-    await _clearStalePrintJobs();
+    await _clearStalePrintJobs(url);
     return;
   }
   // No printer URL → show OS dialog (still no preview).
@@ -317,7 +321,7 @@ Future<void> _printPdf({
 }) async {
   final url = printerName?.trim();
   if (url != null && url.isNotEmpty) {
-    await _clearStalePrintJobs();
+    await _clearStalePrintJobs(url);
     await Printing.directPrintPdf(
       printer: Printer(url: url),
       name: name,
@@ -325,7 +329,7 @@ Future<void> _printPdf({
     );
     // Wait then clear so subsequent prints don't queue up behind completed jobs.
     await Future.delayed(const Duration(seconds: 2));
-    await _clearStalePrintJobs();
+    await _clearStalePrintJobs(url);
     return;
   }
   await Printing.layoutPdf(name: name, onLayout: (_) => bytesBuilder());

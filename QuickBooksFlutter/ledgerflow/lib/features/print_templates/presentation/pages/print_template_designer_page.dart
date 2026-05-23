@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../settings/data/models/printing_settings_model.dart';
+import '../../data/models/print_page_model.dart';
 import '../../data/models/print_template_model.dart';
 import '../../logic/print_template_controller.dart';
 import '../widgets/properties_panel.dart';
@@ -208,33 +209,44 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Flexible(
-                            child: SegmentedButton<bool>(
-                              segments: [
-                                const ButtonSegment<bool>(
-                                  value: false,
-                                  label: Text('A4'),
-                                  icon: Icon(Icons.description_outlined),
-                                ),
-                                ButtonSegment<bool>(
-                                  value: true,
-                                  label: Text(
-                                    tight ? 'Thermal' : 'Thermal 80mm',
-                                  ),
-                                  icon: const Icon(Icons.receipt_long_outlined),
-                                ),
-                              ],
-                              selected: {isThermal},
-                              showSelectedIcon: false,
-                              onSelectionChanged: (value) {
-                                final thermal = value.first;
-                                if (thermal) {
-                                  _controller.loadThermalDefault();
-                                } else {
-                                  _controller.loadA4Default();
-                                }
-                              },
+                          SegmentedButton<String>(
+                            style: const ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
+                            segments: const [
+                              ButtonSegment<String>(
+                                value: 'a4',
+                                label: Text('A4'),
+                              ),
+                              ButtonSegment<String>(
+                                value: 'thermal_80',
+                                label: Text('80mm'),
+                              ),
+                              ButtonSegment<String>(
+                                value: 'thermal_58',
+                                label: Text('58mm'),
+                              ),
+                            ],
+                            selected: {
+                              if (template.page.size == 'A4' || template.page.widthMm > 90)
+                                'a4'
+                              else if (template.page.widthMm <= 60)
+                                'thermal_58'
+                              else
+                                'thermal_80'
+                            },
+                            showSelectedIcon: false,
+                            onSelectionChanged: (values) {
+                              final selected = values.first;
+                              if (selected == 'a4') {
+                                _controller.updatePage(PrintPageModel.a4Portrait());
+                              } else if (selected == 'thermal_80') {
+                                _controller.updatePage(PrintPageModel.receipt80mm());
+                              } else if (selected == 'thermal_58') {
+                                _controller.updatePage(PrintPageModel.receipt58mm());
+                              }
+                            },
                           ),
                           if (!tight) ...[
                             const SizedBox(width: 12),
@@ -439,7 +451,7 @@ class _TemplateNavigator extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: selected
-                          ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+                          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -451,7 +463,7 @@ class _TemplateNavigator extends StatelessWidget {
                         side: BorderSide(
                           color: selected
                               ? theme.colorScheme.primary
-                              : theme.dividerColor.withOpacity(0.5),
+                              : theme.dividerColor.withValues(alpha: 0.5),
                           width: selected ? 1.5 : 1.0,
                         ),
                       ),
@@ -479,7 +491,7 @@ class _TemplateNavigator extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: selected
-                              ? theme.colorScheme.primary.withOpacity(0.8)
+                              ? theme.colorScheme.primary.withValues(alpha: 0.8)
                               : theme.colorScheme.onSurfaceVariant,
                         ),
                       ),

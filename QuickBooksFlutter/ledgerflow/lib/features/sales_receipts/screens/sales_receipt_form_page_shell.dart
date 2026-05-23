@@ -338,7 +338,7 @@ class _SalesReceiptFormPageShellState
     _previewDebounce = Timer(const Duration(milliseconds: 550), _runPreview);
   }
 
-  Future<SalesReceiptModel?> _save() async {
+  Future<SalesReceiptModel?> _save({bool skipAutoPrint = false}) async {
     if (_readOnly) return _currentReceipt;
     if (_customer == null) {
       _showError('Select a customer first.');
@@ -385,6 +385,10 @@ class _SalesReceiptFormPageShellState
           _savedReceiptId = doc.id;
           _numberCtrl.text = doc.receiptNumber;
           ref.read(salesReceiptsStateProvider.notifier).refresh();
+
+          if (!skipAutoPrint) {
+            _triggerAutoPrint(doc.id, 'sales-receipt');
+          }
         },
         failure: (error) => _showError(error.message),
       );
@@ -466,7 +470,20 @@ class _SalesReceiptFormPageShellState
 
   Future<SalesReceiptModel?> _ensureSavedReceipt() async {
     if (_currentReceipt != null) return _currentReceipt;
-    return _save();
+    return _save(skipAutoPrint: true);
+  }
+
+  void _triggerAutoPrint(String documentId, String documentType) {
+    Future.microtask(() async {
+      try {
+        await printDocumentUsingSettings(
+          context: context,
+          ref: ref,
+          documentType: documentType,
+          documentId: documentId,
+        );
+      } catch (_) {}
+    });
   }
 
   Future<void> _handleVoid() async {

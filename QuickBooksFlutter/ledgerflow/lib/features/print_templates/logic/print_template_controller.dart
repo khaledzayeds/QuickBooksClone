@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../data/models/print_element_model.dart';
+import '../data/models/print_page_model.dart';
 import '../data/models/print_template_model.dart';
 import '../data/print_template_repository.dart';
 import '../data/sample_templates.dart';
@@ -249,6 +250,25 @@ class PrintTemplateController extends ChangeNotifier {
     }
   }
 
+  void updatePage(PrintPageModel page) {
+    final adjustedElements = _template.elements.map((el) {
+      var newX = el.x;
+      var newWidth = el.width;
+      if (newX + newWidth > page.effectiveWidthMm) {
+        newWidth = el.width.clamp(4.0, page.effectiveWidthMm);
+        newX = (page.effectiveWidthMm - newWidth).clamp(0.0, page.effectiveWidthMm - newWidth);
+      }
+      return el.copyWith(x: newX, width: newWidth);
+    }).toList();
+
+    _template = _template.copyWith(
+      page: page,
+      pageSize: page.size,
+      elements: adjustedElements,
+    );
+    notifyListeners();
+  }
+
   void updateSelected(PrintElementModel element) {
     _template = _template.updateElement(element);
     _selectedElementId = element.id;
@@ -413,13 +433,7 @@ class PrintTemplateController extends ChangeNotifier {
     return _fallbackTemplateFor(doc, paper);
   }
 
-  String _documentLabel(String documentType) {
-    return documentType
-        .split('-')
-        .where((part) => part.isNotEmpty)
-        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-        .join(' ');
-  }
+
 
   Future<void> _runBusy(Future<void> Function() action) async {
     _isBusy = true;

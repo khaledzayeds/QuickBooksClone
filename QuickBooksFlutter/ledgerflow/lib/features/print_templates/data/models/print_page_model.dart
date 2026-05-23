@@ -19,6 +19,7 @@ class PrintPageModel {
 
   factory PrintPageModel.a4Portrait() => const PrintPageModel(size: 'A4', widthMm: 210, heightMm: 297);
   factory PrintPageModel.receipt80mm() => const PrintPageModel(size: 'Receipt 80mm', widthMm: 80, heightMm: 220, marginMm: 3);
+  factory PrintPageModel.receipt58mm() => const PrintPageModel(size: 'Receipt 58mm', widthMm: 58, heightMm: 220, marginMm: 2);
   factory PrintPageModel.barcodeLabel50x25() => const PrintPageModel(size: 'Barcode Label 50x25', widthMm: 50, heightMm: 25, marginMm: 2);
 
   factory PrintPageModel.fromJson(Map<String, dynamic> json) => PrintPageModel(

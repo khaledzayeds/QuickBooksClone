@@ -5,6 +5,7 @@ public static class PermissionCatalog
     private static readonly PermissionDefinition[] Permissions =
     [
         new("Settings.Manage", "Settings", "Manage settings", "Change company, device, backup, and runtime settings."),
+        new("Settings.PrintTemplates.Manage", "Settings", "Manage print templates", "Create, edit, delete, and clone document print templates."),
         new("Users.Manage", "Security", "Manage users", "Create users, roles, and permission assignments."),
         new("Audit.View", "Security", "View audit trail", "View user activity and protected business action history."),
         new("Reports.View", "Reports", "View reports", "View accounting, inventory, and aging reports."),

@@ -21,10 +21,32 @@ class TemplateCanvas extends StatefulWidget {
 class _TemplateCanvasState extends State<TemplateCanvas> {
   final ScrollController _horizontalController = ScrollController();
   final ScrollController _verticalController = ScrollController();
-  double _zoom = .82;
+  late double _zoom;
 
   PrintTemplateModel get template => widget.controller.template;
   double get _mmToPixel => widget.mmToPixel;
+
+  @override
+  void initState() {
+    super.initState();
+    _zoom = _defaultZoomFor(template);
+  }
+
+  @override
+  void didUpdateWidget(TemplateCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller.template.id != template.id ||
+        oldWidget.controller.template.page.widthMm != template.page.widthMm) {
+      _zoom = _defaultZoomFor(template);
+    }
+  }
+
+  double _defaultZoomFor(PrintTemplateModel template) {
+    final width = template.page.effectiveWidthMm;
+    if (width <= 60) return 2.4;
+    if (width <= 90) return 1.8;
+    return 0.82;
+  }
 
   @override
   void dispose() {
@@ -55,46 +77,62 @@ class _TemplateCanvasState extends State<TemplateCanvas> {
               onFit: () => _fitToWidth(pageWidth),
             ),
             Expanded(
-              child: Scrollbar(
-                controller: _verticalController,
-                thumbVisibility: true,
-                // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
-                notificationPredicate: (notification) =>
-                    notification.metrics.axis == Axis.vertical,
-                // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
-                child: Scrollbar(
-                  controller: _horizontalController,
-                  thumbVisibility: true,
-                  notificationPredicate: (notification) =>
-                      notification.metrics.axis == Axis.horizontal,
-                  child: SingleChildScrollView(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final viewportWidth = constraints.maxWidth;
+                  final viewportHeight = constraints.maxHeight;
+
+                  const horizontalPadding = 72.0;
+                  const verticalPadding = 112.0;
+
+                  final contentWidth = (scaledWidth + horizontalPadding).clamp(viewportWidth, double.infinity);
+                  final contentHeight = (scaledHeight + verticalPadding).clamp(viewportHeight, double.infinity);
+
+                  return Scrollbar(
                     controller: _verticalController,
-                    padding: const EdgeInsets.fromLTRB(36, 38, 56, 56),
+                    thumbVisibility: true,
                     child: SingleChildScrollView(
-                      controller: _horizontalController,
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: scaledWidth,
-                        height: scaledHeight,
-                        child: Transform.scale(
-                          scale: _zoom,
-                          alignment: Alignment.topLeft,
+                      controller: _verticalController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Scrollbar(
+                        controller: _horizontalController,
+                        thumbVisibility: true,
+                        notificationPredicate: (notification) =>
+                            notification.metrics.axis == Axis.horizontal,
+                        child: SingleChildScrollView(
+                          controller: _horizontalController,
+                          scrollDirection: Axis.horizontal,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           child: SizedBox(
-                            width: pageWidth,
-                            height: pageHeight,
-                            child: _PageSurface(
-                              controller: widget.controller,
-                              pageWidth: pageWidth,
-                              pageHeight: pageHeight,
-                              mmToPixel: _mmToPixel,
-                              zoom: _zoom,
+                            width: contentWidth,
+                            height: contentHeight,
+                            child: Center(
+                              child: SizedBox(
+                                width: scaledWidth,
+                                height: scaledHeight,
+                                child: Transform.scale(
+                                  scale: _zoom,
+                                  alignment: Alignment.topLeft,
+                                  child: SizedBox(
+                                    width: pageWidth,
+                                    height: pageHeight,
+                                    child: _PageSurface(
+                                      controller: widget.controller,
+                                      pageWidth: pageWidth,
+                                      pageHeight: pageHeight,
+                                      mmToPixel: _mmToPixel,
+                                      zoom: _zoom,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -245,7 +283,7 @@ class _PageSurface extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned(
-          top: -28,
+          top: -46,
           left: 0,
           right: 0,
           child: Text(

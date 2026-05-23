@@ -469,6 +469,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     int saveMode, {
     bool resetAfterSave = false,
     bool navigateAfterSave = true,
+    bool skipAutoPrint = false,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     if (_customer == null) {
@@ -536,6 +537,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
             ref.invalidate(invoiceDetailsStateProvider(target.id));
             await _saveInvoiceNotes(target.id);
             if (!mounted) return null;
+            if (isPosting && !skipAutoPrint) {
+              _triggerAutoPrint(target.id, 'invoice');
+            }
             if (resetAfterSave) {
               context.go(AppRoutes.invoiceNew);
             } else if (navigateAfterSave) {
@@ -568,6 +572,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
           _refreshInvoiceLists();
           await _saveInvoiceNotes(invoice.id);
           if (!mounted) return null;
+          if (isPosting && !skipAutoPrint) {
+            _triggerAutoPrint(invoice.id, 'invoice');
+          }
           if (resetAfterSave) {
             _resetForm(showSavedMessage: true);
           } else if (navigateAfterSave) {
@@ -696,7 +703,20 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     if (current != null && !current.isDraft && current.id.isNotEmpty) {
       return current;
     }
-    return _saveWithMode(_saveModeForPost(), navigateAfterSave: false);
+    return _saveWithMode(_saveModeForPost(), navigateAfterSave: false, skipAutoPrint: true);
+  }
+
+  void _triggerAutoPrint(String documentId, String documentType) {
+    Future.microtask(() async {
+      try {
+        await printDocumentUsingSettings(
+          context: context,
+          ref: ref,
+          documentType: documentType,
+          documentId: documentId,
+        );
+      } catch (_) {}
+    });
   }
 
   Future<void> _handleVoid() async {
