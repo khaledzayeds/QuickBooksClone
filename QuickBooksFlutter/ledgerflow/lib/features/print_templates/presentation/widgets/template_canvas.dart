@@ -58,6 +58,10 @@ class _TemplateCanvasState extends State<TemplateCanvas> {
               child: Scrollbar(
                 controller: _verticalController,
                 thumbVisibility: true,
+                // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+                notificationPredicate: (notification) =>
+                    notification.metrics.axis == Axis.vertical,
+                // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
                 child: Scrollbar(
                   controller: _horizontalController,
                   thumbVisibility: true,

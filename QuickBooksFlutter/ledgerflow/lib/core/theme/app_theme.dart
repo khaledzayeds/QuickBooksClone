@@ -1,7 +1,6 @@
 // app_theme.dart
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -23,8 +22,8 @@ class AppTheme {
 
     final baseTextTheme = isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme;
     final textTheme = languageCode == 'ar'
-        ? GoogleFonts.cairoTextTheme(baseTextTheme)
-        : GoogleFonts.interTextTheme(baseTextTheme);
+        ? baseTextTheme.apply(fontFamily: 'Cairo')
+        : baseTextTheme; // Fallback to high-quality system default (Segoe UI on Windows)
 
     return ThemeData(
       brightness: brightness,

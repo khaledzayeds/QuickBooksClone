@@ -28,6 +28,7 @@ class DocumentPrintDataModel {
     this.payment,
     this.notes,
     this.terms,
+    this.createdByName,
   });
 
   final String documentId;
@@ -54,6 +55,7 @@ class DocumentPrintDataModel {
   final DateTime generatedAt;
   final String? notes;
   final String? terms;
+  final String? createdByName;
 
   factory DocumentPrintDataModel.fromJson(Map<String, dynamic> json) =>
       DocumentPrintDataModel(
@@ -95,6 +97,7 @@ class DocumentPrintDataModel {
         generatedAt: _parseDate(json['generatedAt']),
         notes: JsonUtils.asNullableString(json['notes']),
         terms: JsonUtils.asNullableString(json['terms']),
+        createdByName: JsonUtils.asNullableString(json['createdByName']),
       );
 
   bool get isCustomerParty => partyType.toLowerCase() == 'customer';

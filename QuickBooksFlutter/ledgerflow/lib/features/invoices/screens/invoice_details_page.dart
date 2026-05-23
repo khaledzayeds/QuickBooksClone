@@ -16,11 +16,17 @@ class InvoiceDetailsPage extends ConsumerWidget {
 
   final String id;
 
-  Future<void> _voidInvoice(BuildContext context, WidgetRef ref, InvoiceModel invoice) async {
+  Future<void> _voidInvoice(
+    BuildContext context,
+    WidgetRef ref,
+    InvoiceModel invoice,
+  ) async {
     final confirmed = await showVoidConfirmationDialog(
       context: context,
       documentLabel: 'invoice ${invoice.invoiceNumber}',
-      warning: invoice.paidAmount > 0 ? 'Invoices with applied payments may be rejected by the accounting rules.' : null,
+      warning: invoice.paidAmount > 0
+          ? 'Invoices with applied payments may be rejected by the accounting rules.'
+          : null,
     );
     if (!confirmed || !context.mounted) return;
 
@@ -30,10 +36,15 @@ class InvoiceDetailsPage extends ConsumerWidget {
       success: (updated) {
         ref.read(invoicesStateProvider.notifier).refresh();
         ref.invalidate(invoiceDetailsStateProvider(invoice.id));
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invoice ${updated.invoiceNumber} voided.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invoice ${updated.invoiceNumber} voided.')),
+        );
       },
       failure: (error) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message), backgroundColor: Theme.of(context).colorScheme.error),
+        SnackBar(
+          content: Text(error.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       ),
     );
   }
@@ -62,14 +73,17 @@ class InvoiceDetailsPage extends ConsumerWidget {
                 ? IconButton(
                     tooltip: 'Void invoice',
                     onPressed: () => _voidInvoice(context, ref, invoice),
-                    icon: Icon(Icons.block_outlined, color: Theme.of(context).colorScheme.error),
+                    icon: Icon(
+                      Icons.block_outlined,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
           ),
           IconButton(
-            tooltip: 'Print preview',
-            onPressed: () => showDocumentPrintPreviewDialog(
+            tooltip: 'Print',
+            onPressed: () => printDocumentUsingSettings(
               context: context,
               ref: ref,
               documentType: 'invoice',
@@ -125,12 +139,18 @@ class _DetailsBody extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            invoice.invoiceNumber.isEmpty ? l10n.invoices : invoice.invoiceNumber,
-                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                            invoice.invoiceNumber.isEmpty
+                                ? l10n.invoices
+                                : invoice.invoiceNumber,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            invoice.customerName.isEmpty ? l10n.customer : invoice.customerName,
+                            invoice.customerName.isEmpty
+                                ? l10n.customer
+                                : invoice.customerName,
                             style: theme.textTheme.titleMedium,
                           ),
                         ],
@@ -144,10 +164,24 @@ class _DetailsBody extends StatelessWidget {
                   spacing: 16,
                   runSpacing: 16,
                   children: [
-                    _InfoTile(label: l10n.billDate, value: _formatDate(invoice.invoiceDate)),
-                    _InfoTile(label: l10n.dueDate, value: _formatDate(invoice.dueDate)),
-                    _InfoTile(label: l10n.total, value: '${invoice.totalAmount.toStringAsFixed(2)} ${l10n.egp}'),
-                    _InfoTile(label: l10n.amountDue, value: '${invoice.balanceDue.toStringAsFixed(2)} ${l10n.egp}'),
+                    _InfoTile(
+                      label: l10n.billDate,
+                      value: _formatDate(invoice.invoiceDate),
+                    ),
+                    _InfoTile(
+                      label: l10n.dueDate,
+                      value: _formatDate(invoice.dueDate),
+                    ),
+                    _InfoTile(
+                      label: l10n.total,
+                      value:
+                          '${invoice.totalAmount.toStringAsFixed(2)} ${l10n.egp}',
+                    ),
+                    _InfoTile(
+                      label: l10n.amountDue,
+                      value:
+                          '${invoice.balanceDue.toStringAsFixed(2)} ${l10n.egp}',
+                    ),
                   ],
                 ),
               ],
@@ -161,7 +195,12 @@ class _DetailsBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.items, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  l10n.items,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _LinesTable(lines: invoice.lines),
               ],
@@ -245,7 +284,12 @@ class _InfoTile extends StatelessWidget {
         children: [
           Text(label, style: theme.textTheme.labelMedium),
           const SizedBox(height: 4),
-          Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -282,10 +326,15 @@ class _LinesTable extends StatelessWidget {
                   DataCell(Text(line.quantity.toStringAsFixed(2))),
                   DataCell(Text(line.unitPrice.toStringAsFixed(2))),
                   DataCell(Text(line.taxAmount.toStringAsFixed(2))),
-                  DataCell(Text(
-                    line.lineTotal.toStringAsFixed(2),
-                    style: TextStyle(fontWeight: FontWeight.w800, color: cs.primary),
-                  )),
+                  DataCell(
+                    Text(
+                      line.lineTotal.toStringAsFixed(2),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: cs.primary,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -318,7 +367,11 @@ class _TotalsCard extends StatelessWidget {
               const SizedBox(height: 8),
               _AmountRow(label: l10n.amountDue, amount: invoice.balanceDue),
               const Divider(height: 24),
-              _AmountRow(label: l10n.total, amount: invoice.totalAmount, isTotal: true),
+              _AmountRow(
+                label: l10n.total,
+                amount: invoice.totalAmount,
+                isTotal: true,
+              ),
             ],
           ),
         ),
@@ -328,7 +381,11 @@ class _TotalsCard extends StatelessWidget {
 }
 
 class _AmountRow extends StatelessWidget {
-  const _AmountRow({required this.label, required this.amount, this.isTotal = false});
+  const _AmountRow({
+    required this.label,
+    required this.amount,
+    this.isTotal = false,
+  });
 
   final String label;
   final double amount;
@@ -337,8 +394,12 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
+        ? Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
+        : Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

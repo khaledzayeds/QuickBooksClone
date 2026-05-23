@@ -194,6 +194,26 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
               }
             },
           ),
+          // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+          const Divider(height: 28),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade50,
+              foregroundColor: Colors.red,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: Colors.red.shade200),
+              ),
+            ),
+            onPressed: () {
+              widget.controller.deleteElement(element.id);
+            },
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete Element'),
+          ),
+          // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
         ],
       ),
     );

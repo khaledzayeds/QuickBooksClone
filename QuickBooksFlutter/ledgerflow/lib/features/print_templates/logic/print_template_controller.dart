@@ -5,14 +5,16 @@ import '../data/models/print_template_model.dart';
 import '../data/print_template_repository.dart';
 import '../data/sample_templates.dart';
 import 'print_template_pdf_service.dart';
+// BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+import '../../settings/data/printing_settings_repository.dart';
+// END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
 
 class PrintTemplateController extends ChangeNotifier {
   PrintTemplateController({
     PrintTemplateModel? initialTemplate,
     PrintTemplateRepository? repository,
     PrintTemplatePdfService? pdfService,
-  }) : _template =
-           initialTemplate ?? SamplePrintTemplates.arabicThermalSalesReceipt(),
+  }) : _template = initialTemplate ?? SamplePrintTemplates.arabicA4Invoice(),
        _repository = repository ?? const PrintTemplateRepository(),
        _pdfService = pdfService ?? const PrintTemplatePdfService();
 
@@ -37,6 +39,11 @@ class PrintTemplateController extends ChangeNotifier {
     ..._savedTemplates,
   ];
 
+  bool get isSystemTemplate =>
+      _template.backendId == null ||
+      _template.backendId!.isEmpty ||
+      _template.isDefault;
+
   void selectElement(String? elementId) {
     _selectedElementId = elementId;
     notifyListeners();
@@ -47,6 +54,24 @@ class PrintTemplateController extends ChangeNotifier {
     _selectedElementId = null;
     _lastMessage = 'Loaded ${template.name}';
     notifyListeners();
+  }
+
+  Future<void> open({
+    String? documentType,
+    String? paperKind,
+    String? templateId,
+  }) async {
+    await _runBusy(() async {
+      _savedTemplates = await _repository.list(documentType: documentType);
+      final loaded = await _resolveInitialTemplate(
+        documentType: documentType,
+        paperKind: paperKind,
+        templateId: templateId,
+      );
+      _template = loaded;
+      _selectedElementId = null;
+      _lastMessage = 'Loaded ${loaded.name}';
+    });
   }
 
   void loadDefaultForDocument(String documentType, {String? pageKind}) {
@@ -84,18 +109,78 @@ class PrintTemplateController extends ChangeNotifier {
 
   Future<void> loadTemplates() async {
     await _runBusy(() async {
-      _savedTemplates = await _repository.list();
+      _savedTemplates = await _repository.list(
+        documentType: _template.documentType,
+      );
       _lastMessage = 'Loaded ${_savedTemplates.length} template(s)';
     });
   }
 
   Future<void> saveTemplate() async {
     await _runBusy(() async {
-      _template = await _repository.save(_template);
+      if (isSystemTemplate) {
+        final now = DateTime.now();
+        _template = _template.copyWith(
+          id: '${_template.documentType}_${now.millisecondsSinceEpoch}',
+          backendId: '',
+          name: '${_template.name} - Custom',
+          isDefault: false,
+        );
+      }
+      _template = await _repository.save(_template.copyWith(isDefault: false));
       _savedTemplates = await _repository.list(
         documentType: _template.documentType,
       );
       _lastMessage = 'Template saved';
+    });
+  }
+
+  Future<void> saveAs(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    await _runBusy(() async {
+      final now = DateTime.now();
+      _template = await _repository.save(
+        _template.copyWith(
+          id: '${_template.documentType}_${now.millisecondsSinceEpoch}',
+          backendId: '',
+          name: trimmed,
+          isDefault: false,
+        ),
+      );
+      _savedTemplates = await _repository.list(
+        documentType: _template.documentType,
+      );
+      _lastMessage = 'Template saved as $trimmed';
+    });
+  }
+
+  Future<void> renameTemplate(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    await _runBusy(() async {
+      _template = _template.copyWith(name: trimmed);
+      if (!isSystemTemplate) {
+        _template = await _repository.save(
+          _template.copyWith(isDefault: false),
+        );
+      }
+      _savedTemplates = await _repository.list(
+        documentType: _template.documentType,
+      );
+      _lastMessage = 'Template renamed';
+    });
+  }
+
+  Future<void> changeDocumentAndPaper(String documentType, String paperKind) {
+    return _runBusy(() async {
+      _savedTemplates = await _repository.list(documentType: documentType);
+      _template = await _resolveInitialTemplate(
+        documentType: documentType,
+        paperKind: paperKind,
+      );
+      _selectedElementId = null;
+      _lastMessage = 'Loaded ${_template.name}';
     });
   }
 
@@ -169,6 +254,18 @@ class PrintTemplateController extends ChangeNotifier {
     _selectedElementId = element.id;
     notifyListeners();
   }
+
+  // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+  void deleteElement(String elementId) {
+    _template = _template.copyWith(
+      elements: _template.elements.where((e) => e.id != elementId).toList(),
+    );
+    if (_selectedElementId == elementId) {
+      _selectedElementId = null;
+    }
+    notifyListeners();
+  }
+  // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
 
   void moveSelectedBy(double dxMm, double dyMm) {
     final element = selectedElement;
@@ -252,20 +349,68 @@ class PrintTemplateController extends ChangeNotifier {
     return true;
   }
 
+  // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
   PrintTemplateModel _fallbackTemplateFor(
     String documentType,
     String pageKind,
   ) {
-    final source = pageKind.toLowerCase() == 'a4'
-        ? SamplePrintTemplates.arabicA4Invoice()
-        : SamplePrintTemplates.arabicThermalSalesReceipt();
-    return source.copyWith(
-      id: '${documentType}_${pageKind}_default',
-      documentType: documentType,
-      name: '${_documentLabel(documentType)} - ${source.pageSize} الافتراضي',
-      backendId: '',
-      isDefault: true,
+    return SamplePrintTemplates.fallbackFor(documentType, pageKind);
+  }
+  // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+
+  Future<PrintTemplateModel> _resolveInitialTemplate({
+    String? documentType,
+    String? paperKind,
+    String? templateId,
+  }) async {
+    final doc = documentType?.trim().isNotEmpty == true
+        ? documentType!.trim()
+        : _template.documentType;
+    final paper = paperKind?.trim().isNotEmpty == true
+        ? paperKind!.trim()
+        : 'thermal';
+    // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+    String? resolvedId = templateId?.trim();
+    if (resolvedId == null || resolvedId.isEmpty) {
+      try {
+        final settings = await PrintingSettingsRepository().load();
+        final profile = settings.profileFor(doc);
+        resolvedId = profile.templateIdForPaper(paper)?.trim();
+      } catch (_) {
+        // Fallback to defaults if settings lookup fails
+      }
+    }
+    // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+
+    if (resolvedId != null && resolvedId.isNotEmpty) {
+      if (resolvedId.startsWith('builtin:')) {
+        final builtInId = resolvedId.substring('builtin:'.length);
+        for (final template in SamplePrintTemplates.defaults()) {
+          if (template.id == builtInId) return template;
+        }
+      } else {
+        try {
+          return await _repository.get(resolvedId);
+        } catch (_) {
+          for (final template in _savedTemplates) {
+            if (template.backendId == resolvedId || template.id == resolvedId) return template;
+          }
+        }
+      }
+    }
+
+    final savedMatch = _savedTemplates.where(
+      (template) =>
+          template.documentType == doc && _pageMatches(template, paper),
     );
+    if (savedMatch.isNotEmpty) return savedMatch.first;
+
+    final defaults = SamplePrintTemplates.defaults().where(
+      (template) =>
+          template.documentType == doc && _pageMatches(template, paper),
+    );
+    if (defaults.isNotEmpty) return defaults.first;
+    return _fallbackTemplateFor(doc, paper);
   }
 
   String _documentLabel(String documentType) {

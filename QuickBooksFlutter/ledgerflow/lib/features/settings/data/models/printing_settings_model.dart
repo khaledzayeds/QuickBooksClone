@@ -11,6 +11,12 @@ enum PrintMode {
     PrintMode.both => 'A4 + Thermal',
   };
 
+  String get shortLabel => switch (this) {
+    PrintMode.a4 => 'A4',
+    PrintMode.thermal => 'Thermal',
+    PrintMode.both => 'Both',
+  };
+
   static PrintMode fromName(String? value) {
     return PrintMode.values.firstWhere(
       (mode) => mode.name == value,
@@ -135,6 +141,10 @@ class DocumentPrintProfile {
     this.printMode,
     this.a4TemplateStyle,
     this.thermalWidth,
+    this.a4TemplateBackendId,
+    this.a4TemplateName,
+    this.thermalTemplateBackendId,
+    this.thermalTemplateName,
     this.templateBackendId,
     this.templateName,
   });
@@ -143,6 +153,10 @@ class DocumentPrintProfile {
   final PrintMode? printMode;
   final A4TemplateStyle? a4TemplateStyle;
   final ThermalWidth? thermalWidth;
+  final String? a4TemplateBackendId;
+  final String? a4TemplateName;
+  final String? thermalTemplateBackendId;
+  final String? thermalTemplateName;
   final String? templateBackendId;
   final String? templateName;
 
@@ -151,15 +165,33 @@ class DocumentPrintProfile {
     PrintMode? printMode,
     A4TemplateStyle? a4TemplateStyle,
     ThermalWidth? thermalWidth,
+    String? a4TemplateBackendId,
+    String? a4TemplateName,
+    String? thermalTemplateBackendId,
+    String? thermalTemplateName,
     String? templateBackendId,
     String? templateName,
     bool clearTemplate = false,
+    bool clearA4Template = false,
+    bool clearThermalTemplate = false,
   }) {
     return DocumentPrintProfile(
       documentType: documentType ?? this.documentType,
       printMode: printMode ?? this.printMode,
       a4TemplateStyle: a4TemplateStyle ?? this.a4TemplateStyle,
       thermalWidth: thermalWidth ?? this.thermalWidth,
+      a4TemplateBackendId: clearA4Template
+          ? null
+          : a4TemplateBackendId ?? this.a4TemplateBackendId,
+      a4TemplateName: clearA4Template
+          ? null
+          : a4TemplateName ?? this.a4TemplateName,
+      thermalTemplateBackendId: clearThermalTemplate
+          ? null
+          : thermalTemplateBackendId ?? this.thermalTemplateBackendId,
+      thermalTemplateName: clearThermalTemplate
+          ? null
+          : thermalTemplateName ?? this.thermalTemplateName,
       templateBackendId: clearTemplate
           ? null
           : templateBackendId ?? this.templateBackendId,
@@ -172,6 +204,12 @@ class DocumentPrintProfile {
     if (printMode != null) 'printMode': printMode!.name,
     if (a4TemplateStyle != null) 'a4TemplateStyle': a4TemplateStyle!.name,
     if (thermalWidth != null) 'thermalWidth': thermalWidth!.name,
+    if (a4TemplateBackendId != null) 'a4TemplateBackendId': a4TemplateBackendId,
+    if ((a4TemplateName ?? '').isNotEmpty) 'a4TemplateName': a4TemplateName,
+    if (thermalTemplateBackendId != null)
+      'thermalTemplateBackendId': thermalTemplateBackendId,
+    if ((thermalTemplateName ?? '').isNotEmpty)
+      'thermalTemplateName': thermalTemplateName,
     if (templateBackendId != null) 'templateBackendId': templateBackendId,
     if ((templateName ?? '').isNotEmpty) 'templateName': templateName,
   };
@@ -188,9 +226,41 @@ class DocumentPrintProfile {
       thermalWidth: json['thermalWidth'] == null
           ? null
           : ThermalWidth.fromName(json['thermalWidth']?.toString()),
+      a4TemplateBackendId: _stringOrNull(
+        json['a4TemplateBackendId']?.toString(),
+      ),
+      a4TemplateName: _stringOrNull(json['a4TemplateName']?.toString()),
+      thermalTemplateBackendId: _stringOrNull(
+        json['thermalTemplateBackendId']?.toString(),
+      ),
+      thermalTemplateName: _stringOrNull(
+        json['thermalTemplateName']?.toString(),
+      ),
       templateBackendId: _stringOrNull(json['templateBackendId']?.toString()),
       templateName: _stringOrNull(json['templateName']?.toString()),
     );
+  }
+
+  String? templateIdForPaper(String paperKind) {
+    final normalized = paperKind.toLowerCase();
+    if (normalized == 'a4') {
+      return a4TemplateBackendId ?? templateBackendId;
+    }
+    if (normalized == 'thermal') {
+      return thermalTemplateBackendId ?? templateBackendId;
+    }
+    return templateBackendId;
+  }
+
+  String? templateNameForPaper(String paperKind) {
+    final normalized = paperKind.toLowerCase();
+    if (normalized == 'a4') {
+      return a4TemplateName ?? templateName;
+    }
+    if (normalized == 'thermal') {
+      return thermalTemplateName ?? templateName;
+    }
+    return templateName;
   }
 }
 

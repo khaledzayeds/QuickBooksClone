@@ -276,8 +276,18 @@ class PrintTemplatePdfService {
   }
 
   String? _boundValue(String? binding, DocumentPrintDataModel data) {
-    final key = _normalizeBinding(binding);
+    // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+    var key = _normalizeBinding(binding);
     if (key.isEmpty) return null;
+
+    // Normalize prefix (e.g. estimate.number -> document.number)
+    for (final docType in ['invoice', 'salesreceipt', 'estimate', 'salesreturn', 'purchaseorder', 'receiveinventory', 'inventoryadjustment']) {
+      if (key.startsWith('$docType.')) {
+        key = 'document.${key.substring(docType.length + 1)}';
+        break;
+      }
+    }
+    // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
     switch (key) {
       case 'company.name':
       case 'companyname':
@@ -376,6 +386,12 @@ class PrintTemplatePdfService {
       case 'invoice.depositaccount':
       case 'document.depositaccount':
         return data.payment?.depositAccountName;
+      // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+      case 'user.name':
+      case 'document.createdby':
+      case 'createdby':
+        return data.createdByName;
+      // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
     }
     return null;
   }

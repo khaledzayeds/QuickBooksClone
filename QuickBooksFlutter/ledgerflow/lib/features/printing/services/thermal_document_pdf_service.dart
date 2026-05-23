@@ -42,51 +42,35 @@ class ThermalDocumentPdfService {
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
-            if (settings.showLogo && logo != null)
-              pw.Center(
-                child: pw.Image(
-                  logo,
-                  width: 42,
-                  height: 42,
-                  fit: pw.BoxFit.contain,
-                ),
-              )
-            else if (settings.showLogo)
-              _center('الشعار', fontSize: 8),
-            _center(data.company.companyName, fontSize: 15, bold: true),
-            if (settings.showCompanyAddress)
-              _center(data.company.country, fontSize: 8),
-            if ((data.company.phone ?? '').isNotEmpty)
-              _center('تليفون: ${data.company.phone}', fontSize: 8),
-            if ((data.company.email ?? '').isNotEmpty)
-              _center(data.company.email!, fontSize: 8),
-            _divider(settings),
-            _center(
-              _arabicDocumentTitle(data.documentType),
-              fontSize: 13,
-              bold: true,
-            ),
-            pw.SizedBox(height: 4),
-            _kv('رقم الفاتورة', data.documentNumber),
-            _kv('التاريخ', _formatDateTime(data.documentDate)),
-            _kv(data.arabicPartyLabel, data.customer.displayName),
-            if ((data.payment?.paymentMethod ?? '').isNotEmpty)
-              _kv('طريقة الدفع', data.payment!.paymentMethod!),
-            _divider(settings),
+            // ─── Header: Logo left + Invoice info right ───
+            _buildHeader(data, settings, logo),
+            _dashedLine(settings),
+            // ─── Items table ───
             _itemsTable(data),
-            _divider(settings),
+            _dashedLine(settings),
+            // ─── Totals ───
             ..._receiptRows(data, settings).map(
               (row) => _amountRow(
                 row.$1,
                 row.$2,
-                data.company.currency,
                 bold: row.$3,
               ),
             ),
-            _divider(settings),
+            _dashedLine(settings),
+            // ─── Payment method ───
+            if ((data.payment?.paymentMethod ?? '').isNotEmpty) ...[
+              _kvRtl('طريقة الدفع', data.payment!.paymentMethod!),
+              _dashedLine(settings),
+            ],
+            // ─── Footer ───
+            if ((data.company.phone ?? '').isNotEmpty)
+              _center('تليفون رقم ${data.company.phone}', fontSize: 8),
+            if ((data.company.country).isNotEmpty)
+              _center(data.company.country, fontSize: 8),
             if ((settings.receiptFooterMessage ?? '').isNotEmpty)
               _center(settings.receiptFooterMessage!, fontSize: 9, bold: true),
-            _center('نتمنى لكم يوماً سعيداً', fontSize: 8),
+            // Bottom spacer to ensure the physical cutter doesn't slice through the footer content
+            pw.SizedBox(height: 25 * PdfPageFormat.mm),
           ],
         ),
       ),
@@ -95,14 +79,83 @@ class ThermalDocumentPdfService {
     return doc.save();
   }
 
+  // ─────────────────────────────────────────────
+  // Header: Logo (left) + Invoice info (right)
+  // ─────────────────────────────────────────────
+  pw.Widget _buildHeader(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+    pw.ImageProvider? logo,
+  ) {
+    final pw.Widget logoWidget;
+    if (settings.showLogo && logo != null) {
+      logoWidget = pw.Image(logo, width: 28, height: 28, fit: pw.BoxFit.contain);
+    } else if (settings.showLogo) {
+      logoWidget = pw.Container(
+        width: 28,
+        height: 28,
+        decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
+        child: pw.Center(
+          child: pw.Text('LOGO', style: const pw.TextStyle(fontSize: 5)),
+        ),
+      );
+    } else {
+      logoWidget = pw.SizedBox(width: 0, height: 0);
+    }
+
+    final infoLines = <pw.Widget>[
+      pw.Text(
+        'رقم الفاتورة: ${data.documentNumber}',
+        textDirection: pw.TextDirection.rtl,
+        style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.Text(
+        'التاريخ: ${_formatDateTime(data.documentDate)}',
+        textDirection: pw.TextDirection.rtl,
+        style: const pw.TextStyle(fontSize: 8),
+      ),
+      if ((data.createdByName ?? '').isNotEmpty)
+        pw.Text(
+          'المستخدم: ${data.createdByName}',
+          textDirection: pw.TextDirection.rtl,
+          style: const pw.TextStyle(fontSize: 8),
+        ),
+      pw.Text(
+        '${data.arabicPartyLabel}: ${data.customer.displayName}',
+        textDirection: pw.TextDirection.rtl,
+        style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+      ),
+    ];
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Directionality(
+          textDirection: pw.TextDirection.ltr,
+          child: logoWidget,
+        ),
+        pw.SizedBox(width: 6),
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: infoLines,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Items table: 4 columns (إجمالي | سعر | كمية | اسم الصنف)
+  // ─────────────────────────────────────────────
   pw.Widget _itemsTable(DocumentPrintDataModel data) {
     return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.black, width: .45),
       columnWidths: const {
-        0: pw.FlexColumnWidth(1.2),
-        1: pw.FlexColumnWidth(1),
-        2: pw.FlexColumnWidth(1),
-        3: pw.FlexColumnWidth(2.7),
+        0: pw.FlexColumnWidth(1.2), // الإجمالي
+        1: pw.FlexColumnWidth(1.0), // السعر
+        2: pw.FlexColumnWidth(0.7), // الكمية
+        3: pw.FlexColumnWidth(2.5), // اسم الصنف
       },
       children: [
         pw.TableRow(
@@ -155,84 +208,75 @@ class ThermalDocumentPdfService {
     );
   }
 
+  // ─────────────────────────────────────────────
+  // Amount row: value (LTR) ←→ label (RTL)
+  // ─────────────────────────────────────────────
   pw.Widget _amountRow(
     String label,
-    double amount,
-    String currency, {
+    double amount, {
     bool bold = false,
   }) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
-      child: pw.Directionality(
-        textDirection: pw.TextDirection.ltr,
-        child: pw.Row(
-          children: [
-            pw.Text(
-              '${amount.toStringAsFixed(2)} $currency',
+      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Directionality(
+            textDirection: pw.TextDirection.ltr,
+            child: pw.Text(
+              amount.toStringAsFixed(2),
               style: pw.TextStyle(
-                fontSize: bold ? 15 : 10,
+                fontSize: bold ? 13 : 9.5,
                 fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
               ),
             ),
-            pw.Expanded(
-              child: pw.Directionality(
-                textDirection: pw.TextDirection.rtl,
-                child: pw.Text(
-                  label,
-                  textAlign: pw.TextAlign.right,
-                  style: pw.TextStyle(
-                    fontSize: bold ? 15 : 10,
-                    fontWeight: bold
-                        ? pw.FontWeight.bold
-                        : pw.FontWeight.normal,
-                  ),
-                ),
+          ),
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: pw.Text(
+              '$label:',
+              style: pw.TextStyle(
+                fontSize: bold ? 13 : 9.5,
+                fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  pw.Widget _kv(String label, String value) {
+  // ─────────────────────────────────────────────
+  // Key-value row (e.g. payment method)
+  // ─────────────────────────────────────────────
+  pw.Widget _kvRtl(String label, String value) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
-      child: pw.Directionality(
-        textDirection: pw.TextDirection.ltr,
-        child: pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Expanded(
-              child: pw.Text(
-                value,
-                textAlign: pw.TextAlign.left,
-                style: pw.TextStyle(
-                  fontSize: 9,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Directionality(
+            textDirection: pw.TextDirection.ltr,
+            child: pw.Text(
+              value,
+              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
             ),
-            pw.SizedBox(
-              width: 78,
-              child: pw.Directionality(
-                textDirection: pw.TextDirection.rtl,
-                child: pw.Text(
-                  '$label:',
-                  textAlign: pw.TextAlign.right,
-                  style: pw.TextStyle(
-                    fontSize: 9,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
+          ),
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: pw.Text(
+              '$label:',
+              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
+  // ─────────────────────────────────────────────
+  // Centred text
+  // ─────────────────────────────────────────────
   pw.Widget _center(String text, {double fontSize = 8, bool bold = false}) {
     return pw.Directionality(
       textDirection: _hasArabic(text)
@@ -249,22 +293,28 @@ class ThermalDocumentPdfService {
     );
   }
 
-  pw.Widget _divider(PrintingSettingsModel settings) {
+  // ─────────────────────────────────────────────
+  // Dashed separator line
+  // ─────────────────────────────────────────────
+  pw.Widget _dashedLine(PrintingSettingsModel settings) {
     final marks = settings.thermalWidth == ThermalWidth.mm58
-        ? '------------------------'
-        : '--------------------------------';
+        ? '- - - - - - - - - - - - - - - -'
+        : '- - - - - - - - - - - - - - - - - - - - -';
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 5),
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
       child: pw.Text(
         marks,
         textAlign: pw.TextAlign.center,
-        style: const pw.TextStyle(fontSize: 8),
+        style: const pw.TextStyle(fontSize: 7),
       ),
     );
   }
 
+  // ─────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────
   String _formatDate(DateTime date) =>
-      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   String _formatDateTime(DateTime date) =>
       '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
@@ -272,18 +322,6 @@ class ThermalDocumentPdfService {
   String _qty(double value) => value.truncateToDouble() == value
       ? value.toStringAsFixed(0)
       : value.toStringAsFixed(2);
-
-  String _arabicDocumentTitle(String type) {
-    final normalized = type.toLowerCase().replaceAll(' ', '-');
-    if (normalized.contains('receipt')) return 'فاتورة بيع';
-    if (normalized.contains('invoice')) return 'فاتورة بيع';
-    if (normalized.contains('return')) return 'مرتجع بيع';
-    if (normalized.contains('estimate')) return 'عرض سعر';
-    if (normalized.contains('purchase')) return 'أمر شراء';
-    if (normalized.contains('adjustment')) return 'تسوية مخزون';
-    if (normalized.contains('deposit')) return 'إيداع بنكي';
-    return type;
-  }
 
   List<(String, double, bool)> _receiptRows(
     DocumentPrintDataModel data,

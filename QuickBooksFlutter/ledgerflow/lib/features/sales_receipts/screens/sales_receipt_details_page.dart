@@ -24,10 +24,8 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
   ) async {
     final confirmed = await showVoidConfirmationDialog(
       context: context,
-      documentLabel:
-          'sales receipt ${receipt.receiptNumber}',
-      warning:
-          'Voiding will also reverse the linked payment when possible.',
+      documentLabel: 'sales receipt ${receipt.receiptNumber}',
+      warning: 'Voiding will also reverse the linked payment when possible.',
     );
     if (!confirmed || !context.mounted) return;
 
@@ -37,23 +35,21 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
     if (!context.mounted) return;
     result.when(
       success: (updated) {
-        ref
-            .read(salesReceiptsStateProvider.notifier)
-            .refresh();
+        ref.read(salesReceiptsStateProvider.notifier).refresh();
         ref.invalidate(salesReceiptDetailsStateProvider(receipt.id));
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Receipt ${updated.receiptNumber} voided.'),
-          backgroundColor:
-              Theme.of(context).colorScheme.error,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Receipt ${updated.receiptNumber} voided.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       },
-      failure: (e) =>
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.message),
-        backgroundColor:
-            Theme.of(context).colorScheme.error,
-      )),
+      failure: (e) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      ),
     );
   }
 
@@ -62,8 +58,7 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final receiptAsync =
-        ref.watch(salesReceiptDetailsStateProvider(id));
+    final receiptAsync = ref.watch(salesReceiptDetailsStateProvider(id));
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
@@ -72,38 +67,42 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
         elevation: 0,
         titleSpacing: 12,
         automaticallyImplyLeading: false,
-        title: Row(children: [
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: () => context.go(AppRoutes.salesReceipts),
-            icon: const Icon(Icons.arrow_back, size: 20),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.salesReceiptDetails,
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              receiptAsync.maybeWhen(
-                data: (r) => Text(
-                  r.receiptNumber,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: cs.onSurfaceVariant),
+        title: Row(
+          children: [
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              onPressed: () => context.go(AppRoutes.salesReceipts),
+              icon: const Icon(Icons.arrow_back, size: 20),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.salesReceiptDetails,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                orElse: () => const SizedBox.shrink(),
-              ),
-            ],
-          ),
-        ]),
+                receiptAsync.maybeWhen(
+                  data: (r) => Text(
+                    r.receiptNumber,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           // Print
           IconButton(
-            tooltip: 'Print / Preview',
+            tooltip: 'Print',
             icon: const Icon(Icons.print_outlined),
-            onPressed: () => showDocumentPrintPreviewDialog(
+            onPressed: () => printDocumentUsingSettings(
               context: context,
               ref: ref,
               documentType: 'sales-receipt',
@@ -115,10 +114,8 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
             data: (r) => !r.isVoid
                 ? IconButton(
                     tooltip: 'Void receipt',
-                    icon: Icon(Icons.block_outlined,
-                        color: cs.error),
-                    onPressed: () =>
-                        _voidReceipt(context, ref, r),
+                    icon: Icon(Icons.block_outlined, color: cs.error),
+                    onPressed: () => _voidReceipt(context, ref, r),
                   )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
@@ -127,8 +124,7 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
           IconButton(
             tooltip: l10n.salesReceipts,
             icon: const Icon(Icons.list_alt_outlined),
-            onPressed: () =>
-                context.go(AppRoutes.salesReceipts),
+            onPressed: () => context.go(AppRoutes.salesReceipts),
           ),
           const SizedBox(width: 8),
         ],
@@ -138,29 +134,25 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
         ),
       ),
       body: receiptAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline,
-                  size: 48, color: cs.error),
+              Icon(Icons.error_outline, size: 48, color: cs.error),
               const SizedBox(height: 12),
-              Text(e.toString(),
-                  textAlign: TextAlign.center),
+              Text(e.toString(), textAlign: TextAlign.center),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: () => ref.invalidate(
-                    salesReceiptDetailsStateProvider(id)),
+                onPressed: () =>
+                    ref.invalidate(salesReceiptDetailsStateProvider(id)),
                 icon: const Icon(Icons.refresh),
                 label: Text(l10n.retry),
               ),
             ],
           ),
         ),
-        data: (receipt) =>
-            _DetailsBody(receipt: receipt, l10n: l10n),
+        data: (receipt) => _DetailsBody(receipt: receipt, l10n: l10n),
       ),
     );
   }
@@ -168,8 +160,7 @@ class SalesReceiptDetailsPage extends ConsumerWidget {
 
 // ── Details Body ──────────────────────────────────────────
 class _DetailsBody extends StatelessWidget {
-  const _DetailsBody(
-      {required this.receipt, required this.l10n});
+  const _DetailsBody({required this.receipt, required this.l10n});
   final SalesReceiptModel receipt;
   final AppLocalizations l10n;
 
@@ -192,27 +183,27 @@ class _DetailsBody extends StatelessWidget {
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: cs.errorContainer
-                        .withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: cs.error
-                            .withValues(alpha: 0.3)),
+                    horizontal: 16,
+                    vertical: 10,
                   ),
-                  child: Row(children: [
-                    Icon(Icons.block_outlined,
-                        size: 18, color: cs.error),
-                    const SizedBox(width: 8),
-                    Text(
-                      'This sales receipt has been voided.',
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(
-                              color: cs.error,
-                              fontWeight: FontWeight.w600),
-                    ),
-                  ]),
+                  decoration: BoxDecoration(
+                    color: cs.errorContainer.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: cs.error.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.block_outlined, size: 18, color: cs.error),
+                      const SizedBox(width: 8),
+                      Text(
+                        'This sales receipt has been voided.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: cs.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
               // ── Document card ──────────────────────────
@@ -225,77 +216,64 @@ class _DetailsBody extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Document header
                       Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Left: title + receipt#
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Sales Receipt',
-                                  style: theme
-                                      .textTheme.headlineSmall
-                                      ?.copyWith(
-                                          fontWeight:
-                                              FontWeight.w900),
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(fontWeight: FontWeight.w900),
                                 ),
                                 const SizedBox(height: 4),
-                                Row(children: [
-                                  _StatusChip(
+                                Row(
+                                  children: [
+                                    _StatusChip(
                                       receipt: receipt,
                                       cs: cs,
-                                      theme: theme),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    receipt.receiptNumber,
-                                    style: theme
-                                        .textTheme.titleMedium
-                                        ?.copyWith(
-                                            color:
-                                                cs.primary,
-                                            fontWeight:
-                                                FontWeight
-                                                    .w700),
-                                  ),
-                                ]),
+                                      theme: theme,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      receipt.receiptNumber,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            color: cs.primary,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
                           // Right: totals summary
                           Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
                                 '${numFmt.format(receipt.totalAmount)} ${l10n.egp}',
-                                style: theme
-                                    .textTheme.headlineMedium
-                                    ?.copyWith(
-                                        fontWeight:
-                                            FontWeight.w900,
-                                        color: receipt.isVoid
-                                            ? cs.error
-                                            : cs.primary,
-                                        fontFeatures: const [
-                                      FontFeature
-                                          .tabularFigures()
-                                    ]),
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: receipt.isVoid ? cs.error : cs.primary,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
                               ),
                               Text(
                                 l10n.paid,
-                                style: theme.textTheme.labelMedium
-                                    ?.copyWith(
-                                        color: cs.primary,
-                                        fontWeight:
-                                            FontWeight.w700),
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ],
                           ),
@@ -312,38 +290,39 @@ class _DetailsBody extends StatelessWidget {
                         runSpacing: 12,
                         children: [
                           _MetaField(
-                              label: l10n.customer,
-                              value: receipt
-                                  .customerName.isEmpty
-                                  ? '-'
-                                  : receipt.customerName),
+                            label: l10n.customer,
+                            value: receipt.customerName.isEmpty
+                                ? '-'
+                                : receipt.customerName,
+                          ),
                           _MetaField(
-                              label: l10n.receiptDate,
-                              value: DateFormat('dd MMM yyyy')
-                                  .format(receipt.receiptDate)),
+                            label: l10n.receiptDate,
+                            value: DateFormat(
+                              'dd MMM yyyy',
+                            ).format(receipt.receiptDate),
+                          ),
                           _MetaField(
-                              label: l10n.paymentMethod,
-                              value:
-                                  receipt.paymentMethod ?? '-'),
+                            label: l10n.paymentMethod,
+                            value: receipt.paymentMethod ?? '-',
+                          ),
                           _MetaField(
-                              label: l10n.depositAccount,
-                              value:
-                                  receipt.depositAccountName ??
-                                      '-'),
+                            label: l10n.depositAccount,
+                            value: receipt.depositAccountName ?? '-',
+                          ),
                           if (receipt.postedAt != null)
                             _MetaField(
-                                label: 'Posted',
-                                value: DateFormat(
-                                        'dd MMM yyyy HH:mm')
-                                    .format(receipt.postedAt!
-                                        .toLocal())),
+                              label: 'Posted',
+                              value: DateFormat(
+                                'dd MMM yyyy HH:mm',
+                              ).format(receipt.postedAt!.toLocal()),
+                            ),
                           if (receipt.voidedAt != null)
                             _MetaField(
-                                label: 'Voided',
-                                value: DateFormat(
-                                        'dd MMM yyyy HH:mm')
-                                    .format(receipt.voidedAt!
-                                        .toLocal())),
+                              label: 'Voided',
+                              value: DateFormat(
+                                'dd MMM yyyy HH:mm',
+                              ).format(receipt.voidedAt!.toLocal()),
+                            ),
                         ],
                       ),
 
@@ -354,9 +333,10 @@ class _DetailsBody extends StatelessWidget {
                       if (receipt.lines.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         _LinesTable(
-                            receipt: receipt,
-                            numFmt: numFmt,
-                            l10n: l10n),
+                          receipt: receipt,
+                          numFmt: numFmt,
+                          l10n: l10n,
+                        ),
                       ],
 
                       const SizedBox(height: 16),
@@ -370,31 +350,30 @@ class _DetailsBody extends StatelessWidget {
                           child: Column(
                             children: [
                               _TotalRow(
-                                  label: l10n.subtotal,
-                                  value: numFmt.format(
-                                      receipt.subtotal),
-                                  currency: l10n.egp,
-                                  theme: theme),
-                              if (receipt.discountAmount >
-                                  0)
+                                label: l10n.subtotal,
+                                value: numFmt.format(receipt.subtotal),
+                                currency: l10n.egp,
+                                theme: theme,
+                              ),
+                              if (receipt.discountAmount > 0)
                                 _TotalRow(
-                                    label: 'Discount',
-                                    value:
-                                        '-${numFmt.format(receipt.discountAmount)}',
-                                    currency: l10n.egp,
-                                    theme: theme),
+                                  label: 'Discount',
+                                  value:
+                                      '-${numFmt.format(receipt.discountAmount)}',
+                                  currency: l10n.egp,
+                                  theme: theme,
+                                ),
                               if (receipt.taxAmount > 0)
                                 _TotalRow(
-                                    label: l10n.tax,
-                                    value: numFmt.format(
-                                        receipt.taxAmount),
-                                    currency: l10n.egp,
-                                    theme: theme),
+                                  label: l10n.tax,
+                                  value: numFmt.format(receipt.taxAmount),
+                                  currency: l10n.egp,
+                                  theme: theme,
+                                ),
                               const Divider(),
                               _TotalRow(
                                 label: l10n.total,
-                                value: numFmt.format(
-                                    receipt.totalAmount),
+                                value: numFmt.format(receipt.totalAmount),
                                 currency: l10n.egp,
                                 theme: theme,
                                 bold: true,
@@ -440,15 +419,13 @@ class _LinesTable extends StatelessWidget {
         3: FixedColumnWidth(110),
         4: FixedColumnWidth(110),
       },
-      defaultVerticalAlignment:
-          TableCellVerticalAlignment.middle,
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       children: [
         // Header
         TableRow(
           decoration: BoxDecoration(
             color: cs.surfaceContainerHigh,
-            borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(6)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
           ),
           children: [
             _TH(l10n.itemService),
@@ -464,25 +441,25 @@ class _LinesTable extends StatelessWidget {
           final line = e.value;
           final bg = i.isEven
               ? cs.surface
-              : cs.surfaceContainerHighest
-                  .withValues(alpha: 0.4);
+              : cs.surfaceContainerHighest.withValues(alpha: 0.4);
           return TableRow(
             decoration: BoxDecoration(color: bg),
             children: [
-              _TD(line.description.isNotEmpty
-                  ? line.description
-                  : '-'),
+              _TD(line.description.isNotEmpty ? line.description : '-'),
               _TD(line.description),
-              _TD(line.quantity.toStringAsFixed(
-                      line.quantity % 1 == 0 ? 0 : 2),
-                  align: TextAlign.center),
               _TD(
-                  '${numFmt.format(line.unitPrice)} ${l10n.egp}',
-                  align: TextAlign.right),
+                line.quantity.toStringAsFixed(line.quantity % 1 == 0 ? 0 : 2),
+                align: TextAlign.center,
+              ),
               _TD(
-                  '${numFmt.format(line.lineTotal)} ${l10n.egp}',
-                  align: TextAlign.right,
-                  bold: true),
+                '${numFmt.format(line.unitPrice)} ${l10n.egp}',
+                align: TextAlign.right,
+              ),
+              _TD(
+                '${numFmt.format(line.lineTotal)} ${l10n.egp}',
+                align: TextAlign.right,
+                bold: true,
+              ),
             ],
           );
         }),
@@ -498,46 +475,37 @@ class _TH extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: 8),
-        child: Text(
-          text.toUpperCase(),
-          textAlign: align,
-          style:
-              Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant,
-                  ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    child: Text(
+      text.toUpperCase(),
+      textAlign: align,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
 }
 
 class _TD extends StatelessWidget {
-  const _TD(this.text,
-      {this.align = TextAlign.left, this.bold = false});
+  const _TD(this.text, {this.align = TextAlign.left, this.bold = false});
   final String text;
   final TextAlign align;
   final bool bold;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: 9),
-        child: Text(
-          text,
-          textAlign: align,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight:
-                    bold ? FontWeight.w700 : FontWeight.w400,
-                fontFeatures: bold
-                    ? const [FontFeature.tabularFigures()]
-                    : null,
-              ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    child: Text(
+      text,
+      textAlign: align,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+        fontFeatures: bold ? const [FontFeature.tabularFigures()] : null,
+      ),
+    ),
+  );
 }
 
 // ── Small helpers ─────────────────────────────────────────
@@ -552,15 +520,21 @@ class _MetaField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3)),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(value,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
@@ -584,26 +558,28 @@ class _TotalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(children: [
-          Text(label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: bold
-                      ? FontWeight.w700
-                      : FontWeight.w400,
-                  color: color)),
-          const Spacer(),
-          Text('$value $currency',
-              style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: bold
-                      ? FontWeight.w800
-                      : FontWeight.w500,
-                  color: color,
-                  fontFeatures: const [
-                    FontFeature.tabularFigures()
-                  ])),
-        ]),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+            color: color,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          '$value $currency',
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+            color: color,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _StatusChip extends StatelessWidget {
@@ -621,8 +597,7 @@ class _StatusChip extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isVoid = receipt.isVoid;
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: isVoid
             ? cs.errorContainer.withValues(alpha: 0.5)

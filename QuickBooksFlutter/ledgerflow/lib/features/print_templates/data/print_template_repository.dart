@@ -7,21 +7,39 @@ class PrintTemplateRepository {
   Future<List<PrintTemplateModel>> list({String? documentType}) async {
     final response = await ApiClient.instance.get<List<dynamic>>(
       '/api/print-templates',
-      queryParameters: documentType == null ? null : {'documentType': documentType},
+      queryParameters: documentType == null
+          ? null
+          : {'documentType': documentType},
     );
 
     final data = response.data ?? const [];
     return data
         .whereType<Map>()
-        .map((item) => PrintTemplateModel.fromApiJson(item.cast<String, dynamic>()))
+        .map(
+          (item) =>
+              PrintTemplateModel.fromApiJson(item.cast<String, dynamic>()),
+        )
         .toList();
+  }
+
+  Future<PrintTemplateModel> get(String backendId) async {
+    final response = await ApiClient.instance.get<Map<String, dynamic>>(
+      '/api/print-templates/$backendId',
+    );
+    return PrintTemplateModel.fromApiJson(response.data ?? const {});
   }
 
   Future<PrintTemplateModel> save(PrintTemplateModel template) async {
     final backendId = template.backendId;
     final response = backendId == null || backendId.isEmpty
-        ? await ApiClient.instance.post<Map<String, dynamic>>('/api/print-templates', data: template.toApiJson())
-        : await ApiClient.instance.put<Map<String, dynamic>>('/api/print-templates/$backendId', data: template.toApiJson());
+        ? await ApiClient.instance.post<Map<String, dynamic>>(
+            '/api/print-templates',
+            data: template.toApiJson(),
+          )
+        : await ApiClient.instance.put<Map<String, dynamic>>(
+            '/api/print-templates/$backendId',
+            data: template.toApiJson(),
+          );
 
     return PrintTemplateModel.fromApiJson(response.data ?? const {});
   }

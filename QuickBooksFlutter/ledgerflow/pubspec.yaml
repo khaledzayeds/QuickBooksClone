@@ -41,7 +41,6 @@ dependencies:
   phosphor_flutter: ^2.1.0
 
   # Fonts
-  google_fonts: ^6.2.1
   fl_chart: ^1.2.0
 
   # UI polish
@@ -79,3 +78,10 @@ flutter:
 
   assets:
     - assets/fonts/
+
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
+        - asset: assets/fonts/Cairo-Black.ttf

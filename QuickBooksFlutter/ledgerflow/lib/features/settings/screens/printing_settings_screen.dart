@@ -1,7 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 
+import '../../../app/router.dart';
 import '../../print_templates/data/models/print_template_model.dart';
 import '../../print_templates/data/print_template_repository.dart';
 import '../../print_templates/data/sample_templates.dart';
@@ -9,15 +12,43 @@ import '../data/models/printing_settings_model.dart';
 import '../providers/printing_settings_provider.dart';
 import '../widgets/printing_test_preview_card.dart';
 
-class PrintingSettingsScreen extends ConsumerWidget {
+class PrintingSettingsScreen extends ConsumerStatefulWidget {
   const PrintingSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PrintingSettingsScreen> createState() =>
+      _PrintingSettingsScreenState();
+}
+
+class _PrintingSettingsScreenState
+    extends ConsumerState<PrintingSettingsScreen> {
+  late Future<_TemplateCatalog> _catalogFuture;
+  List<Printer> _printers = const [];
+  bool _loadingPrinters = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _catalogFuture = _loadTemplates();
+  }
+
+  Future<_TemplateCatalog> _loadTemplates() async {
+    final saved = await const PrintTemplateRepository().list();
+    return _TemplateCatalog(saved);
+  }
+
+  void _reloadTemplates() {
+    final next = _loadTemplates();
+    setState(() {
+      _catalogFuture = next;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(printingSettingsProvider);
     final notifier = ref.read(printingSettingsProvider.notifier);
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
 
     ref.listen(printingSettingsProvider, (previous, next) {
       if (next.saved && previous?.saved != true) {
@@ -28,15 +59,21 @@ class PrintingSettingsScreen extends ConsumerWidget {
     });
 
     return Scaffold(
+      backgroundColor: const Color(0xFFEFF3F7),
       appBar: AppBar(
         title: const Text('Printing Settings'),
         actions: [
+          TextButton.icon(
+            onPressed: _reloadTemplates,
+            icon: const Icon(Icons.refresh_outlined),
+            label: const Text('Refresh Templates'),
+          ),
           TextButton.icon(
             onPressed: state.saving ? null : notifier.reset,
             icon: const Icon(Icons.restore_outlined),
             label: const Text('Reset'),
           ),
-          TextButton.icon(
+          FilledButton.icon(
             onPressed: state.saving ? null : notifier.save,
             icon: state.saving
                 ? const SizedBox(
@@ -52,135 +89,579 @@ class PrintingSettingsScreen extends ConsumerWidget {
       ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                Text(
-                  'Document Printing',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Configure professional A4 invoices and thermal receipts. These settings will be consumed by the PDF/printing services when document templates are wired.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-                if (state.errorMessage != null) ...[
-                  const SizedBox(height: 16),
-                  _ErrorBanner(message: state.errorMessage!),
-                ],
-                const SizedBox(height: 24),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final wide = constraints.maxWidth >= 980;
-                    final left = Column(
-                      children: [
-                        _DocumentProfileCard(state: state, notifier: notifier),
-                        const SizedBox(height: 16),
-                        _ModeCard(state: state, notifier: notifier),
-                        const SizedBox(height: 16),
-                        _A4Card(state: state, notifier: notifier),
-                        const SizedBox(height: 16),
-                        _ThermalCard(state: state, notifier: notifier),
-                      ],
-                    );
-                    final right = Column(
-                      children: [
-                        _BrandingCard(state: state, notifier: notifier),
-                        const SizedBox(height: 16),
-                        _OptionsCard(state: state, notifier: notifier),
-                        const SizedBox(height: 16),
-                        _PreviewCard(settings: state.settings),
-                        const SizedBox(height: 16),
-                        PrintingTestPreviewCard(settings: state.settings),
-                      ],
-                    );
-
-                    if (!wide) {
-                      return Column(
-                        children: [left, const SizedBox(height: 16), right],
-                      );
-                    }
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: left),
-                        const SizedBox(width: 16),
-                        Expanded(child: right),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: FilledButton.icon(
-                    onPressed: state.saving ? null : notifier.save,
-                    icon: state.saving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save_outlined),
-                    label: const Text('Save Printing Settings'),
-                  ),
-                ),
-              ],
+          : FutureBuilder<_TemplateCatalog>(
+              future: _catalogFuture,
+              builder: (context, snapshot) {
+                final catalog = snapshot.data ?? _TemplateCatalog.empty();
+                return ListView(
+                  padding: const EdgeInsets.all(18),
+                  children: [
+                    _Header(
+                      title: 'Document Print Profiles',
+                      subtitle:
+                          'Choose the exact A4 and thermal template each document uses. The designer creates templates; this page decides which template prints.',
+                      loadingTemplates:
+                          snapshot.connectionState == ConnectionState.waiting,
+                    ),
+                    if (state.errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      _ErrorBanner(message: state.errorMessage!),
+                    ],
+                    const SizedBox(height: 14),
+                    _DocumentProfilesTable(
+                      settings: state.settings,
+                      catalog: catalog,
+                      onChanged: (profile) {
+                        notifier.update(
+                          (current) => current.updateProfile(profile),
+                        );
+                      },
+                      onOpenDesigner: _openDesigner,
+                    ),
+                    const SizedBox(height: 14),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final wide = constraints.maxWidth >= 980;
+                        final left = Column(
+                          children: [
+                            _PrinterCard(
+                              settings: state.settings,
+                              printers: _printers,
+                              loadingPrinters: _loadingPrinters,
+                              onScan: _scanPrinters,
+                              onChanged: (change) => notifier.update(change),
+                            ),
+                            const SizedBox(height: 14),
+                            _BrandingCard(
+                              settings: state.settings,
+                              onChanged: (change) => notifier.update(change),
+                            ),
+                          ],
+                        );
+                        final right = Column(
+                          children: [
+                            _OptionsCard(
+                              settings: state.settings,
+                              onChanged: (change) => notifier.update(change),
+                            ),
+                            const SizedBox(height: 14),
+                            PrintingTestPreviewCard(settings: state.settings),
+                          ],
+                        );
+                        if (!wide) {
+                          return Column(
+                            children: [left, const SizedBox(height: 14), right],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: left),
+                            const SizedBox(width: 14),
+                            Expanded(child: right),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Template Designer is for creating, naming, saving, renaming, and previewing templates only. Assigning templates to live documents happens here.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
+    );
+  }
+
+  Future<void> _scanPrinters() async {
+    setState(() => _loadingPrinters = true);
+    try {
+      final printers = await Printing.listPrinters();
+      if (!mounted) return;
+      setState(() => _printers = printers);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Printer scan failed: $error')));
+    } finally {
+      if (mounted) setState(() => _loadingPrinters = false);
+    }
+  }
+
+  Future<void> _openDesigner({
+    required String documentType,
+    required String paperKind,
+    String? templateId,
+  }) async {
+    final query = <String, String>{
+      'documentType': documentType,
+      'paperKind': paperKind,
+      if ((templateId ?? '').isNotEmpty) 'templateId': templateId!,
+    };
+    await context.push(
+      Uri(
+        path: AppRoutes.printTemplateDesigner,
+        queryParameters: query,
+      ).toString(),
+    );
+    _reloadTemplates();
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.title,
+    required this.subtitle,
+    required this.loadingTemplates,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool loadingTemplates;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (loadingTemplates)
+          const Padding(
+            padding: EdgeInsetsDirectional.only(start: 16, top: 8),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+      ],
     );
   }
 }
 
-class _ModeCard extends StatelessWidget {
-  const _ModeCard({required this.state, required this.notifier});
-  final PrintingSettingsState state;
-  final PrintingSettingsNotifier notifier;
+class _DocumentProfilesTable extends StatelessWidget {
+  const _DocumentProfilesTable({
+    required this.settings,
+    required this.catalog,
+    required this.onChanged,
+    required this.onOpenDesigner,
+  });
+
+  final PrintingSettingsModel settings;
+  final _TemplateCatalog catalog;
+  final ValueChanged<DocumentPrintProfile> onChanged;
+  final Future<void> Function({
+    required String documentType,
+    required String paperKind,
+    String? templateId,
+  })
+  onOpenDesigner;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.assignment_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Document Profiles',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...printDocumentTypeOptions.map((option) {
+              final profile = settings.profileFor(option.key);
+              final effective = settings.effectiveFor(option.key);
+              return _DocumentProfileRow(
+                option: option,
+                profile: profile,
+                effective: effective,
+                catalog: catalog,
+                onChanged: onChanged,
+                onOpenDesigner: onOpenDesigner,
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentProfileRow extends StatelessWidget {
+  const _DocumentProfileRow({
+    required this.option,
+    required this.profile,
+    required this.effective,
+    required this.catalog,
+    required this.onChanged,
+    required this.onOpenDesigner,
+  });
+
+  final PrintDocumentTypeOption option;
+  final DocumentPrintProfile profile;
+  final PrintingSettingsModel effective;
+  final _TemplateCatalog catalog;
+  final ValueChanged<DocumentPrintProfile> onChanged;
+  final Future<void> Function({
+    required String documentType,
+    required String paperKind,
+    String? templateId,
+  })
+  onOpenDesigner;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final a4Choices = catalog.choicesFor(option.key, 'a4');
+    final thermalChoices = catalog.choicesFor(option.key, 'thermal');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 930;
+          final name = _DocumentName(option: option);
+          final mode = DropdownButtonFormField<PrintMode>(
+            key: ValueKey('${option.key}-mode-${effective.printMode.name}'),
+            initialValue: effective.printMode,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Mode',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+            items: PrintMode.values
+                .map(
+                  (mode) =>
+                      DropdownMenuItem(value: mode, child: Text(mode.label)),
+                )
+                .toList(),
+            selectedItemBuilder: (context) => PrintMode.values
+                .map(
+                  (mode) => Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      mode.shortLabel,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                onChanged(profile.copyWith(printMode: value));
+              }
+            },
+          );
+          final a4Selector = _TemplateSelector(
+            label: 'A4 Template',
+            choices: a4Choices,
+            value: profile.a4TemplateBackendId ?? profile.templateBackendId,
+            onChanged: (choice) => onChanged(
+              profile.copyWith(
+                a4TemplateBackendId: choice.id,
+                a4TemplateName: choice.label,
+                clearA4Template: choice.id.isEmpty,
+              ),
+            ),
+          );
+          final thermalSelector = _TemplateSelector(
+            label: 'Thermal Template',
+            choices: thermalChoices,
+            value: profile.thermalTemplateBackendId,
+            onChanged: (choice) => onChanged(
+              profile.copyWith(
+                thermalTemplateBackendId: choice.id,
+                thermalTemplateName: choice.label,
+                clearThermalTemplate: choice.id.isEmpty,
+              ),
+            ),
+          );
+          final actions = Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => onOpenDesigner(
+                  documentType: option.key,
+                  paperKind: 'a4',
+                  templateId:
+                      profile.a4TemplateBackendId ?? profile.templateBackendId,
+                ),
+                icon: const Icon(Icons.description_outlined, size: 18),
+                label: const Text('Design A4'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => onOpenDesigner(
+                  documentType: option.key,
+                  paperKind: 'thermal',
+                  templateId: profile.thermalTemplateBackendId,
+                ),
+                icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                label: const Text('Design Thermal'),
+              ),
+            ],
+          );
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                name,
+                const SizedBox(height: 8),
+                mode,
+                const SizedBox(height: 8),
+                a4Selector,
+                const SizedBox(height: 8),
+                thermalSelector,
+                const SizedBox(height: 8),
+                actions,
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(width: 190, child: name),
+              const SizedBox(width: 8),
+              SizedBox(width: 150, child: mode),
+              const SizedBox(width: 8),
+              Expanded(child: a4Selector),
+              const SizedBox(width: 8),
+              Expanded(child: thermalSelector),
+              const SizedBox(width: 8),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DocumentName extends StatelessWidget {
+  const _DocumentName({required this.option});
+
+  final PrintDocumentTypeOption option;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 17,
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Icon(
+            _iconFor(option.group),
+            size: 18,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                option.label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                option.group,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _iconFor(String group) {
+    return switch (group) {
+      'Purchasing' => Icons.local_shipping_outlined,
+      'Inventory' => Icons.inventory_2_outlined,
+      _ => Icons.sell_outlined,
+    };
+  }
+}
+
+class _TemplateSelector extends StatelessWidget {
+  const _TemplateSelector({
+    required this.label,
+    required this.choices,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final List<_TemplateChoice> choices;
+  final String? value;
+  final ValueChanged<_TemplateChoice> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeValue = choices.any((choice) => choice.id == value) ? value : '';
+    return DropdownButtonFormField<String>(
+      key: ValueKey('$label-$safeValue-${choices.length}'),
+      initialValue: safeValue,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
+      items: choices
+          .map(
+            (choice) => DropdownMenuItem<String>(
+              value: choice.id,
+              child: Text(choice.displayLabel, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
+      selectedItemBuilder: (context) => choices
+          .map(
+            (choice) => Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                choice.label,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (next) {
+        final choice = choices.firstWhere(
+          (item) => item.id == next,
+          orElse: () => choices.first,
+        );
+        onChanged(choice);
+      },
+    );
+  }
+}
+
+class _PrinterCard extends StatelessWidget {
+  const _PrinterCard({
+    required this.settings,
+    required this.printers,
+    required this.loadingPrinters,
+    required this.onScan,
+    required this.onChanged,
+  });
+
+  final PrintingSettingsModel settings;
+  final List<Printer> printers;
+  final bool loadingPrinters;
+  final VoidCallback onScan;
+  final ValueChanged<PrintingSettingsModel Function(PrintingSettingsModel)>
+  onChanged;
 
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.print_outlined,
-      title: 'Print Mode',
-      children: [
-        DropdownButtonFormField<PrintMode>(
-          initialValue: state.settings.printMode,
-          decoration: const InputDecoration(
-            labelText: 'Enabled Print Formats',
-            border: OutlineInputBorder(),
-          ),
-          items: PrintMode.values
-              .map(
-                (mode) => DropdownMenuItem<PrintMode>(
-                  value: mode,
-                  child: Text(mode.label),
-                ),
+      title: 'Printers',
+      trailing: OutlinedButton.icon(
+        onPressed: loadingPrinters ? null : onScan,
+        icon: loadingPrinters
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
-              .toList(),
-          onChanged: (value) {
-            if (value != null) {
-              notifier.update((current) => current.copyWith(printMode: value));
-            }
-          },
-        ),
-        const SizedBox(height: 12),
-        _TextField(
-          label: 'A4 Printer Name',
-          value: state.settings.a4PrinterName ?? '',
-          icon: Icons.description_outlined,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(a4PrinterName: value),
+            : const Icon(Icons.search_outlined),
+        label: const Text('Scan'),
+      ),
+      children: [
+        if (printers.isEmpty)
+          Text(
+            'Scan printers to store a stable printer URL. When Preview before print is off, LedgerFlow sends the job directly to the selected printer.',
+            style: Theme.of(context).textTheme.bodySmall,
+          )
+        else ...[
+          _PrinterDropdown(
+            label: 'A4 Printer',
+            value: settings.a4PrinterName,
+            printers: printers,
+            onChanged: (value) =>
+                onChanged((current) => current.copyWith(a4PrinterName: value)),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          _PrinterDropdown(
+            label: 'Thermal Printer',
+            value: settings.thermalPrinterName,
+            printers: printers,
+            onChanged: (value) => onChanged(
+              (current) => current.copyWith(thermalPrinterName: value),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         _TextField(
-          label: 'Thermal Printer Name',
-          value: state.settings.thermalPrinterName ?? '',
+          label: 'A4 printer name / URL',
+          value: settings.a4PrinterName ?? '',
+          icon: Icons.description_outlined,
+          onChanged: (value) =>
+              onChanged((current) => current.copyWith(a4PrinterName: value)),
+        ),
+        const SizedBox(height: 10),
+        _TextField(
+          label: 'Thermal printer name / URL',
+          value: settings.thermalPrinterName ?? '',
           icon: Icons.receipt_long_outlined,
-          onChanged: (value) => notifier.update(
+          onChanged: (value) => onChanged(
             (current) => current.copyWith(thermalPrinterName: value),
           ),
         ),
@@ -189,183 +670,545 @@ class _ModeCard extends StatelessWidget {
   }
 }
 
-class _DocumentProfileCard extends StatelessWidget {
-  const _DocumentProfileCard({required this.state, required this.notifier});
-  final PrintingSettingsState state;
-  final PrintingSettingsNotifier notifier;
+class _PrinterDropdown extends StatelessWidget {
+  const _PrinterDropdown({
+    required this.label,
+    required this.value,
+    required this.printers,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String? value;
+  final List<Printer> printers;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final selected = state.settings.selectedDocumentType;
-    final option = printDocumentTypeOptions.any((item) => item.key == selected)
-        ? selected
-        : printDocumentTypeOptions.first.key;
-    final profile = state.settings.profileFor(option);
-    final inherited = state.settings.effectiveFor(option);
-
-    void updateProfile(DocumentPrintProfile next) {
-      notifier.update((current) => current.updateProfile(next));
-    }
-
-    return _SectionCard(
-      icon: Icons.assignment_outlined,
-      title: 'Per-Screen Print Profile',
-      children: [
-        DropdownButtonFormField<String>(
-          initialValue: option,
-          decoration: const InputDecoration(
-            labelText: 'Screen / Document',
-            border: OutlineInputBorder(),
-          ),
-          items: printDocumentTypeOptions
-              .map(
-                (item) => DropdownMenuItem<String>(
-                  value: item.key,
-                  child: Text('${item.group} - ${item.label}'),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            notifier.update(
-              (current) => current.copyWith(selectedDocumentType: value),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<PrintMode>(
-          initialValue: inherited.printMode,
-          decoration: const InputDecoration(
-            labelText: 'Print format for this screen',
-            border: OutlineInputBorder(),
-          ),
-          items: PrintMode.values
-              .map(
-                (mode) => DropdownMenuItem<PrintMode>(
-                  value: mode,
-                  child: Text(mode.label),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            updateProfile(profile.copyWith(printMode: value));
-          },
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<A4TemplateStyle>(
-          initialValue: inherited.a4TemplateStyle,
-          decoration: const InputDecoration(
-            labelText: 'A4 style for this screen',
-            border: OutlineInputBorder(),
-          ),
-          items: A4TemplateStyle.values
-              .map(
-                (style) => DropdownMenuItem<A4TemplateStyle>(
-                  value: style,
-                  child: Text(style.label),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            updateProfile(profile.copyWith(a4TemplateStyle: value));
-          },
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<ThermalWidth>(
-          initialValue: inherited.thermalWidth,
-          decoration: const InputDecoration(
-            labelText: 'Thermal width for this screen',
-            border: OutlineInputBorder(),
-          ),
-          items: ThermalWidth.values
-              .map(
-                (width) => DropdownMenuItem<ThermalWidth>(
-                  value: width,
-                  child: Text(width.label),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            updateProfile(profile.copyWith(thermalWidth: value));
-          },
-        ),
-        const SizedBox(height: 12),
-        FutureBuilder<List<_TemplateChoice>>(
-          future: _loadTemplateChoices(option),
-          builder: (context, snapshot) {
-            final choices = snapshot.data ?? _fallbackTemplateChoices(option);
-            final currentValue =
-                choices.any((item) => item.id == profile.templateBackendId)
-                ? profile.templateBackendId
-                : '';
-            return DropdownButtonFormField<String>(
-              initialValue: currentValue,
-              decoration: const InputDecoration(
-                labelText: 'Template design',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.view_quilt_outlined),
+    final urls = printers.map((printer) => printer.url).toSet();
+    final safeValue = urls.contains(value) ? value : null;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('$label-$safeValue-${printers.length}'),
+      initialValue: safeValue,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      items: printers
+          .map(
+            (printer) => DropdownMenuItem(
+              value: printer.url,
+              child: Text(
+                printer.name.isEmpty ? printer.url : printer.name,
+                overflow: TextOverflow.ellipsis,
               ),
-              items: choices
-                  .map(
-                    (choice) => DropdownMenuItem<String>(
-                      value: choice.id,
-                      child: Text(choice.displayLabel),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                final selected = choices.firstWhere(
-                  (item) => item.id == value,
-                  orElse: () => choices.first,
-                );
-                updateProfile(
-                  profile.copyWith(
-                    templateBackendId: selected.id,
-                    templateName: selected.label,
-                    clearTemplate: selected.id.isEmpty,
-                  ),
-                );
-              },
-            );
-          },
+            ),
+          )
+          .toList(),
+      selectedItemBuilder: (context) => printers
+          .map(
+            (printer) => Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                printer.name.isEmpty ? printer.url : printer.name,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (value) {
+        if (value != null) onChanged(value);
+      },
+    );
+  }
+}
+
+class _BrandingCard extends StatelessWidget {
+  const _BrandingCard({required this.settings, required this.onChanged});
+
+  final PrintingSettingsModel settings;
+  final ValueChanged<PrintingSettingsModel Function(PrintingSettingsModel)>
+  onChanged;
+
+  Future<void> _pickLogo(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp'],
+        allowMultiple: false,
+        withData: false,
+      );
+      final path = result?.files.single.path;
+      if (path == null || path.trim().isEmpty) return;
+      onChanged((current) => current.copyWith(logoPath: path, showLogo: true));
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Logo picker failed: $error')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      icon: Icons.image_outlined,
+      title: 'Branding',
+      children: [
+        _TextField(
+          label: 'Logo Path',
+          value: settings.logoPath ?? '',
+          icon: Icons.folder_open_outlined,
+          onChanged: (value) =>
+              onChanged((current) => current.copyWith(logoPath: value)),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Saved designs from Print Template Designer appear here. Built-in Arabic thermal receipts are available as the default starting point.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _pickLogo(context),
+              icon: const Icon(Icons.upload_file_outlined),
+              label: const Text('Choose Logo'),
+            ),
+            TextButton.icon(
+              onPressed: (settings.logoPath ?? '').isEmpty
+                  ? null
+                  : () => onChanged(
+                      (current) =>
+                          current.copyWith(logoPath: '', showLogo: false),
+                    ),
+              icon: const Icon(Icons.clear_outlined),
+              label: const Text('Clear'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _SwitchRow(
+          title: 'Show logo',
+          subtitle: 'Display company logo when the template has a logo area.',
+          value: settings.showLogo,
+          onChanged: (value) =>
+              onChanged((current) => current.copyWith(showLogo: value)),
+        ),
+        _SwitchRow(
+          title: 'Show company address',
+          subtitle: 'Print company address under the header.',
+          value: settings.showCompanyAddress,
+          onChanged: (value) => onChanged(
+            (current) => current.copyWith(showCompanyAddress: value),
           ),
+        ),
+        _SwitchRow(
+          title: 'Use Arabic fonts',
+          subtitle: 'Use bundled RTL-friendly fonts for generated PDFs.',
+          value: settings.useArabicFonts,
+          onChanged: (value) =>
+              onChanged((current) => current.copyWith(useArabicFonts: value)),
         ),
       ],
     );
   }
+}
 
-  Future<List<_TemplateChoice>> _loadTemplateChoices(
-    String documentType,
-  ) async {
-    final saved = await const PrintTemplateRepository().list(
-      documentType: documentType,
+class _OptionsCard extends StatelessWidget {
+  const _OptionsCard({required this.settings, required this.onChanged});
+
+  final PrintingSettingsModel settings;
+  final ValueChanged<PrintingSettingsModel Function(PrintingSettingsModel)>
+  onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPrinterUrl =
+        (settings.a4PrinterName?.trim().isNotEmpty ?? false) ||
+        (settings.thermalPrinterName?.trim().isNotEmpty ?? false);
+
+    return _SectionCard(
+      icon: Icons.tune_outlined,
+      title: 'Global Print Options',
+      children: [
+        // Direct-print toggle — highlight it visually when a printer URL is set.
+        _DirectPrintTile(
+          previewEnabled: settings.printPreviewBeforePrint,
+          hasPrinterUrl: hasPrinterUrl,
+          onChanged: (value) => onChanged(
+            (current) => current.copyWith(printPreviewBeforePrint: value),
+          ),
+        ),
+        const SizedBox(height: 4),
+        _SwitchRow(
+          title: 'Auto print after save',
+          subtitle: 'Send print jobs immediately after saving transactions.',
+          value: settings.autoPrintAfterSave,
+          onChanged: (value) => onChanged(
+            (current) => current.copyWith(autoPrintAfterSave: value),
+          ),
+        ),
+        _SwitchRow(
+          title: 'Show QR code',
+          subtitle: 'Reserve QR areas for invoices and receipts.',
+          value: settings.showQrCode,
+          onChanged: (value) =>
+              onChanged((current) => current.copyWith(showQrCode: value)),
+        ),
+        _SwitchRow(
+          title: 'Show tax summary',
+          subtitle: 'Print tax breakdown when taxes are enabled.',
+          value: settings.showTaxSummary,
+          onChanged: (value) =>
+              onChanged((current) => current.copyWith(showTaxSummary: value)),
+        ),
+        _SwitchRow(
+          title: 'Show customer balance',
+          subtitle: 'Only customer documents display balance and credit lines.',
+          value: settings.showCustomerBalance,
+          onChanged: (value) => onChanged(
+            (current) => current.copyWith(showCustomerBalance: value),
+          ),
+        ),
+        _SwitchRow(
+          title: 'Show item SKU',
+          subtitle: 'Optional item code visibility in print lines.',
+          value: settings.showItemSku,
+          onChanged: (value) =>
+              onChanged((current) => current.copyWith(showItemSku: value)),
+        ),
+      ],
     );
-    return [
-      ..._fallbackTemplateChoices(documentType),
-      ...saved.map(_TemplateChoice.saved),
-    ];
+  }
+}
+
+/// A prominent tile that controls preview-vs-direct-print behaviour.
+/// When [hasPrinterUrl] is true and preview is disabled it glows green to
+/// signal cashier / kiosk mode is active.
+class _DirectPrintTile extends StatelessWidget {
+  const _DirectPrintTile({
+    required this.previewEnabled,
+    required this.hasPrinterUrl,
+    required this.onChanged,
+  });
+
+  final bool previewEnabled;
+  final bool hasPrinterUrl;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
+    // Direct-print mode is active when preview is OFF and a URL is configured.
+    final directActive = !previewEnabled && hasPrinterUrl;
+
+    final tileColor = directActive
+        ? Colors.green.shade50
+        : previewEnabled
+        ? cs.surfaceContainerLow
+        : cs.errorContainer.withValues(alpha: .35);
+
+    final borderColor = directActive
+        ? Colors.green.shade300
+        : previewEnabled
+        ? cs.outlineVariant
+        : cs.error.withValues(alpha: .4);
+
+    final statusIcon = directActive
+        ? Icons.bolt_outlined
+        : previewEnabled
+        ? Icons.visibility_outlined
+        : Icons.warning_amber_rounded;
+
+    final statusColor = directActive
+        ? Colors.green.shade700
+        : previewEnabled
+        ? cs.primary
+        : cs.error;
+
+    final title = previewEnabled ? 'Preview before print' : 'Direct print (no dialog)';
+    final subtitle = directActive
+        ? 'Cashier / kiosk mode — prints instantly to your configured printer.'
+        : previewEnabled
+        ? 'A preview dialog appears before every print job.'
+        : 'No preview dialog — but no printer URL is set yet. Go to Printers above.';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: tileColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(statusIcon, color: statusColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: previewEnabled,
+            activeColor: cs.primary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.children,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final Widget? trailing;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  child: Icon(icon, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (trailing != null) trailing!,
+              ],
+            ),
+            const SizedBox(height: 14),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TextField extends StatefulWidget {
+  const _TextField({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onChanged,
+    this.maxLines = 1,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final ValueChanged<String> onChanged;
+  final int maxLines;
+
+  @override
+  State<_TextField> createState() => _TextFieldState();
+}
+
+class _TextFieldState extends State<_TextField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
   }
 
-  List<_TemplateChoice> _fallbackTemplateChoices(String documentType) {
-    return [
+  @override
+  void didUpdateWidget(covariant _TextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      maxLines: widget.maxLines,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        border: const OutlineInputBorder(),
+        prefixIcon: Icon(widget.icon),
+      ),
+      onChanged: widget.onChanged,
+    );
+  }
+}
+
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: theme.textTheme.titleSmall),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TemplateCatalog {
+  const _TemplateCatalog(this.savedTemplates);
+
+  factory _TemplateCatalog.empty() => const _TemplateCatalog([]);
+
+  final List<PrintTemplateModel> savedTemplates;
+
+  List<_TemplateChoice> choicesFor(String documentType, String paperKind) {
+    final choices = <_TemplateChoice>[
       const _TemplateChoice(
         id: '',
         label: 'Automatic default',
         source: 'System',
       ),
-      ...SamplePrintTemplates.defaults()
-          .where((template) => template.documentType == documentType)
-          .map(_TemplateChoice.builtIn),
     ];
+    choices.addAll(
+      SamplePrintTemplates.defaults()
+          .where(
+            (template) =>
+                template.documentType == documentType &&
+                _matchesPaper(template, paperKind),
+          )
+          .map(_TemplateChoice.builtIn),
+    );
+    choices.addAll(
+      savedTemplates
+          .where(
+            (template) =>
+                template.documentType == documentType &&
+                _matchesPaper(template, paperKind),
+          )
+          .map(_TemplateChoice.saved),
+    );
+    return choices;
+  }
+
+  static bool _matchesPaper(PrintTemplateModel template, String paperKind) {
+    final thermal = _isThermal(template);
+    return paperKind.toLowerCase() == 'thermal' ? thermal : !thermal;
+  }
+
+  static bool _isThermal(PrintTemplateModel template) {
+    final size = template.pageSize.toLowerCase();
+    return size.contains('receipt') ||
+        size.contains('thermal') ||
+        template.page.widthMm <= 90;
   }
 }
 
@@ -396,493 +1239,5 @@ class _TemplateChoice {
   final String label;
   final String source;
 
-  String get displayLabel => '$label  •  $source';
-}
-
-class _A4Card extends StatelessWidget {
-  const _A4Card({required this.state, required this.notifier});
-  final PrintingSettingsState state;
-  final PrintingSettingsNotifier notifier;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      icon: Icons.description_outlined,
-      title: 'A4 Invoice Template',
-      children: [
-        DropdownButtonFormField<A4TemplateStyle>(
-          initialValue: state.settings.a4TemplateStyle,
-          decoration: const InputDecoration(
-            labelText: 'A4 Template Style',
-            border: OutlineInputBorder(),
-          ),
-          items: A4TemplateStyle.values
-              .map(
-                (style) => DropdownMenuItem<A4TemplateStyle>(
-                  value: style,
-                  child: Text(style.label),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value != null) {
-              notifier.update(
-                (current) => current.copyWith(a4TemplateStyle: value),
-              );
-            }
-          },
-        ),
-        const SizedBox(height: 12),
-        _TextField(
-          label: 'Invoice Footer Message',
-          value: state.settings.invoiceFooterMessage ?? '',
-          icon: Icons.notes_outlined,
-          maxLines: 2,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(invoiceFooterMessage: value),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ThermalCard extends StatelessWidget {
-  const _ThermalCard({required this.state, required this.notifier});
-  final PrintingSettingsState state;
-  final PrintingSettingsNotifier notifier;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      icon: Icons.receipt_outlined,
-      title: 'Thermal Receipt Template',
-      children: [
-        DropdownButtonFormField<ThermalWidth>(
-          initialValue: state.settings.thermalWidth,
-          decoration: const InputDecoration(
-            labelText: 'Thermal Paper Width',
-            border: OutlineInputBorder(),
-          ),
-          items: ThermalWidth.values
-              .map(
-                (width) => DropdownMenuItem<ThermalWidth>(
-                  value: width,
-                  child: Text(width.label),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value != null) {
-              notifier.update(
-                (current) => current.copyWith(thermalWidth: value),
-              );
-            }
-          },
-        ),
-        const SizedBox(height: 12),
-        _TextField(
-          label: 'Receipt Footer Message',
-          value: state.settings.receiptFooterMessage ?? '',
-          icon: Icons.notes_outlined,
-          maxLines: 2,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(receiptFooterMessage: value),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BrandingCard extends StatelessWidget {
-  const _BrandingCard({required this.state, required this.notifier});
-  final PrintingSettingsState state;
-  final PrintingSettingsNotifier notifier;
-
-  Future<void> _pickLogo(BuildContext context) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp'],
-        allowMultiple: false,
-        withData: false,
-      );
-      final path = result?.files.single.path;
-      if (path == null || path.trim().isEmpty) return;
-      notifier.update(
-        (current) => current.copyWith(logoPath: path, showLogo: true),
-      );
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Logo picker failed: $error')));
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      icon: Icons.image_outlined,
-      title: 'Branding',
-      children: [
-        _TextField(
-          label: 'Logo Path',
-          value: state.settings.logoPath ?? '',
-          icon: Icons.folder_open_outlined,
-          onChanged: (value) =>
-              notifier.update((current) => current.copyWith(logoPath: value)),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => _pickLogo(context),
-              icon: const Icon(Icons.upload_file_outlined),
-              label: const Text('Choose Logo'),
-            ),
-            const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: (state.settings.logoPath ?? '').isEmpty
-                  ? null
-                  : () => notifier.update(
-                      (current) =>
-                          current.copyWith(logoPath: '', showLogo: false),
-                    ),
-              icon: const Icon(Icons.clear_outlined),
-              label: const Text('Clear'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _SwitchRow(
-          title: 'Show Logo',
-          subtitle:
-              'Display company logo on A4 invoices and thermal receipts when possible.',
-          value: state.settings.showLogo,
-          onChanged: (value) =>
-              notifier.update((current) => current.copyWith(showLogo: value)),
-        ),
-        _SwitchRow(
-          title: 'Show Company Address',
-          subtitle: 'Print company address under the header.',
-          value: state.settings.showCompanyAddress,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(showCompanyAddress: value),
-          ),
-        ),
-        _SwitchRow(
-          title: 'Use Arabic Fonts',
-          subtitle: 'Use Arabic-friendly fonts for RTL text in generated PDFs.',
-          value: state.settings.useArabicFonts,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(useArabicFonts: value),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _OptionsCard extends StatelessWidget {
-  const _OptionsCard({required this.state, required this.notifier});
-  final PrintingSettingsState state;
-  final PrintingSettingsNotifier notifier;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      icon: Icons.tune_outlined,
-      title: 'Document Options',
-      children: [
-        _SwitchRow(
-          title: 'Show QR Code',
-          subtitle: 'Reserve QR area for invoices/receipts.',
-          value: state.settings.showQrCode,
-          onChanged: (value) =>
-              notifier.update((current) => current.copyWith(showQrCode: value)),
-        ),
-        _SwitchRow(
-          title: 'Show Tax Summary',
-          subtitle: 'Print tax breakdown when taxes are enabled.',
-          value: state.settings.showTaxSummary,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(showTaxSummary: value),
-          ),
-        ),
-        _SwitchRow(
-          title: 'Show Customer Balance',
-          subtitle: 'Show previous/current balance on customer documents.',
-          value: state.settings.showCustomerBalance,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(showCustomerBalance: value),
-          ),
-        ),
-        _SwitchRow(
-          title: 'Show Item SKU',
-          subtitle: 'Print SKU/code beside item names.',
-          value: state.settings.showItemSku,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(showItemSku: value),
-          ),
-        ),
-        _SwitchRow(
-          title: 'Preview Before Print',
-          subtitle: 'Open preview before sending to the printer.',
-          value: state.settings.printPreviewBeforePrint,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(printPreviewBeforePrint: value),
-          ),
-        ),
-        _SwitchRow(
-          title: 'Auto Print After Save',
-          subtitle: 'Send print job immediately after saving a transaction.',
-          value: state.settings.autoPrintAfterSave,
-          onChanged: (value) => notifier.update(
-            (current) => current.copyWith(autoPrintAfterSave: value),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({required this.settings});
-  final PrintingSettingsModel settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: cs.primaryContainer,
-                  child: Icon(
-                    Icons.preview_outlined,
-                    color: cs.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Preview Summary',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _PreviewLine(label: 'Formats', value: settings.printMode.label),
-            _PreviewLine(
-              label: 'A4 style',
-              value: settings.a4TemplateStyle.label,
-            ),
-            _PreviewLine(
-              label: 'Thermal width',
-              value: settings.thermalWidth.label,
-            ),
-            _PreviewLine(
-              label: 'Logo',
-              value: settings.showLogo ? 'Visible' : 'Hidden',
-            ),
-            if ((settings.logoPath ?? '').isNotEmpty)
-              _PreviewLine(label: 'Logo path', value: settings.logoPath!),
-            _PreviewLine(
-              label: 'QR',
-              value: settings.showQrCode ? 'Visible' : 'Hidden',
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: theme.dividerColor),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Template wiring note',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Print preview and PDF renderers now read these settings, including print mode, logo, fonts, thermal width, footer, tax, and balance options.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.icon,
-    required this.title,
-    required this.children,
-  });
-  final IconData icon;
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: cs.primaryContainer,
-                  child: Icon(icon, color: cs.onPrimaryContainer),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TextField extends StatelessWidget {
-  const _TextField({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.onChanged,
-    this.maxLines = 1,
-  });
-  final String label;
-  final String value;
-  final IconData icon;
-  final ValueChanged<String> onChanged;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      initialValue: value,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        prefixIcon: Icon(icon),
-      ),
-      onChanged: onChanged,
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(title),
-      subtitle: Text(subtitle),
-      value: value,
-      onChanged: onChanged,
-    );
-  }
-}
-
-class _PreviewLine extends StatelessWidget {
-  const _PreviewLine({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(child: Text(value, overflow: TextOverflow.ellipsis)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cs.errorContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: cs.onErrorContainer),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(message, style: TextStyle(color: cs.onErrorContainer)),
-          ),
-        ],
-      ),
-    );
-  }
+  String get displayLabel => '$label - $source';
 }

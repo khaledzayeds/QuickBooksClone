@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+// BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
+// END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
 
-import '../../../settings/data/models/printing_settings_model.dart';
 import '../../data/models/print_template_model.dart';
 import '../../logic/print_template_controller.dart';
 
@@ -11,12 +16,8 @@ class ToolboxPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedDocumentType =
-        printDocumentTypeOptions.any(
-          (item) => item.key == controller.template.documentType,
-        )
-        ? controller.template.documentType
-        : printDocumentTypeOptions.first.key;
+    // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+    final theme = Theme.of(context);
     return Container(
       width: 292,
       color: const Color(0xFFF8FAFC),
@@ -26,39 +27,13 @@ class ToolboxPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Print Designer',
+              'Toolbox',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
             Text(
-              controller.template.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: selectedDocumentType,
-              decoration: const InputDecoration(
-                labelText: 'Screen / document',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: printDocumentTypeOptions
-                  .map(
-                    (item) => DropdownMenuItem<String>(
-                      value: item.key,
-                      child: Text(
-                        '${item.group} - ${item.label}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) controller.loadDefaultForDocument(value);
-              },
+              'Add elements to the canvas',
+              style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 14),
             _toolButton('Text', Icons.text_fields, controller.addText),
@@ -73,84 +48,26 @@ class ToolboxPanel extends StatelessWidget {
               controller.addBarcode,
             ),
             const Divider(height: 24),
-            OutlinedButton.icon(
-              onPressed: controller.isBusy
-                  ? null
-                  : controller.duplicateCurrentAsCustom,
-              icon: const Icon(Icons.copy_all_outlined),
-              label: const Text('Create Custom Copy'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: controller.isBusy ? null : controller.loadTemplates,
-              icon: const Icon(Icons.cloud_download_outlined),
-              label: const Text('Load Saved'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: controller.isBusy ? null : controller.saveTemplate,
-              icon: controller.isBusy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: const Text('Save Template'),
-            ),
             if (controller.lastMessage != null) ...[
-              const SizedBox(height: 10),
               Text(
                 controller.lastMessage!,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                style: TextStyle(fontSize: 11, color: theme.colorScheme.primary),
               ),
+              const SizedBox(height: 10),
             ],
-            const SizedBox(height: 10),
-            _templatesList(context),
-            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => _showJson(context),
               icon: const Icon(Icons.code),
               label: const Text('Show JSON'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _templatesList(BuildContext context) {
-    final templates = controller.visibleTemplates;
-    if (templates.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          child: Text(
-            'No templates available yet.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-          ),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: templates.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 6),
-      itemBuilder: (context, index) {
-        final template = templates[index];
-        return _SavedTemplateTile(
-          template: template,
-          selected:
-              template.id == controller.template.id ||
-              (template.backendId != null &&
-                  template.backendId == controller.template.backendId),
-          onTap: () => controller.loadTemplate(template),
-        );
-      },
-    );
+    // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
   }
 
   Widget _toolButton(String title, IconData icon, VoidCallback onPressed) {
@@ -168,62 +85,189 @@ class ToolboxPanel extends StatelessWidget {
     );
   }
 
+  // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
   void _showJson(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Template JSON'),
-        content: SizedBox(
-          width: 720,
-          height: 520,
-          child: SingleChildScrollView(
-            child: SelectableText(controller.exportJson()),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
+      builder: (context) => JsonEditorDialog(
+        initialJson: controller.exportJson(),
+        onSave: (template) {
+          controller.loadTemplate(template);
+        },
       ),
     );
   }
 }
 
-class _SavedTemplateTile extends StatelessWidget {
-  const _SavedTemplateTile({
-    required this.template,
-    required this.selected,
-    required this.onTap,
+class JsonEditorDialog extends StatefulWidget {
+  const JsonEditorDialog({
+    super.key,
+    required this.initialJson,
+    required this.onSave,
   });
 
-  final PrintTemplateModel template;
-  final bool selected;
-  final VoidCallback onTap;
+  final String initialJson;
+  final ValueChanged<PrintTemplateModel> onSave;
+
+  @override
+  State<JsonEditorDialog> createState() => _JsonEditorDialogState();
+}
+
+class _JsonEditorDialogState extends State<JsonEditorDialog> {
+  late TextEditingController _textController;
+  late ScrollController _scrollController;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: widget.initialJson);
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadFromFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (result != null) {
+        String? content;
+        if (result.files.single.bytes != null) {
+          content = utf8.decode(result.files.single.bytes!);
+        } else if (result.files.single.path != null) {
+          final file = File(result.files.single.path!);
+          content = await file.readAsString();
+        }
+        if (content != null) {
+          setState(() {
+            _textController.text = content!;
+            _errorMessage = null;
+          });
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error loading file: $e';
+      });
+    }
+  }
+
+  void _copyToClipboard() {
+    Clipboard.setData(ClipboardData(text: _textController.text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Copied to clipboard')),
+    );
+  }
+
+  void _apply() {
+    try {
+      final model = PrintTemplateModel.fromJsonString(_textController.text);
+      widget.onSave(model);
+      Navigator.of(context).pop();
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Invalid JSON: $e';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      selected: selected,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      tileColor: Colors.white,
-      selectedTileColor: const Color(0xFFEFF6FF),
-      title: Text(template.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '${template.documentType} • ${template.pageSize}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+    return AlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('JSON Template Editor'),
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Load from File',
+                icon: const Icon(Icons.file_open_outlined),
+                onPressed: _loadFromFile,
+              ),
+              IconButton(
+                tooltip: 'Copy to Clipboard',
+                icon: const Icon(Icons.copy_all_outlined),
+                onPressed: _copyToClipboard,
+              ),
+            ],
+          ),
+        ],
       ),
-      trailing: template.isDefault
-          ? const Icon(
-              Icons.verified_outlined,
-              size: 18,
-              color: Color(0xFF229C1B),
-            )
-          : const Icon(Icons.edit_note_outlined, size: 18),
-      onTap: onTap,
+      content: SizedBox(
+        width: 720,
+        height: 520,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(color: Colors.red.shade800, fontSize: 13),
+                ),
+              ),
+            ],
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Scrollbar(
+                  controller: _scrollController,
+                  thumbVisibility: true,
+                  child: TextField(
+                    controller: _textController,
+                    scrollController: _scrollController,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    style: const TextStyle(
+                      fontFamily: 'Courier',
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Color(0xFFF8FAFC), // Slate 50 – white text
+                    ),
+                    cursorColor: const Color(0xFF4ADE80), // green cursor
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: true,
+                      fillColor: Color(0xFF0F172A), // Slate 900 – dark bg
+                      contentPadding: EdgeInsets.all(14),
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _apply,
+          child: const Text('Apply & Save'),
+        ),
+      ],
     );
   }
 }
+// END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]

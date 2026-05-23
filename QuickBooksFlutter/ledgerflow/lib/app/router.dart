@@ -73,6 +73,7 @@ import '../features/settings/screens/settings_home_screen.dart';
 import '../features/settings/screens/setup_wizard_screen.dart';
 import '../features/settings/screens/tax_settings_screen.dart';
 import '../features/settings/screens/users_permissions_screen.dart';
+import '../features/print_templates/presentation/pages/print_template_designer_page.dart';
 import '../features/settings/widgets/license_gate.dart';
 import '../features/setup/data/models/setup_models.dart';
 import '../features/setup/providers/setup_provider.dart';
@@ -177,6 +178,7 @@ class AppRoutes {
   static const taxSettings = '/settings/tax';
   static const backupSettings = '/settings/backup';
   static const printingSettings = '/settings/printing';
+  static const printTemplateDesigner = '/settings/printing/designer';
   static const usersPermissions = '/settings/users-permissions';
   static const licenseSettings = '/settings/license';
   static const bankingRegister = '/banking/register';
@@ -673,6 +675,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.printingSettings,
             builder: (context, state) => const PrintingSettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.printTemplateDesigner,
+            builder: (context, state) => PrintTemplateDesignerPage(
+              documentType: state.uri.queryParameters['documentType'],
+              paperKind: state.uri.queryParameters['paperKind'],
+              templateId: state.uri.queryParameters['templateId'],
+            ),
           ),
           GoRoute(
             path: AppRoutes.usersPermissions,
