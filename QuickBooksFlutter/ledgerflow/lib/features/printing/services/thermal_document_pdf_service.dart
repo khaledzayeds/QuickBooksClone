@@ -1,5 +1,6 @@
 // thermal_document_pdf_service.dart
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
@@ -29,26 +30,24 @@ class ThermalDocumentPdfService {
     final pageWidth = settings.thermalWidth.widthMillimeters * PdfPageFormat.mm;
     final margin = settings.thermalWidth == ThermalWidth.mm58
         ? 3 * PdfPageFormat.mm
-        : 5 * PdfPageFormat.mm;
+        : 4 * PdfPageFormat.mm;
+    final pageHeight = _estimatedReceiptHeightMm(data, settings) * PdfPageFormat.mm;
 
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat(
           pageWidth,
-          double.infinity,
+          pageHeight,
           marginAll: margin,
         ),
         textDirection: pw.TextDirection.rtl,
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
-            // ─── Header: Logo left + Invoice info right ───
             _buildHeader(data, settings, logo),
             _dashedLine(settings),
-            // ─── Items table ───
             _itemsTable(data),
             _dashedLine(settings),
-            // ─── Totals ───
             ..._receiptRows(data, settings).map(
               (row) => _amountRow(
                 row.$1,
@@ -57,26 +56,56 @@ class ThermalDocumentPdfService {
               ),
             ),
             _dashedLine(settings),
-            // ─── Payment method ───
             if ((data.payment?.paymentMethod ?? '').isNotEmpty) ...[
               _kvRtl('طريقة الدفع', data.payment!.paymentMethod!),
               _dashedLine(settings),
             ],
-            // ─── Footer ───
             if ((data.company.phone ?? '').isNotEmpty)
               _center('تليفون رقم ${data.company.phone}', fontSize: 8),
             if ((data.company.country).isNotEmpty)
               _center(data.company.country, fontSize: 8),
             if ((settings.receiptFooterMessage ?? '').isNotEmpty)
               _center(settings.receiptFooterMessage!, fontSize: 9, bold: true),
-            // Bottom spacer to ensure the physical cutter doesn't slice through the footer content
-            pw.SizedBox(height: 25 * PdfPageFormat.mm),
+            // Feed space is part of a finite page height. This is more stable
+            // than double.infinity with Windows thermal printer drivers.
+            pw.SizedBox(height: _safeBottomFeedMm(settings) * PdfPageFormat.mm),
           ],
         ),
       ),
     );
 
     return doc.save();
+  }
+
+  double _estimatedReceiptHeightMm(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    final lineCount = math.max(data.lines.length, 1);
+    final summaryCount = _receiptRows(data, settings).length;
+    final footerLines = [
+      data.company.phone,
+      data.company.country,
+      settings.receiptFooterMessage,
+    ].where((value) => (value ?? '').trim().isNotEmpty).length;
+    final paymentLines = (data.payment?.paymentMethod ?? '').isNotEmpty ? 1 : 0;
+
+    final header = 38.0;
+    final table = 14.0 + (lineCount * 11.5);
+    final summary = 10.0 + (summaryCount * 7.0);
+    final payment = paymentLines * 9.0;
+    final footer = footerLines * 6.5;
+    final separators = 18.0;
+    final feed = _safeBottomFeedMm(settings);
+
+    return math.max(
+      120.0,
+      header + table + summary + payment + footer + separators + feed,
+    );
+  }
+
+  double _safeBottomFeedMm(PrintingSettingsModel settings) {
+    return settings.thermalWidth == ThermalWidth.mm58 ? 28.0 : 32.0;
   }
 
   // ─────────────────────────────────────────────
@@ -204,6 +233,7 @@ class ThermalDocumentPdfService {
         child: pw.Text(
           text,
           textAlign: align,
+          maxLines: 2,
           style: pw.TextStyle(
             fontSize: 8.5,
             fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
