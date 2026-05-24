@@ -60,7 +60,9 @@ class DocumentPrintDataModel {
   factory DocumentPrintDataModel.fromJson(Map<String, dynamic> json) =>
       DocumentPrintDataModel(
         documentId: JsonUtils.asString(json['documentId']),
-        documentType: JsonUtils.asString(json['documentType']),
+        documentType: normalizePrintDocumentType(
+          JsonUtils.asString(json['documentType']),
+        ),
         documentNumber: JsonUtils.asString(json['documentNumber']),
         status: JsonUtils.asString(json['status']),
         company: PrintCompanyModel.fromJson(
@@ -250,6 +252,25 @@ class PrintSummaryRowModel {
       );
 }
 
+String normalizePrintDocumentType(String value) {
+  final normalized = value
+      .trim()
+      .toLowerCase()
+      .replaceAll('_', '-')
+      .replaceAll(RegExp(r'\s+'), '-');
+
+  return switch (normalized) {
+    'salesreceipt' || 'sales-receipt' => 'sales-receipt',
+    'salesreturn' || 'sales-return' => 'sales-return',
+    'purchaseorder' || 'purchase-order' => 'purchase-order',
+    'receiveinventory' || 'receive-inventory' || 'inventory-receipt' || 'inventoryreceipt' => 'receive-inventory',
+    'inventoryadjustment' || 'inventory-adjustment' => 'inventory-adjustment',
+    'invoice' => 'invoice',
+    'estimate' => 'estimate',
+    _ => normalized,
+  };
+}
+
 DateTime _parseDate(dynamic value) =>
     DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
 
@@ -259,11 +280,13 @@ String _partyTypeFromJson(Map<String, dynamic> json) {
     return explicit;
   }
 
-  final documentType = JsonUtils.asString(json['documentType']).toLowerCase();
-  if (documentType.contains('purchase') || documentType.contains('receive')) {
+  final documentType = normalizePrintDocumentType(
+    JsonUtils.asString(json['documentType']),
+  );
+  if (documentType == 'purchase-order' || documentType == 'receive-inventory') {
     return 'Vendor';
   }
-  if (documentType.contains('adjustment')) {
+  if (documentType == 'inventory-adjustment') {
     return 'Account';
   }
   return 'Customer';
