@@ -27,7 +27,7 @@ Future<void> showDocumentPrintPreviewDialog({
   return showDialog<void>(
     context: context,
     builder: (_) => DocumentPrintPreviewDialog(
-      documentType: documentType,
+      documentType: normalizePrintDocumentType(documentType),
       documentId: documentId,
     ),
   );
@@ -38,6 +38,7 @@ Future<void> showDocumentDataPrintPreviewDialog({
   required DocumentPrintDataModel data,
   required PrintingSettingsModel settings,
 }) {
+  final type = normalizePrintDocumentType(data.documentType);
   return showDialog<void>(
     context: context,
     builder: (_) => Dialog(
@@ -46,10 +47,30 @@ Future<void> showDocumentDataPrintPreviewDialog({
         constraints: const BoxConstraints(maxWidth: 980, maxHeight: 760),
         child: _PrintPreviewContent(
           data: data,
-          settings: settings.effectiveFor(data.documentType),
+          settings: settings.effectiveFor(type),
         ),
       ),
     ),
+  );
+}
+
+Future<void> printDocumentAfterSaveIfEnabled({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String documentType,
+  required String documentId,
+}) async {
+  final type = normalizePrintDocumentType(documentType);
+  final globalSettings = await PrintingSettingsRepository().load();
+  final settings = globalSettings.effectiveFor(type);
+  if (!settings.autoPrintAfterSave) return;
+  if (!context.mounted) return;
+
+  await printDocumentUsingSettings(
+    context: context,
+    ref: ref,
+    documentType: type,
+    documentId: documentId,
   );
 }
 
@@ -59,22 +80,21 @@ Future<void> printDocumentUsingSettings({
   required String documentType,
   required String documentId,
 }) async {
+  final type = normalizePrintDocumentType(documentType);
   final globalSettings = await PrintingSettingsRepository().load();
-  final settings = globalSettings.effectiveFor(documentType);
+  final settings = globalSettings.effectiveFor(type);
 
-  // If preview is enabled → always show the preview dialog.
   if (settings.printPreviewBeforePrint) {
     return showDocumentPrintPreviewDialog(
       context: context,
       ref: ref,
-      documentType: documentType,
+      documentType: type,
       documentId: documentId,
     );
   }
 
-  // Direct print mode: fetch data, build PDF bytes, send to printer.
   final request = DocumentPrintDataRequest(
-    documentType: documentType,
+    documentType: type,
     documentId: documentId,
   );
   final data = await ref.read(documentPrintDataProvider(request).future);
@@ -111,8 +131,9 @@ Future<void> printDocumentDataUsingSettings({
   required WidgetRef ref,
   required DocumentPrintDataModel data,
 }) async {
+  final type = normalizePrintDocumentType(data.documentType);
   final globalSettings = await PrintingSettingsRepository().load();
-  final settings = globalSettings.effectiveFor(data.documentType);
+  final settings = globalSettings.effectiveFor(type);
 
   if (settings.printPreviewBeforePrint) {
     return showDocumentDataPrintPreviewDialog(
@@ -125,24 +146,24 @@ Future<void> printDocumentDataUsingSettings({
   switch (settings.printMode) {
     case PrintMode.a4:
       await _printDirectOrDialog(
-        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        name: '${type}-${data.documentNumber}-A4.pdf',
         printerUrl: settings.a4PrinterName,
         bytesBuilder: () => _buildA4Bytes(data, settings),
       );
     case PrintMode.thermal:
       await _printDirectOrDialog(
-        name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        name: '${type}-${data.documentNumber}-thermal.pdf',
         printerUrl: settings.thermalPrinterName,
         bytesBuilder: () => _buildThermalBytes(data, settings),
       );
     case PrintMode.both:
       await _printDirectOrDialog(
-        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        name: '${type}-${data.documentNumber}-A4.pdf',
         printerUrl: settings.a4PrinterName,
         bytesBuilder: () => _buildA4Bytes(data, settings),
       );
       await _printDirectOrDialog(
-        name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        name: '${type}-${data.documentNumber}-thermal.pdf',
         printerUrl: settings.thermalPrinterName,
         bytesBuilder: () => _buildThermalBytes(data, settings),
       );
@@ -153,18 +174,16 @@ Future<PrintingSettingsModel> _loadEffectiveSettings(
   String documentType,
 ) async {
   final globalSettings = await PrintingSettingsRepository().load();
-  return globalSettings.effectiveFor(documentType);
+  return globalSettings.effectiveFor(normalizePrintDocumentType(documentType));
 }
 
 Future<Uint8List> _buildA4Bytes(
   DocumentPrintDataModel data,
   PrintingSettingsModel settings,
 ) async {
-  final template = await _resolveTemplate(data.documentType, settings, 'a4');
+  final type = normalizePrintDocumentType(data.documentType);
+  final template = await _resolveTemplate(type, settings, 'a4');
   if (template != null && !_isThermalTemplate(template)) {
-    // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
-    // Always use the designer template - no line count limit.
-    // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
     return const PrintTemplatePdfService().build(
       template,
       data: data,
@@ -174,16 +193,12 @@ Future<Uint8List> _buildA4Bytes(
   return const A4DocumentPdfService().build(data, settings);
 }
 
-
 Future<Uint8List> _buildThermalBytes(
   DocumentPrintDataModel data,
   PrintingSettingsModel settings,
 ) async {
-  final template = await _resolveTemplate(
-    data.documentType,
-    settings,
-    'thermal',
-  );
+  final type = normalizePrintDocumentType(data.documentType);
+  final template = await _resolveTemplate(type, settings, 'thermal');
   if (template != null && _isThermalTemplate(template)) {
     return const PrintTemplatePdfService().build(
       template,
@@ -194,21 +209,16 @@ Future<Uint8List> _buildThermalBytes(
   return const ThermalDocumentPdfService().build(data, settings);
 }
 
-/// Resolves the configured print template for [documentType] and [paperKind].
-/// Returns null only when no template has been configured (user chose "Automatic").
-/// When a template ID is configured but cannot be loaded, still returns null
-/// so the caller falls back to the built-in service.
 Future<PrintTemplateModel?> _resolveTemplate(
   String documentType,
   PrintingSettingsModel settings,
   String paperKind,
 ) async {
-  // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
-  final profile = settings.profileFor(documentType);
+  final type = normalizePrintDocumentType(documentType);
+  final profile = settings.profileFor(type);
   final configuredId = profile.templateIdForPaper(paperKind)?.trim();
 
   if (configuredId != null && configuredId.isNotEmpty) {
-    // 1. Check built-in templates first (works offline, no API needed).
     final builtInId = configuredId.startsWith('builtin:')
         ? configuredId.substring('builtin:'.length)
         : null;
@@ -216,16 +226,15 @@ Future<PrintTemplateModel?> _resolveTemplate(
     if (builtInId != null) {
       for (final template in SamplePrintTemplates.defaults()) {
         if (template.id == builtInId &&
-            template.documentType == documentType &&
+            normalizePrintDocumentType(template.documentType) == type &&
             _templateMatchesPaper(template, paperKind)) {
           return template;
         }
       }
     } else {
-      // 2. Fetch saved templates from backend.
       try {
         final templates = await const PrintTemplateRepository().list(
-          documentType: documentType,
+          documentType: type,
         );
         for (final template in templates) {
           if (_templateMatchesPaper(template, paperKind) &&
@@ -234,23 +243,19 @@ Future<PrintTemplateModel?> _resolveTemplate(
           }
         }
       } catch (_) {
-        // Network unavailable
+        // Network unavailable. Fall back to built-in templates.
       }
     }
   }
 
-  // If no template is configured (Automatic) or configured template was not found:
-  // Try to find a matching default template for this documentType and paperKind.
   for (final template in SamplePrintTemplates.defaults()) {
-    if (template.documentType == documentType &&
+    if (normalizePrintDocumentType(template.documentType) == type &&
         _templateMatchesPaper(template, paperKind)) {
       return template;
     }
   }
 
-  // If no default exists, generate a customized fallback template.
-  return SamplePrintTemplates.fallbackFor(documentType, paperKind);
-  // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
+  return SamplePrintTemplates.fallbackFor(type, paperKind);
 }
 
 bool _templateMatchesPaper(PrintTemplateModel template, String paperKind) {
@@ -265,31 +270,24 @@ bool _isThermalTemplate(PrintTemplateModel template) {
       template.page.widthMm <= 90;
 }
 
-/// Cleans the Windows print spooler queue for the selected printer to prevent error backlogs.
-/// Filters out recently submitted active jobs to avoid interrupting the current print job.
 Future<void> _clearStalePrintJobs(String? printerName) async {
   if (!Platform.isWindows) return;
   final name = printerName?.trim();
   if (name == null || name.isEmpty) return;
   try {
-    // Only remove print jobs for the selected printer that are in an error/paused/offline state,
-    // OR have been in the queue for more than 15 seconds (stale).
-    // This prevents deleting the active job we just sent (which is only 2 seconds old).
     await Process.run('powershell', [
       '-NoProfile',
       '-NonInteractive',
       '-Command',
       'Get-PrintJob -PrinterName "$name" -ErrorAction SilentlyContinue | '
-          r'Where-Object { ((Get-Date) - $_.SubmittedTime -gt (New-TimeSpan -Seconds 15)) -or ($_.JobState -match "Error" -or $_.JobState -match "Paused" -or $_.JobState -match "Offline") } | '
-          'Remove-PrintJob -ErrorAction SilentlyContinue'
+          r'Where-Object { $_.JobState -match "Error" -or $_.JobState -match "Paused" -or $_.JobState -match "Offline" } | '
+          'Remove-PrintJob -ErrorAction SilentlyContinue',
     ]);
-  } catch (e) {
+  } catch (_) {
     // Ignore any failures — printer may not support this operation.
   }
 }
 
-/// Prints directly to the stored printer URL with no system dialog.
-/// Falls back to the OS print dialog only if no printer URL is configured.
 Future<void> _printDirectOrDialog({
   required String name,
   required String? printerUrl,
@@ -297,23 +295,17 @@ Future<void> _printDirectOrDialog({
 }) async {
   final url = printerUrl?.trim();
   if (url != null && url.isNotEmpty) {
-    // Clear stale/error jobs BEFORE printing to avoid queue backlog.
     await _clearStalePrintJobs(url);
     await Printing.directPrintPdf(
       printer: Printer(url: url),
       name: name,
       onLayout: (_) => bytesBuilder(),
     );
-    // Clear completed/error jobs AFTER printing so they don't block the next job.
-    await Future.delayed(const Duration(seconds: 2));
-    await _clearStalePrintJobs(url);
     return;
   }
-  // No printer URL → show OS dialog (still no preview).
   await Printing.layoutPdf(name: name, onLayout: (_) => bytesBuilder());
 }
 
-/// Legacy helper kept for use inside _PrintPreviewContent (preview dialog).
 Future<void> _printPdf({
   required String name,
   required String? printerName,
@@ -327,9 +319,6 @@ Future<void> _printPdf({
       name: name,
       onLayout: (_) => bytesBuilder(),
     );
-    // Wait then clear so subsequent prints don't queue up behind completed jobs.
-    await Future.delayed(const Duration(seconds: 2));
-    await _clearStalePrintJobs(url);
     return;
   }
   await Printing.layoutPdf(name: name, onLayout: (_) => bytesBuilder());
@@ -348,7 +337,7 @@ class DocumentPrintPreviewDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final request = DocumentPrintDataRequest(
-      documentType: documentType,
+      documentType: normalizePrintDocumentType(documentType),
       documentId: documentId,
     );
     final dataAsync = ref.watch(documentPrintDataProvider(request));
@@ -460,9 +449,8 @@ class _PrintPreviewContent extends StatelessWidget {
       );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('A4 PDF failed: $error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('A4 PDF failed: $error')));
       }
     }
   }
@@ -476,9 +464,8 @@ class _PrintPreviewContent extends StatelessWidget {
       );
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Thermal print failed: $error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Thermal print failed: $error')));
       }
     }
   }
