@@ -73,6 +73,7 @@ import '../features/settings/screens/settings_home_screen.dart';
 import '../features/settings/screens/setup_wizard_screen.dart';
 import '../features/settings/screens/tax_settings_screen.dart';
 import '../features/settings/screens/users_permissions_screen.dart';
+import '../features/settings/data/models/license_settings_model.dart';
 import '../features/print_templates/presentation/pages/print_template_designer_page.dart';
 import '../features/settings/widgets/license_gate.dart';
 import '../features/setup/data/models/setup_models.dart';
