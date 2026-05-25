@@ -476,7 +476,8 @@ class _SalesReceiptFormPageShellState
   void _triggerAutoPrint(String documentId, String documentType) {
     Future.microtask(() async {
       try {
-        await printDocumentUsingSettings(
+        if (!mounted) return;
+        await printDocumentAfterSaveIfEnabled(
           context: context,
           ref: ref,
           documentType: documentType,

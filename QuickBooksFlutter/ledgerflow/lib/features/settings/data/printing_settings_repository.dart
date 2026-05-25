@@ -18,6 +18,9 @@ class PrintingSettingsRepository {
       'showItemSku': prefs.getString('${_prefix}showItemSku'),
       'showCompanyAddress': prefs.getString('${_prefix}showCompanyAddress'),
       'useArabicFonts': prefs.getString('${_prefix}useArabicFonts'),
+      'enableTemplateDesigner': prefs.getString(
+        '${_prefix}enableTemplateDesigner',
+      ),
       'autoPrintAfterSave': prefs.getString('${_prefix}autoPrintAfterSave'),
       'printPreviewBeforePrint': prefs.getString(
         '${_prefix}printPreviewBeforePrint',

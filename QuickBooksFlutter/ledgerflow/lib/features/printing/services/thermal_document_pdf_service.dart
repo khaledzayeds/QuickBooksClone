@@ -30,47 +30,43 @@ class ThermalDocumentPdfService {
     final margin = settings.thermalWidth == ThermalWidth.mm58
         ? 3 * PdfPageFormat.mm
         : 5 * PdfPageFormat.mm;
+    final pageHeight = _estimatedReceiptHeight(data, settings);
 
     doc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(
-          pageWidth,
-          double.infinity,
-          marginAll: margin,
-        ),
+        pageFormat: PdfPageFormat(pageWidth, pageHeight, marginAll: margin),
         textDirection: pw.TextDirection.rtl,
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: [
-            // ─── Header: Logo left + Invoice info right ───
             _buildHeader(data, settings, logo),
             _dashedLine(settings),
-            // ─── Items table ───
-            _itemsTable(data),
+            _itemsTable(data, settings),
             _dashedLine(settings),
-            // ─── Totals ───
-            ..._receiptRows(data, settings).map(
-              (row) => _amountRow(
-                row.$1,
-                row.$2,
-                bold: row.$3,
-              ),
-            ),
+            _totalsBox(data, settings),
             _dashedLine(settings),
-            // ─── Payment method ───
             if ((data.payment?.paymentMethod ?? '').isNotEmpty) ...[
-              _kvRtl('طريقة الدفع', data.payment!.paymentMethod!),
+              _kvRtl(
+                _label(settings, 'طريقة الدفع', 'Payment method'),
+                data.payment!.paymentMethod!,
+                settings,
+              ),
               _dashedLine(settings),
             ],
-            // ─── Footer ───
             if ((data.company.phone ?? '').isNotEmpty)
-              _center('تليفون رقم ${data.company.phone}', fontSize: 8),
+              _center(
+                _isArabic(settings)
+                    ? 'تليفون رقم ${data.company.phone}'
+                    : 'Phone: ${data.company.phone}',
+                fontSize: 8,
+              ),
             if ((data.company.country).isNotEmpty)
               _center(data.company.country, fontSize: 8),
+            if ((data.notes ?? '').isNotEmpty)
+              _center(data.notes!, fontSize: 8),
             if ((settings.receiptFooterMessage ?? '').isNotEmpty)
               _center(settings.receiptFooterMessage!, fontSize: 9, bold: true),
-            // Bottom spacer to ensure the physical cutter doesn't slice through the footer content
-            pw.SizedBox(height: 25 * PdfPageFormat.mm),
+            pw.SizedBox(height: 50 * PdfPageFormat.mm),
           ],
         ),
       ),
@@ -80,109 +76,255 @@ class ThermalDocumentPdfService {
   }
 
   // ─────────────────────────────────────────────
-  // Header: Logo (left) + Invoice info (right)
+  //  HEADER  –  logo left | meta right (RTL)
   // ─────────────────────────────────────────────
   pw.Widget _buildHeader(
     DocumentPrintDataModel data,
     PrintingSettingsModel settings,
     pw.ImageProvider? logo,
   ) {
-    final pw.Widget logoWidget;
-    if (settings.showLogo && logo != null) {
-      logoWidget = pw.Image(logo, width: 28, height: 28, fit: pw.BoxFit.contain);
-    } else if (settings.showLogo) {
-      logoWidget = pw.Container(
-        width: 28,
-        height: 28,
-        decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.5)),
-        child: pw.Center(
-          child: pw.Text('LOGO', style: const pw.TextStyle(fontSize: 5)),
-        ),
-      );
-    } else {
-      logoWidget = pw.SizedBox(width: 0, height: 0);
-    }
+    final compact = settings.thermalWidth == ThermalWidth.mm58;
+    final logoSize = compact ? 30.0 : 40.0;
+    final metaSize = compact ? 7.5 : 8.5;
+    final customerSize = compact ? 10.0 : 12.0;
+    final arabic = _isArabic(settings);
+    final infoAlign = arabic ? pw.TextAlign.right : pw.TextAlign.left;
+    final infoCrossAxis = arabic
+        ? pw.CrossAxisAlignment.end
+        : pw.CrossAxisAlignment.start;
 
-    final infoLines = <pw.Widget>[
-      pw.Text(
-        _arabicDocumentTitle(data.documentType),
-        textDirection: pw.TextDirection.rtl,
-        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-      ),
-      pw.Text(
-        '${_getNumberLabel(data.documentType)}: ${data.documentNumber}',
-        textDirection: pw.TextDirection.rtl,
-        style: const pw.TextStyle(fontSize: 8),
-      ),
-      pw.Text(
-        'التاريخ: ${_formatDateTime(data.documentDate)}',
-        textDirection: pw.TextDirection.rtl,
-        style: const pw.TextStyle(fontSize: 8),
-      ),
-      if ((data.createdByName ?? '').isNotEmpty)
-        pw.Text(
-          'المستخدم: ${data.createdByName}',
-          textDirection: pw.TextDirection.rtl,
-          style: const pw.TextStyle(fontSize: 8),
-        ),
-      pw.Text(
-        '${data.arabicPartyLabel}: ${data.customer.displayName}',
-        textDirection: pw.TextDirection.rtl,
-        style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-      ),
-    ];
-
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
+    final infoColumn = pw.Column(
+      crossAxisAlignment: infoCrossAxis,
       children: [
-        pw.Directionality(
-          textDirection: pw.TextDirection.ltr,
-          child: logoWidget,
-        ),
-        pw.SizedBox(width: 6),
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.end,
-            children: infoLines,
+        if (data.company.companyName.isNotEmpty)
+          _smartText(
+            data.company.companyName,
+            fontSize: compact ? 10.5 : 12.0,
+            bold: true,
+            align: infoAlign,
           ),
+        if ((data.company.legalName ?? '').isNotEmpty)
+          _smartText(
+            data.company.legalName!,
+            fontSize: metaSize,
+            align: infoAlign,
+          ),
+        if (data.company.companyName.isNotEmpty ||
+            (data.company.legalName ?? '').isNotEmpty)
+          pw.SizedBox(height: 3),
+        _metaLine(
+          _getNumberLabel(data.documentType, settings),
+          data.documentNumber,
+          metaSize,
+          settings,
+        ),
+        _metaLine(
+          _label(settings, 'التاريخ', 'Date'),
+          _formatDateTime(data.documentDate),
+          metaSize,
+          settings,
+        ),
+        if ((data.createdByName ?? '').isNotEmpty)
+          _metaLine(
+            _label(settings, 'المستخدم', 'User'),
+            data.createdByName!,
+            metaSize,
+            settings,
+          ),
+        pw.SizedBox(height: 3),
+        _customerLine(
+          _partyLabel(data, settings),
+          data.customer.displayName,
+          customerSize,
+          settings,
         ),
       ],
+    );
+
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 4),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          pw.Directionality(
+            textDirection: pw.TextDirection.ltr,
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: arabic
+                  ? [
+                      if (logo != null) ...[
+                        pw.Image(
+                          logo,
+                          width: logoSize,
+                          height: logoSize,
+                          fit: pw.BoxFit.contain,
+                        ),
+                        pw.SizedBox(width: 6),
+                      ],
+                      pw.Expanded(child: infoColumn),
+                    ]
+                  : [
+                      pw.Expanded(child: infoColumn),
+                      if (logo != null) ...[
+                        pw.SizedBox(width: 6),
+                        pw.Image(
+                          logo,
+                          width: logoSize,
+                          height: logoSize,
+                          fit: pw.BoxFit.contain,
+                        ),
+                      ],
+                    ],
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Center(
+            child: pw.Text(
+              _documentTitle(data.documentType, settings),
+              textDirection: arabic
+                  ? pw.TextDirection.rtl
+                  : pw.TextDirection.ltr,
+              style: pw.TextStyle(
+                fontSize: compact ? 13.0 : 15.0,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _metaLine(
+    String label,
+    String value,
+    double fontSize,
+    PrintingSettingsModel settings,
+  ) {
+    final arabic = _isArabic(settings);
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: .5),
+      child: pw.Container(
+        width: double.infinity,
+        alignment: arabic ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
+        child: pw.Directionality(
+          textDirection: arabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+          child: pw.RichText(
+            textAlign: arabic ? pw.TextAlign.right : pw.TextAlign.left,
+            text: pw.TextSpan(
+              children: [
+                pw.TextSpan(
+                  text: '$label: ',
+                  style: pw.TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.TextSpan(
+                  text: value,
+                  style: pw.TextStyle(fontSize: fontSize),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _customerLine(
+    String label,
+    String value,
+    double fontSize,
+    PrintingSettingsModel settings,
+  ) {
+    final arabic = _isArabic(settings);
+    return pw.Container(
+      width: double.infinity,
+      alignment: arabic ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
+      child: pw.Directionality(
+        textDirection: arabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+        child: pw.RichText(
+          textAlign: arabic ? pw.TextAlign.right : pw.TextAlign.left,
+          text: pw.TextSpan(
+            children: [
+              pw.TextSpan(
+                text: '$label: ',
+                style: pw.TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.TextSpan(
+                text: value,
+                style: pw.TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   // ─────────────────────────────────────────────
-  // Items table: 4 columns (إجمالي | سعر | كمية | اسم الصنف)
+  //  ITEMS TABLE
   // ─────────────────────────────────────────────
-  pw.Widget _itemsTable(DocumentPrintDataModel data) {
+  pw.Widget _itemsTable(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    final compact = settings.thermalWidth == ThermalWidth.mm58;
+    final headerSize = compact ? 7.4 : 8.0;
+    final cellSize = compact ? 7.2 : 8.0;
     return pw.Table(
-      border: pw.TableBorder.all(color: PdfColors.black, width: .45),
-      columnWidths: const {
-        0: pw.FlexColumnWidth(1.2), // الإجمالي
-        1: pw.FlexColumnWidth(1.0), // السعر
-        2: pw.FlexColumnWidth(0.7), // الكمية
-        3: pw.FlexColumnWidth(2.5), // اسم الصنف
+      border: pw.TableBorder.all(color: PdfColors.black, width: .7),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(1.6),
+        1: const pw.FlexColumnWidth(1.3),
+        2: const pw.FlexColumnWidth(1.3),
+        3: const pw.FlexColumnWidth(3.8),
       },
       children: [
         pw.TableRow(
           decoration: const pw.BoxDecoration(color: PdfColors.grey300),
           children: [
-            _tableCell('الإجمالي', bold: true),
-            _tableCell('السعر', bold: true),
-            _tableCell('الكمية', bold: true),
-            _tableCell('اسم الصنف', bold: true, align: pw.TextAlign.right),
+            _tableCell(
+              _label(settings, 'الإجمالي', 'Total'),
+              bold: true,
+              fontSize: headerSize,
+            ),
+            _tableCell(
+              _label(settings, 'السعر', 'Price'),
+              bold: true,
+              fontSize: headerSize,
+            ),
+            _tableCell(
+              _label(settings, 'الكمية', 'Qty'),
+              bold: true,
+              fontSize: headerSize,
+            ),
+            _tableCell(
+              _label(settings, 'اسم الصنف', 'Item'),
+              bold: true,
+              fontSize: headerSize,
+              align: _isArabic(settings)
+                  ? pw.TextAlign.right
+                  : pw.TextAlign.left,
+            ),
           ],
         ),
         ...data.lines.map(
           (line) => pw.TableRow(
+            verticalAlignment: pw.TableCellVerticalAlignment.middle,
             children: [
-              _tableCell(line.lineTotal.toStringAsFixed(2)),
-              _tableCell(line.unitPrice.toStringAsFixed(2)),
-              _tableCell(_qty(line.quantity)),
-              _tableCell(
-                line.description.isNotEmpty ? line.description : line.itemName,
-                bold: true,
-                align: pw.TextAlign.right,
-              ),
+              _tableCell(_money(line.lineTotal), fontSize: cellSize),
+              _tableCell(_money(line.unitPrice), fontSize: cellSize),
+              _tableCell(_qty(line.quantity), fontSize: cellSize),
+              _itemNameCell(line, fontSize: cellSize),
             ],
           ),
         ),
@@ -193,36 +335,71 @@ class ThermalDocumentPdfService {
   pw.Widget _tableCell(
     String text, {
     bool bold = false,
+    double fontSize = 8,
     pw.TextAlign align = pw.TextAlign.center,
   }) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-      child: pw.Directionality(
-        textDirection: _hasArabic(text)
-            ? pw.TextDirection.rtl
-            : pw.TextDirection.ltr,
-        child: pw.Text(
-          text,
-          textAlign: align,
-          style: pw.TextStyle(
-            fontSize: 8.5,
-            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+      child: _smartText(text, fontSize: fontSize, bold: bold, align: align),
+    );
+  }
+
+  pw.Widget _itemNameCell(PrintLineModel line, {required double fontSize}) {
+    final name = line.itemName.trim();
+    final description = line.description.trim();
+    final primary = description.isNotEmpty ? description : name;
+    final secondary =
+        description.isNotEmpty && name.isNotEmpty && name != description
+        ? name
+        : null;
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          _smartText(
+            primary.isEmpty ? '-' : primary,
+            fontSize: fontSize,
+            bold: true,
+            align: _hasArabic(primary) ? pw.TextAlign.right : pw.TextAlign.left,
           ),
-        ),
+          if (secondary != null) ...[
+            pw.SizedBox(height: 1),
+            _smartText(
+              secondary,
+              fontSize: fontSize - .6,
+              align: _hasArabic(secondary)
+                  ? pw.TextAlign.right
+                  : pw.TextAlign.left,
+            ),
+          ],
+        ],
       ),
     );
   }
 
   // ─────────────────────────────────────────────
-  // Amount row: value (LTR) ←→ label (RTL)
+  //  TOTALS
   // ─────────────────────────────────────────────
-  pw.Widget _amountRow(
-    String label,
-    double amount, {
-    bool bold = false,
-  }) {
-    return pw.Padding(
+  pw.Widget _totalsBox(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    return pw.Container(
       padding: const pw.EdgeInsets.symmetric(vertical: 2),
+      child: pw.Column(
+        children: _receiptRows(
+          data,
+          settings,
+        ).map((row) => _amountRow(row.$1, row.$2, bold: row.$3)).toList(),
+      ),
+    );
+  }
+
+  pw.Widget _amountRow(String label, double amount, {bool bold = false}) {
+    final fontSize = bold ? 14.0 : 10.0;
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
@@ -231,7 +408,7 @@ class ThermalDocumentPdfService {
             child: pw.Text(
               amount.toStringAsFixed(2),
               style: pw.TextStyle(
-                fontSize: bold ? 13 : 9.5,
+                fontSize: fontSize,
                 fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
               ),
             ),
@@ -241,7 +418,7 @@ class ThermalDocumentPdfService {
             child: pw.Text(
               '$label:',
               style: pw.TextStyle(
-                fontSize: bold ? 13 : 9.5,
+                fontSize: fontSize,
                 fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
               ),
             ),
@@ -251,56 +428,65 @@ class ThermalDocumentPdfService {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // Key-value row (e.g. payment method)
-  // ─────────────────────────────────────────────
-  pw.Widget _kvRtl(String label, String value) {
+  pw.Widget _kvRtl(String label, String value, PrintingSettingsModel settings) {
+    final arabic = _isArabic(settings);
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Directionality(
-            textDirection: pw.TextDirection.ltr,
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-            ),
-          ),
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Text(
-              '$label:',
-              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-            ),
-          ),
-        ],
+        children: arabic
+            ? [
+                pw.Directionality(
+                  textDirection: pw.TextDirection.ltr,
+                  child: pw.Text(
+                    value,
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+                pw.Text(
+                  '$label:',
+                  textDirection: pw.TextDirection.rtl,
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ]
+            : [
+                pw.Text(
+                  '$label:',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.Text(
+                  value,
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ],
       ),
     );
   }
 
   // ─────────────────────────────────────────────
-  // Centred text
+  //  HELPERS
   // ─────────────────────────────────────────────
   pw.Widget _center(String text, {double fontSize = 8, bool bold = false}) {
-    return pw.Directionality(
-      textDirection: _hasArabic(text)
-          ? pw.TextDirection.rtl
-          : pw.TextDirection.ltr,
-      child: pw.Text(
-        text,
-        textAlign: pw.TextAlign.center,
-        style: pw.TextStyle(
-          fontSize: fontSize,
-          fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-        ),
-      ),
+    return _smartText(
+      text,
+      fontSize: fontSize,
+      bold: bold,
+      align: pw.TextAlign.center,
     );
   }
 
-  // ─────────────────────────────────────────────
-  // Dashed separator line
-  // ─────────────────────────────────────────────
   pw.Widget _dashedLine(PrintingSettingsModel settings) {
     final marks = settings.thermalWidth == ThermalWidth.mm58
         ? '- - - - - - - - - - - - - - - -'
@@ -315,8 +501,28 @@ class ThermalDocumentPdfService {
     );
   }
 
+  pw.Widget _smartText(
+    String text, {
+    required double fontSize,
+    bool bold = false,
+    pw.TextAlign align = pw.TextAlign.right,
+  }) {
+    final direction = _textDirectionFor(text);
+    return pw.Directionality(
+      textDirection: direction,
+      child: pw.Text(
+        text,
+        textAlign: align,
+        style: pw.TextStyle(
+          fontSize: fontSize,
+          fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────
-  // Helpers
+  //  FORMATTING / LABELS / HEIGHT ESTIMATION
   // ─────────────────────────────────────────────
   String _formatDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -328,28 +534,111 @@ class ThermalDocumentPdfService {
       ? value.toStringAsFixed(0)
       : value.toStringAsFixed(2);
 
+  String _money(double value) => value.toStringAsFixed(2);
+
   List<(String, double, bool)> _receiptRows(
     DocumentPrintDataModel data,
     PrintingSettingsModel settings,
   ) {
     final rows = <(String, double, bool)>[];
-    rows.add((_getSubtotalLabel(data.documentType), data.subtotal, false));
+    rows.add((
+      _getSubtotalLabel(data.documentType, settings),
+      data.subtotal,
+      false,
+    ));
     if (data.discountAmount != 0) {
-      rows.add(('الخصم', data.discountAmount, false));
+      rows.add((
+        _label(settings, 'الخصم', 'Discount'),
+        data.discountAmount,
+        false,
+      ));
     }
     if (settings.showTaxSummary && data.taxAmount != 0) {
-      rows.add(('الضريبة', data.taxAmount, false));
+      rows.add((_label(settings, 'الضريبة', 'Tax'), data.taxAmount, false));
     }
-    rows.add(('الإجمالي', data.totalAmount, true));
-    if (data.paidAmount != 0) rows.add(('المدفوع', data.paidAmount, false));
-    if (data.balanceDue != 0) rows.add(('المتبقي', data.balanceDue, true));
+    rows.add((_label(settings, 'الإجمالي', 'Total'), data.totalAmount, true));
+    if (data.paidAmount != 0) {
+      rows.add((_label(settings, 'المدفوع', 'Paid'), data.paidAmount, false));
+    }
+    if (data.balanceDue != 0) {
+      rows.add((
+        _label(settings, 'المتبقي', 'Balance due'),
+        data.balanceDue,
+        true,
+      ));
+    }
     return rows;
   }
 
   bool _hasArabic(String text) => RegExp(r'[\u0600-\u06FF]').hasMatch(text);
 
-  String _arabicDocumentTitle(String type) {
-    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+  pw.TextDirection _textDirectionFor(String text) =>
+      _hasArabic(text) ? pw.TextDirection.rtl : pw.TextDirection.ltr;
+
+  bool _isArabic(PrintingSettingsModel settings) =>
+      settings.languageCode.toLowerCase().startsWith('ar');
+
+  String _label(PrintingSettingsModel settings, String ar, String en) =>
+      _isArabic(settings) ? ar : en;
+
+  String _partyLabel(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    if (_isArabic(settings)) {
+      return data.arabicPartyLabel;
+    }
+    return switch (data.partyType.toLowerCase()) {
+      'vendor' => 'Vendor',
+      'account' => 'Account',
+      _ => 'Customer',
+    };
+  }
+
+  double _estimatedReceiptHeight(
+    DocumentPrintDataModel data,
+    PrintingSettingsModel settings,
+  ) {
+    final lineHeight = settings.thermalWidth == ThermalWidth.mm58 ? 14.0 : 12.0;
+    final longLineExtra =
+        data.lines
+            .where(
+              (line) =>
+                  (line.description.isNotEmpty
+                          ? line.description
+                          : line.itemName)
+                      .length >
+                  (settings.thermalWidth == ThermalWidth.mm58 ? 22 : 32),
+            )
+            .length *
+        5;
+    final notesExtra =
+        ((data.notes ?? '').isNotEmpty ? 12 : 0) +
+        ((settings.receiptFooterMessage ?? '').isNotEmpty ? 10 : 0);
+    final heightMm =
+        150 +
+        (data.lines.length * lineHeight) +
+        longLineExtra +
+        notesExtra +
+        50;
+    final safeHeightMm = heightMm < 240 ? 240.0 : heightMm;
+    return safeHeightMm * PdfPageFormat.mm;
+  }
+
+  String _documentTitle(String type, PrintingSettingsModel settings) {
+    final normalized = normalizePrintDocumentType(type);
+    if (!_isArabic(settings)) {
+      return switch (normalized) {
+        'invoice' => 'Invoice',
+        'sales-receipt' => 'Sales Receipt',
+        'estimate' => 'Estimate',
+        'sales-return' => 'Sales Return',
+        'purchase-order' => 'Purchase Order',
+        'receive-inventory' => 'Receive Inventory',
+        'inventory-adjustment' => 'Inventory Adjustment',
+        _ => type,
+      };
+    }
     switch (normalized) {
       case 'invoice':
         return 'فاتورة بيع';
@@ -361,24 +650,39 @@ class ThermalDocumentPdfService {
         return 'مرتجع بيع';
       case 'purchase-order' || 'purchaseorder':
         return 'أمر شراء';
-      case 'receive-inventory' || 'receiveinventory' || 'inventory-receipt' || 'inventoryreceipt':
+      case 'receive-inventory' ||
+          'receiveinventory' ||
+          'inventory-receipt' ||
+          'inventoryreceipt':
         return 'إذن استلام مخزون';
       case 'inventory-adjustment' || 'inventoryadjustment':
         return 'تسوية مخزون';
       default:
-        if (normalized.contains('receipt')) return 'إيصال بيع';
         if (normalized.contains('invoice')) return 'فاتورة بيع';
+        if (normalized.contains('receipt')) return 'إيصال بيع';
         if (normalized.contains('return')) return 'مرتجع بيع';
         if (normalized.contains('estimate')) return 'عرض سعر';
         if (normalized.contains('purchase')) return 'أمر شراء';
-        if (normalized.contains('receive') || normalized.contains('receipt')) return 'إذن استلام مخزون';
+        if (normalized.contains('receive')) return 'إذن استلام مخزون';
         if (normalized.contains('adjustment')) return 'تسوية مخزون';
         return type;
     }
   }
 
-  String _getNumberLabel(String type) {
-    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+  String _getNumberLabel(String type, PrintingSettingsModel settings) {
+    final normalized = normalizePrintDocumentType(type);
+    if (!_isArabic(settings)) {
+      return switch (normalized) {
+        'invoice' => 'Invoice no.',
+        'sales-receipt' => 'Receipt no.',
+        'estimate' => 'Estimate no.',
+        'sales-return' => 'Return no.',
+        'purchase-order' => 'PO no.',
+        'receive-inventory' => 'Receive no.',
+        'inventory-adjustment' => 'Adjustment no.',
+        _ => 'Document no.',
+      };
+    }
     switch (normalized) {
       case 'invoice':
         return 'رقم الفاتورة';
@@ -390,7 +694,10 @@ class ThermalDocumentPdfService {
         return 'رقم إذن المرتجع';
       case 'purchase-order' || 'purchaseorder':
         return 'رقم أمر الشراء';
-      case 'receive-inventory' || 'receiveinventory' || 'inventory-receipt' || 'inventoryreceipt':
+      case 'receive-inventory' ||
+          'receiveinventory' ||
+          'inventory-receipt' ||
+          'inventoryreceipt':
         return 'رقم إذن الاستلام';
       case 'inventory-adjustment' || 'inventoryadjustment':
         return 'رقم التسوية';
@@ -399,8 +706,15 @@ class ThermalDocumentPdfService {
     }
   }
 
-  String _getSubtotalLabel(String type) {
-    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+  String _getSubtotalLabel(String type, PrintingSettingsModel settings) {
+    final normalized = normalizePrintDocumentType(type);
+    if (!_isArabic(settings)) {
+      return switch (normalized) {
+        'invoice' => 'Invoice value',
+        'sales-receipt' => 'Receipt value',
+        _ => 'Document value',
+      };
+    }
     switch (normalized) {
       case 'invoice':
         return 'قيمة الفاتورة';

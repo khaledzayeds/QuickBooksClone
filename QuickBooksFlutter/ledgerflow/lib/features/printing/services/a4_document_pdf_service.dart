@@ -148,8 +148,9 @@ class A4DocumentPdfService {
               style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
             ),
             pw.Text(
-              '#${data.documentNumber}',
-              style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+              '${_documentNumberLabel(data.documentType)}: ${data.documentNumber}',
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 4),
             pw.Container(
@@ -207,8 +208,12 @@ class A4DocumentPdfService {
         pw.SizedBox(width: 12),
         pw.Expanded(
           child: _box('بيانات المستند', [
+            _kv(_documentNumberLabel(data.documentType), data.documentNumber),
             _kv('التاريخ', _formatDate(data.documentDate)),
             _kv('تاريخ الاستحقاق', _formatDate(data.dueDate)),
+            _kv('الحالة', data.status),
+            if ((data.createdByName ?? '').isNotEmpty)
+              _kv('المستخدم', data.createdByName!),
             if ((data.payment?.paymentMethod ?? '').isNotEmpty)
               _kv('الدفع', data.payment!.paymentMethod!),
             if ((data.payment?.depositAccountName ?? '').isNotEmpty)
@@ -367,7 +372,7 @@ class A4DocumentPdfService {
       '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
   String _arabicDocumentTitle(String type) {
-    final normalized = type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('_', '-');
+    final normalized = normalizePrintDocumentType(type);
     switch (normalized) {
       case 'invoice':
         return 'فاتورة بيع';
@@ -379,19 +384,44 @@ class A4DocumentPdfService {
         return 'مرتجع بيع';
       case 'purchase-order' || 'purchaseorder':
         return 'أمر شراء';
-      case 'receive-inventory' || 'receiveinventory' || 'inventory-receipt' || 'inventoryreceipt':
+      case 'receive-inventory' ||
+          'receiveinventory' ||
+          'inventory-receipt' ||
+          'inventoryreceipt':
         return 'إذن استلام مخزون';
       case 'inventory-adjustment' || 'inventoryadjustment':
         return 'تسوية مخزون';
       default:
-        if (normalized.contains('receipt')) return 'إيصال بيع';
         if (normalized.contains('invoice')) return 'فاتورة بيع';
+        if (normalized.contains('receipt')) return 'إيصال بيع';
         if (normalized.contains('return')) return 'مرتجع بيع';
         if (normalized.contains('estimate')) return 'عرض سعر';
         if (normalized.contains('purchase')) return 'أمر شراء';
-        if (normalized.contains('receive') || normalized.contains('receipt')) return 'إذن استلام مخزون';
+        if (normalized.contains('receive')) return 'إذن استلام مخزون';
         if (normalized.contains('adjustment')) return 'تسوية مخزون';
         return type;
+    }
+  }
+
+  String _documentNumberLabel(String type) {
+    final normalized = normalizePrintDocumentType(type);
+    switch (normalized) {
+      case 'invoice':
+        return 'رقم الفاتورة';
+      case 'sales-receipt':
+        return 'رقم الإيصال';
+      case 'estimate':
+        return 'رقم عرض السعر';
+      case 'sales-return':
+        return 'رقم المرتجع';
+      case 'purchase-order':
+        return 'رقم أمر الشراء';
+      case 'receive-inventory':
+        return 'رقم إذن الاستلام';
+      case 'inventory-adjustment':
+        return 'رقم التسوية';
+      default:
+        return 'رقم المستند';
     }
   }
 

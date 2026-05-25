@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../settings/data/models/printing_settings_model.dart';
 import '../data/datasources/printing_api.dart';
 import '../data/models/print_data_contracts.dart';
 import '../data/repositories/printing_repo.dart';
@@ -15,19 +16,28 @@ final printingRepoProvider = Provider<PrintingRepo>(
   (ref) => PrintingRepo(ref.watch(printingApiProvider)),
 );
 
-final documentPrintDataProvider = FutureProvider.family<DocumentPrintDataModel, DocumentPrintDataRequest>((ref, request) async {
-  final result = await ref.read(printingRepoProvider).getDocumentPrintData(
-        documentType: request.documentType,
-        documentId: request.documentId,
+final documentPrintDataProvider =
+    FutureProvider.family<DocumentPrintDataModel, DocumentPrintDataRequest>((
+      ref,
+      request,
+    ) async {
+      final result = await ref
+          .read(printingRepoProvider)
+          .getDocumentPrintData(
+            documentType: request.documentType,
+            documentId: request.documentId,
+          );
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
       );
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+    });
 
 class DocumentPrintDataRequest {
-  const DocumentPrintDataRequest({required this.documentType, required this.documentId});
+  DocumentPrintDataRequest({
+    required String documentType,
+    required this.documentId,
+  }) : documentType = normalizePrintDocumentType(documentType);
 
   final String documentType;
   final String documentId;

@@ -97,9 +97,9 @@ class _PrintingSettingsScreenState
                   padding: const EdgeInsets.all(18),
                   children: [
                     _Header(
-                      title: 'Document Print Profiles',
+                      title: 'Printing Settings',
                       subtitle:
-                          'Choose the exact A4 and thermal template each document uses. The designer creates templates; this page decides which template prints.',
+                          'Set the default printers, receipt width, preview behavior, and branding used by LedgerFlow printing.',
                       loadingTemplates:
                           snapshot.connectionState == ConnectionState.waiting,
                     ),
@@ -108,9 +108,11 @@ class _PrintingSettingsScreenState
                       _ErrorBanner(message: state.errorMessage!),
                     ],
                     const SizedBox(height: 14),
-                    _DocumentProfilesTable(
+                    _DocumentProfilesLauncherCard(
                       settings: state.settings,
                       catalog: catalog,
+                      loadingTemplates:
+                          snapshot.connectionState == ConnectionState.waiting,
                       onChanged: (profile) {
                         notifier.update(
                           (current) => current.updateProfile(profile),
@@ -165,7 +167,7 @@ class _PrintingSettingsScreenState
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      'Template Designer is for creating, naming, saving, renaming, and previewing templates only. Assigning templates to live documents happens here.',
+                      'Built-in print layouts are used automatically. Templates and the designer are optional customizations.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -198,8 +200,9 @@ class _PrintingSettingsScreenState
     required String paperKind,
     String? templateId,
   }) async {
+    final normalizedDocumentType = normalizePrintDocumentType(documentType);
     final query = <String, String>{
-      'documentType': documentType,
+      'documentType': normalizedDocumentType,
       'paperKind': paperKind,
       if ((templateId ?? '').isNotEmpty) 'templateId': templateId!,
     };
@@ -260,6 +263,120 @@ class _Header extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _DocumentProfilesLauncherCard extends StatelessWidget {
+  const _DocumentProfilesLauncherCard({
+    required this.settings,
+    required this.catalog,
+    required this.loadingTemplates,
+    required this.onChanged,
+    required this.onOpenDesigner,
+  });
+
+  final PrintingSettingsModel settings;
+  final _TemplateCatalog catalog;
+  final bool loadingTemplates;
+  final ValueChanged<DocumentPrintProfile> onChanged;
+  final Future<void> Function({
+    required String documentType,
+    required String paperKind,
+    String? templateId,
+  })
+  onOpenDesigner;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Icon(Icons.tune_outlined, color: theme.colorScheme.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Document print profiles',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    settings.enableTemplateDesigner
+                        ? 'Choose templates per document for custom output.'
+                        : 'Disabled. Built-in LedgerFlow layouts print every document.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: loadingTemplates || !settings.enableTemplateDesigner
+                  ? null
+                  : () => showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => Dialog(
+                        insetPadding: const EdgeInsets.all(24),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 1180,
+                            maxHeight: 760,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Document print profiles',
+                                        style: theme.textTheme.titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Close',
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(),
+                                      icon: const Icon(Icons.close),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    child: _DocumentProfilesTable(
+                                      settings: settings,
+                                      catalog: catalog,
+                                      onChanged: onChanged,
+                                      onOpenDesigner: onOpenDesigner,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+              icon: const Icon(Icons.list_alt_outlined),
+              label: const Text('Choose templates per document'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -445,6 +562,12 @@ class _DocumentProfileRow extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.receipt_long_outlined, size: 18),
                 label: const Text('Design Thermal'),
+              ),
+              TextButton.icon(
+                onPressed: () =>
+                    onChanged(DocumentPrintProfile(documentType: option.key)),
+                icon: const Icon(Icons.restart_alt_outlined, size: 18),
+                label: const Text('Reset'),
               ),
             ],
           );
@@ -850,6 +973,16 @@ class _OptionsCard extends StatelessWidget {
           ),
         ),
         _SwitchRow(
+          title: 'Enable template designer',
+          subtitle:
+              'Phase two customization. Keep this off for stable built-in printing.',
+          value: settings.enableTemplateDesigner,
+          onChanged: (value) => onChanged(
+            (current) => current.copyWith(enableTemplateDesigner: value),
+          ),
+        ),
+        const SizedBox(height: 4),
+        _SwitchRow(
           title: 'Show QR code',
           subtitle: 'Reserve QR areas for invoices and receipts.',
           value: settings.showQrCode,
@@ -929,7 +1062,9 @@ class _DirectPrintTile extends StatelessWidget {
         ? cs.primary
         : cs.error;
 
-    final title = previewEnabled ? 'Preview before print' : 'Direct print (no dialog)';
+    final title = previewEnabled
+        ? 'Preview before print'
+        : 'Direct print (no dialog)';
     final subtitle = directActive
         ? 'Cashier / kiosk mode — prints instantly to your configured printer.'
         : previewEnabled
@@ -971,7 +1106,7 @@ class _DirectPrintTile extends StatelessWidget {
           ),
           Switch(
             value: previewEnabled,
-            activeColor: cs.primary,
+            activeThumbColor: cs.primary,
             onChanged: onChanged,
           ),
         ],
@@ -1019,7 +1154,7 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
             const SizedBox(height: 14),
@@ -1037,14 +1172,12 @@ class _TextField extends StatefulWidget {
     required this.value,
     required this.icon,
     required this.onChanged,
-    this.maxLines = 1,
   });
 
   final String label;
   final String value;
   final IconData icon;
   final ValueChanged<String> onChanged;
-  final int maxLines;
 
   @override
   State<_TextField> createState() => _TextFieldState();
@@ -1077,7 +1210,6 @@ class _TextFieldState extends State<_TextField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
-      maxLines: widget.maxLines,
       decoration: InputDecoration(
         labelText: widget.label,
         border: const OutlineInputBorder(),
@@ -1171,6 +1303,7 @@ class _TemplateCatalog {
   final List<PrintTemplateModel> savedTemplates;
 
   List<_TemplateChoice> choicesFor(String documentType, String paperKind) {
+    final normalizedDocumentType = normalizePrintDocumentType(documentType);
     final choices = <_TemplateChoice>[
       const _TemplateChoice(
         id: '',
@@ -1182,7 +1315,8 @@ class _TemplateCatalog {
       SamplePrintTemplates.defaults()
           .where(
             (template) =>
-                template.documentType == documentType &&
+                normalizePrintDocumentType(template.documentType) ==
+                    normalizedDocumentType &&
                 _matchesPaper(template, paperKind),
           )
           .map(_TemplateChoice.builtIn),
@@ -1191,7 +1325,8 @@ class _TemplateCatalog {
       savedTemplates
           .where(
             (template) =>
-                template.documentType == documentType &&
+                normalizePrintDocumentType(template.documentType) ==
+                    normalizedDocumentType &&
                 _matchesPaper(template, paperKind),
           )
           .map(_TemplateChoice.saved),

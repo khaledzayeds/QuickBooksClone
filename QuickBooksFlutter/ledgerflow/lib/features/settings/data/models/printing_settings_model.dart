@@ -1,5 +1,41 @@
 import 'dart:convert';
 
+String normalizePrintDocumentType(String value) {
+  final normalized = value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[_\s]+'), '-')
+      .replaceAll(RegExp(r'[^a-z0-9-]'), '');
+  return switch (normalized) {
+    'invoice' || 'invoices' || 'sales-invoice' || 'sales-invoices' => 'invoice',
+    'salesreceipt' ||
+    'sales-receipt' ||
+    'sales-receipts' ||
+    'receipt' ||
+    'receipts' => 'sales-receipt',
+    'estimate' || 'estimates' || 'quote' || 'quotation' => 'estimate',
+    'salesreturn' ||
+    'sales-return' ||
+    'sales-returns' ||
+    'credit-memo' ||
+    'creditmemo' => 'sales-return',
+    'purchaseorder' ||
+    'purchase-order' ||
+    'purchase-orders' => 'purchase-order',
+    'receiveinventory' ||
+    'receive-inventory' ||
+    'inventory-receipt' ||
+    'inventoryreceipt' ||
+    'item-receipt' ||
+    'itemreceipt' => 'receive-inventory',
+    'inventoryadjustment' ||
+    'inventory-adjustment' ||
+    'inventory-adjustments' ||
+    'stock-adjustment' => 'inventory-adjustment',
+    _ => normalized.isEmpty ? 'invoice' : normalized,
+  };
+}
+
 enum PrintMode {
   a4,
   thermal,
@@ -216,7 +252,9 @@ class DocumentPrintProfile {
 
   factory DocumentPrintProfile.fromJson(Map<String, dynamic> json) {
     return DocumentPrintProfile(
-      documentType: json['documentType']?.toString() ?? 'invoice',
+      documentType: normalizePrintDocumentType(
+        json['documentType']?.toString() ?? 'invoice',
+      ),
       printMode: json['printMode'] == null
           ? null
           : PrintMode.fromName(json['printMode']?.toString()),
@@ -276,10 +314,12 @@ class PrintingSettingsModel {
     required this.showItemSku,
     required this.showCompanyAddress,
     required this.useArabicFonts,
+    required this.enableTemplateDesigner,
     required this.autoPrintAfterSave,
     required this.printPreviewBeforePrint,
     required this.documentProfiles,
     required this.selectedDocumentType,
+    this.languageCode = 'ar',
     this.logoPath,
     this.a4PrinterName,
     this.thermalPrinterName,
@@ -297,10 +337,12 @@ class PrintingSettingsModel {
   final bool showItemSku;
   final bool showCompanyAddress;
   final bool useArabicFonts;
+  final bool enableTemplateDesigner;
   final bool autoPrintAfterSave;
   final bool printPreviewBeforePrint;
   final Map<String, DocumentPrintProfile> documentProfiles;
   final String selectedDocumentType;
+  final String languageCode;
   final String? logoPath;
   final String? a4PrinterName;
   final String? thermalPrinterName;
@@ -319,6 +361,7 @@ class PrintingSettingsModel {
       showItemSku: false,
       showCompanyAddress: true,
       useArabicFonts: true,
+      enableTemplateDesigner: false,
       autoPrintAfterSave: false,
       printPreviewBeforePrint: true,
       documentProfiles: {},
@@ -329,12 +372,15 @@ class PrintingSettingsModel {
   }
 
   DocumentPrintProfile profileFor(String documentType) {
-    return documentProfiles[documentType] ??
-        DocumentPrintProfile(documentType: documentType);
+    final normalized = normalizePrintDocumentType(documentType);
+    final profile = documentProfiles[normalized];
+    return profile == null
+        ? DocumentPrintProfile(documentType: normalized)
+        : profile.copyWith(documentType: normalized);
   }
 
   PrintingSettingsModel effectiveFor(String documentType) {
-    final profile = profileFor(documentType);
+    final profile = profileFor(normalizePrintDocumentType(documentType));
     return copyWith(
       printMode: profile.printMode,
       a4TemplateStyle: profile.a4TemplateStyle,
@@ -343,12 +389,10 @@ class PrintingSettingsModel {
   }
 
   PrintingSettingsModel updateProfile(DocumentPrintProfile profile) {
+    final normalized = normalizePrintDocumentType(profile.documentType);
     final next = Map<String, DocumentPrintProfile>.from(documentProfiles);
-    next[profile.documentType] = profile;
-    return copyWith(
-      documentProfiles: next,
-      selectedDocumentType: profile.documentType,
-    );
+    next[normalized] = profile.copyWith(documentType: normalized);
+    return copyWith(documentProfiles: next, selectedDocumentType: normalized);
   }
 
   PrintingSettingsModel copyWith({
@@ -362,10 +406,12 @@ class PrintingSettingsModel {
     bool? showItemSku,
     bool? showCompanyAddress,
     bool? useArabicFonts,
+    bool? enableTemplateDesigner,
     bool? autoPrintAfterSave,
     bool? printPreviewBeforePrint,
     Map<String, DocumentPrintProfile>? documentProfiles,
     String? selectedDocumentType,
+    String? languageCode,
     String? logoPath,
     String? a4PrinterName,
     String? thermalPrinterName,
@@ -383,11 +429,14 @@ class PrintingSettingsModel {
       showItemSku: showItemSku ?? this.showItemSku,
       showCompanyAddress: showCompanyAddress ?? this.showCompanyAddress,
       useArabicFonts: useArabicFonts ?? this.useArabicFonts,
+      enableTemplateDesigner:
+          enableTemplateDesigner ?? this.enableTemplateDesigner,
       autoPrintAfterSave: autoPrintAfterSave ?? this.autoPrintAfterSave,
       printPreviewBeforePrint:
           printPreviewBeforePrint ?? this.printPreviewBeforePrint,
       documentProfiles: documentProfiles ?? this.documentProfiles,
       selectedDocumentType: selectedDocumentType ?? this.selectedDocumentType,
+      languageCode: languageCode ?? this.languageCode,
       logoPath: logoPath ?? this.logoPath,
       a4PrinterName: a4PrinterName ?? this.a4PrinterName,
       thermalPrinterName: thermalPrinterName ?? this.thermalPrinterName,
@@ -407,12 +456,22 @@ class PrintingSettingsModel {
     'showItemSku': showItemSku.toString(),
     'showCompanyAddress': showCompanyAddress.toString(),
     'useArabicFonts': useArabicFonts.toString(),
+    'enableTemplateDesigner': enableTemplateDesigner.toString(),
     'autoPrintAfterSave': autoPrintAfterSave.toString(),
     'printPreviewBeforePrint': printPreviewBeforePrint.toString(),
     'documentProfiles': jsonEncode(
-      documentProfiles.map((key, value) => MapEntry(key, value.toJson())),
+      documentProfiles.map(
+        (key, value) => MapEntry(
+          normalizePrintDocumentType(key),
+          value
+              .copyWith(
+                documentType: normalizePrintDocumentType(value.documentType),
+              )
+              .toJson(),
+        ),
+      ),
     ),
-    'selectedDocumentType': selectedDocumentType,
+    'selectedDocumentType': normalizePrintDocumentType(selectedDocumentType),
     'logoPath': logoPath ?? '',
     'a4PrinterName': a4PrinterName ?? '',
     'thermalPrinterName': thermalPrinterName ?? '',
@@ -444,6 +503,10 @@ class PrintingSettingsModel {
         defaults.showCompanyAddress,
       ),
       useArabicFonts: boolValue('useArabicFonts', defaults.useArabicFonts),
+      enableTemplateDesigner: boolValue(
+        'enableTemplateDesigner',
+        defaults.enableTemplateDesigner,
+      ),
       autoPrintAfterSave: boolValue(
         'autoPrintAfterSave',
         defaults.autoPrintAfterSave,
@@ -453,8 +516,9 @@ class PrintingSettingsModel {
         defaults.printPreviewBeforePrint,
       ),
       documentProfiles: _profilesFromStorage(values['documentProfiles']),
-      selectedDocumentType:
-          stringValue('selectedDocumentType') ?? defaults.selectedDocumentType,
+      selectedDocumentType: normalizePrintDocumentType(
+        stringValue('selectedDocumentType') ?? defaults.selectedDocumentType,
+      ),
       logoPath: stringValue('logoPath'),
       a4PrinterName: stringValue('a4PrinterName'),
       thermalPrinterName: stringValue('thermalPrinterName'),
@@ -479,7 +543,8 @@ Map<String, DocumentPrintProfile> _profilesFromStorage(String? raw) {
       final profile = value is Map<String, dynamic>
           ? DocumentPrintProfile.fromJson(value)
           : DocumentPrintProfile(documentType: key);
-      return MapEntry(key, profile);
+      final normalized = normalizePrintDocumentType(profile.documentType);
+      return MapEntry(normalized, profile.copyWith(documentType: normalized));
     });
   } catch (_) {
     return const {};

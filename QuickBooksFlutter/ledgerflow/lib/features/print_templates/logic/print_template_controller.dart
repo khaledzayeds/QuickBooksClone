@@ -8,6 +8,7 @@ import '../data/sample_templates.dart';
 import 'print_template_pdf_service.dart';
 // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
 import '../../settings/data/printing_settings_repository.dart';
+import '../../settings/data/models/printing_settings_model.dart';
 // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
 
 class PrintTemplateController extends ChangeNotifier {
@@ -256,7 +257,10 @@ class PrintTemplateController extends ChangeNotifier {
       var newWidth = el.width;
       if (newX + newWidth > page.effectiveWidthMm) {
         newWidth = el.width.clamp(4.0, page.effectiveWidthMm);
-        newX = (page.effectiveWidthMm - newWidth).clamp(0.0, page.effectiveWidthMm - newWidth);
+        newX = (page.effectiveWidthMm - newWidth).clamp(
+          0.0,
+          page.effectiveWidthMm - newWidth,
+        );
       }
       return el.copyWith(x: newX, width: newWidth);
     }).toList();
@@ -384,8 +388,8 @@ class PrintTemplateController extends ChangeNotifier {
     String? templateId,
   }) async {
     final doc = documentType?.trim().isNotEmpty == true
-        ? documentType!.trim()
-        : _template.documentType;
+        ? normalizePrintDocumentType(documentType!)
+        : normalizePrintDocumentType(_template.documentType);
     final paper = paperKind?.trim().isNotEmpty == true
         ? paperKind!.trim()
         : 'thermal';
@@ -413,7 +417,9 @@ class PrintTemplateController extends ChangeNotifier {
           return await _repository.get(resolvedId);
         } catch (_) {
           for (final template in _savedTemplates) {
-            if (template.backendId == resolvedId || template.id == resolvedId) return template;
+            if (template.backendId == resolvedId || template.id == resolvedId) {
+              return template;
+            }
           }
         }
       }
@@ -421,19 +427,19 @@ class PrintTemplateController extends ChangeNotifier {
 
     final savedMatch = _savedTemplates.where(
       (template) =>
-          template.documentType == doc && _pageMatches(template, paper),
+          normalizePrintDocumentType(template.documentType) == doc &&
+          _pageMatches(template, paper),
     );
     if (savedMatch.isNotEmpty) return savedMatch.first;
 
     final defaults = SamplePrintTemplates.defaults().where(
       (template) =>
-          template.documentType == doc && _pageMatches(template, paper),
+          normalizePrintDocumentType(template.documentType) == doc &&
+          _pageMatches(template, paper),
     );
     if (defaults.isNotEmpty) return defaults.first;
     return _fallbackTemplateFor(doc, paper);
   }
-
-
 
   Future<void> _runBusy(Future<void> Function() action) async {
     _isBusy = true;

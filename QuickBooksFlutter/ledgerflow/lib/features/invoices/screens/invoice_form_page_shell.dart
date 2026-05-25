@@ -703,13 +703,18 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     if (current != null && !current.isDraft && current.id.isNotEmpty) {
       return current;
     }
-    return _saveWithMode(_saveModeForPost(), navigateAfterSave: false, skipAutoPrint: true);
+    return _saveWithMode(
+      _saveModeForPost(),
+      navigateAfterSave: false,
+      skipAutoPrint: true,
+    );
   }
 
   void _triggerAutoPrint(String documentId, String documentType) {
     Future.microtask(() async {
       try {
-        await printDocumentUsingSettings(
+        if (!mounted) return;
+        await printDocumentAfterSaveIfEnabled(
           context: context,
           ref: ref,
           documentType: documentType,
@@ -879,7 +884,10 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
             ),
             invoiceNumberField: InvoiceFormField(
               label: 'Invoice #',
-              child: InvoiceReadonlyTextField(controller: _numberCtrl, hint: 'AUTO'),
+              child: InvoiceReadonlyTextField(
+                controller: _numberCtrl,
+                hint: 'AUTO',
+              ),
             ),
             invoiceDateField: InvoiceFormField(
               label: 'Invoice Date',
@@ -945,7 +953,9 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
               saving: _saving,
               posting: _posting,
               readOnly: financialReadOnly,
-              onSaveAndClose: financialReadOnly ? null : () => _saveWithMode(_saveModeForPost()),
+              onSaveAndClose: financialReadOnly
+                  ? null
+                  : () => _saveWithMode(_saveModeForPost()),
               onSaveAndNew: financialReadOnly ? null : _saveAndNew,
               onClear: _handleClearOrNew,
             ),
@@ -971,11 +981,17 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       isEdit: _isEdit,
       readOnly: financialReadOnly,
       onFind: () => context.go(AppRoutes.invoices),
-      onPrevious: _hasAdjacentInvoice(-1) ? () => _openAdjacentInvoice(-1) : null,
+      onPrevious: _hasAdjacentInvoice(-1)
+          ? () => _openAdjacentInvoice(-1)
+          : null,
       onNext: _hasAdjacentInvoice(1) ? () => _openAdjacentInvoice(1) : null,
       onNew: _handleClearOrNew,
-      onSaveDraft: canSaveDraft ? () => _saveWithMode(_saveModeForDraft()) : null,
-      onSave: financialReadOnly ? null : () => _saveWithMode(_saveModeForPost()),
+      onSaveDraft: canSaveDraft
+          ? () => _saveWithMode(_saveModeForDraft())
+          : null,
+      onSave: financialReadOnly
+          ? null
+          : () => _saveWithMode(_saveModeForPost()),
       onSaveAndPrint: _handleSaveAndPrint,
       onSaveAndNew: financialReadOnly ? null : _saveAndNew,
       onPrint: _handlePrint,

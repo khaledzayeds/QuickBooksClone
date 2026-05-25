@@ -105,10 +105,16 @@ class SalesReceiptPaymentMethodField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: value,
       isDense: true,
+      isExpanded: true,
       decoration: transactionCompactInputDecoration(cs),
       style: theme.textTheme.bodySmall,
       items: methods
-          .map((method) => DropdownMenuItem(value: method, child: Text(method)))
+          .map(
+            (method) => DropdownMenuItem(
+              value: method,
+              child: Text(method, overflow: TextOverflow.ellipsis),
+            ),
+          )
           .toList(),
       onChanged: enabled
           ? (next) {
