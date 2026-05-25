@@ -670,7 +670,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.backupSettings,
-            builder: (context, state) => const BackupSettingsScreen(),
+            builder: (context, state) => const LicenseGate(
+              feature: LicenseFeature.backupRestore,
+              child: BackupSettingsScreen(),
+            ),
           ),
           GoRoute(
             path: AppRoutes.printingSettings,
@@ -694,7 +697,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.payroll,
-            builder: (context, state) => const PayrollSetupScreen(),
+            builder: (context, state) => const LicenseGate(
+              feature: LicenseFeature.payroll,
+              blockedTitle: 'Payroll is not included in Offline v1',
+              blockedDescription:
+                  'Payroll is deferred for this first offline desktop release.',
+              child: PayrollSetupScreen(),
+            ),
           ),
           GoRoute(
             path: AppRoutes.timeTracking,

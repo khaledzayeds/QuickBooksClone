@@ -13,6 +13,7 @@ namespace Zayed.Api.Controllers;
 [ApiController]
 [Route("api/payroll/runs")]
 [RequirePermission("Payroll.Manage")]
+[RequireLicenseFeature(LicenseFeatureNames.Payroll)]
 public sealed class PayrollRunsController : ControllerBase
 {
     private const string DefaultCompanyId = "11111111-1111-1111-1111-111111111111";

@@ -126,7 +126,7 @@ builder.Services.AddScoped<ILicenseActivationService, ConfigurationLicenseActiva
 builder.Services.AddSingleton<ILicensePackageSigningService>(_ =>
 {
     var privateKey = builder.Configuration["Licensing:PrivateKey"]
-        ?? Environment.GetEnvironmentVariable("LEDGERFLOW_LICENSE_PRIVATE_KEY")
+        ?? Environment.GetEnvironmentVariable("ZAYED_LICENSE_PRIVATE_KEY")
         ?? string.Empty;
     return new Ed25519LicensePackageSigningService(privateKey);
 });
