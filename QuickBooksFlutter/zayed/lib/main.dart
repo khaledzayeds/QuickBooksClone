@@ -60,14 +60,13 @@ class _StartupGateState extends State<StartupGate> {
   }
 
   String _startupMessage(Object? error) {
-    final raw = error?.toString().toLowerCase() ?? '';
-    if (raw.contains('not found')) {
-      return 'Zayed could not find the company service. Reinstall the application or place the service files beside the app, then try again.';
+    if (error is ZayedServiceMissingException) {
+      return 'Zayed service files are missing. Please reinstall Zayed.';
     }
-    if (raw.contains('ready in time') || raw.contains('timeout')) {
-      return 'The company service is taking longer than expected to start. Wait a moment, then try again.';
+    if (error is ZayedServiceTimeoutException) {
+      return 'Zayed service could not start. Please try again or contact support.';
     }
-    return 'Zayed could not start the company service. Try again or open a different company.';
+    return 'Zayed service could not start. Please try again or contact support.';
   }
 }
 

@@ -13,7 +13,7 @@ class LocalBackendBootstrap {
 
     final launch = await _resolveLaunchCommand(baseUrl);
     if (launch == null) {
-      throw StateError('Zayed service was not found.');
+      throw const ZayedServiceMissingException();
     }
 
     await Process.start(
@@ -30,7 +30,7 @@ class LocalBackendBootstrap {
       await Future<void>.delayed(const Duration(milliseconds: 100));
     }
 
-    throw StateError('Zayed service did not become ready in time.');
+    throw const ZayedServiceTimeoutException();
   }
 
   static Future<bool> _isReady(String baseUrl) async {
@@ -56,10 +56,10 @@ class LocalBackendBootstrap {
   static Future<_BackendLaunch?> _resolveLaunchCommand(String baseUrl) async {
     final exeDir = File(Platform.resolvedExecutable).parent.path;
     final bundledExeCandidates = [
-      _join(exeDir, 'Zayed.Api.exe'),
       _join(exeDir, 'api', 'Zayed.Api.exe'),
-      _join(Directory.current.path, 'Zayed.Api.exe'),
+      _join(exeDir, 'Zayed.Api.exe'),
       _join(Directory.current.path, 'api', 'Zayed.Api.exe'),
+      _join(Directory.current.path, 'Zayed.Api.exe'),
     ];
 
     for (final candidate in bundledExeCandidates) {
@@ -113,11 +113,7 @@ class LocalBackendBootstrap {
   static Iterable<String> _findBackendProjects(Directory start) sync* {
     var current = start.absolute;
     for (var i = 0; i < 8; i++) {
-      yield _joinAll([
-        current.path,
-        'Zayed.Api',
-        'Zayed.Api.csproj',
-      ]);
+      yield _joinAll([current.path, 'Zayed.Api', 'Zayed.Api.csproj']);
 
       final parent = current.parent;
       if (parent.path == current.path) break;
@@ -127,14 +123,24 @@ class LocalBackendBootstrap {
 
   static String _builtApiExeForProject(String projectPath) {
     final projectDir = File(projectPath).parent.path;
-    return _joinAll([
-      projectDir,
-      'bin',
-      'Debug',
-      'net10.0',
-      'Zayed.Api.exe',
-    ]);
+    return _joinAll([projectDir, 'bin', 'Debug', 'net10.0', 'Zayed.Api.exe']);
   }
+}
+
+class ZayedServiceMissingException implements Exception {
+  const ZayedServiceMissingException();
+
+  @override
+  String toString() =>
+      'Zayed service files are missing. Please reinstall Zayed.';
+}
+
+class ZayedServiceTimeoutException implements Exception {
+  const ZayedServiceTimeoutException();
+
+  @override
+  String toString() =>
+      'Zayed service could not start. Please try again or contact support.';
 }
 
 class _BackendLaunch {
