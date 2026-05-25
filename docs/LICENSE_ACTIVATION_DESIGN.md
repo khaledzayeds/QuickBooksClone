@@ -1,4 +1,4 @@
-# LedgerFlow License Activation Design
+# Zayed License Activation Design
 
 > هدف الملف: توثيق نظام الترخيص التجاري للبرنامج: السيريال، التفعيل الأونلاين، التفعيل الأوفلاين، بصمة الجهاز، حدود النسخ، وآلية القفل/الفتح داخل التطبيق.
 
@@ -11,7 +11,7 @@
 | Edition | الاسم التجاري | التشغيل | قاعدة البيانات | المستخدمين | الأجهزة | ملاحظات |
 |---|---|---|---|---:|---:|---|
 | Trial | Trial / Demo | Demo + Local محدود | SQLite | 1 | 1 | للتجربة والديمو |
-| Solo | Solo Desktop | جهاز واحد | SQLite / Local API | 1 | 1 | قريب من QuickBooks Desktop لجهاز واحد |
+| Solo | Solo Desktop | جهاز واحد | SQLite / Local API | 1 | 1 | قريب من Zayed Desktop لجهاز واحد |
 | Network | Network / LAN | سيرفر محلي + أجهزة LAN | SQL Server | حسب الترخيص | حسب الترخيص | مناسب للشركات الصغيرة |
 | Hosted | Hosted / Cloud | API أونلاين | Hosted DB | حسب الاشتراك | حسب الاشتراك | اشتراك وتجديد |
 

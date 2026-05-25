@@ -1,4 +1,4 @@
-# LedgerFlow / QuickBooksClone — Commercial Readiness Roadmap
+# Zayed / Zayed — Commercial Readiness Roadmap
 
 > الهدف من الملف ده: تحويل المشروع من كود شغال وموديولات متفرقة إلى نظام تجاري متكامل جاهز للبيع والتثبيت عند العملاء.
 >
@@ -19,9 +19,9 @@
   - Localization عربي/إنجليزي
   - Theme system
 - ASP.NET API منظم إلى:
-  - `QuickBooksClone.Api`
-  - `QuickBooksClone.Core`
-  - `QuickBooksClone.Infrastructure`
+  - `Zayed.Api`
+  - `Zayed.Core`
+  - `Zayed.Infrastructure`
 - EF Core persistence.
 - SQLite كقاعدة افتراضية.
 - دعم SQL Server من ناحية packages والمشروع، لكنه محتاج strategy واضحة للتشغيل التجاري.
@@ -99,7 +99,7 @@
 - Void.
 - Reversal transaction references في بعض الموديولات.
 
-ده اتجاه صحيح جدًا لنظام QuickBooks-like.
+ده اتجاه صحيح جدًا لنظام Zayed-like.
 
 #### Reports
 
@@ -175,7 +175,7 @@
 
 ```json
 "Provider": "Sqlite",
-"Data Source=quickbooksclone.db"
+"Data Source=zayed.db"
 ```
 
 #### المطلوب
@@ -907,7 +907,7 @@ features/settings/
 
 ### Goal
 
-إكمال جزء Banking الأساسي حتى يصبح النظام قريب من QuickBooks.
+إكمال جزء Banking الأساسي حتى يصبح النظام قريب من Zayed.
 
 ### Tasks
 
@@ -1140,4 +1140,4 @@ flutter analyze
 
 الهدف النهائي:
 
-> LedgerFlow يكون نظام محاسبة ومخزون ومبيعات ومشتريات احترافي، يعمل محليًا أو على شبكة داخلية، يدعم العربي والإنجليزي، يطبع فواتير وتقارير، يحافظ على الحسابات بالـ posting engine، ويدار بصلاحيات ونسخ احتياطي وترخيص تجاري.
+> Zayed يكون نظام محاسبة ومخزون ومبيعات ومشتريات احترافي، يعمل محليًا أو على شبكة داخلية، يدعم العربي والإنجليزي، يطبع فواتير وتقارير، يحافظ على الحسابات بالـ posting engine، ويدار بصلاحيات ونسخ احتياطي وترخيص تجاري.

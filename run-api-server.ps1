@@ -1,3 +1,3 @@
 $ErrorActionPreference = "Stop"
 
-dotnet run --project .\QuickBooksClone.Api\QuickBooksClone.Api.csproj --urls http://localhost:5014
+dotnet run --project .\Zayed.Api\Zayed.Api.csproj --urls http://localhost:5014

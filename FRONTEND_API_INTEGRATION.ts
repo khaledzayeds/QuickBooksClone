@@ -1,4 +1,4 @@
-// Auto-generated integration surface for QuickBooksClone.Api controllers.
+// Auto-generated integration surface for Zayed.Api controllers.
 // Keep this file on the frontend side and update it whenever backend routes change.
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -232,7 +232,7 @@ export class ApiError extends Error {
   }
 }
 
-export class QuickBooksApiClient {
+export class ZayedApiClient {
   private readonly baseUrl: string;
   private token: string | null;
   private readonly getToken?: ApiClientOptions['getToken'];
@@ -354,5 +354,5 @@ function extractErrorMessage(problem: unknown): string | undefined {
   return undefined;
 }
 
-export const createQuickBooksApi = (baseUrl: string, token?: string | null): QuickBooksApiClient =>
-  new QuickBooksApiClient({ baseUrl, token });
+export const createZayedApi = (baseUrl: string, token?: string | null): ZayedApiClient =>
+  new ZayedApiClient({ baseUrl, token });

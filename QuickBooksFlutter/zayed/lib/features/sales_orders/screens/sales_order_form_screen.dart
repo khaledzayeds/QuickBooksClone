@@ -1,0 +1,778 @@
+// sales_order_form_screen.dart
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:zayed/l10n/app_localizations.dart';
+
+import '../../../app/router.dart';
+import '../../../core/widgets/qb/qb_widgets.dart';
+import '../../../core/widgets/qb/qb_transaction_line_grid.dart';
+import '../../../core/widgets/qb/transaction_line_price_mode.dart';
+import '../../customers/data/models/customer_model.dart';
+import '../../customers/providers/customers_provider.dart';
+import '../../purchase_orders/data/models/order_line_entry.dart';
+import '../../transactions/widgets/transaction_context_sidebar.dart';
+import '../../transactions/widgets/transaction_models.dart';
+import '../../transactions/widgets/transaction_workspace_shell.dart';
+import '../data/models/sales_order_model.dart';
+import '../providers/sales_orders_provider.dart';
+
+class SalesOrderFormScreen extends ConsumerStatefulWidget {
+  const SalesOrderFormScreen({super.key, this.id});
+
+  final String? id;
+
+  @override
+  ConsumerState<SalesOrderFormScreen> createState() =>
+      _SalesOrderFormScreenState();
+}
+
+class _SalesOrderFormScreenState extends ConsumerState<SalesOrderFormScreen> {
+  CustomerModel? _customer;
+  SalesOrderModel? _editingOrder;
+  DateTime _orderDate = DateTime.now();
+  DateTime _expectedDate = DateTime.now().add(const Duration(days: 7));
+  final List<TransactionLineEntry> _lines = List.generate(
+    5,
+    (_) => TransactionLineEntry(),
+  );
+  bool _saving = false;
+  bool _loadingExisting = false;
+
+  bool get _isEdit => widget.id != null && widget.id!.isNotEmpty;
+  double get _draftSubtotal => _lines.fold(0, (sum, line) => sum + line.amount);
+  double get _total => _draftSubtotal > 0
+      ? _draftSubtotal
+      : (_editingOrder?.totalAmount ?? _draftSubtotal);
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEdit) Future.microtask(_loadExistingOrder);
+  }
+
+  @override
+  void dispose() {
+    for (final line in _lines) {
+      line.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadExistingOrder() async {
+    final id = widget.id;
+    if (id == null || id.isEmpty) return;
+    setState(() => _loadingExisting = true);
+    try {
+      final result = await ref.read(salesOrdersRepositoryProvider).getById(id);
+      if (!mounted) return;
+      result.when(
+        success: (order) {
+          setState(() {
+            _editingOrder = order;
+            _customer = CustomerModel(
+              id: order.customerId,
+              displayName: order.customerName ?? 'Customer',
+              isActive: true,
+              balance: 0,
+              creditBalance: 0,
+            );
+            _orderDate = order.orderDate;
+            _expectedDate = order.expectedDate;
+            for (final line in _lines) {
+              line.dispose();
+            }
+            _lines
+              ..clear()
+              ..addAll(
+                order.lines.isEmpty
+                    ? List.generate(5, (_) => TransactionLineEntry())
+                    : [
+                        ...order.lines.map((line) {
+                          final entry = TransactionLineEntry(
+                            itemId: line.itemId,
+                            itemName: line.description,
+                            qty: line.quantity,
+                            rate: line.unitPrice,
+                          );
+                          entry.descCtrl.text = line.description;
+                          entry.qtyCtrl.text = line.quantity.toStringAsFixed(2);
+                          entry.rateCtrl.text = line.unitPrice.toStringAsFixed(
+                            2,
+                          );
+                          return entry;
+                        }),
+                        for (var i = order.lines.length; i < 5; i++)
+                          TransactionLineEntry(),
+                      ],
+              );
+          });
+        },
+        failure: (error) => _showError(error.message),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingExisting = false);
+    }
+  }
+
+  Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_customer == null) {
+      _showError(l10n.selectCustomerFirst);
+      return;
+    }
+
+    final validLines = _lines
+        .where((line) => line.itemId != null && line.qty > 0)
+        .toList();
+    if (validLines.isEmpty) {
+      _showError(l10n.selectAtLeastOneLine);
+      return;
+    }
+
+    final dto = CreateSalesOrderDto(
+      customerId: _customer!.id,
+      orderDate: _orderDate,
+      expectedDate: _expectedDate,
+      saveMode: 1,
+      lines: validLines
+          .map(
+            (line) => CreateSalesOrderLineDto(
+              itemId: line.itemId!,
+              description: line.descCtrl.text,
+              quantity: line.qty,
+              unitPrice: line.rate,
+            ),
+          )
+          .toList(),
+    );
+
+    setState(() => _saving = true);
+    final result = await ref.read(salesOrdersProvider.notifier).create(dto);
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    result.when(
+      success: (_) {
+        ref.read(salesOrdersProvider.notifier).refresh();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sales order saved.')));
+        context.go(AppRoutes.salesOrders);
+      },
+      failure: (error) => _showError(error.message),
+    );
+  }
+
+  void _clear() {
+    for (final line in _lines) {
+      line.dispose();
+    }
+    setState(() {
+      _customer = null;
+      _editingOrder = null;
+      _orderDate = DateTime.now();
+      _expectedDate = DateTime.now().add(const Duration(days: 7));
+      _lines
+        ..clear()
+        ..addAll(List.generate(5, (_) => TransactionLineEntry()));
+    });
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _navigatePrevious() {
+    final orders = ref
+        .read(salesOrdersProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <SalesOrderModel>[]);
+    if (orders.isEmpty || !_isEdit) return;
+    final idx = orders.indexWhere((o) => o.id == widget.id);
+    if (idx > 0) {
+      context.go(
+        AppRoutes.salesOrderDetails.replaceFirst(':id', orders[idx - 1].id),
+      );
+    }
+  }
+
+  void _navigateNext() {
+    final orders = ref
+        .read(salesOrdersProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <SalesOrderModel>[]);
+    if (orders.isEmpty || !_isEdit) return;
+    final idx = orders.indexWhere((o) => o.id == widget.id);
+    if (idx >= 0 && idx < orders.length - 1) {
+      context.go(
+        AppRoutes.salesOrderDetails.replaceFirst(':id', orders[idx + 1].id),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final customers = ref
+        .watch(customersProvider)
+        .maybeWhen(
+          data: (items) =>
+              items.where((customer) => customer.isActive).toList(),
+          orElse: () => const <CustomerModel>[],
+        );
+    final orders = ref
+        .watch(salesOrdersProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <SalesOrderModel>[]);
+    final currentIdx = _isEdit
+        ? orders.indexWhere((o) => o.id == widget.id)
+        : -1;
+
+    if (_loadingExisting) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final formBody = Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB9C3CA)),
+      ),
+      child: Column(
+        children: [
+          _SalesOrderHeader(
+            customers: customers,
+            selectedCustomer: _customer,
+            orderDate: _orderDate,
+            expectedDate: _expectedDate,
+            orderNumber: _editingOrder?.orderNumber ?? 'AUTO',
+            onCustomerChanged: (customer) =>
+                setState(() => _customer = customer),
+            onOrderDateChanged: (date) => setState(() => _orderDate = date),
+            onExpectedDateChanged: (date) =>
+                setState(() => _expectedDate = date),
+          ),
+          _LinesHeader(
+            onAddLine: () => setState(() => _lines.add(TransactionLineEntry())),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: QbTransactionLineGrid(
+                lines: _lines,
+                onChanged: () => setState(() {}),
+                priceMode: TransactionLinePriceMode.sales,
+                fillWidth: true,
+                compact: true,
+                showAddLineFooter: false,
+              ),
+            ),
+          ),
+          _SalesOrderFooter(
+            l10n: l10n,
+            total: _total,
+            saving: _saving,
+            onSave: _saving ? null : _save,
+            onClear: _clear,
+          ),
+        ],
+      ),
+    );
+
+    return TransactionWorkspaceShell(
+      workspaceName: 'Sales order workspace',
+      saving: _saving,
+      posting: false,
+      isEdit: _isEdit,
+      readOnly: false,
+      formContent: formBody,
+      contextPanel: _SalesOrderContextPanel(
+        customer: _customer,
+        order: _editingOrder,
+        total: _total,
+        currency: l10n.egp,
+        onViewAll: _customer == null
+            ? null
+            : () => context.go(AppRoutes.salesOrders),
+      ),
+      onFind: () => context.go(AppRoutes.salesOrders),
+      onPrevious: currentIdx > 0 ? _navigatePrevious : null,
+      onNext: currentIdx >= 0 && currentIdx < orders.length - 1
+          ? _navigateNext
+          : null,
+      onNew: () => context.go(AppRoutes.salesOrderNew),
+      onSave: _saving ? null : _save,
+      onSaveDraft: null,
+      onClear: _clear,
+      onClose: () => context.go(AppRoutes.salesOrders),
+      showSaveDraft: false,
+      showSaveAndPrint: false,
+      showVoid: false,
+      showPayment: false,
+      showRefund: false,
+      showReceive: false,
+    );
+  }
+}
+
+class _SalesOrderHeader extends StatelessWidget {
+  const _SalesOrderHeader({
+    required this.customers,
+    required this.selectedCustomer,
+    required this.orderDate,
+    required this.expectedDate,
+    required this.orderNumber,
+    required this.onCustomerChanged,
+    required this.onOrderDateChanged,
+    required this.onExpectedDateChanged,
+  });
+
+  final List<CustomerModel> customers;
+  final CustomerModel? selectedCustomer;
+  final DateTime orderDate;
+  final DateTime expectedDate;
+  final String orderNumber;
+  final ValueChanged<CustomerModel?> onCustomerChanged;
+  final ValueChanged<DateTime> onOrderDateChanged;
+  final ValueChanged<DateTime> onExpectedDateChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF264D5B),
+              border: Border(bottom: BorderSide(color: Color(0xFF183642))),
+            ),
+            child: Row(
+              children: [
+                const QbStripLabel('CUSTOMER:JOB'),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 5,
+                  child: _InlineCustomerField(
+                    customers: customers,
+                    selected: selectedCustomer,
+                    onSelected: onCustomerChanged,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const QbStripLabel('TEMPLATE'),
+                const SizedBox(width: 8),
+                const Expanded(
+                  flex: 3,
+                  child: QbStaticBox(text: 'Standard Sales Order'),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 110,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 260,
+                    child: Text(
+                      'Sales Order',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w300,
+                        color: const Color(0xFF243E4A),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 260,
+                    child: Column(
+                      children: [
+                        QbHorizontalField(
+                          label: 'DATE',
+                          labelWidth: 82,
+                          child: QbDateBox(
+                            text:
+                                '${orderDate.day}/${orderDate.month}/${orderDate.year}',
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: orderDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2035),
+                              );
+                              if (picked != null) onOrderDateChanged(picked);
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        QbHorizontalField(
+                          label: 'ORDER #',
+                          labelWidth: 82,
+                          child: QbStaticBox(text: orderNumber),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 32),
+                  SizedBox(
+                    width: 240,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const QbFieldLabel('EXPECTED DATE'),
+                        const SizedBox(height: 4),
+                        QbDateBox(
+                          text:
+                              '${expectedDate.day}/${expectedDate.month}/${expectedDate.year}',
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: expectedDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2035),
+                            );
+                            if (picked != null) onExpectedDateChanged(picked);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineCustomerField extends StatelessWidget {
+  const _InlineCustomerField({
+    required this.customers,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<CustomerModel> customers;
+  final CustomerModel? selected;
+  final ValueChanged<CustomerModel?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<CustomerModel>(
+      key: ValueKey(selected?.id ?? 'sales-order-customer'),
+      displayStringForOption: (customer) => customer.displayName,
+      initialValue: TextEditingValue(text: selected?.displayName ?? ''),
+      optionsBuilder: (value) {
+        final query = value.text.trim().toLowerCase();
+        if (query.isEmpty) return customers.take(20);
+        return customers
+            .where(
+              (customer) => customer.displayName.toLowerCase().contains(query),
+            )
+            .take(20);
+      },
+      onSelected: onSelected,
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return SizedBox(
+          height: 30,
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: const InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.search, size: 16),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              border: OutlineInputBorder(),
+              hintText: 'Select a customer...',
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LinesHeader extends StatelessWidget {
+  const _LinesHeader({required this.onAddLine});
+
+  final VoidCallback onAddLine;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFE9EFF2),
+        border: Border(
+          top: BorderSide(color: Color(0xFFB7C3CB)),
+          bottom: BorderSide(color: Color(0xFFB7C3CB)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Products and Services',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF233F4C),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Tab moves across cells • Enter commits row',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF596B74),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: onAddLine,
+            icon: const Icon(Icons.add, size: 15),
+            label: const Text('Add Line'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SalesOrderFooter extends StatelessWidget {
+  const _SalesOrderFooter({
+    required this.l10n,
+    required this.total,
+    required this.saving,
+    required this.onClear,
+    this.onSave,
+  });
+
+  final AppLocalizations l10n;
+  final double total;
+  final bool saving;
+  final VoidCallback onClear;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF6F8F9),
+        border: Border(top: BorderSide(color: Color(0xFFB7C3CB))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const QbFieldLabel('CUSTOMER MESSAGE'),
+                const SizedBox(height: 4),
+                Container(
+                  height: 30,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFB7C3CB)),
+                  ),
+                  child: Text(
+                    'Thank you for your business.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const QbFieldLabel('MEMO'),
+                const SizedBox(height: 4),
+                Container(
+                  height: 30,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFB7C3CB)),
+                  ),
+                  child: const Text('Optional'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 18),
+          SizedBox(
+            width: 310,
+            child: Column(
+              children: [
+                _AmountRow(label: 'TOTAL', amount: total, currency: l10n.egp),
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE7F1F4),
+                    border: Border.all(color: const Color(0xFF9DB2BC)),
+                  ),
+                  child: _AmountRow(
+                    label: 'OPEN AMOUNT',
+                    amount: total,
+                    currency: l10n.egp,
+                    strong: true,
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: onSave,
+                      style: _smallButton(),
+                      child: Text(saving ? 'Saving...' : 'Save & Close'),
+                    ),
+                    const SizedBox(width: 6),
+                    OutlinedButton(
+                      onPressed: onClear,
+                      style: _smallButton(),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ButtonStyle _smallButton() => OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+    side: const BorderSide(color: Color(0xFF8FA1AB)),
+  );
+}
+
+class _SalesOrderContextPanel extends StatelessWidget {
+  const _SalesOrderContextPanel({
+    required this.customer,
+    required this.order,
+    required this.total,
+    required this.currency,
+    this.onViewAll,
+  });
+
+  final CustomerModel? customer;
+  final SalesOrderModel? order;
+  final double total;
+  final String currency;
+  final VoidCallback? onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = customer;
+    return TransactionContextSidebar(
+      title: c?.displayName ?? '',
+      subtitle: c?.companyName,
+      initials: c?.initials,
+      emptyTitle: 'Select a customer',
+      emptyMessage:
+          'Choose a customer to see balances, sales orders, and recent activity.',
+      warning: c == null
+          ? null
+          : order == null
+          ? 'New sales order.'
+          : _status(order!),
+      metrics: [
+        TransactionContextMetric(
+          label: 'Open balance',
+          value: '${(c?.balance ?? 0).toStringAsFixed(2)} $currency',
+          icon: Icons.account_balance_wallet_outlined,
+        ),
+        TransactionContextMetric(
+          label: 'Credits',
+          value: '${(c?.creditBalance ?? 0).toStringAsFixed(2)} $currency',
+          icon: Icons.credit_score_outlined,
+        ),
+        TransactionContextMetric(
+          label: 'Current order',
+          value: '${total.toStringAsFixed(2)} $currency',
+          icon: Icons.shopping_cart_outlined,
+        ),
+      ],
+      activities: [
+        if (order != null)
+          TransactionContextActivity(
+            title: order!.orderNumber.isEmpty
+                ? 'Sales Order'
+                : order!.orderNumber,
+            subtitle: _status(order!),
+            amount: '${order!.totalAmount.toStringAsFixed(2)} $currency',
+          ),
+      ],
+      notes: '',
+      totals: TransactionTotalsUiModel(
+        subtotal: total,
+        total: total,
+        paid: 0,
+        balanceDue: total,
+        currency: currency,
+      ),
+      onViewAll: onViewAll,
+    );
+  }
+
+  static String _status(SalesOrderModel order) {
+    if (order.isCancelled) return 'Cancelled';
+    if (order.isClosed) return 'Closed';
+    if (order.isOpen) return 'Open';
+    return 'Draft';
+  }
+}
+
+class _AmountRow extends StatelessWidget {
+  const _AmountRow({
+    required this.label,
+    required this.amount,
+    required this.currency,
+    this.strong = false,
+  });
+
+  final String label;
+  final double amount;
+  final String currency;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+          ),
+        ),
+      ),
+      Text(
+        '${amount.toStringAsFixed(2)} $currency',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+        ),
+      ),
+    ],
+  );
+}

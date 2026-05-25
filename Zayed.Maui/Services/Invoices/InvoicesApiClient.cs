@@ -1,0 +1,74 @@
+using System.Net.Http.Json;
+using Zayed.Maui.Services;
+
+namespace Zayed.Maui.Services.Invoices;
+
+public sealed class InvoicesApiClient
+{
+    private readonly HttpClient _httpClient;
+
+    public InvoicesApiClient(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
+    public async Task<InvoiceListResponse> SearchAsync(string? search, bool includeVoid, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/invoices?includeVoid={includeVoid.ToString().ToLowerInvariant()}&page=1&pageSize=50";
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            url += $"&search={Uri.EscapeDataString(search)}";
+        }
+
+        return await _httpClient.GetFromJsonAsync<InvoiceListResponse>(url, cancellationToken)
+            ?? new InvoiceListResponse([], 0, 1, 50);
+    }
+
+    public async Task<InvoiceDto> CreateAsync(InvoiceFormModel form, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/invoices", new
+        {
+            form.CustomerId,
+            form.InvoiceDate,
+            form.DueDate,
+            form.SaveMode,
+            Lines = form.Lines.Select(line => new
+            {
+                line.ItemId,
+                line.Description,
+                line.Quantity,
+                line.UnitPrice,
+                line.DiscountPercent
+            }).ToList()
+        }, cancellationToken);
+
+        await response.EnsureZayedSuccessAsync(cancellationToken);
+        return await response.Content.ReadFromJsonAsync<InvoiceDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty invoice response.");
+    }
+
+    public async Task MarkSentAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PatchAsync($"api/invoices/{id}/sent", null, cancellationToken);
+        await response.EnsureZayedSuccessAsync(cancellationToken);
+    }
+
+    public async Task<InvoiceDto> PostAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync($"api/invoices/{id}/post", null, cancellationToken);
+        await response.EnsureZayedSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<InvoiceDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty invoice response.");
+    }
+
+    public async Task<InvoiceDto> VoidAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PatchAsync($"api/invoices/{id}/void", null, cancellationToken);
+        await response.EnsureZayedSuccessAsync(cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<InvoiceDto>(cancellationToken)
+            ?? throw new InvalidOperationException("API returned an empty invoice response.");
+    }
+}

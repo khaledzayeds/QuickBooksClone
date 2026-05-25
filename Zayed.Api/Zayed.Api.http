@@ -1,0 +1,6 @@
+@Zayed.Api_HostAddress = http://localhost:5014
+
+GET {{Zayed.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

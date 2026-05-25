@@ -1,4 +1,4 @@
-# QuickBooksClone Project Progress
+# Zayed Project Progress
 
 This file is the living project notebook. Update it after every vertical slice.
 
@@ -37,13 +37,13 @@ Architectural baseline is now fixed:
   - [x] Add `smoke-sync-diagnostics.ps1`
 
 - [x] Project structure
-  - [x] `QuickBooksClone.Api`
-  - [x] `QuickBooksClone.Core`
-  - [x] `QuickBooksClone.Infrastructure`
-  - [x] `QuickBooksClone.Maui`
+  - [x] `Zayed.Api`
+  - [x] `Zayed.Core`
+  - [x] `Zayed.Infrastructure`
+  - [x] `Zayed.Maui`
   - [x] Windows-only MAUI Desktop target
 - [x] Strong SQL schema hardening draft
-  - [x] `QuickBooksClone.Api/Database/zokaa_qb_schema_v2_hardening.sql`
+  - [x] `Zayed.Api/Database/zokaa_qb_schema_v2_hardening.sql`
 - [x] Git local repository
   - [x] `cd90351 initial customers slice`
   - [x] `9e556dd add items slice`
@@ -262,7 +262,7 @@ Architectural baseline is now fixed:
   - [x] Build and API protection smoke test
 - [x] EF Core persistence foundation
   - [x] Add EF Core SQLite packages
-  - [x] Add `QuickBooksCloneDbContext`
+  - [x] Add `ZayedDbContext`
   - [x] Map current accounting, customer, vendor, item, inventory, invoice, purchase, return, payment, credit, and journal entry entities
   - [x] Add SQLite connection strings for app and development
   - [x] Ensure database is created at API startup
@@ -334,7 +334,7 @@ Architectural baseline is now fixed:
   - [x] Show startup health state on the home page
   - [x] Add local API start/stop actions on the Connection Settings page
 - [x] SQL Server production mode
-  - [x] Add dedicated `QuickBooksClone.SqlServerMigrations` project
+  - [x] Add dedicated `Zayed.SqlServerMigrations` project
   - [x] Keep SQL Server migrations separate from SQLite migration history
   - [x] Route SQL Server provider to its own migrations assembly with retry policy
   - [x] Add sample SQL Server appsettings profile
@@ -349,7 +349,7 @@ Architectural baseline is now fixed:
   - [x] Add external SQLite backup import endpoint
   - [x] Add repeatable `scripts/smoke-backup-policy.ps1`
 - [x] Home workflow map foundation
-  - [x] Replace the placeholder home page with a QuickBooks-style workflow map
+  - [x] Replace the placeholder home page with a Zayed-style workflow map
   - [x] Split the home map into Vendors, Customers, Banking, and Company areas
   - [x] Link all currently live workflows directly from Home
   - [x] Show planned workflows in-app with clear "planned next" messaging

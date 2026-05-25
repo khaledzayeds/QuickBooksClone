@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Zayed.Api/Zayed.Api.csproj" />
+  <Project Path="Zayed.Core/Zayed.Core.csproj" />
+  <Project Path="Zayed.Infrastructure/Zayed.Infrastructure.csproj" />
+  <Project Path="Zayed.Maui/Zayed.Maui.csproj" />
+  <Project Path="Zayed.SqlServerMigrations/Zayed.SqlServerMigrations.csproj" />
+</Solution>

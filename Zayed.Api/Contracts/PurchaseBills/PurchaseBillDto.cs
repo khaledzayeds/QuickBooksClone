@@ -1,0 +1,25 @@
+using Zayed.Core.PurchaseBills;
+
+namespace Zayed.Api.Contracts.PurchaseBills;
+
+public sealed record PurchaseBillDto(
+    Guid Id,
+    string BillNumber,
+    Guid VendorId,
+    string? VendorName,
+    Guid? InventoryReceiptId,
+    string? InventoryReceiptNumber,
+    DateOnly BillDate,
+    DateOnly DueDate,
+    PurchaseBillStatus Status,
+    decimal TaxAmount,
+    decimal TotalAmount,
+    decimal PaidAmount,
+    decimal CreditAppliedAmount,
+    decimal ReturnedAmount,
+    decimal BalanceDue,
+    Guid? PostedTransactionId,
+    DateTimeOffset? PostedAt,
+    Guid? ReversalTransactionId,
+    DateTimeOffset? VoidedAt,
+    IReadOnlyList<PurchaseBillLineDto> Lines);

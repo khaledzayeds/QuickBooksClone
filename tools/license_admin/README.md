@@ -1,4 +1,4 @@
-# LedgerFlow License Admin Tool
+# Zayed License Admin Tool
 
 > Tools for generating real signed license packages from offline request codes.
 
@@ -34,7 +34,7 @@ Never commit the real private key to GitHub.
 Paste the public key into:
 
 ```text
-QuickBooksFlutter/ledgerflow/lib/features/settings/data/license_public_key.dart
+ZayedFlutter/zayed/lib/features/settings/data/license_public_key.dart
 ```
 
 ---

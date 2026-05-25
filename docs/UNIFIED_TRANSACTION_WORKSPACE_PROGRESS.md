@@ -1,6 +1,6 @@
 # Unified Transaction Workspace Progress
 
-This is the living finish plan for making LedgerFlow feel like one coherent
+This is the living finish plan for making Zayed feel like one coherent
 desktop accounting product. Update it after every screen slice.
 
 ## Branch

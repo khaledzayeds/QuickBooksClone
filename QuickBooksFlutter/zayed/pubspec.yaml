@@ -1,0 +1,87 @@
+name: zayed
+description: "Zayed Offline ERP - Desktop Client"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^3.3.1
+
+  # IDs / import-export
+  uuid: ^4.0.0
+  excel: ^4.0.3
+
+  # Navigation
+  go_router: ^17.2.2
+
+  # Internal local API client
+  dio: ^5.9.2
+
+  # Local Settings Storage
+  shared_preferences: ^2.5.3
+
+  # Hashing / License helpers
+  crypto: ^3.0.6
+  cryptography: ^2.7.0
+
+  # Formatting — يتوافق مع flutter_localizations في Dart 3.9
+  intl: ^0.20.2
+
+  # Icons / Premium UI
+  cupertino_icons: ^1.0.8
+  phosphor_flutter: ^2.1.0
+
+  # Fonts
+  fl_chart: ^1.2.0
+
+  # UI polish
+  flutter_animate: ^4.5.2
+  gap: ^3.0.1
+  dropdown_button2: ^3.1.0
+
+  # Files
+  file_picker: ^10.3.7
+  path_provider: ^2.1.0
+  permission_handler: ^11.3.0
+  share_plus: ^7.2.1
+
+  # Printing / PDF
+  pdf: ^3.11.3
+  printing: ^5.14.2
+
+  # Search / scanning / media helpers
+  flutter_typeahead: ^4.8.0
+  image_picker: ^1.0.7
+  image: ^4.1.3
+  mobile_scanner: ^5.2.3
+  audioplayers: ^5.2.1
+  enough_convert: ^1.6.0
+  pluto_grid_plus: ^8.4.14
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/fonts/
+
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
+        - asset: assets/fonts/Cairo-Black.ttf

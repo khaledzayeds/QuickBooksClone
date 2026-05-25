@@ -1,4 +1,4 @@
-# LedgerFlow / QuickBooksClone — Work Progress Tracker
+# Zayed / Zayed — Work Progress Tracker
 
 > الملف ده هو سجل التقدم العملي للمشروع.  
 > أي شغل يتم، أو قرار يتاخد، أو حاجة تتأجل، تتسجل هنا عشان نعرف إحنا واقفين فين.
@@ -44,7 +44,7 @@ F) Banking / Inventory Pro / Payroll
 15. Transaction screens must be keyboard-first and scanner-friendly, not mouse-only forms.
 16. Transaction screens must have preview, print, save, post, and clear status behavior planned from the first UI pass.
 17. Transaction screens should support a collapsible context side panel for customer/vendor/item/account history and balances.
-18. Build full QuickBooks-style transaction screens first. POS/cart/mobile fast screens come later as separate UIs over the same backend and reusable transaction components.
+18. Build full Zayed-style transaction screens first. POS/cart/mobile fast screens come later as separate UIs over the same backend and reusable transaction components.
 19. Every transaction must allocate its number using its exact `DocumentTypes.*` value. Do not reuse invoice numbers for sales receipts, payments, purchase bills, or returns.
 
 ---
@@ -57,7 +57,7 @@ F) Banking / Inventory Pro / Payroll
 
 ### Product Decision
 
-Start with full accounting transaction screens first, not cart-only screens. The first sales and purchase screens should be QuickBooks-style full screens with all important accounting controls visible: customer/vendor, document number, status, dates, terms, line grid, tax, discounts, totals, side context panel, preview, print, save, and post.
+Start with full accounting transaction screens first, not cart-only screens. The first sales and purchase screens should be Zayed-style full screens with all important accounting controls visible: customer/vendor, document number, status, dates, terms, line grid, tax, discounts, totals, side context panel, preview, print, save, and post.
 
 Fast POS/cart/mobile screens are still planned, but they should be built later as separate modes using the same backend and reusable transaction components. They must not replace the full accounting screen.
 
@@ -234,7 +234,7 @@ Fast POS/cart/mobile screens are still planned, but they should be built later a
 - Completed first Customers polish pass: backend active toggle fix, Customer Center list, card metrics, form polish, and details view.
 - Completed first Vendors polish pass: backend active toggle fix, Vendor Center list, card metrics, form polish, and details view.
 - Added Transaction Screen UX Standards covering scanner support, keyboard shortcuts, fast grids, collapsible context side panels, preview/print actions, and save/post behavior before starting invoice/purchase screen polish.
-- Confirmed product decision: build full QuickBooks-style transaction screens first, then POS/cart/mobile fast screens later over the same backend and reusable transaction components.
+- Confirmed product decision: build full Zayed-style transaction screens first, then POS/cart/mobile fast screens later over the same backend and reusable transaction components.
 - Added first reusable transaction widget foundation for header, party selector, line grid, totals footer, action bar, print menu, context side panel, and keyboard shortcuts.
 - Wired InvoiceFormPage to the new transaction shell while preserving the existing legacy line table temporarily to avoid breaking the current save flow.
 - Reviewed sales backend before continuing UI and hardened invoice/sales receipt validation for inactive customers/items, line validation, bundle blocking, due date checks, and inactive deposit accounts.

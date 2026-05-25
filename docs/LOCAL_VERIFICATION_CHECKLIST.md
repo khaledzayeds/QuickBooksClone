@@ -1,4 +1,4 @@
-# LedgerFlow / QuickBooksClone — Local Verification Checklist
+# Zayed / Zayed — Local Verification Checklist
 
 > استخدم الملف ده بعد سحب آخر تعديلات من فرع `local-update` للتأكد إن المشروع لسه شغال بعد أي cleanup أو routing changes.
 
@@ -55,7 +55,7 @@ Expected:
 ### 3.1 Go To Flutter App
 
 ```bash
-cd QuickBooksFlutter/ledgerflow
+cd ZayedFlutter/zayed
 ```
 
 ### 3.2 Get Packages

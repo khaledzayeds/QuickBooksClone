@@ -1,12 +1,12 @@
 param(
-    [string]$OutputPath = ".\\artifacts\\smoke\\sqlserver\\quickbooksclone-sqlserver.sql"
+    [string]$OutputPath = ".\\artifacts\\smoke\\sqlserver\\zayed-sqlserver.sql"
 )
 
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$apiProject = Join-Path $root "QuickBooksClone.Api\\QuickBooksClone.Api.csproj"
-$migrationsProject = Join-Path $root "QuickBooksClone.SqlServerMigrations\\QuickBooksClone.SqlServerMigrations.csproj"
+$apiProject = Join-Path $root "Zayed.Api\\Zayed.Api.csproj"
+$migrationsProject = Join-Path $root "Zayed.SqlServerMigrations\\Zayed.SqlServerMigrations.csproj"
 $resolvedOutputPath = [System.IO.Path]::GetFullPath((Join-Path $root $OutputPath))
 $outputDirectory = Split-Path -Parent $resolvedOutputPath
 
@@ -24,7 +24,7 @@ Write-Host "Generating idempotent SQL Server migration script..."
 dotnet ef migrations script `
     --project $migrationsProject `
     --startup-project $apiProject `
-    --context QuickBooksCloneDbContext `
+    --context ZayedDbContext `
     --output $resolvedOutputPath `
     --idempotent
 

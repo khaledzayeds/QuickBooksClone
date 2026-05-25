@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate an Ed25519 keypair for LedgerFlow license signing.
+Generate an Ed25519 keypair for Zayed license signing.
 
 Install dependency:
   pip install cryptography
@@ -36,7 +36,7 @@ def main() -> None:
         format=serialization.PublicFormat.Raw,
     )
 
-    print("\n=== LedgerFlow Ed25519 License Keypair ===\n")
+    print("\n=== Zayed Ed25519 License Keypair ===\n")
     print("PRIVATE KEY BASE64 — KEEP SECRET:")
     print(b64(private_bytes))
     print("\nPUBLIC KEY BASE64 — paste into Flutter LicensePublicKeyConfig:")

@@ -1,0 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Zayed.Api.Contracts.PurchaseBills;
+
+public sealed record CreatePurchaseBillLineRequest(
+    Guid ItemId,
+    Guid? InventoryReceiptLineId,
+    [MaxLength(300)] string? Description,
+    [Range(0.01, 999999999)]
+    decimal Quantity,
+    [Range(0, 999999999)]
+    decimal UnitCost,
+    Guid? TaxCodeId);

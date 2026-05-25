@@ -9,7 +9,7 @@ $runId = [DateTimeOffset]::UtcNow.ToString("yyyyMMddHHmmss")
 $logsPath = Join-Path $root "artifacts\\smoke\\backup-import\\$runId"
 $databasePath = Join-Path $logsPath "backup-import.db"
 $backupPath = Join-Path $logsPath "backups"
-$apiProject = Join-Path $root "QuickBooksClone.Api\\QuickBooksClone.Api.csproj"
+$apiProject = Join-Path $root "Zayed.Api\\Zayed.Api.csproj"
 
 New-Item -ItemType Directory -Force -Path $logsPath | Out-Null
 
@@ -25,7 +25,7 @@ $startInfo.UseShellExecute = $false
 $startInfo.RedirectStandardOutput = $true
 $startInfo.RedirectStandardError = $true
 $startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development"
-$startInfo.Environment["ConnectionStrings__QuickBooksClone"] = "Data Source=$databasePath"
+$startInfo.Environment["ConnectionStrings__Zayed"] = "Data Source=$databasePath"
 $startInfo.Environment["Database__BackupDirectory"] = $backupPath
 
 $process = [System.Diagnostics.Process]::Start($startInfo)

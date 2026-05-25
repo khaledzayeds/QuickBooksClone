@@ -1,4 +1,4 @@
-# QuickBooks Clone / ZOKAA POS — Project Roadmap and Progress
+# Zayed Clone / ZOKAA POS — Project Roadmap and Progress
 
 > This document is the official working roadmap for the project. It explains what we are building, why we are building it, what has been completed, what is currently in progress, and what remains before the product becomes a professional commercial ERP/POS system.
 
@@ -6,12 +6,12 @@
 
 ## 1. Project Vision
 
-We are building a professional QuickBooks-like ERP/POS system designed for real commercial use, not just a demo application.
+We are building a professional Zayed-like ERP/POS system designed for real commercial use, not just a demo application.
 
 The target product should support:
 
 - Arabic and English user interface with runtime language switching.
-- Desktop-first business workflow similar to QuickBooks.
+- Desktop-first business workflow similar to Zayed.
 - Multiple front ends connected to the same backend and database.
 - Strong accounting posting logic.
 - Inventory tracking.
@@ -34,7 +34,7 @@ The product should feel like a real accounting system, not a simple invoice app.
 
 ### Core principles
 
-1. **QuickBooks-like workflow**
+1. **Zayed-like workflow**
    - Documents should have real business meaning.
    - Purchase Orders are not bills.
    - Receive Inventory is not a bill.
@@ -94,7 +94,7 @@ Important backend concepts:
 
 Current direction:
 
-- Flutter frontend under `QuickBooksFlutter/ledgerflow`.
+- Flutter frontend under `ZayedFlutter/zayed`.
 - Riverpod state management.
 - GoRouter routing.
 - Desktop-first transaction screens.
@@ -155,7 +155,7 @@ Remaining for PO:
 
 - Better print/preview.
 - Better memo persistence if backend contract supports it.
-- More polished QuickBooks-like layout.
+- More polished Zayed-like layout.
 - Tests for edge cases.
 
 ---

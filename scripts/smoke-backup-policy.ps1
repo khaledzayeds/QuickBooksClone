@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
-$apiProject = Join-Path $root "QuickBooksClone.Api\\QuickBooksClone.Api.csproj"
+$apiProject = Join-Path $root "Zayed.Api\\Zayed.Api.csproj"
 $runId = [DateTimeOffset]::UtcNow.ToString("yyyyMMddHHmmss")
 $logsPath = Join-Path $root "artifacts\\smoke\\backup-policy\\$runId"
 $databasePath = Join-Path $logsPath "backup-policy.db"
@@ -28,7 +28,7 @@ try {
     $startInfo.RedirectStandardError = $true
     $startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development"
     $startInfo.Environment["ASPNETCORE_DETAILEDERRORS"] = "true"
-    $startInfo.Environment["ConnectionStrings__QuickBooksClone"] = "Data Source=$databasePath"
+    $startInfo.Environment["ConnectionStrings__Zayed"] = "Data Source=$databasePath"
     $startInfo.Environment["Database__BackupDirectory"] = $backupPath
 
     $process = [System.Diagnostics.Process]::Start($startInfo)

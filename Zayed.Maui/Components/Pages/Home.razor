@@ -1,0 +1,333 @@
+@page "/"
+@implements IDisposable
+@using Zayed.Maui.Services
+@using Zayed.Maui.Services.Settings
+@inject ApiConnectionSettingsStore ConnectionStore
+@inject AppStartupCoordinator Startup
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard</PageTitle>
+
+@if (Startup.IsStarting || (Startup.State == AppStartupState.NotStarted && !hasBootAttempted))
+{
+    <div class="qb-page">
+        <section class="panel" style="min-height: 320px; display: flex; align-items: center; justify-content: center;">
+            <div style="max-width: 520px; text-align: center;">
+                <p class="eyebrow">Opening Company</p>
+                <h1>Starting your local workspace</h1>
+                <p class="muted">We are starting the local accounting engine and connecting to your company data in the background.</p>
+            </div>
+        </section>
+    </div>
+}
+else
+{
+<div class="ledger-dashboard ledger-dashboard--calm">
+    <section class="ledger-hero">
+        <div>
+            <p class="ledger-hero__eyebrow">Control Center</p>
+            <h1>Financial operations at a glance</h1>
+            <p class="ledger-hero__copy">
+                The home screen is being reshaped into a calmer Zayed-style workspace: tighter hierarchy, smoother navigation, smaller components, and clear pending states where backend hookup still needs to catch up.
+            </p>
+        </div>
+        <div class="ledger-hero__actions">
+            <a href="transactions" class="ledger-button ledger-button--primary">Open Ledger</a>
+            <a href="connection-settings" class="ledger-button ledger-button--secondary">Connection Settings</a>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(statusMessage))
+    {
+        <section class="ledger-alert @(statusIsError ? "ledger-alert--error" : "ledger-alert--success")">
+            <div class="ledger-alert__dot"></div>
+            <div>
+                <strong>Connectivity Status</strong>
+                <p>@statusMessage</p>
+            </div>
+        </section>
+    }
+
+    <section class="ledger-metrics ledger-metrics--compact">
+        <article class="ledger-metric-card">
+            <div class="ledger-metric-card__label">Startup</div>
+            <div class="ledger-metric-card__value">@ConnectionStore.Current.StartupMode</div>
+            <div class="ledger-metric-card__meta">Desktop environment status.</div>
+        </article>
+        <article class="ledger-metric-card">
+            <div class="ledger-metric-card__label">Profile</div>
+            <div class="ledger-metric-card__value">@ConnectionStore.Current.StartupProfile</div>
+            <div class="ledger-metric-card__meta">Current connection route.</div>
+        </article>
+        <article class="ledger-metric-card">
+            <div class="ledger-metric-card__label">UI Rollout</div>
+            <div class="ledger-metric-card__value">Phase 1</div>
+            <div class="ledger-metric-card__meta">Shell and dashboard baseline approved.</div>
+        </article>
+    </section>
+
+    <section class="ledger-canvas ledger-canvas--calm">
+        <div class="ledger-canvas__main">
+            <section class="ledger-panel">
+                <div class="ledger-panel__header">
+                    <div>
+                        <p class="ledger-panel__eyebrow">Purchase Workflow</p>
+                        <h2>Vendors and payables</h2>
+                    </div>
+                    <span class="ledger-pill ledger-pill--live">Live + pending</span>
+                </div>
+                <div class="ledger-workflow ledger-workflow--flow">
+                    @for (var index = 0; index < VendorSteps.Count; index++)
+                    {
+                        var step = VendorSteps[index];
+                        <button type="button" class="@GetWorkflowStepClass(step)" @onclick="() => OpenStep(step)">
+                            <span class="@GetStateBadgeClass(step)">@GetStateLabel(step)</span>
+                            <strong>@step.Title</strong>
+                            <p>@step.Description</p>
+                        </button>
+
+                        @if (index < VendorSteps.Count - 1)
+                        {
+                            <div class="ledger-workflow__arrow" aria-hidden="true">&#8594;</div>
+                        }
+                    }
+                </div>
+            </section>
+
+            <section class="ledger-panel">
+                <div class="ledger-panel__header">
+                    <div>
+                        <p class="ledger-panel__eyebrow">Sales Workflow</p>
+                        <h2>Customers and receivables</h2>
+                    </div>
+                    <span class="ledger-pill ledger-pill--live">Live + pending</span>
+                </div>
+                <div class="ledger-workflow ledger-workflow--flow">
+                    @for (var index = 0; index < CustomerSteps.Count; index++)
+                    {
+                        var step = CustomerSteps[index];
+                        <button type="button" class="@GetWorkflowStepClass(step)" @onclick="() => OpenStep(step)">
+                            <span class="@GetStateBadgeClass(step)">@GetStateLabel(step)</span>
+                            <strong>@step.Title</strong>
+                            <p>@step.Description</p>
+                        </button>
+
+                        @if (index < CustomerSteps.Count - 1)
+                        {
+                            <div class="ledger-workflow__arrow" aria-hidden="true">&#8594;</div>
+                        }
+                    }
+                </div>
+            </section>
+
+            <section class="ledger-panel">
+                <div class="ledger-panel__header">
+                    <div>
+                        <p class="ledger-panel__eyebrow">Recent Audit</p>
+                        <h2>Operations snapshot</h2>
+                    </div>
+                    <a href="transactions" class="ledger-inline-link">View ledger</a>
+                </div>
+                <div class="ledger-audit-table">
+                    <div class="ledger-audit-table__head">
+                        <span>Entity</span>
+                        <span>Type</span>
+                        <span>Status</span>
+                        <span>Amount</span>
+                    </div>
+                    <div class="ledger-audit-table__row">
+                        <span>Apex Logistics</span>
+                        <span>Vendor Bill</span>
+                        <span class="ledger-pill ledger-pill--processing">Processing</span>
+                        <strong>$12,450.00</strong>
+                    </div>
+                    <div class="ledger-audit-table__row">
+                        <span>Stellar Design Co.</span>
+                        <span>Client Invoice</span>
+                        <span class="ledger-pill ledger-pill--paid">Paid</span>
+                        <strong>$4,200.00</strong>
+                    </div>
+                    <div class="ledger-audit-table__row">
+                        <span>City Utilities</span>
+                        <span>Operating Expense</span>
+                        <span class="ledger-pill ledger-pill--due">Due</span>
+                        <strong>$842.12</strong>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <aside class="ledger-canvas__side">
+            <section class="ledger-panel ledger-panel--chart">
+                <div class="ledger-panel__header">
+                    <div>
+                        <p class="ledger-panel__eyebrow">Fiscal Performance</p>
+                        <h2>Actual vs projected</h2>
+                    </div>
+                    <span class="ledger-pill ledger-pill--pending">Integration Pending</span>
+                </div>
+                <div class="ledger-chart">
+                    <div class="ledger-chart__group">
+                        <span>Q1</span>
+                        <div class="ledger-chart__bars">
+                            <div class="ledger-chart__bar ledger-chart__bar--actual" style="height:72%"></div>
+                            <div class="ledger-chart__bar ledger-chart__bar--projected" style="height:56%"></div>
+                        </div>
+                    </div>
+                    <div class="ledger-chart__group">
+                        <span>Q2</span>
+                        <div class="ledger-chart__bars">
+                            <div class="ledger-chart__bar ledger-chart__bar--actual" style="height:58%"></div>
+                            <div class="ledger-chart__bar ledger-chart__bar--projected" style="height:49%"></div>
+                        </div>
+                    </div>
+                    <div class="ledger-chart__group">
+                        <span>Q3</span>
+                        <div class="ledger-chart__bars">
+                            <div class="ledger-chart__bar ledger-chart__bar--actual" style="height:0%"></div>
+                            <div class="ledger-chart__bar ledger-chart__bar--projected" style="height:42%"></div>
+                        </div>
+                    </div>
+                    <div class="ledger-chart__group">
+                        <span>Q4</span>
+                        <div class="ledger-chart__bars">
+                            <div class="ledger-chart__bar ledger-chart__bar--actual" style="height:0%"></div>
+                            <div class="ledger-chart__bar ledger-chart__bar--projected" style="height:38%"></div>
+                        </div>
+                    </div>
+                </div>
+                <p class="ledger-chart__note">Analytics layout is finalized. Live aggregates and reporting bindings will be connected in a later integration pass.</p>
+            </section>
+
+            <section class="ledger-panel">
+                <div class="ledger-panel__header">
+                    <div>
+                        <p class="ledger-panel__eyebrow">Operations</p>
+                        <h2>Company management</h2>
+                    </div>
+                    <span class="ledger-pill ledger-pill--live">Available</span>
+                </div>
+                <div class="ledger-side-list">
+                    @foreach (var step in CompanySteps)
+                    {
+                        <button type="button" class="@GetWorkflowStepClass(step, true)" @onclick="() => OpenStep(step)">
+                            <div class="ledger-side-list__row">
+                                <strong>@step.Title</strong>
+                                <span class="@GetStateBadgeClass(step)">@GetStateLabel(step)</span>
+                            </div>
+                            <p>@step.Description</p>
+                        </button>
+                    }
+                </div>
+            </section>
+
+            <section class="ledger-panel ledger-panel--accent">
+                <div class="ledger-panel__header">
+                    <div>
+                        <p class="ledger-panel__eyebrow">Coverage Map</p>
+                        <h2>What is already live</h2>
+                    </div>
+                    <span class="ledger-pill ledger-pill--paid">Current</span>
+                </div>
+                <ul class="ledger-check-list">
+                    <li>Opening balances, posting engine, and subledger foundation.</li>
+                    <li>Sales receipts, invoices, and customer payments.</li>
+                    <li>Vendor bills, returns, and settlements.</li>
+                    <li>Inventory adjustments and journal entries.</li>
+                </ul>
+                <div class="ledger-callout">
+                    <span class="ledger-pill ledger-pill--pending">Designed</span>
+                    <p>Estimates, deposits, reconciliation, reports hub, and richer banking surfaces are intentionally shown in the final UI and await service wiring.</p>
+                </div>
+            </section>
+        </aside>
+    </section>
+</div>
+}
+
+@code {
+    private string? statusMessage;
+    private bool statusIsError;
+    private bool hasBootAttempted;
+
+    private IReadOnlyList<WorkflowStep> VendorSteps => new[]
+    {
+        new WorkflowStep("Purchase Orders", "Plan what will be ordered.", "purchase-orders", true, null),
+        new WorkflowStep("Receive Inventory", "Receive stock into inventory.", "receive-inventory", true, null),
+        new WorkflowStep("Enter Bills", "Record vendor bills and post payables.", "purchase-bills", true, null),
+        new WorkflowStep("Pay Bills", "Pay posted bills from bank or cash.", "vendor-payments", true, null),
+        new WorkflowStep("Vendor Returns", "Handle goods returns and vendor credits.", "purchase-returns", true, null)
+    };
+
+    private IReadOnlyList<WorkflowStep> CustomerSteps => new[]
+    {
+        new WorkflowStep("Estimates", "Quote customers before sales.", "estimates", true, null),
+        new WorkflowStep("Sales Orders", "Track committed orders before fulfillment.", "sales-orders", true, null),
+        new WorkflowStep("Create Invoices", "Create credit invoices for receivables.", "invoices", true, null),
+        new WorkflowStep("Receive Payments", "Settle receivable balances.", "payments", true, null),
+        new WorkflowStep("Sales Receipts", "Post instant sale plus payment.", "sales-receipts", true, null),
+        new WorkflowStep("Refunds and Credits", "Handle returns and customer credits.", "customer-credits", true, null)
+    };
+
+    private IReadOnlyList<WorkflowStep> CompanySteps => new[]
+    {
+        new WorkflowStep("Chart of Accounts", "Maintain the accounting tree.", "accounts", true, null),
+        new WorkflowStep("Items and Services", "Maintain sellable items and services.", "items", true, null),
+        new WorkflowStep("Customers", "Manage customer master data.", "customers", true, null),
+        new WorkflowStep("Vendors", "Manage vendor master data.", "vendors", true, null),
+        new WorkflowStep("Inventory Activity", "Review stock adjustments.", "inventory-adjustments", true, null)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Startup.Changed += HandleStartupChanged;
+        hasBootAttempted = true;
+        var result = await Startup.EnsureReadyAsync();
+        statusMessage = result.Message;
+        statusIsError = !result.IsHealthy;
+    }
+
+    public void Dispose()
+    {
+        Startup.Changed -= HandleStartupChanged;
+    }
+
+    private void OpenStep(WorkflowStep step)
+    {
+        if (step.IsAvailable && !string.IsNullOrWhiteSpace(step.Route))
+        {
+            Navigation.NavigateTo(step.Route);
+            return;
+        }
+
+        statusIsError = false;
+        statusMessage = $"{step.Title} is designed and ready for backend hookup. {step.PlannedNote}";
+    }
+
+    private static string GetWorkflowStepClass(WorkflowStep step, bool isCompact = false)
+    {
+        var baseClass = "ledger-step-card ";
+        var compactClass = isCompact ? "ledger-step-card--compact " : string.Empty;
+
+        return step.IsAvailable
+            ? baseClass + compactClass + "ledger-step-card--live"
+            : baseClass + compactClass + "ledger-step-card--planned";
+    }
+
+    private static string GetStateBadgeClass(WorkflowStep step) =>
+        step.IsAvailable
+            ? "ledger-pill ledger-pill--live"
+            : "ledger-pill ledger-pill--pending";
+
+    private static string GetStateLabel(WorkflowStep step) => step.IsAvailable ? "Live" : "Integration Pending";
+
+    private void HandleStartupChanged()
+    {
+        var result = Startup.LastHealth;
+        statusMessage = result?.Message;
+        statusIsError = result is not null && !result.IsHealthy;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private sealed record WorkflowStep(string Title, string Description, string? Route, bool IsAvailable, string? PlannedNote);
+}

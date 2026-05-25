@@ -52,7 +52,7 @@ function Start-SmokeApi {
 
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = "dotnet"
-    $startInfo.Arguments = "QuickBooksClone.Api\bin\Debug\net10.0\QuickBooksClone.Api.dll"
+    $startInfo.Arguments = "Zayed.Api\bin\Debug\net10.0\Zayed.Api.dll"
     $startInfo.WorkingDirectory = $RepositoryRoot
     $startInfo.UseShellExecute = $false
     $startInfo.RedirectStandardOutput = $false
@@ -60,7 +60,7 @@ function Start-SmokeApi {
     $startInfo.Environment["ASPNETCORE_URLS"] = $BaseUrl
     $startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development"
     $startInfo.Environment["Database__Provider"] = "Sqlite"
-    $startInfo.Environment["ConnectionStrings__QuickBooksClone"] = "Data Source=$DatabasePath"
+    $startInfo.Environment["ConnectionStrings__Zayed"] = "Data Source=$DatabasePath"
     $startInfo.Environment["Logging__LogLevel__Default"] = "Warning"
     $startInfo.Environment["Logging__LogLevel__Microsoft.AspNetCore"] = "Warning"
 
@@ -104,13 +104,13 @@ function Assert-True {
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
 $BaseUrl = "http://localhost:$Port"
 $SmokeRoot = Join-Path $RepositoryRoot "artifacts\smoke\persistence"
-$DatabasePath = Join-Path $SmokeRoot "quickbooksclone-smoke.db"
+$DatabasePath = Join-Path $SmokeRoot "zayed-smoke.db"
 
 New-Item -ItemType Directory -Force -Path $SmokeRoot | Out-Null
 Remove-Item -LiteralPath $DatabasePath, "$DatabasePath-shm", "$DatabasePath-wal" -Force -ErrorAction SilentlyContinue
 
 Write-Step "Building API."
-dotnet build "$RepositoryRoot\QuickBooksClone.Api\QuickBooksClone.Api.csproj" --no-restore /nr:false /m:1 /p:UseSharedCompilation=false -v:q
+dotnet build "$RepositoryRoot\Zayed.Api\Zayed.Api.csproj" --no-restore /nr:false /m:1 /p:UseSharedCompilation=false -v:q
 
 $api = $null
 try {
