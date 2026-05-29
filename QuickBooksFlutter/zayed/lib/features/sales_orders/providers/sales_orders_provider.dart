@@ -7,6 +7,7 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/sales_orders_remote_datasource.dart';
 import '../data/models/sales_order_model.dart';
 import '../data/repositories/sales_orders_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final salesOrdersDatasourceProvider = Provider<SalesOrdersRemoteDatasource>(
   (ref) => SalesOrdersRemoteDatasource(ApiClient.instance),
@@ -28,7 +29,11 @@ class SalesOrdersNotifier extends AsyncNotifier<List<SalesOrderModel>> {
   bool _includeCancelled = false;
 
   @override
-  Future<List<SalesOrderModel>> build() => _fetch();
+  Future<List<SalesOrderModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<SalesOrderModel>> _fetch() async {
     final result = await ref
@@ -105,6 +110,10 @@ class SalesOrdersNotifier extends AsyncNotifier<List<SalesOrderModel>> {
 
 final salesOrderDetailsProvider =
     FutureProvider.family<SalesOrderModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final result = await ref.read(salesOrdersRepositoryProvider).getById(id);
       return result.when(
         success: (data) => data,

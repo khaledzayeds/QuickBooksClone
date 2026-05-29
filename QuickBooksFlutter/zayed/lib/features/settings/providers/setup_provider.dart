@@ -2,8 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/setup_models.dart';
 import '../data/setup_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final setupRepositoryProvider = Provider<SetupRepository>((ref) => SetupRepository());
+final setupRepositoryProvider = Provider<SetupRepository>(
+  (ref) => SetupRepository(),
+);
 
 class SetupState {
   const SetupState({
@@ -42,7 +45,9 @@ class SetupState {
       lastResult: lastResult ?? this.lastResult,
       defaultAccountsSeed: defaultAccountsSeed ?? this.defaultAccountsSeed,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
-      successMessage: clearSuccess ? null : successMessage ?? this.successMessage,
+      successMessage: clearSuccess
+          ? null
+          : successMessage ?? this.successMessage,
     );
   }
 }
@@ -53,6 +58,10 @@ class SetupNotifier extends Notifier<SetupState> {
   @override
   SetupState build() {
     _repository = ref.watch(setupRepositoryProvider);
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) {
+      return const SetupState();
+    }
     Future.microtask(loadStatus);
     return const SetupState(loading: true);
   }
@@ -68,7 +77,11 @@ class SetupNotifier extends Notifier<SetupState> {
   }
 
   Future<bool> initializeCompany(InitializeCompanyPayload payload) async {
-    state = state.copyWith(submitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      submitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
     try {
       final result = await _repository.initializeCompany(payload);
       final status = await _repository.getStatus();
@@ -87,13 +100,18 @@ class SetupNotifier extends Notifier<SetupState> {
   }
 
   Future<void> seedDefaultAccounts() async {
-    state = state.copyWith(submitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      submitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
     try {
       final result = await _repository.seedDefaultAccounts();
       state = state.copyWith(
         submitting: false,
         defaultAccountsSeed: result,
-        successMessage: 'Default accounts ready. Created: ${result.createdCount}, skipped: ${result.skippedCount}',
+        successMessage:
+            'Default accounts ready. Created: ${result.createdCount}, skipped: ${result.skippedCount}',
         clearError: true,
       );
     } catch (error) {
@@ -102,4 +120,6 @@ class SetupNotifier extends Notifier<SetupState> {
   }
 }
 
-final setupProvider = NotifierProvider<SetupNotifier, SetupState>(SetupNotifier.new);
+final setupProvider = NotifierProvider<SetupNotifier, SetupState>(
+  SetupNotifier.new,
+);

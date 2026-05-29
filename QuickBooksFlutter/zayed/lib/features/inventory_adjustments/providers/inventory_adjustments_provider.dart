@@ -7,33 +7,43 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/inventory_adjustments_remote_datasource.dart';
 import '../data/models/inventory_adjustment_model.dart';
 import '../data/repositories/inventory_adjustments_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final inventoryAdjustmentsDatasourceProvider = Provider<InventoryAdjustmentsRemoteDatasource>(
-  (ref) => InventoryAdjustmentsRemoteDatasource(ApiClient.instance),
-);
+final inventoryAdjustmentsDatasourceProvider =
+    Provider<InventoryAdjustmentsRemoteDatasource>(
+      (ref) => InventoryAdjustmentsRemoteDatasource(ApiClient.instance),
+    );
 
-final inventoryAdjustmentsRepositoryProvider = Provider<InventoryAdjustmentsRepository>(
-  (ref) => InventoryAdjustmentsRepository(ref.watch(inventoryAdjustmentsDatasourceProvider)),
-);
+final inventoryAdjustmentsRepositoryProvider =
+    Provider<InventoryAdjustmentsRepository>(
+      (ref) => InventoryAdjustmentsRepository(
+        ref.watch(inventoryAdjustmentsDatasourceProvider),
+      ),
+    );
 
-final inventoryAdjustmentsProvider = AsyncNotifierProvider<InventoryAdjustmentsNotifier, List<InventoryAdjustmentModel>>(
-  InventoryAdjustmentsNotifier.new,
-);
+final inventoryAdjustmentsProvider =
+    AsyncNotifierProvider<
+      InventoryAdjustmentsNotifier,
+      List<InventoryAdjustmentModel>
+    >(InventoryAdjustmentsNotifier.new);
 
-class InventoryAdjustmentsNotifier extends AsyncNotifier<List<InventoryAdjustmentModel>> {
+class InventoryAdjustmentsNotifier
+    extends AsyncNotifier<List<InventoryAdjustmentModel>> {
   String _search = '';
   String? _itemId;
   bool _includeVoid = false;
 
   @override
-  Future<List<InventoryAdjustmentModel>> build() => _fetch();
+  Future<List<InventoryAdjustmentModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<InventoryAdjustmentModel>> _fetch() async {
-    final result = await ref.read(inventoryAdjustmentsRepositoryProvider).getAll(
-          search: _search,
-          itemId: _itemId,
-          includeVoid: _includeVoid,
-        );
+    final result = await ref
+        .read(inventoryAdjustmentsRepositoryProvider)
+        .getAll(search: _search, itemId: _itemId, includeVoid: _includeVoid);
     return result.when(
       success: (data) => data,
       failure: (error) => throw error,
@@ -60,17 +70,28 @@ class InventoryAdjustmentsNotifier extends AsyncNotifier<List<InventoryAdjustmen
     refresh();
   }
 
-  Future<ApiResult<InventoryAdjustmentModel>> create(CreateInventoryAdjustmentDto dto) async {
-    final result = await ref.read(inventoryAdjustmentsRepositoryProvider).create(dto);
+  Future<ApiResult<InventoryAdjustmentModel>> create(
+    CreateInventoryAdjustmentDto dto,
+  ) async {
+    final result = await ref
+        .read(inventoryAdjustmentsRepositoryProvider)
+        .create(dto);
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final inventoryAdjustmentDetailsProvider = FutureProvider.family<InventoryAdjustmentModel, String>((ref, id) async {
-  final result = await ref.read(inventoryAdjustmentsRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final inventoryAdjustmentDetailsProvider =
+    FutureProvider.family<InventoryAdjustmentModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref
+          .read(inventoryAdjustmentsRepositoryProvider)
+          .getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });

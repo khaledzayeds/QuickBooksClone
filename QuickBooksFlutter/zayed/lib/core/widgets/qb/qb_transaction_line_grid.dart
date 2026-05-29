@@ -37,9 +37,6 @@ class QbTransactionLineGrid extends ConsumerStatefulWidget {
 
 class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   final List<FocusNode> _itemFocusNodes = [];
-  List<ItemModel> _items = const [];
-  bool _loadingItems = true;
-  String? _itemsError;
   int _selectedIndex = 0;
 
   @override
@@ -49,7 +46,6 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
     for (var i = 0; i < widget.lines.length; i++) {
       _itemFocusNodes.add(FocusNode());
     }
-    _loadItemsOnce();
   }
 
   @override
@@ -70,25 +66,8 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   }
 
   Future<void> _loadItemsOnce() async {
-    setState(() {
-      _loadingItems = true;
-      _itemsError = null;
-    });
-    try {
-      final items = await ref.read(itemsProvider.future);
-      if (!mounted) return;
-      setState(() {
-        _items = items.where((item) => item.isActive).toList();
-        _loadingItems = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _items = const [];
-        _loadingItems = false;
-        _itemsError = e.toString();
-      });
-    }
+    ref.invalidate(itemsProvider);
+    await ref.read(itemsProvider.future);
   }
 
   void _notifyNow() {
@@ -221,13 +200,19 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   @override
   Widget build(BuildContext context) {
     _syncFocusNodes();
+    final itemsAsync = ref.watch(itemsProvider);
+    final items = itemsAsync.maybeWhen(
+      data: (items) => items.where((item) => item.isActive).toList(),
+      orElse: () => const <ItemModel>[],
+    );
+    final itemsError = itemsAsync.hasError ? itemsAsync.error.toString() : null;
     return _DesktopGrid(
       compact: widget.compact,
       lines: widget.lines,
       itemFocusNodes: _itemFocusNodes,
-      items: _items,
-      loadingItems: _loadingItems,
-      itemsError: _itemsError,
+      items: items,
+      loadingItems: itemsAsync.isLoading,
+      itemsError: itemsError,
       showAddLineFooter: widget.showAddLineFooter,
       readOnly: widget.readOnly,
       selectedIndex: _selectedIndex,

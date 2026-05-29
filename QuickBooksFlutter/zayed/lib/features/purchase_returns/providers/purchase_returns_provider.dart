@@ -7,18 +7,22 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/purchase_returns_remote_datasource.dart';
 import '../data/models/purchase_return_model.dart';
 import '../data/repositories/purchase_returns_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final purchaseReturnsDatasourceProvider = Provider<PurchaseReturnsRemoteDatasource>(
-  (ref) => PurchaseReturnsRemoteDatasource(ApiClient.instance),
-);
+final purchaseReturnsDatasourceProvider =
+    Provider<PurchaseReturnsRemoteDatasource>(
+      (ref) => PurchaseReturnsRemoteDatasource(ApiClient.instance),
+    );
 
 final purchaseReturnsRepositoryProvider = Provider<PurchaseReturnsRepository>(
-  (ref) => PurchaseReturnsRepository(ref.watch(purchaseReturnsDatasourceProvider)),
+  (ref) =>
+      PurchaseReturnsRepository(ref.watch(purchaseReturnsDatasourceProvider)),
 );
 
-final purchaseReturnsProvider = AsyncNotifierProvider<PurchaseReturnsNotifier, List<PurchaseReturnModel>>(
-  PurchaseReturnsNotifier.new,
-);
+final purchaseReturnsProvider =
+    AsyncNotifierProvider<PurchaseReturnsNotifier, List<PurchaseReturnModel>>(
+      PurchaseReturnsNotifier.new,
+    );
 
 class PurchaseReturnsNotifier extends AsyncNotifier<List<PurchaseReturnModel>> {
   String _search = '';
@@ -27,10 +31,16 @@ class PurchaseReturnsNotifier extends AsyncNotifier<List<PurchaseReturnModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<PurchaseReturnModel>> build() => _fetch();
+  Future<List<PurchaseReturnModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<PurchaseReturnModel>> _fetch() async {
-    final result = await ref.read(purchaseReturnsRepositoryProvider).getAll(
+    final result = await ref
+        .read(purchaseReturnsRepositoryProvider)
+        .getAll(
           search: _search,
           purchaseBillId: _purchaseBillId,
           vendorId: _vendorId,
@@ -67,23 +77,36 @@ class PurchaseReturnsNotifier extends AsyncNotifier<List<PurchaseReturnModel>> {
     refresh();
   }
 
-  Future<ApiResult<PurchaseReturnModel>> create(CreatePurchaseReturnDto dto) async {
-    final result = await ref.read(purchaseReturnsRepositoryProvider).create(dto);
+  Future<ApiResult<PurchaseReturnModel>> create(
+    CreatePurchaseReturnDto dto,
+  ) async {
+    final result = await ref
+        .read(purchaseReturnsRepositoryProvider)
+        .create(dto);
     if (result.isSuccess) refresh();
     return result;
   }
 
   Future<ApiResult<PurchaseReturnModel>> voidReturn(String id) async {
-    final result = await ref.read(purchaseReturnsRepositoryProvider).voidReturn(id);
+    final result = await ref
+        .read(purchaseReturnsRepositoryProvider)
+        .voidReturn(id);
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final purchaseReturnDetailsProvider = FutureProvider.family<PurchaseReturnModel, String>((ref, id) async {
-  final result = await ref.read(purchaseReturnsRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final purchaseReturnDetailsProvider =
+    FutureProvider.family<PurchaseReturnModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref
+          .read(purchaseReturnsRepositoryProvider)
+          .getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });

@@ -12,6 +12,14 @@ final companyRegistryProvider =
       CompanyRegistryNotifier.new,
     );
 
+final activeCompanyScopeProvider = Provider<String?>((ref) {
+  final activeCompany = ref.watch(
+    companyRegistryProvider.select((state) => state.value?.activeCompany),
+  );
+  if (activeCompany == null) return null;
+  return '${activeCompany.id}|${activeCompany.databasePath}';
+});
+
 class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
   @override
   Future<CompanyRegistry> build() async {

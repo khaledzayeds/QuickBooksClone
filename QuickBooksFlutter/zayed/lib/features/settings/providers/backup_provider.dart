@@ -2,8 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/backup_repository.dart';
 import '../data/models/backup_models.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final backupRepositoryProvider = Provider<BackupRepository>((ref) => BackupRepository());
+final backupRepositoryProvider = Provider<BackupRepository>(
+  (ref) => BackupRepository(),
+);
 
 class BackupState {
   const BackupState({
@@ -42,7 +45,9 @@ class BackupState {
       audits: audits ?? this.audits,
       settings: settings ?? this.settings,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
-      successMessage: clearSuccess ? null : successMessage ?? this.successMessage,
+      successMessage: clearSuccess
+          ? null
+          : successMessage ?? this.successMessage,
     );
   }
 }
@@ -53,6 +58,10 @@ class BackupNotifier extends Notifier<BackupState> {
   @override
   BackupState build() {
     _repository = ref.watch(backupRepositoryProvider);
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) {
+      return const BackupState();
+    }
     Future.microtask(load);
     return const BackupState(loading: true);
   }
@@ -81,7 +90,10 @@ class BackupNotifier extends Notifier<BackupState> {
   Future<void> createBackup({String? label, String? reason}) async {
     state = state.copyWith(working: true, clearError: true, clearSuccess: true);
     try {
-      final backup = await _repository.createBackup(label: label, reason: reason);
+      final backup = await _repository.createBackup(
+        label: label,
+        reason: reason,
+      );
       final backups = [backup, ...state.backups];
       state = state.copyWith(
         working: false,
@@ -94,10 +106,18 @@ class BackupNotifier extends Notifier<BackupState> {
     }
   }
 
-  Future<void> restoreBackup({required String fileName, required bool createSafetyBackup, String? reason}) async {
+  Future<void> restoreBackup({
+    required String fileName,
+    required bool createSafetyBackup,
+    String? reason,
+  }) async {
     state = state.copyWith(working: true, clearError: true, clearSuccess: true);
     try {
-      await _repository.restoreBackup(fileName: fileName, createSafetyBackup: createSafetyBackup, reason: reason);
+      await _repository.restoreBackup(
+        fileName: fileName,
+        createSafetyBackup: createSafetyBackup,
+        reason: reason,
+      );
       state = state.copyWith(
         working: false,
         successMessage: 'Backup restored: $fileName',
@@ -110,4 +130,6 @@ class BackupNotifier extends Notifier<BackupState> {
   }
 }
 
-final backupProvider = NotifierProvider<BackupNotifier, BackupState>(BackupNotifier.new);
+final backupProvider = NotifierProvider<BackupNotifier, BackupState>(
+  BackupNotifier.new,
+);

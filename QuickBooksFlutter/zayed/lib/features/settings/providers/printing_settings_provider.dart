@@ -2,8 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/printing_settings_model.dart';
 import '../data/printing_settings_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final printingSettingsRepositoryProvider = Provider<PrintingSettingsRepository>((ref) => PrintingSettingsRepository());
+final printingSettingsRepositoryProvider = Provider<PrintingSettingsRepository>(
+  (ref) => PrintingSettingsRepository(),
+);
 
 class PrintingSettingsState {
   const PrintingSettingsState({
@@ -44,31 +47,57 @@ class PrintingSettingsNotifier extends Notifier<PrintingSettingsState> {
   @override
   PrintingSettingsState build() {
     _repository = ref.watch(printingSettingsRepositoryProvider);
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) {
+      return PrintingSettingsState(settings: PrintingSettingsModel.defaults());
+    }
     Future.microtask(load);
-    return PrintingSettingsState(settings: PrintingSettingsModel.defaults(), loading: true);
+    return PrintingSettingsState(
+      settings: PrintingSettingsModel.defaults(),
+      loading: true,
+    );
   }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, clearError: true, saved: false);
     try {
       final settings = await _repository.load();
-      state = state.copyWith(settings: settings, loading: false, clearError: true);
+      state = state.copyWith(
+        settings: settings,
+        loading: false,
+        clearError: true,
+      );
     } catch (error) {
       state = state.copyWith(loading: false, errorMessage: error.toString());
     }
   }
 
-  void update(PrintingSettingsModel Function(PrintingSettingsModel current) change) {
-    state = state.copyWith(settings: change(state.settings), saved: false, clearError: true);
+  void update(
+    PrintingSettingsModel Function(PrintingSettingsModel current) change,
+  ) {
+    state = state.copyWith(
+      settings: change(state.settings),
+      saved: false,
+      clearError: true,
+    );
   }
 
   Future<void> save() async {
     state = state.copyWith(saving: true, saved: false, clearError: true);
     try {
       final saved = await _repository.save(state.settings);
-      state = state.copyWith(settings: saved, saving: false, saved: true, clearError: true);
+      state = state.copyWith(
+        settings: saved,
+        saving: false,
+        saved: true,
+        clearError: true,
+      );
     } catch (error) {
-      state = state.copyWith(saving: false, saved: false, errorMessage: error.toString());
+      state = state.copyWith(
+        saving: false,
+        saved: false,
+        errorMessage: error.toString(),
+      );
     }
   }
 
@@ -76,13 +105,23 @@ class PrintingSettingsNotifier extends Notifier<PrintingSettingsState> {
     state = state.copyWith(saving: true, saved: false, clearError: true);
     try {
       final settings = await _repository.reset();
-      state = state.copyWith(settings: settings, saving: false, saved: true, clearError: true);
+      state = state.copyWith(
+        settings: settings,
+        saving: false,
+        saved: true,
+        clearError: true,
+      );
     } catch (error) {
-      state = state.copyWith(saving: false, saved: false, errorMessage: error.toString());
+      state = state.copyWith(
+        saving: false,
+        saved: false,
+        errorMessage: error.toString(),
+      );
     }
   }
 }
 
-final printingSettingsProvider = NotifierProvider<PrintingSettingsNotifier, PrintingSettingsState>(
-  PrintingSettingsNotifier.new,
-);
+final printingSettingsProvider =
+    NotifierProvider<PrintingSettingsNotifier, PrintingSettingsState>(
+      PrintingSettingsNotifier.new,
+    );

@@ -2,6 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
+import '../../companies/providers/company_registry_provider.dart';
 import '../data/datasources/invoices_api.dart';
 import '../data/models/invoice_contracts.dart';
 import '../data/repositories/invoices_repo.dart';
@@ -15,13 +16,15 @@ final invoicesRepoProvider = Provider<InvoicesRepo>(
 );
 
 final invoicesStateProvider =
-    AsyncNotifierProvider<InvoicesState, List<InvoiceModel>>(
-  InvoicesState.new,
-);
+    AsyncNotifierProvider<InvoicesState, List<InvoiceModel>>(InvoicesState.new);
 
 class InvoicesState extends AsyncNotifier<List<InvoiceModel>> {
   @override
-  Future<List<InvoiceModel>> build() => _fetch();
+  Future<List<InvoiceModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<InvoiceModel>> _fetch() async {
     final result = await ref.read(invoicesRepoProvider).getAll();
@@ -37,11 +40,16 @@ class InvoicesState extends AsyncNotifier<List<InvoiceModel>> {
   }
 }
 
-final invoiceDetailsStateProvider =
-    FutureProvider.family<InvoiceModel, String>((ref, id) async {
-  final result = await ref.read(invoicesRepoProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final invoiceDetailsStateProvider = FutureProvider.family<InvoiceModel, String>(
+  (ref, id) async {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) {
+      throw StateError('No active company selected.');
+    }
+    final result = await ref.read(invoicesRepoProvider).getById(id);
+    return result.when(
+      success: (data) => data,
+      failure: (error) => throw error,
+    );
+  },
+);

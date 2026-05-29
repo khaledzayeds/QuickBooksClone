@@ -2,9 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/json_utils.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final cashFlowHubProvider = FutureProvider.autoDispose<CashFlowHubSnapshot>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/reports/cash-flow-hub');
+final cashFlowHubProvider = FutureProvider.autoDispose<CashFlowHubSnapshot>((
+  ref,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/reports/cash-flow-hub',
+  );
   return CashFlowHubSnapshot.fromJson(response.data!);
 });
 
@@ -57,7 +66,8 @@ class CashFlowHubSnapshot {
   final List<CashFlowForecastPoint> forecastPoints;
   final List<CashFlowAlert> alerts;
 
-  factory CashFlowHubSnapshot.fromJson(Map<String, dynamic> json) => CashFlowHubSnapshot(
+  factory CashFlowHubSnapshot.fromJson(Map<String, dynamic> json) =>
+      CashFlowHubSnapshot(
         asOfDate: _parseDate(json['asOfDate']),
         fromDate: _parseDate(json['fromDate']),
         toDate: _parseDate(json['toDate']),
@@ -70,7 +80,9 @@ class CashFlowHubSnapshot {
         overdueIncoming: JsonUtils.asDouble(json['overdueIncoming']),
         expectedOutgoing: JsonUtils.asDouble(json['expectedOutgoing']),
         overdueOutgoing: JsonUtils.asDouble(json['overdueOutgoing']),
-        netCashAfterOpenItems: JsonUtils.asDouble(json['netCashAfterOpenItems']),
+        netCashAfterOpenItems: JsonUtils.asDouble(
+          json['netCashAfterOpenItems'],
+        ),
         totalIncome: JsonUtils.asDouble(json['totalIncome']),
         totalExpenses: JsonUtils.asDouble(json['totalExpenses']),
         netProfit: JsonUtils.asDouble(json['netProfit']),
@@ -101,9 +113,9 @@ class CashFlowBucket {
   final double amount;
 
   factory CashFlowBucket.fromJson(Map<String, dynamic> json) => CashFlowBucket(
-        JsonUtils.asString(json['label']),
-        JsonUtils.asDouble(json['amount']),
-      );
+    JsonUtils.asString(json['label']),
+    JsonUtils.asDouble(json['amount']),
+  );
 }
 
 class CashFlowForecastPoint {
@@ -111,7 +123,8 @@ class CashFlowForecastPoint {
   final String label;
   final double amount;
 
-  factory CashFlowForecastPoint.fromJson(Map<String, dynamic> json) => CashFlowForecastPoint(
+  factory CashFlowForecastPoint.fromJson(Map<String, dynamic> json) =>
+      CashFlowForecastPoint(
         JsonUtils.asString(json['label']),
         JsonUtils.asDouble(json['amount']),
       );
@@ -131,17 +144,18 @@ class CashFlowAlert {
   final String message;
 
   factory CashFlowAlert.fromJson(Map<String, dynamic> json) => CashFlowAlert(
-        severity: _severity(JsonUtils.asString(json['severity'])),
-        title: JsonUtils.asString(json['title']),
-        message: JsonUtils.asString(json['message']),
-      );
+    severity: _severity(JsonUtils.asString(json['severity'])),
+    title: JsonUtils.asString(json['title']),
+    message: JsonUtils.asString(json['message']),
+  );
 }
 
 CashFlowAlertSeverity _severity(String value) => switch (value.toLowerCase()) {
-      'success' => CashFlowAlertSeverity.success,
-      'warning' => CashFlowAlertSeverity.warning,
-      'critical' => CashFlowAlertSeverity.critical,
-      _ => CashFlowAlertSeverity.info,
-    };
+  'success' => CashFlowAlertSeverity.success,
+  'warning' => CashFlowAlertSeverity.warning,
+  'critical' => CashFlowAlertSeverity.critical,
+  _ => CashFlowAlertSeverity.info,
+};
 
-DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+DateTime _parseDate(dynamic value) =>
+    DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();

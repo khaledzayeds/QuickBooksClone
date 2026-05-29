@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:zayed/app/router.dart';
 import 'package:zayed/l10n/app_localizations.dart';
 
+import '../../../core/widgets/qb/qb_item_cell.dart';
 import '../../../core/widgets/qb/qb_widgets.dart';
 import '../../invoices/widgets/notes_edit_dialog.dart';
 import '../../items/data/models/item_model.dart';
@@ -246,6 +247,10 @@ class _ReceiveInventoryFormScreenState
     );
 
     if (selected == null) return;
+    _pickManualItem(line, selected);
+  }
+
+  void _pickManualItem(_ManualReceiveLine line, ItemModel selected) {
     setState(() {
       line.itemId = selected.id;
       line.itemName = selected.name;
@@ -410,6 +415,16 @@ class _ReceiveInventoryFormScreenState
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(openPurchaseOrdersProvider);
+    final itemsAsync = ref.watch(itemsProvider);
+    final inventoryItems = itemsAsync.maybeWhen(
+      data: (items) =>
+          items.where((item) => item.isActive && item.isInventory).toList(),
+      orElse: () => const <ItemModel>[],
+    );
+    final loadingInventoryItems = itemsAsync.maybeWhen(
+      loading: () => true,
+      orElse: () => false,
+    );
     final l10n = AppLocalizations.of(context)!;
     final vendors = ref
         .watch(vendorsProvider)
@@ -507,7 +522,9 @@ class _ReceiveInventoryFormScreenState
                       ? const Center(child: CircularProgressIndicator())
                       : _ReceiveLinesTable(
                           lines: _manualLines,
-                          onSelectItem: _selectManualItem,
+                          items: inventoryItems,
+                          loadingItems: loadingInventoryItems,
+                          onPickItem: _pickManualItem,
                           onChanged: () => setState(() {}),
                         ),
                 ),
@@ -1039,12 +1056,16 @@ class _ReceiveLinesHeader extends StatelessWidget {
 class _ReceiveLinesTable extends StatelessWidget {
   const _ReceiveLinesTable({
     required this.lines,
-    required this.onSelectItem,
+    required this.items,
+    required this.loadingItems,
+    required this.onPickItem,
     required this.onChanged,
   });
 
   final List<_ManualReceiveLine> lines;
-  final ValueChanged<_ManualReceiveLine> onSelectItem;
+  final List<ItemModel> items;
+  final bool loadingItems;
+  final void Function(_ManualReceiveLine line, ItemModel item) onPickItem;
   final VoidCallback onChanged;
 
   @override
@@ -1082,32 +1103,26 @@ class _ReceiveLinesTable extends StatelessWidget {
                     children: [
                       Expanded(
                         flex: 3,
-                        child: InkWell(
-                          onTap: () => onSelectItem(line),
-                          child: Container(
-                            height: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                right: BorderSide(color: Color(0xFFB8C6CE)),
-                              ),
+                        child: Container(
+                          height: double.infinity,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              right: BorderSide(color: Color(0xFFB8C6CE)),
                             ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    line.itemName.isEmpty
-                                        ? 'Select an item...'
-                                        : line.itemName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                ),
-                                const Icon(Icons.search, size: 14),
-                              ],
-                            ),
+                          ),
+                          child: QbItemCell(
+                            key: ValueKey(line),
+                            initialValue: line.itemName,
+                            items: items,
+                            loadingItems: loadingItems,
+                            compact: true,
+                            rateForItem: (item) => item.purchasePrice,
+                            onPicked: (item) {
+                              onPickItem(line, item);
+                              onChanged();
+                            },
+                            onSubmittedPick: onChanged,
+                            onLastCellCommit: onChanged,
                           ),
                         ),
                       ),

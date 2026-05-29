@@ -2,11 +2,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/json_utils.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final calendarProvider = FutureProvider.autoDispose<CalendarSummary>((ref) async {
+final calendarProvider = FutureProvider.autoDispose<CalendarSummary>((
+  ref,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
   final now = DateTime.now();
-  final fromDate = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 30));
-  final toDate = DateTime(now.year, now.month, now.day).add(const Duration(days: 60));
+  final fromDate = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).subtract(const Duration(days: 30));
+  final toDate = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).add(const Duration(days: 60));
 
   final response = await ApiClient.instance.get<Map<String, dynamic>>(
     '/api/calendar',
@@ -44,7 +59,8 @@ class CalendarSummary {
   final double totalPayableDue;
   final List<CalendarEvent> events;
 
-  factory CalendarSummary.fromJson(Map<String, dynamic> json) => CalendarSummary(
+  factory CalendarSummary.fromJson(Map<String, dynamic> json) =>
+      CalendarSummary(
         fromDate: _parseDate(json['fromDate']),
         toDate: _parseDate(json['toDate']),
         today: _parseDate(json['today']),
@@ -91,30 +107,32 @@ class CalendarEvent {
   final String route;
 
   factory CalendarEvent.fromJson(Map<String, dynamic> json) => CalendarEvent(
-        id: JsonUtils.asString(json['id']),
-        sourceType: JsonUtils.asString(json['sourceType']),
-        sourceId: JsonUtils.asString(json['sourceId']),
-        documentNumber: JsonUtils.asString(json['documentNumber']),
-        title: JsonUtils.asString(json['title']),
-        partyName: JsonUtils.asString(json['partyName']),
-        documentDate: _parseDate(json['documentDate']),
-        dueDate: _parseDate(json['dueDate']),
-        amountDue: JsonUtils.asDouble(json['amountDue']),
-        status: JsonUtils.asString(json['status']),
-        severity: _severity(JsonUtils.asString(json['severity'])),
-        route: JsonUtils.asString(json['route']),
-      );
+    id: JsonUtils.asString(json['id']),
+    sourceType: JsonUtils.asString(json['sourceType']),
+    sourceId: JsonUtils.asString(json['sourceId']),
+    documentNumber: JsonUtils.asString(json['documentNumber']),
+    title: JsonUtils.asString(json['title']),
+    partyName: JsonUtils.asString(json['partyName']),
+    documentDate: _parseDate(json['documentDate']),
+    dueDate: _parseDate(json['dueDate']),
+    amountDue: JsonUtils.asDouble(json['amountDue']),
+    status: JsonUtils.asString(json['status']),
+    severity: _severity(JsonUtils.asString(json['severity'])),
+    route: JsonUtils.asString(json['route']),
+  );
 }
 
 enum CalendarSeverity { overdue, dueToday, soon, upcoming }
 
 CalendarSeverity _severity(String value) => switch (value) {
-      'overdue' => CalendarSeverity.overdue,
-      'dueToday' => CalendarSeverity.dueToday,
-      'soon' => CalendarSeverity.soon,
-      _ => CalendarSeverity.upcoming,
-    };
+  'overdue' => CalendarSeverity.overdue,
+  'dueToday' => CalendarSeverity.dueToday,
+  'soon' => CalendarSeverity.soon,
+  _ => CalendarSeverity.upcoming,
+};
 
-DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+DateTime _parseDate(dynamic value) =>
+    DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
 
-String _dateOnly(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+String _dateOnly(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

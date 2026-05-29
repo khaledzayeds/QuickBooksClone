@@ -7,6 +7,7 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/sales_returns_remote_datasource.dart';
 import '../data/models/sales_return_model.dart';
 import '../data/repositories/sales_returns_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final salesReturnsDatasourceProvider = Provider<SalesReturnsRemoteDatasource>(
   (ref) => SalesReturnsRemoteDatasource(ApiClient.instance),
@@ -16,9 +17,10 @@ final salesReturnsRepositoryProvider = Provider<SalesReturnsRepository>(
   (ref) => SalesReturnsRepository(ref.watch(salesReturnsDatasourceProvider)),
 );
 
-final salesReturnsProvider = AsyncNotifierProvider<SalesReturnsNotifier, List<SalesReturnModel>>(
-  SalesReturnsNotifier.new,
-);
+final salesReturnsProvider =
+    AsyncNotifierProvider<SalesReturnsNotifier, List<SalesReturnModel>>(
+      SalesReturnsNotifier.new,
+    );
 
 class SalesReturnsNotifier extends AsyncNotifier<List<SalesReturnModel>> {
   String _search = '';
@@ -27,10 +29,16 @@ class SalesReturnsNotifier extends AsyncNotifier<List<SalesReturnModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<SalesReturnModel>> build() => _fetch();
+  Future<List<SalesReturnModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<SalesReturnModel>> _fetch() async {
-    final result = await ref.read(salesReturnsRepositoryProvider).getAll(
+    final result = await ref
+        .read(salesReturnsRepositoryProvider)
+        .getAll(
           search: _search,
           invoiceId: _invoiceId,
           customerId: _customerId,
@@ -80,16 +88,23 @@ class SalesReturnsNotifier extends AsyncNotifier<List<SalesReturnModel>> {
   }
 
   Future<ApiResult<SalesReturnModel>> voidReturn(String id) async {
-    final result = await ref.read(salesReturnsRepositoryProvider).voidReturn(id);
+    final result = await ref
+        .read(salesReturnsRepositoryProvider)
+        .voidReturn(id);
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final salesReturnDetailsProvider = FutureProvider.family<SalesReturnModel, String>((ref, id) async {
-  final result = await ref.read(salesReturnsRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final salesReturnDetailsProvider =
+    FutureProvider.family<SalesReturnModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref.read(salesReturnsRepositoryProvider).getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });

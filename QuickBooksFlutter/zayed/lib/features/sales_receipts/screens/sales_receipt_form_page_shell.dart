@@ -11,6 +11,7 @@ import '../../../core/constants/api_enums.dart';
 import '../../../core/api/api_result.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
+import '../../companies/providers/company_registry_provider.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../invoices/data/models/sales_preview_contracts.dart';
@@ -52,6 +53,7 @@ class _SalesReceiptFormPageShellState
   bool _loadingActivity = false;
   bool _loadingExisting = false;
   Timer? _previewDebounce;
+  String? _companyScopeKey;
 
   final _numberCtrl = TextEditingController(text: 'AUTO');
   final _dateCtrl = TextEditingController();
@@ -658,6 +660,24 @@ class _SalesReceiptFormPageShellState
     return index >= 0 && targetIndex >= 0 && targetIndex < receipts.length;
   }
 
+  void _syncCompanyScope(String? scopeKey) {
+    if (_companyScopeKey == null) {
+      _companyScopeKey = scopeKey;
+      return;
+    }
+    if (_companyScopeKey == scopeKey) return;
+    _companyScopeKey = scopeKey;
+    _previewDebounce?.cancel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_isEdit) {
+        context.go(AppRoutes.salesReceiptNew);
+      } else {
+        _reset();
+      }
+    });
+  }
+
   void _openCustomerHistory() {
     final customer = _customer;
     if (customer == null) return;
@@ -669,6 +689,7 @@ class _SalesReceiptFormPageShellState
 
   @override
   Widget build(BuildContext context) {
+    _syncCompanyScope(ref.watch(activeCompanyScopeProvider));
     if (_loadingExisting) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }

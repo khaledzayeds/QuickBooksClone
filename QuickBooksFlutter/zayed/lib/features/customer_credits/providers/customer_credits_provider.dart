@@ -7,18 +7,22 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/customer_credits_remote_datasource.dart';
 import '../data/models/customer_credit_model.dart';
 import '../data/repositories/customer_credits_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final customerCreditsDatasourceProvider = Provider<CustomerCreditsRemoteDatasource>(
-  (ref) => CustomerCreditsRemoteDatasource(ApiClient.instance),
-);
+final customerCreditsDatasourceProvider =
+    Provider<CustomerCreditsRemoteDatasource>(
+      (ref) => CustomerCreditsRemoteDatasource(ApiClient.instance),
+    );
 
 final customerCreditsRepositoryProvider = Provider<CustomerCreditsRepository>(
-  (ref) => CustomerCreditsRepository(ref.watch(customerCreditsDatasourceProvider)),
+  (ref) =>
+      CustomerCreditsRepository(ref.watch(customerCreditsDatasourceProvider)),
 );
 
-final customerCreditsProvider = AsyncNotifierProvider<CustomerCreditsNotifier, List<CustomerCreditModel>>(
-  CustomerCreditsNotifier.new,
-);
+final customerCreditsProvider =
+    AsyncNotifierProvider<CustomerCreditsNotifier, List<CustomerCreditModel>>(
+      CustomerCreditsNotifier.new,
+    );
 
 class CustomerCreditsNotifier extends AsyncNotifier<List<CustomerCreditModel>> {
   String _search = '';
@@ -27,10 +31,16 @@ class CustomerCreditsNotifier extends AsyncNotifier<List<CustomerCreditModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<CustomerCreditModel>> build() => _fetch();
+  Future<List<CustomerCreditModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<CustomerCreditModel>> _fetch() async {
-    final result = await ref.read(customerCreditsRepositoryProvider).getAll(
+    final result = await ref
+        .read(customerCreditsRepositoryProvider)
+        .getAll(
           search: _search,
           customerId: _customerId,
           action: _action,
@@ -67,8 +77,12 @@ class CustomerCreditsNotifier extends AsyncNotifier<List<CustomerCreditModel>> {
     refresh();
   }
 
-  Future<ApiResult<CustomerCreditModel>> create(CreateCustomerCreditDto dto) async {
-    final result = await ref.read(customerCreditsRepositoryProvider).create(dto);
+  Future<ApiResult<CustomerCreditModel>> create(
+    CreateCustomerCreditDto dto,
+  ) async {
+    final result = await ref
+        .read(customerCreditsRepositoryProvider)
+        .create(dto);
     if (result.isSuccess) refresh();
     return result;
   }
@@ -80,10 +94,17 @@ class CustomerCreditsNotifier extends AsyncNotifier<List<CustomerCreditModel>> {
   }
 }
 
-final customerCreditDetailsProvider = FutureProvider.family<CustomerCreditModel, String>((ref, id) async {
-  final result = await ref.read(customerCreditsRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final customerCreditDetailsProvider =
+    FutureProvider.family<CustomerCreditModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref
+          .read(customerCreditsRepositoryProvider)
+          .getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });

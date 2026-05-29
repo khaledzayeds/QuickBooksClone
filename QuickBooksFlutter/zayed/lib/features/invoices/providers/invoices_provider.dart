@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_result.dart';
+import '../../companies/providers/company_registry_provider.dart';
 import '../data/datasources/invoices_remote_datasource.dart';
 import '../data/models/invoice_model.dart';
 import '../data/repositories/invoices_repository.dart';
@@ -24,9 +25,10 @@ final salesReceiptsRepositoryProvider = Provider<InvoicesRepository>(
   (ref) => InvoicesRepository(ref.watch(salesReceiptsDatasourceProvider)),
 );
 
-final invoicesProvider = AsyncNotifierProvider<InvoicesNotifier, List<InvoiceModel>>(
-  InvoicesNotifier.new,
-);
+final invoicesProvider =
+    AsyncNotifierProvider<InvoicesNotifier, List<InvoiceModel>>(
+      InvoicesNotifier.new,
+    );
 
 class InvoicesNotifier extends AsyncNotifier<List<InvoiceModel>> {
   String _search = '';
@@ -34,10 +36,16 @@ class InvoicesNotifier extends AsyncNotifier<List<InvoiceModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<InvoiceModel>> build() => _fetch();
+  Future<List<InvoiceModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<InvoiceModel>> _fetch() async {
-    final result = await ref.read(invoicesRepositoryProvider).getInvoices(
+    final result = await ref
+        .read(invoicesRepositoryProvider)
+        .getInvoices(
           search: _search,
           customerId: _customerId,
           includeVoid: _includeVoid,
@@ -68,8 +76,12 @@ class InvoicesNotifier extends AsyncNotifier<List<InvoiceModel>> {
     refresh();
   }
 
-  Future<ApiResult<InvoiceModel>> createInvoice(Map<String, dynamic> body) async {
-    final result = await ref.read(invoicesRepositoryProvider).createInvoice(body);
+  Future<ApiResult<InvoiceModel>> createInvoice(
+    Map<String, dynamic> body,
+  ) async {
+    final result = await ref
+        .read(invoicesRepositoryProvider)
+        .createInvoice(body);
     if (result.isSuccess) refresh();
     return result;
   }
@@ -87,9 +99,10 @@ class InvoicesNotifier extends AsyncNotifier<List<InvoiceModel>> {
   }
 }
 
-final salesReceiptsProvider = AsyncNotifierProvider<SalesReceiptsNotifier, List<InvoiceModel>>(
-  SalesReceiptsNotifier.new,
-);
+final salesReceiptsProvider =
+    AsyncNotifierProvider<SalesReceiptsNotifier, List<InvoiceModel>>(
+      SalesReceiptsNotifier.new,
+    );
 
 class SalesReceiptsNotifier extends AsyncNotifier<List<InvoiceModel>> {
   String _search = '';
@@ -97,10 +110,16 @@ class SalesReceiptsNotifier extends AsyncNotifier<List<InvoiceModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<InvoiceModel>> build() => _fetch();
+  Future<List<InvoiceModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<InvoiceModel>> _fetch() async {
-    final result = await ref.read(salesReceiptsRepositoryProvider).getInvoices(
+    final result = await ref
+        .read(salesReceiptsRepositoryProvider)
+        .getInvoices(
           search: _search,
           customerId: _customerId,
           includeVoid: _includeVoid,
@@ -131,31 +150,45 @@ class SalesReceiptsNotifier extends AsyncNotifier<List<InvoiceModel>> {
     refresh();
   }
 
-  Future<ApiResult<InvoiceModel>> createSalesReceipt(Map<String, dynamic> body) async {
-    final result = await ref.read(salesReceiptsRepositoryProvider).createInvoice(body);
+  Future<ApiResult<InvoiceModel>> createSalesReceipt(
+    Map<String, dynamic> body,
+  ) async {
+    final result = await ref
+        .read(salesReceiptsRepositoryProvider)
+        .createInvoice(body);
     if (result.isSuccess) refresh();
     return result;
   }
 
   Future<ApiResult<InvoiceModel>> voidSalesReceipt(String id) async {
-    final result = await ref.read(salesReceiptsRepositoryProvider).voidInvoice(id);
+    final result = await ref
+        .read(salesReceiptsRepositoryProvider)
+        .voidInvoice(id);
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final invoiceDetailProvider = FutureProvider.family<InvoiceModel, String>((ref, id) async {
+final invoiceDetailProvider = FutureProvider.family<InvoiceModel, String>((
+  ref,
+  id,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
   final result = await ref.read(invoicesRepositoryProvider).getInvoice(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
+  return result.when(success: (data) => data, failure: (error) => throw error);
 });
 
-final salesReceiptDetailProvider = FutureProvider.family<InvoiceModel, String>((ref, id) async {
+final salesReceiptDetailProvider = FutureProvider.family<InvoiceModel, String>((
+  ref,
+  id,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
   final result = await ref.read(salesReceiptsRepositoryProvider).getInvoice(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
+  return result.when(success: (data) => data, failure: (error) => throw error);
 });

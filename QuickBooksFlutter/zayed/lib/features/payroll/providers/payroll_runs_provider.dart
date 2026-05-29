@@ -2,28 +2,60 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/json_utils.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final payrollRunsProvider = FutureProvider.autoDispose<PayrollRunList>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/runs');
+final payrollRunsProvider = FutureProvider.autoDispose<PayrollRunList>((
+  ref,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/payroll/runs',
+  );
   return PayrollRunList.fromJson(response.data!);
 });
 
-final payrollRunDetailsProvider = FutureProvider.autoDispose.family<PayrollRunDetails, String>((ref, id) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/runs/$id');
-  return PayrollRunDetails.fromJson(response.data!);
-});
+final payrollRunDetailsProvider = FutureProvider.autoDispose
+    .family<PayrollRunDetails, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/payroll/runs/$id',
+      );
+      return PayrollRunDetails.fromJson(response.data!);
+    });
 
-final payrollRunJournalLinksProvider = FutureProvider.autoDispose.family<PayrollRunJournalLinks, String>((ref, id) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/runs/$id/journal-links');
-  return PayrollRunJournalLinks.fromJson(response.data!);
-});
+final payrollRunJournalLinksProvider = FutureProvider.autoDispose
+    .family<PayrollRunJournalLinks, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/payroll/runs/$id/journal-links',
+      );
+      return PayrollRunJournalLinks.fromJson(response.data!);
+    });
 
-final payrollSummaryReportProvider = FutureProvider.autoDispose<PayrollSummaryReport>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/reports/summary');
-  return PayrollSummaryReport.fromJson(response.data!);
-});
+final payrollSummaryReportProvider =
+    FutureProvider.autoDispose<PayrollSummaryReport>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/payroll/reports/summary',
+      );
+      return PayrollSummaryReport.fromJson(response.data!);
+    });
 
-final payrollRunCommandsProvider = Provider<PayrollRunCommands>((ref) => PayrollRunCommands(ref));
+final payrollRunCommandsProvider = Provider<PayrollRunCommands>(
+  (ref) => PayrollRunCommands(ref),
+);
 
 class PayrollRunCommands {
   const PayrollRunCommands(this.ref);
@@ -56,7 +88,9 @@ class PayrollRunCommands {
   }
 
   Future<void> approve(String id) async {
-    await ApiClient.instance.post<Map<String, dynamic>>('/api/payroll/runs/$id/approve');
+    await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/payroll/runs/$id/approve',
+    );
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
     ref.invalidate(payrollRunJournalLinksProvider(id));
@@ -64,7 +98,9 @@ class PayrollRunCommands {
   }
 
   Future<void> post(String id) async {
-    await ApiClient.instance.post<Map<String, dynamic>>('/api/payroll/runs/$id/post');
+    await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/payroll/runs/$id/post',
+    );
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
     ref.invalidate(payrollRunJournalLinksProvider(id));
@@ -72,7 +108,9 @@ class PayrollRunCommands {
   }
 
   Future<void> voidRun(String id) async {
-    await ApiClient.instance.patch<Map<String, dynamic>>('/api/payroll/runs/$id/void');
+    await ApiClient.instance.patch<Map<String, dynamic>>(
+      '/api/payroll/runs/$id/void',
+    );
     ref.invalidate(payrollRunsProvider);
     ref.invalidate(payrollRunDetailsProvider(id));
     ref.invalidate(payrollRunJournalLinksProvider(id));
@@ -96,12 +134,15 @@ class PayrollRunList {
   final double totalNetPay;
 
   factory PayrollRunList.fromJson(Map<String, dynamic> json) => PayrollRunList(
-        items: JsonUtils.asList(json['items'], (row) => PayrollRunSummary.fromJson(row)),
-        totalCount: JsonUtils.asInt(json['totalCount']),
-        totalGrossPay: JsonUtils.asDouble(json['totalGrossPay']),
-        totalDeductions: JsonUtils.asDouble(json['totalDeductions']),
-        totalNetPay: JsonUtils.asDouble(json['totalNetPay']),
-      );
+    items: JsonUtils.asList(
+      json['items'],
+      (row) => PayrollRunSummary.fromJson(row),
+    ),
+    totalCount: JsonUtils.asInt(json['totalCount']),
+    totalGrossPay: JsonUtils.asDouble(json['totalGrossPay']),
+    totalDeductions: JsonUtils.asDouble(json['totalDeductions']),
+    totalNetPay: JsonUtils.asDouble(json['totalNetPay']),
+  );
 }
 
 class PayrollRunSummary {
@@ -135,7 +176,8 @@ class PayrollRunSummary {
   final double totalDeductions;
   final double totalNetPay;
 
-  factory PayrollRunSummary.fromJson(Map<String, dynamic> json) => PayrollRunSummary(
+  factory PayrollRunSummary.fromJson(Map<String, dynamic> json) =>
+      PayrollRunSummary(
         id: JsonUtils.asString(json['id']),
         runNumber: JsonUtils.asString(json['runNumber']),
         periodStart: _parseDate(json['periodStart']),
@@ -191,7 +233,8 @@ class PayrollRunDetails {
   final double totalNetPay;
   final List<PayrollRunLine> lines;
 
-  factory PayrollRunDetails.fromJson(Map<String, dynamic> json) => PayrollRunDetails(
+  factory PayrollRunDetails.fromJson(Map<String, dynamic> json) =>
+      PayrollRunDetails(
         id: JsonUtils.asString(json['id']),
         runNumber: JsonUtils.asString(json['runNumber']),
         periodStart: _parseDate(json['periodStart']),
@@ -201,14 +244,21 @@ class PayrollRunDetails {
         currency: JsonUtils.asString(json['currency']),
         status: JsonUtils.asString(json['status']),
         journalEntryId: JsonUtils.asNullableString(json['journalEntryId']),
-        regularHoursPerEmployee: JsonUtils.asDouble(json['regularHoursPerEmployee']),
-        overtimeHoursPerEmployee: JsonUtils.asDouble(json['overtimeHoursPerEmployee']),
+        regularHoursPerEmployee: JsonUtils.asDouble(
+          json['regularHoursPerEmployee'],
+        ),
+        overtimeHoursPerEmployee: JsonUtils.asDouble(
+          json['overtimeHoursPerEmployee'],
+        ),
         taxWithholdingRate: JsonUtils.asDouble(json['taxWithholdingRate']),
         employeeCount: JsonUtils.asInt(json['employeeCount']),
         totalGrossPay: JsonUtils.asDouble(json['totalGrossPay']),
         totalDeductions: JsonUtils.asDouble(json['totalDeductions']),
         totalNetPay: JsonUtils.asDouble(json['totalNetPay']),
-        lines: JsonUtils.asList(json['lines'], (row) => PayrollRunLine.fromJson(row)),
+        lines: JsonUtils.asList(
+          json['lines'],
+          (row) => PayrollRunLine.fromJson(row),
+        ),
       );
 }
 
@@ -227,10 +277,13 @@ class PayrollRunJournalLinks {
   final bool hasOriginalJournal;
   final bool hasReversalJournal;
 
-  factory PayrollRunJournalLinks.fromJson(Map<String, dynamic> json) => PayrollRunJournalLinks(
+  factory PayrollRunJournalLinks.fromJson(Map<String, dynamic> json) =>
+      PayrollRunJournalLinks(
         runId: JsonUtils.asString(json['runId']),
         journalEntryId: JsonUtils.asNullableString(json['journalEntryId']),
-        reversalJournalEntryId: JsonUtils.asNullableString(json['reversalJournalEntryId']),
+        reversalJournalEntryId: JsonUtils.asNullableString(
+          json['reversalJournalEntryId'],
+        ),
         hasOriginalJournal: JsonUtils.asBool(json['hasOriginalJournal']),
         hasReversalJournal: JsonUtils.asBool(json['hasReversalJournal']),
       );
@@ -262,17 +315,17 @@ class PayrollRunLine {
   final double netPay;
 
   factory PayrollRunLine.fromJson(Map<String, dynamic> json) => PayrollRunLine(
-        id: JsonUtils.asString(json['id']),
-        employeeId: JsonUtils.asString(json['employeeId']),
-        employeeNumber: JsonUtils.asString(json['employeeNumber']),
-        employeeName: JsonUtils.asString(json['employeeName']),
-        regularHours: JsonUtils.asDouble(json['regularHours']),
-        overtimeHours: JsonUtils.asDouble(json['overtimeHours']),
-        hourlyRate: JsonUtils.asDouble(json['hourlyRate']),
-        grossPay: JsonUtils.asDouble(json['grossPay']),
-        deductions: JsonUtils.asDouble(json['deductions']),
-        netPay: JsonUtils.asDouble(json['netPay']),
-      );
+    id: JsonUtils.asString(json['id']),
+    employeeId: JsonUtils.asString(json['employeeId']),
+    employeeNumber: JsonUtils.asString(json['employeeNumber']),
+    employeeName: JsonUtils.asString(json['employeeName']),
+    regularHours: JsonUtils.asDouble(json['regularHours']),
+    overtimeHours: JsonUtils.asDouble(json['overtimeHours']),
+    hourlyRate: JsonUtils.asDouble(json['hourlyRate']),
+    grossPay: JsonUtils.asDouble(json['grossPay']),
+    deductions: JsonUtils.asDouble(json['deductions']),
+    netPay: JsonUtils.asDouble(json['netPay']),
+  );
 }
 
 class PayrollSummaryReport {
@@ -300,7 +353,8 @@ class PayrollSummaryReport {
   final List<PayrollSummaryByEmployee> byEmployee;
   final List<PayrollSummaryRun> runs;
 
-  factory PayrollSummaryReport.fromJson(Map<String, dynamic> json) => PayrollSummaryReport(
+  factory PayrollSummaryReport.fromJson(Map<String, dynamic> json) =>
+      PayrollSummaryReport(
         fromDate: _parseNullableDate(json['fromDate']),
         toDate: _parseNullableDate(json['toDate']),
         runCount: JsonUtils.asInt(json['runCount']),
@@ -308,14 +362,29 @@ class PayrollSummaryReport {
         totalGrossPay: JsonUtils.asDouble(json['totalGrossPay']),
         totalDeductions: JsonUtils.asDouble(json['totalDeductions']),
         totalNetPay: JsonUtils.asDouble(json['totalNetPay']),
-        byStatus: JsonUtils.asList(json['byStatus'], (row) => PayrollSummaryByStatus.fromJson(row)),
-        byEmployee: JsonUtils.asList(json['byEmployee'], (row) => PayrollSummaryByEmployee.fromJson(row)),
-        runs: JsonUtils.asList(json['runs'], (row) => PayrollSummaryRun.fromJson(row)),
+        byStatus: JsonUtils.asList(
+          json['byStatus'],
+          (row) => PayrollSummaryByStatus.fromJson(row),
+        ),
+        byEmployee: JsonUtils.asList(
+          json['byEmployee'],
+          (row) => PayrollSummaryByEmployee.fromJson(row),
+        ),
+        runs: JsonUtils.asList(
+          json['runs'],
+          (row) => PayrollSummaryRun.fromJson(row),
+        ),
       );
 }
 
 class PayrollSummaryByStatus {
-  const PayrollSummaryByStatus({required this.status, required this.runCount, required this.grossPay, required this.deductions, required this.netPay});
+  const PayrollSummaryByStatus({
+    required this.status,
+    required this.runCount,
+    required this.grossPay,
+    required this.deductions,
+    required this.netPay,
+  });
 
   final String status;
   final int runCount;
@@ -323,7 +392,8 @@ class PayrollSummaryByStatus {
   final double deductions;
   final double netPay;
 
-  factory PayrollSummaryByStatus.fromJson(Map<String, dynamic> json) => PayrollSummaryByStatus(
+  factory PayrollSummaryByStatus.fromJson(Map<String, dynamic> json) =>
+      PayrollSummaryByStatus(
         status: JsonUtils.asString(json['status']),
         runCount: JsonUtils.asInt(json['runCount']),
         grossPay: JsonUtils.asDouble(json['grossPay']),
@@ -333,7 +403,14 @@ class PayrollSummaryByStatus {
 }
 
 class PayrollSummaryByEmployee {
-  const PayrollSummaryByEmployee({required this.employeeId, required this.employeeNumber, required this.employeeName, required this.grossPay, required this.deductions, required this.netPay});
+  const PayrollSummaryByEmployee({
+    required this.employeeId,
+    required this.employeeNumber,
+    required this.employeeName,
+    required this.grossPay,
+    required this.deductions,
+    required this.netPay,
+  });
 
   final String employeeId;
   final String employeeNumber;
@@ -342,7 +419,8 @@ class PayrollSummaryByEmployee {
   final double deductions;
   final double netPay;
 
-  factory PayrollSummaryByEmployee.fromJson(Map<String, dynamic> json) => PayrollSummaryByEmployee(
+  factory PayrollSummaryByEmployee.fromJson(Map<String, dynamic> json) =>
+      PayrollSummaryByEmployee(
         employeeId: JsonUtils.asString(json['employeeId']),
         employeeNumber: JsonUtils.asString(json['employeeNumber']),
         employeeName: JsonUtils.asString(json['employeeName']),
@@ -381,7 +459,8 @@ class PayrollSummaryRun {
   final double netPay;
   final String? journalEntryId;
 
-  factory PayrollSummaryRun.fromJson(Map<String, dynamic> json) => PayrollSummaryRun(
+  factory PayrollSummaryRun.fromJson(Map<String, dynamic> json) =>
+      PayrollSummaryRun(
         id: JsonUtils.asString(json['id']),
         runNumber: JsonUtils.asString(json['runNumber']),
         periodStart: _parseDate(json['periodStart']),
@@ -397,6 +476,9 @@ class PayrollSummaryRun {
       );
 }
 
-String _dateOnly(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-DateTime? _parseNullableDate(dynamic value) => value == null ? null : DateTime.tryParse(value.toString());
+String _dateOnly(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+DateTime _parseDate(dynamic value) =>
+    DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+DateTime? _parseNullableDate(dynamic value) =>
+    value == null ? null : DateTime.tryParse(value.toString());

@@ -7,6 +7,7 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/vendor_credits_remote_datasource.dart';
 import '../data/models/vendor_credit_model.dart';
 import '../data/repositories/vendor_credits_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final vendorCreditsDatasourceProvider = Provider<VendorCreditsRemoteDatasource>(
   (ref) => VendorCreditsRemoteDatasource(ApiClient.instance),
@@ -16,9 +17,10 @@ final vendorCreditsRepositoryProvider = Provider<VendorCreditsRepository>(
   (ref) => VendorCreditsRepository(ref.watch(vendorCreditsDatasourceProvider)),
 );
 
-final vendorCreditsProvider = AsyncNotifierProvider<VendorCreditsNotifier, List<VendorCreditModel>>(
-  VendorCreditsNotifier.new,
-);
+final vendorCreditsProvider =
+    AsyncNotifierProvider<VendorCreditsNotifier, List<VendorCreditModel>>(
+      VendorCreditsNotifier.new,
+    );
 
 class VendorCreditsNotifier extends AsyncNotifier<List<VendorCreditModel>> {
   String _search = '';
@@ -27,10 +29,16 @@ class VendorCreditsNotifier extends AsyncNotifier<List<VendorCreditModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<VendorCreditModel>> build() => _fetch();
+  Future<List<VendorCreditModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<VendorCreditModel>> _fetch() async {
-    final result = await ref.read(vendorCreditsRepositoryProvider).getAll(
+    final result = await ref
+        .read(vendorCreditsRepositoryProvider)
+        .getAll(
           search: _search,
           vendorId: _vendorId,
           action: _action,
@@ -74,10 +82,17 @@ class VendorCreditsNotifier extends AsyncNotifier<List<VendorCreditModel>> {
   }
 }
 
-final vendorCreditDetailsProvider = FutureProvider.family<VendorCreditModel, String>((ref, id) async {
-  final result = await ref.read(vendorCreditsRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final vendorCreditDetailsProvider =
+    FutureProvider.family<VendorCreditModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref
+          .read(vendorCreditsRepositoryProvider)
+          .getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });

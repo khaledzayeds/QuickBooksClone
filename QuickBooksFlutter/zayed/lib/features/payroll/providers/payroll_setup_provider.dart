@@ -2,18 +2,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/json_utils.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final payrollSetupProvider = FutureProvider.autoDispose<PayrollSetup>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/setup');
+final payrollSetupProvider = FutureProvider.autoDispose<PayrollSetup>((
+  ref,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/payroll/setup',
+  );
   return PayrollSetup.fromJson(response.data!);
 });
 
-final payrollAccountSettingsProvider = FutureProvider.autoDispose<PayrollAccountSettings>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/payroll/account-settings');
-  return PayrollAccountSettings.fromJson(response.data!);
-});
+final payrollAccountSettingsProvider =
+    FutureProvider.autoDispose<PayrollAccountSettings>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/payroll/account-settings',
+      );
+      return PayrollAccountSettings.fromJson(response.data!);
+    });
 
-final payrollSetupCommandsProvider = Provider<PayrollSetupCommands>((ref) => PayrollSetupCommands(ref));
+final payrollSetupCommandsProvider = Provider<PayrollSetupCommands>(
+  (ref) => PayrollSetupCommands(ref),
+);
 
 class PayrollSetupCommands {
   const PayrollSetupCommands(this.ref);
@@ -87,7 +105,12 @@ class PayrollSetupCommands {
   }) async {
     await ApiClient.instance.post<Map<String, dynamic>>(
       '/api/payroll/setup/earning-types',
-      data: {'code': code, 'name': name, 'isTaxable': isTaxable, 'isActive': isActive},
+      data: {
+        'code': code,
+        'name': name,
+        'isTaxable': isTaxable,
+        'isActive': isActive,
+      },
     );
     ref.invalidate(payrollSetupProvider);
   }
@@ -100,7 +123,12 @@ class PayrollSetupCommands {
   }) async {
     await ApiClient.instance.post<Map<String, dynamic>>(
       '/api/payroll/setup/deduction-types',
-      data: {'code': code, 'name': name, 'isPreTax': isPreTax, 'isActive': isActive},
+      data: {
+        'code': code,
+        'name': name,
+        'isPreTax': isPreTax,
+        'isActive': isActive,
+      },
     );
     ref.invalidate(payrollSetupProvider);
   }
@@ -124,13 +152,24 @@ class PayrollSetup {
   final int payScheduleCount;
 
   factory PayrollSetup.fromJson(Map<String, dynamic> json) => PayrollSetup(
-        settings: PayrollSettings.fromJson(json['settings'] as Map<String, dynamic>),
-        employees: JsonUtils.asList(json['employees'], (row) => PayrollEmployee.fromJson(row)),
-        earningTypes: JsonUtils.asList(json['earningTypes'], (row) => PayrollEarningType.fromJson(row)),
-        deductionTypes: JsonUtils.asList(json['deductionTypes'], (row) => PayrollDeductionType.fromJson(row)),
-        activeEmployeeCount: JsonUtils.asInt(json['activeEmployeeCount']),
-        payScheduleCount: JsonUtils.asInt(json['payScheduleCount']),
-      );
+    settings: PayrollSettings.fromJson(
+      json['settings'] as Map<String, dynamic>,
+    ),
+    employees: JsonUtils.asList(
+      json['employees'],
+      (row) => PayrollEmployee.fromJson(row),
+    ),
+    earningTypes: JsonUtils.asList(
+      json['earningTypes'],
+      (row) => PayrollEarningType.fromJson(row),
+    ),
+    deductionTypes: JsonUtils.asList(
+      json['deductionTypes'],
+      (row) => PayrollDeductionType.fromJson(row),
+    ),
+    activeEmployeeCount: JsonUtils.asInt(json['activeEmployeeCount']),
+    payScheduleCount: JsonUtils.asInt(json['payScheduleCount']),
+  );
 }
 
 class PayrollAccountSettings {
@@ -154,14 +193,27 @@ class PayrollAccountSettings {
   final String? payrollTaxPayableAccountName;
   final bool isConfigured;
 
-  factory PayrollAccountSettings.fromJson(Map<String, dynamic> json) => PayrollAccountSettings(
+  factory PayrollAccountSettings.fromJson(Map<String, dynamic> json) =>
+      PayrollAccountSettings(
         settingsId: JsonUtils.asString(json['settingsId']),
-        payrollExpenseAccountId: JsonUtils.asNullableString(json['payrollExpenseAccountId']),
-        payrollExpenseAccountName: JsonUtils.asNullableString(json['payrollExpenseAccountName']),
-        payrollPayableAccountId: JsonUtils.asNullableString(json['payrollPayableAccountId']),
-        payrollPayableAccountName: JsonUtils.asNullableString(json['payrollPayableAccountName']),
-        payrollTaxPayableAccountId: JsonUtils.asNullableString(json['payrollTaxPayableAccountId']),
-        payrollTaxPayableAccountName: JsonUtils.asNullableString(json['payrollTaxPayableAccountName']),
+        payrollExpenseAccountId: JsonUtils.asNullableString(
+          json['payrollExpenseAccountId'],
+        ),
+        payrollExpenseAccountName: JsonUtils.asNullableString(
+          json['payrollExpenseAccountName'],
+        ),
+        payrollPayableAccountId: JsonUtils.asNullableString(
+          json['payrollPayableAccountId'],
+        ),
+        payrollPayableAccountName: JsonUtils.asNullableString(
+          json['payrollPayableAccountName'],
+        ),
+        payrollTaxPayableAccountId: JsonUtils.asNullableString(
+          json['payrollTaxPayableAccountId'],
+        ),
+        payrollTaxPayableAccountName: JsonUtils.asNullableString(
+          json['payrollTaxPayableAccountName'],
+        ),
         isConfigured: JsonUtils.asBool(json['isConfigured']),
       );
 }
@@ -185,14 +237,17 @@ class PayrollSettings {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
-  factory PayrollSettings.fromJson(Map<String, dynamic> json) => PayrollSettings(
+  factory PayrollSettings.fromJson(Map<String, dynamic> json) =>
+      PayrollSettings(
         id: JsonUtils.asString(json['id']),
         defaultPaySchedule: JsonUtils.asString(json['defaultPaySchedule']),
         defaultCurrency: JsonUtils.asString(json['defaultCurrency']),
         workWeekHours: JsonUtils.asInt(json['workWeekHours']),
         isPayrollEnabled: JsonUtils.asBool(json['isPayrollEnabled']),
         createdAt: _parseDate(json['createdAt']),
-        updatedAt: json['updatedAt'] == null ? null : _parseDate(json['updatedAt']),
+        updatedAt: json['updatedAt'] == null
+            ? null
+            : _parseDate(json['updatedAt']),
       );
 }
 
@@ -217,7 +272,8 @@ class PayrollEmployee {
   final String currency;
   final bool isActive;
 
-  factory PayrollEmployee.fromJson(Map<String, dynamic> json) => PayrollEmployee(
+  factory PayrollEmployee.fromJson(Map<String, dynamic> json) =>
+      PayrollEmployee(
         id: JsonUtils.asString(json['id']),
         employeeNumber: JsonUtils.asString(json['employeeNumber']),
         displayName: JsonUtils.asString(json['displayName']),
@@ -230,7 +286,13 @@ class PayrollEmployee {
 }
 
 class PayrollEarningType {
-  const PayrollEarningType({required this.id, required this.code, required this.name, required this.isTaxable, required this.isActive});
+  const PayrollEarningType({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.isTaxable,
+    required this.isActive,
+  });
 
   final String id;
   final String code;
@@ -238,7 +300,8 @@ class PayrollEarningType {
   final bool isTaxable;
   final bool isActive;
 
-  factory PayrollEarningType.fromJson(Map<String, dynamic> json) => PayrollEarningType(
+  factory PayrollEarningType.fromJson(Map<String, dynamic> json) =>
+      PayrollEarningType(
         id: JsonUtils.asString(json['id']),
         code: JsonUtils.asString(json['code']),
         name: JsonUtils.asString(json['name']),
@@ -248,7 +311,13 @@ class PayrollEarningType {
 }
 
 class PayrollDeductionType {
-  const PayrollDeductionType({required this.id, required this.code, required this.name, required this.isPreTax, required this.isActive});
+  const PayrollDeductionType({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.isPreTax,
+    required this.isActive,
+  });
 
   final String id;
   final String code;
@@ -256,7 +325,8 @@ class PayrollDeductionType {
   final bool isPreTax;
   final bool isActive;
 
-  factory PayrollDeductionType.fromJson(Map<String, dynamic> json) => PayrollDeductionType(
+  factory PayrollDeductionType.fromJson(Map<String, dynamic> json) =>
+      PayrollDeductionType(
         id: JsonUtils.asString(json['id']),
         code: JsonUtils.asString(json['code']),
         name: JsonUtils.asString(json['name']),
@@ -265,4 +335,5 @@ class PayrollDeductionType {
       );
 }
 
-DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+DateTime _parseDate(dynamic value) =>
+    DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();

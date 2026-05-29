@@ -50,17 +50,18 @@ class LocalCompanyInfo {
       name: json['name']?.toString() ?? '',
       databasePath: json['databasePath']?.toString() ?? '',
       displayPath: json['displayPath']?.toString(),
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
-      lastOpenedAt: DateTime.tryParse(json['lastOpenedAt']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      lastOpenedAt:
+          DateTime.tryParse(json['lastOpenedAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }
 
 class CompanyRegistry {
-  const CompanyRegistry({
-    required this.companies,
-    this.activeCompanyId,
-  });
+  const CompanyRegistry({required this.companies, this.activeCompanyId});
 
   final List<LocalCompanyInfo> companies;
   final String? activeCompanyId;
@@ -83,7 +84,9 @@ class CompanyRegistry {
   }) {
     return CompanyRegistry(
       companies: companies ?? this.companies,
-      activeCompanyId: clearActiveCompany ? null : activeCompanyId ?? this.activeCompanyId,
+      activeCompanyId: clearActiveCompany
+          ? null
+          : activeCompanyId ?? this.activeCompanyId,
     );
   }
 
@@ -107,10 +110,12 @@ class CompanyRegistry {
       final rawCompanies = decoded['companies'];
       final companies = rawCompanies is List
           ? rawCompanies
-              .whereType<Map<String, dynamic>>()
-              .map(LocalCompanyInfo.fromJson)
-              .where((company) => company.id.isNotEmpty && company.name.isNotEmpty)
-              .toList()
+                .whereType<Map<String, dynamic>>()
+                .map(LocalCompanyInfo.fromJson)
+                .where(
+                  (company) => company.id.isNotEmpty && company.name.isNotEmpty,
+                )
+                .toList()
           : <LocalCompanyInfo>[];
 
       companies.sort((a, b) => b.lastOpenedAt.compareTo(a.lastOpenedAt));

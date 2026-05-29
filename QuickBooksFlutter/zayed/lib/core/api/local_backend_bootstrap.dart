@@ -6,8 +6,14 @@ import '../constants/app_constants.dart';
 class LocalBackendBootstrap {
   LocalBackendBootstrap._();
 
+  static Future<void> stopRunningService() async {
+    if (!Platform.isWindows) return;
+    await Process.run('taskkill', const ['/F', '/IM', 'Zayed.Api.exe', '/T']);
+  }
+
   static Future<void> ensureStarted({
     String baseUrl = AppConstants.defaultBaseUrl,
+    Duration startupTimeout = const Duration(seconds: 55),
   }) async {
     if (await _isReady(baseUrl)) return;
 
@@ -24,10 +30,10 @@ class LocalBackendBootstrap {
       workingDirectory: launch.workingDirectory,
     );
 
-    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    final deadline = DateTime.now().add(startupTimeout);
     while (DateTime.now().isBefore(deadline)) {
       if (await _isReady(baseUrl)) return;
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 350));
     }
 
     throw const ZayedServiceTimeoutException();

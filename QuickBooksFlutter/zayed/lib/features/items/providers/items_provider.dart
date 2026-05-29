@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
+import '../../companies/providers/company_registry_provider.dart';
 import '../data/datasources/items_remote_datasource.dart';
 import '../data/models/item_model.dart';
 import '../data/repositories/items_repository.dart';
@@ -24,6 +25,8 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
 
   @override
   Future<List<ItemModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
     return _fetch();
   }
 
@@ -68,14 +71,19 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
     return result;
   }
 
-  Future<ApiResult<ItemModel>> updateItem(String id, Map<String, dynamic> body) async {
+  Future<ApiResult<ItemModel>> updateItem(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     final result = await ref.read(itemsRepositoryProvider).updateItem(id, body);
     if (result.isSuccess) await refresh();
     return result;
   }
 
   Future<ApiResult<ItemModel>> toggleActive(String id, bool isActive) async {
-    final result = await ref.read(itemsRepositoryProvider).toggleActive(id, isActive);
+    final result = await ref
+        .read(itemsRepositoryProvider)
+        .toggleActive(id, isActive);
     if (result.isSuccess) await refresh();
     return result;
   }
@@ -86,19 +94,20 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
     required int mode,
     required double value,
   }) async {
-    final result = await ref.read(itemsRepositoryProvider).bulkPriceChange(
-      itemIds: itemIds,
-      target:  target,
-      mode:    mode,
-      value:   value,
-    );
+    final result = await ref
+        .read(itemsRepositoryProvider)
+        .bulkPriceChange(
+          itemIds: itemIds,
+          target: target,
+          mode: mode,
+          value: value,
+        );
     if (result.isSuccess) await refresh();
     return result;
   }
 
   Future<ApiResult<String>> exportCsv() =>
       ref.read(itemsRepositoryProvider).exportCsv();
-
 
   Future<ApiResult<List<Map<String, dynamic>>>> exportItemsJson() =>
       ref.read(itemsRepositoryProvider).exportItemsJson();
@@ -108,6 +117,10 @@ final itemDetailProvider = FutureProvider.family<ItemModel, String>((
   ref,
   id,
 ) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
   final result = await ref.read(itemsRepositoryProvider).getItem(id);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });

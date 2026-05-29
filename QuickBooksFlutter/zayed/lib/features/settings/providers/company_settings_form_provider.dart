@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/settings_models.dart';
 import 'settings_provider.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 class CompanySettingsFormState {
   const CompanySettingsFormState({
@@ -39,42 +40,74 @@ class CompanySettingsFormState {
 class CompanySettingsFormNotifier extends Notifier<CompanySettingsFormState> {
   @override
   CompanySettingsFormState build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) {
+      return CompanySettingsFormState(form: CompanySettingsModel.empty());
+    }
     Future.microtask(load);
-    return CompanySettingsFormState(form: CompanySettingsModel.empty(), loading: true);
+    return CompanySettingsFormState(
+      form: CompanySettingsModel.empty(),
+      loading: true,
+    );
   }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, clearError: true, saved: false);
     try {
       final company = await ref.read(settingsRepositoryProvider).getCompany();
-      state = state.copyWith(form: company ?? CompanySettingsModel.empty(), loading: false, clearError: true);
+      state = state.copyWith(
+        form: company ?? CompanySettingsModel.empty(),
+        loading: false,
+        clearError: true,
+      );
     } catch (error) {
       state = state.copyWith(loading: false, errorMessage: error.toString());
     }
   }
 
-  void update(CompanySettingsModel Function(CompanySettingsModel current) change) {
-    state = state.copyWith(form: change(state.form), clearError: true, saved: false);
+  void update(
+    CompanySettingsModel Function(CompanySettingsModel current) change,
+  ) {
+    state = state.copyWith(
+      form: change(state.form),
+      clearError: true,
+      saved: false,
+    );
   }
 
   Future<void> save() async {
     if (state.form.companyName.trim().isEmpty) {
-      state = state.copyWith(errorMessage: 'Company name is required.', saved: false);
+      state = state.copyWith(
+        errorMessage: 'Company name is required.',
+        saved: false,
+      );
       return;
     }
 
     state = state.copyWith(saving: true, clearError: true, saved: false);
     try {
-      final saved = await ref.read(settingsRepositoryProvider).updateCompany(state.form);
+      final saved = await ref
+          .read(settingsRepositoryProvider)
+          .updateCompany(state.form);
       ref.invalidate(companySettingsProvider);
       ref.invalidate(runtimeSettingsProvider);
-      state = state.copyWith(form: saved, saving: false, clearError: true, saved: true);
+      state = state.copyWith(
+        form: saved,
+        saving: false,
+        clearError: true,
+        saved: true,
+      );
     } catch (error) {
-      state = state.copyWith(saving: false, errorMessage: error.toString(), saved: false);
+      state = state.copyWith(
+        saving: false,
+        errorMessage: error.toString(),
+        saved: false,
+      );
     }
   }
 }
 
-final companySettingsFormProvider = NotifierProvider<CompanySettingsFormNotifier, CompanySettingsFormState>(
-  CompanySettingsFormNotifier.new,
-);
+final companySettingsFormProvider =
+    NotifierProvider<CompanySettingsFormNotifier, CompanySettingsFormState>(
+      CompanySettingsFormNotifier.new,
+    );

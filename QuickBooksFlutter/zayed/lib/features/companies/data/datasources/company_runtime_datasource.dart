@@ -6,20 +6,25 @@ import '../../../../core/utils/error_handler.dart';
 import '../models/company_runtime_models.dart';
 
 class CompanyRuntimeDatasource {
-  CompanyRuntimeDatasource({ApiClient? client}) : _client = client ?? ApiClient.instance;
+  CompanyRuntimeDatasource({ApiClient? client})
+    : _client = client ?? ApiClient.instance;
 
   final ApiClient _client;
 
   Future<ApiResult<ActiveCompanyRuntimeModel>> getActive() async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/companies/active');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/companies/active',
+      );
       return Success(ActiveCompanyRuntimeModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
   }
 
-  Future<ApiResult<ActiveCompanyRuntimeModel>> open(OpenCompanyRuntimeRequest request) async {
+  Future<ApiResult<ActiveCompanyRuntimeModel>> open(
+    OpenCompanyRuntimeRequest request,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/companies/open',
@@ -33,7 +38,9 @@ class CompanyRuntimeDatasource {
 
   Future<ApiResult<ActiveCompanyRuntimeModel>> close() async {
     try {
-      final response = await _client.post<Map<String, dynamic>>('/api/companies/close');
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/companies/close',
+      );
       return Success(ActiveCompanyRuntimeModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/security_models.dart';
 import '../data/security_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final securityRepositoryProvider = Provider<SecurityRepository>(
   (ref) => SecurityRepository(),
@@ -57,6 +58,10 @@ class SecurityNotifier extends Notifier<SecurityState> {
   @override
   SecurityState build() {
     _repository = ref.watch(securityRepositoryProvider);
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) {
+      return const SecurityState();
+    }
     Future.microtask(load);
     return const SecurityState(loading: true);
   }

@@ -9,6 +9,7 @@ import 'package:zayed/l10n/app_localizations.dart';
 import '../../../app/router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_result.dart';
+import '../../companies/providers/company_registry_provider.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
@@ -58,6 +59,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   bool _loadingActivity = false;
   bool _loadingExisting = false;
   Timer? _previewDebounce;
+  String? _companyScopeKey;
 
   // ── Notes & saved invoice id ──────────────────────────────────
   String _notes = '';
@@ -178,6 +180,24 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
       return;
     }
     _resetForm();
+  }
+
+  void _syncCompanyScope(String? scopeKey) {
+    if (_companyScopeKey == null) {
+      _companyScopeKey = scopeKey;
+      return;
+    }
+    if (_companyScopeKey == scopeKey) return;
+    _companyScopeKey = scopeKey;
+    _previewDebounce?.cancel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_isEdit) {
+        context.go(AppRoutes.invoiceNew);
+      } else {
+        _resetForm();
+      }
+    });
   }
 
   Future<void> _saveAndNew() async {
@@ -832,6 +852,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
 
   @override
   Widget build(BuildContext context) {
+    _syncCompanyScope(ref.watch(activeCompanyScopeProvider));
     if (_loadingExisting) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }

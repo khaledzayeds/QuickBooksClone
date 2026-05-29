@@ -4,38 +4,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/datasources/purchase_orders_remote_datasource.dart';
 import '../data/repositories/purchase_orders_repository.dart';
 import '../data/models/purchase_order_model.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 // ─── Dependencies ─────────────────────────────────────────────────────
 final _poDatasourceProvider = Provider<PurchaseOrdersRemoteDatasource>(
-    (_) => PurchaseOrdersRemoteDatasource());
+  (_) => PurchaseOrdersRemoteDatasource(),
+);
 
 final purchaseOrdersRepoProvider = Provider<PurchaseOrdersRepository>(
-    (ref) => PurchaseOrdersRepository(ref.read(_poDatasourceProvider)));
+  (ref) => PurchaseOrdersRepository(ref.read(_poDatasourceProvider)),
+);
 
 // ─── List Notifier ────────────────────────────────────────────────────
 final purchaseOrdersProvider =
     AsyncNotifierProvider<PurchaseOrdersNotifier, List<PurchaseOrderModel>>(
-        PurchaseOrdersNotifier.new);
+      PurchaseOrdersNotifier.new,
+    );
 
-class PurchaseOrdersNotifier
-    extends AsyncNotifier<List<PurchaseOrderModel>> {
-  
+class PurchaseOrdersNotifier extends AsyncNotifier<List<PurchaseOrderModel>> {
   /// Which filter tab is active
   PurchaseOrderStatus? _statusFilter;
   String? _vendorId;
 
   @override
-  Future<List<PurchaseOrderModel>> build() => _fetch();
+  Future<List<PurchaseOrderModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<PurchaseOrderModel>> _fetch() async {
     // Backend uses includeClosed / includeCancelled booleans, not a status string.
     // We translate our local filter to those booleans.
-    bool includeClosed    = false;
+    bool includeClosed = false;
     bool includeCancelled = false;
 
     if (_statusFilter == null) {
       // "الكل" — show everything
-      includeClosed    = true;
+      includeClosed = true;
       includeCancelled = true;
     } else if (_statusFilter == PurchaseOrderStatus.closed) {
       includeClosed = true;
@@ -43,16 +49,15 @@ class PurchaseOrdersNotifier
       includeCancelled = true;
     }
 
-    final result = await ref.read(purchaseOrdersRepoProvider).getAll(
-      vendorId: _vendorId,
-      includeClosed: includeClosed,
-      includeCancelled: includeCancelled,
-    );
+    final result = await ref
+        .read(purchaseOrdersRepoProvider)
+        .getAll(
+          vendorId: _vendorId,
+          includeClosed: includeClosed,
+          includeCancelled: includeCancelled,
+        );
 
-    final all = result.when(
-      success: (data) => data,
-      failure: (e) => throw e,
-    );
+    final all = result.when(success: (data) => data, failure: (e) => throw e);
 
     // Client-side filter for Draft / Open since the API includes both by default
     if (_statusFilter != null &&
@@ -66,7 +71,9 @@ class PurchaseOrdersNotifier
       return all.where((o) => o.status == PurchaseOrderStatus.closed).toList();
     }
     if (_statusFilter == PurchaseOrderStatus.cancelled) {
-      return all.where((o) => o.status == PurchaseOrderStatus.cancelled).toList();
+      return all
+          .where((o) => o.status == PurchaseOrderStatus.cancelled)
+          .toList();
     }
     return all;
   }
@@ -88,22 +95,24 @@ class PurchaseOrdersNotifier
 }
 
 // ─── Single PO ────────────────────────────────────────────────────────
-final purchaseOrderProvider =
-    FutureProvider.family<PurchaseOrderModel, String>((ref, id) async {
-  final result =
-      await ref.read(purchaseOrdersRepoProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (e)    => throw e,
-  );
-});
+final purchaseOrderProvider = FutureProvider.family<PurchaseOrderModel, String>(
+  (ref, id) async {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) {
+      throw StateError('No active company selected.');
+    }
+    final result = await ref.read(purchaseOrdersRepoProvider).getById(id);
+    return result.when(success: (data) => data, failure: (e) => throw e);
+  },
+);
 
 // ─── Open POs (for Receive Inventory form) ─────────────────────────────
-final openPurchaseOrdersProvider =
-    FutureProvider<List<PurchaseOrderModel>>((ref) async {
-  final result = await ref
-      .read(purchaseOrdersRepoProvider)
-      .getAll();
+final openPurchaseOrdersProvider = FutureProvider<List<PurchaseOrderModel>>((
+  ref,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) return const [];
+  final result = await ref.read(purchaseOrdersRepoProvider).getAll();
   return result.when(
     success: (data) =>
         data.where((o) => o.status == PurchaseOrderStatus.open).toList(),

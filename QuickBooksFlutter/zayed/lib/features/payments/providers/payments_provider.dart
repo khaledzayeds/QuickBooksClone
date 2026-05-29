@@ -7,6 +7,7 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/payments_remote_datasource.dart';
 import '../data/models/payment_model.dart';
 import '../data/repositories/payments_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final paymentsDatasourceProvider = Provider<PaymentsRemoteDatasource>(
   (ref) => PaymentsRemoteDatasource(ApiClient.instance),
@@ -16,9 +17,10 @@ final paymentsRepositoryProvider = Provider<PaymentsRepository>(
   (ref) => PaymentsRepository(ref.watch(paymentsDatasourceProvider)),
 );
 
-final paymentsProvider = AsyncNotifierProvider<PaymentsNotifier, List<PaymentModel>>(
-  PaymentsNotifier.new,
-);
+final paymentsProvider =
+    AsyncNotifierProvider<PaymentsNotifier, List<PaymentModel>>(
+      PaymentsNotifier.new,
+    );
 
 class PaymentsNotifier extends AsyncNotifier<List<PaymentModel>> {
   String _search = '';
@@ -27,10 +29,16 @@ class PaymentsNotifier extends AsyncNotifier<List<PaymentModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<PaymentModel>> build() => _fetch();
+  Future<List<PaymentModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<PaymentModel>> _fetch() async {
-    final result = await ref.read(paymentsRepositoryProvider).getAll(
+    final result = await ref
+        .read(paymentsRepositoryProvider)
+        .getAll(
           search: _search,
           customerId: _customerId,
           invoiceId: _invoiceId,
@@ -86,10 +94,14 @@ class PaymentsNotifier extends AsyncNotifier<List<PaymentModel>> {
   }
 }
 
-final paymentDetailsProvider = FutureProvider.family<PaymentModel, String>((ref, id) async {
+final paymentDetailsProvider = FutureProvider.family<PaymentModel, String>((
+  ref,
+  id,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
   final result = await ref.read(paymentsRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
+  return result.when(success: (data) => data, failure: (error) => throw error);
 });

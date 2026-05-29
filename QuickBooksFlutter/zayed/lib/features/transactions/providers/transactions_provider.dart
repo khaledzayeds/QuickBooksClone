@@ -6,6 +6,7 @@ import '../../../core/api/api_client.dart';
 import '../data/datasources/transactions_remote_datasource.dart';
 import '../data/models/transaction_model.dart';
 import '../data/repositories/transactions_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final transactionsDatasourceProvider = Provider<TransactionsRemoteDatasource>(
   (ref) => TransactionsRemoteDatasource(ApiClient.instance),
@@ -25,7 +26,11 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
   bool _includeVoided = false;
 
   @override
-  Future<List<TransactionModel>> build() => _fetch();
+  Future<List<TransactionModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<TransactionModel>> _fetch() async {
     final result = await ref
@@ -55,6 +60,10 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionModel>> {
 
 final transactionDetailsProvider =
     FutureProvider.family<TransactionModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final result = await ref.read(transactionsRepositoryProvider).getById(id);
       return result.when(
         success: (data) => data,

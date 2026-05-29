@@ -7,6 +7,7 @@ import '../data/datasources/vendor_payments_remote_datasource.dart';
 import '../data/models/create_vendor_payment_dto.dart';
 import '../data/models/vendor_payment_model.dart';
 import '../data/repositories/vendor_payments_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final vendorPaymentsDatasourceProvider =
     Provider<VendorPaymentsRemoteDatasource>(
@@ -25,7 +26,11 @@ final vendorPaymentsProvider =
 
 class VendorPaymentsNotifier extends AsyncNotifier<List<VendorPaymentModel>> {
   @override
-  Future<List<VendorPaymentModel>> build() => _fetch();
+  Future<List<VendorPaymentModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<VendorPaymentModel>> _fetch() async {
     final result = await ref
@@ -88,6 +93,10 @@ class VendorPaymentsNotifier extends AsyncNotifier<List<VendorPaymentModel>> {
 
 final vendorPaymentDetailsProvider =
     FutureProvider.family<VendorPaymentModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final result = await ref
           .read(vendorPaymentsRepositoryProvider)
           .getById(id);

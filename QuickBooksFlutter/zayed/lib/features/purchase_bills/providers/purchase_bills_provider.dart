@@ -5,6 +5,7 @@ import '../../../../core/api/api_client.dart';
 import '../data/datasources/purchase_bills_remote_datasource.dart';
 import '../data/repositories/purchase_bills_repository.dart';
 import '../data/models/purchase_bill_model.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final purchaseBillsDatasourceProvider = Provider<PurchaseBillsRemoteDatasource>(
   (ref) => PurchaseBillsRemoteDatasource(ApiClient.instance),
@@ -14,17 +15,25 @@ final purchaseBillsRepositoryProvider = Provider<PurchaseBillsRepository>(
   (ref) => PurchaseBillsRepository(ref.watch(purchaseBillsDatasourceProvider)),
 );
 
-final purchaseBillsProvider = AsyncNotifierProvider<PurchaseBillsNotifier, List<PurchaseBillModel>>(
-  PurchaseBillsNotifier.new,
-);
+final purchaseBillsProvider =
+    AsyncNotifierProvider<PurchaseBillsNotifier, List<PurchaseBillModel>>(
+      PurchaseBillsNotifier.new,
+    );
 
-final purchaseBillDetailsProvider = FutureProvider.family<PurchaseBillModel, String>((ref, id) async {
-  final result = await ref.read(purchaseBillsRepositoryProvider).getBill(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final purchaseBillDetailsProvider =
+    FutureProvider.family<PurchaseBillModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref
+          .read(purchaseBillsRepositoryProvider)
+          .getBill(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });
 
 class PurchaseBillsNotifier extends AsyncNotifier<List<PurchaseBillModel>> {
   String? _search;
@@ -32,10 +41,16 @@ class PurchaseBillsNotifier extends AsyncNotifier<List<PurchaseBillModel>> {
   bool _includeVoid = false;
 
   @override
-  Future<List<PurchaseBillModel>> build() => _fetch();
+  Future<List<PurchaseBillModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<PurchaseBillModel>> _fetch() async {
-    final result = await ref.read(purchaseBillsRepositoryProvider).getBills(
+    final result = await ref
+        .read(purchaseBillsRepositoryProvider)
+        .getBills(
           search: _search,
           vendorId: _vendorId,
           includeVoid: _includeVoid,

@@ -8,6 +8,7 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/banking_remote_datasource.dart';
 import '../data/models/banking_models.dart';
 import '../data/repositories/banking_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final bankingDatasourceProvider = Provider<BankingRemoteDatasource>(
   (ref) => BankingRemoteDatasource(ApiClient.instance),
@@ -20,6 +21,8 @@ final bankingRepositoryProvider = Provider<BankingRepository>(
 final bankAccountsProvider = FutureProvider<List<BankAccountModel>>((
   ref,
 ) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) return const [];
   final result = await ref.read(bankingRepositoryProvider).getAccounts();
   return result.when(success: (data) => data, failure: (error) => throw error);
 });
@@ -28,6 +31,16 @@ final selectedBankAccountIdProvider = StateProvider<String?>((ref) => null);
 
 final bankRegisterProvider =
     FutureProvider.autoDispose<BankRegisterResponseModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        return const BankRegisterResponseModel(
+          accountId: '',
+          accountName: '',
+          openingBalance: 0,
+          endingBalance: 0,
+          items: [],
+        );
+      }
       final accountId = ref.watch(selectedBankAccountIdProvider);
       if (accountId == null || accountId.isEmpty) {
         return const BankRegisterResponseModel(

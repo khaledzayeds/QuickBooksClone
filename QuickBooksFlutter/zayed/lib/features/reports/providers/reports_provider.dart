@@ -9,6 +9,7 @@ import '../../time_tracking/providers/time_entries_provider.dart';
 import '../data/datasources/reports_remote_datasource.dart';
 import '../data/models/report_models.dart';
 import '../data/repositories/reports_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final reportsDatasourceProvider = Provider<ReportsRemoteDatasource>(
   (ref) => ReportsRemoteDatasource(ApiClient.instance),
@@ -28,6 +29,10 @@ final reportsDateRangeProvider = StateProvider<ReportDateRange>((ref) {
 
 final trialBalanceReportProvider =
     FutureProvider.autoDispose<TrialBalanceReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final result = await ref
           .read(reportsRepositoryProvider)
@@ -40,6 +45,10 @@ final trialBalanceReportProvider =
 
 final balanceSheetReportProvider =
     FutureProvider.autoDispose<FinancialStatementReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final result = await ref
           .read(reportsRepositoryProvider)
@@ -52,6 +61,10 @@ final balanceSheetReportProvider =
 
 final profitAndLossReportProvider =
     FutureProvider.autoDispose<ProfitAndLossReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final result = await ref
           .read(reportsRepositoryProvider)
@@ -64,6 +77,10 @@ final profitAndLossReportProvider =
 
 final accountsReceivableAgingReportProvider =
     FutureProvider.autoDispose<AgingReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final result = await ref
           .read(reportsRepositoryProvider)
@@ -76,6 +93,10 @@ final accountsReceivableAgingReportProvider =
 
 final accountsPayableAgingReportProvider =
     FutureProvider.autoDispose<AgingReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final result = await ref
           .read(reportsRepositoryProvider)
@@ -88,6 +109,10 @@ final accountsPayableAgingReportProvider =
 
 final inventoryValuationReportProvider =
     FutureProvider.autoDispose<InventoryValuationReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final result = await ref
           .read(reportsRepositoryProvider)
@@ -103,6 +128,10 @@ final inventoryValuationReportProvider =
 
 final taxSummaryReportProvider =
     FutureProvider.autoDispose<TaxSummaryReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final result = await ref
           .read(reportsRepositoryProvider)
@@ -115,6 +144,10 @@ final taxSummaryReportProvider =
 
 final payrollReportHubProvider =
     FutureProvider.autoDispose<PayrollSummaryReport>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final response = await ApiClient.instance.get<Map<String, dynamic>>(
         '/api/payroll/reports/summary',
@@ -125,6 +158,10 @@ final payrollReportHubProvider =
 
 final timeTrackingReportHubProvider =
     FutureProvider.autoDispose<TimeEntrySummaryReport>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final response = await ApiClient.instance.get<Map<String, dynamic>>(
         '/api/time-entries/reports/summary',
@@ -135,6 +172,10 @@ final timeTrackingReportHubProvider =
 
 final salesSummaryReportProvider =
     FutureProvider.autoDispose<SalesSummaryReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final response = await ApiClient.instance.get<Map<String, dynamic>>(
         '/api/reports/sales-summary',
@@ -145,6 +186,10 @@ final salesSummaryReportProvider =
 
 final purchasesSummaryReportProvider =
     FutureProvider.autoDispose<PurchasesSummaryReportModel>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final range = ref.watch(reportsDateRangeProvider);
       final response = await ApiClient.instance.get<Map<String, dynamic>>(
         '/api/reports/purchases-summary',

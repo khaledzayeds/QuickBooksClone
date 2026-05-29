@@ -19,11 +19,14 @@ class StartupGate extends StatefulWidget {
 
 class _StartupGateState extends State<StartupGate> {
   late Future<void> _startup;
+  bool _slowStartup = false;
+  int _startupGeneration = 0;
 
   @override
   void initState() {
     super.initState();
     _startup = _start();
+    _scheduleSlowStartupNotice();
   }
 
   Future<void> _start() async {
@@ -33,7 +36,24 @@ class _StartupGateState extends State<StartupGate> {
 
   void _retry() {
     setState(() {
+      _slowStartup = false;
+      _startupGeneration++;
       _startup = _start();
+    });
+    _scheduleSlowStartupNotice();
+  }
+
+  Future<void> _restartService() async {
+    await LocalBackendBootstrap.stopRunningService();
+    _retry();
+  }
+
+  void _scheduleSlowStartupNotice() {
+    final generation = _startupGeneration;
+    Future<void>.delayed(const Duration(seconds: 10), () {
+      if (!mounted) return;
+      if (generation != _startupGeneration) return;
+      setState(() => _slowStartup = true);
     });
   }
 
@@ -51,10 +71,11 @@ class _StartupGateState extends State<StartupGate> {
           return _StartupIssueApp(
             message: _startupMessage(snapshot.error),
             onRetry: _retry,
+            onRestartService: _restartService,
           );
         }
 
-        return const _StartupLoadingApp();
+        return _StartupLoadingApp(slowStartup: _slowStartup);
       },
     );
   }
@@ -71,24 +92,43 @@ class _StartupGateState extends State<StartupGate> {
 }
 
 class _StartupLoadingApp extends StatelessWidget {
-  const _StartupLoadingApp();
+  const _StartupLoadingApp({required this.slowStartup});
+
+  final bool slowStartup;
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
+        backgroundColor: const Color(0xFFF8F3FA),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+              const Icon(Icons.business_center_outlined, size: 46),
+              const SizedBox(height: 18),
+              const SizedBox(
+                width: 34,
+                height: 34,
+                child: CircularProgressIndicator(strokeWidth: 3),
               ),
-              SizedBox(height: 16),
-              Text('Starting Zayed...'),
+              const SizedBox(height: 18),
+              Text(
+                slowStartup ? 'Preparing your workspace...' : 'Starting Zayed',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                slowStartup
+                    ? 'This can take a little longer on first launch.'
+                    : 'Opening the local company service.',
+                style: const TextStyle(fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -98,16 +138,22 @@ class _StartupLoadingApp extends StatelessWidget {
 }
 
 class _StartupIssueApp extends StatelessWidget {
-  const _StartupIssueApp({required this.message, required this.onRetry});
+  const _StartupIssueApp({
+    required this.message,
+    required this.onRetry,
+    required this.onRestartService,
+  });
 
   final String message;
   final VoidCallback onRetry;
+  final Future<void> Function() onRestartService;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
+        backgroundColor: const Color(0xFFF8F3FA),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
@@ -120,7 +166,7 @@ class _StartupIssueApp extends StatelessWidget {
                     const Icon(Icons.cloud_off_outlined, size: 48),
                     const SizedBox(height: 16),
                     const Text(
-                      'Service unavailable',
+                      'We could not start Zayed',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -129,10 +175,39 @@ class _StartupIssueApp extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(message, textAlign: TextAlign.center),
                     const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: onRetry,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Try again'),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: onRetry,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Try again'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: onRestartService,
+                          icon: const Icon(Icons.restart_alt),
+                          label: const Text('Restart service'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Details for support',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: SelectableText(
+                            message,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

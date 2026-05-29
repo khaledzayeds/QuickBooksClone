@@ -7,6 +7,7 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/estimates_remote_datasource.dart';
 import '../data/models/estimate_model.dart';
 import '../data/repositories/estimates_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final estimatesDatasourceProvider = Provider<EstimatesRemoteDatasource>(
   (ref) => EstimatesRemoteDatasource(ApiClient.instance),
@@ -28,7 +29,11 @@ class EstimatesNotifier extends AsyncNotifier<List<EstimateModel>> {
   bool _includeCancelled = false;
 
   @override
-  Future<List<EstimateModel>> build() => _fetch();
+  Future<List<EstimateModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<EstimateModel>> _fetch() async {
     final result = await ref
@@ -109,6 +114,10 @@ final estimateDetailsProvider = FutureProvider.family<EstimateModel, String>((
   ref,
   id,
 ) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
   final result = await ref.read(estimatesRepositoryProvider).getById(id);
   return result.when(success: (data) => data, failure: (error) => throw error);
 });

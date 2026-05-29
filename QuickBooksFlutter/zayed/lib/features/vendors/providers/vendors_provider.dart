@@ -1,4 +1,4 @@
-﻿// vendors_provider.dart
+// vendors_provider.dart
 // vendors_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +7,7 @@ import '../../../../core/api/api_result.dart';
 import '../data/datasources/vendors_remote_datasource.dart';
 import '../data/models/vendor_model.dart';
 import '../data/repositories/vendors_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final vendorsDatasourceProvider = Provider<VendorsRemoteDatasource>(
   (ref) => VendorsRemoteDatasource(ApiClient.instance),
@@ -18,19 +19,25 @@ final vendorsRepositoryProvider = Provider<VendorsRepository>(
 
 final vendorsProvider =
     AsyncNotifierProvider<VendorsNotifier, List<VendorModel>>(
-  VendorsNotifier.new,
-);
+      VendorsNotifier.new,
+    );
 
 class VendorsNotifier extends AsyncNotifier<List<VendorModel>> {
-  String _search          = '';
-  bool   _includeInactive = false;
-  int    _page            = 1;
+  String _search = '';
+  bool _includeInactive = false;
+  int _page = 1;
 
   @override
-  Future<List<VendorModel>> build() => _fetch();
+  Future<List<VendorModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<VendorModel>> _fetch() async {
-    final result = await ref.read(vendorsRepositoryProvider).getVendors(
+    final result = await ref
+        .read(vendorsRepositoryProvider)
+        .getVendors(
           search: _search,
           includeInactive: _includeInactive,
           page: _page,
@@ -48,7 +55,7 @@ class VendorsNotifier extends AsyncNotifier<List<VendorModel>> {
 
   void setSearch(String value) {
     _search = value;
-    _page   = 1;
+    _page = 1;
     refresh();
   }
 
@@ -57,37 +64,40 @@ class VendorsNotifier extends AsyncNotifier<List<VendorModel>> {
     refresh();
   }
 
-  Future<ApiResult<VendorModel>> createVendor(
-      Map<String, dynamic> body) async {
-    final result =
-        await ref.read(vendorsRepositoryProvider).createVendor(body);
+  Future<ApiResult<VendorModel>> createVendor(Map<String, dynamic> body) async {
+    final result = await ref.read(vendorsRepositoryProvider).createVendor(body);
     if (result.isSuccess) refresh();
     return result;
   }
 
   Future<ApiResult<VendorModel>> updateVendor(
-      String id, Map<String, dynamic> body) async {
-    final result =
-        await ref.read(vendorsRepositoryProvider).updateVendor(id, body);
+    String id,
+    Map<String, dynamic> body,
+  ) async {
+    final result = await ref
+        .read(vendorsRepositoryProvider)
+        .updateVendor(id, body);
     if (result.isSuccess) refresh();
     return result;
   }
 
-  Future<ApiResult<VendorModel>> toggleActive(
-      String id, bool isActive) async {
-    final result =
-        await ref.read(vendorsRepositoryProvider).toggleActive(id, isActive);
+  Future<ApiResult<VendorModel>> toggleActive(String id, bool isActive) async {
+    final result = await ref
+        .read(vendorsRepositoryProvider)
+        .toggleActive(id, isActive);
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final vendorDetailProvider =
-    FutureProvider.family<VendorModel, String>((ref, id) async {
-  final result =
-      await ref.read(vendorsRepositoryProvider).getVendor(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
+final vendorDetailProvider = FutureProvider.family<VendorModel, String>((
+  ref,
+  id,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
+  final result = await ref.read(vendorsRepositoryProvider).getVendor(id);
+  return result.when(success: (data) => data, failure: (error) => throw error);
 });

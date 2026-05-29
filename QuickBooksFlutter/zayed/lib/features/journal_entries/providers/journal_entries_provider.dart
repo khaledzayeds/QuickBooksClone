@@ -7,31 +7,38 @@ import '../../../core/api/api_result.dart';
 import '../data/datasources/journal_entries_remote_datasource.dart';
 import '../data/models/journal_entry_model.dart';
 import '../data/repositories/journal_entries_repository.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final journalEntriesDatasourceProvider = Provider<JournalEntriesRemoteDatasource>(
-  (ref) => JournalEntriesRemoteDatasource(ApiClient.instance),
-);
+final journalEntriesDatasourceProvider =
+    Provider<JournalEntriesRemoteDatasource>(
+      (ref) => JournalEntriesRemoteDatasource(ApiClient.instance),
+    );
 
 final journalEntriesRepositoryProvider = Provider<JournalEntriesRepository>(
-  (ref) => JournalEntriesRepository(ref.watch(journalEntriesDatasourceProvider)),
+  (ref) =>
+      JournalEntriesRepository(ref.watch(journalEntriesDatasourceProvider)),
 );
 
-final journalEntriesProvider = AsyncNotifierProvider<JournalEntriesNotifier, List<JournalEntryModel>>(
-  JournalEntriesNotifier.new,
-);
+final journalEntriesProvider =
+    AsyncNotifierProvider<JournalEntriesNotifier, List<JournalEntryModel>>(
+      JournalEntriesNotifier.new,
+    );
 
 class JournalEntriesNotifier extends AsyncNotifier<List<JournalEntryModel>> {
   String _search = '';
   bool _includeVoid = false;
 
   @override
-  Future<List<JournalEntryModel>> build() => _fetch();
+  Future<List<JournalEntryModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<JournalEntryModel>> _fetch() async {
-    final result = await ref.read(journalEntriesRepositoryProvider).getAll(
-          search: _search,
-          includeVoid: _includeVoid,
-        );
+    final result = await ref
+        .read(journalEntriesRepositoryProvider)
+        .getAll(search: _search, includeVoid: _includeVoid);
     return result.when(
       success: (data) => data,
       failure: (error) => throw error,
@@ -66,16 +73,25 @@ class JournalEntriesNotifier extends AsyncNotifier<List<JournalEntryModel>> {
   }
 
   Future<ApiResult<JournalEntryModel>> voidEntry(String id) async {
-    final result = await ref.read(journalEntriesRepositoryProvider).voidEntry(id);
+    final result = await ref
+        .read(journalEntriesRepositoryProvider)
+        .voidEntry(id);
     if (result.isSuccess) refresh();
     return result;
   }
 }
 
-final journalEntryDetailsProvider = FutureProvider.family<JournalEntryModel, String>((ref, id) async {
-  final result = await ref.read(journalEntriesRepositoryProvider).getById(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
-});
+final journalEntryDetailsProvider =
+    FutureProvider.family<JournalEntryModel, String>((ref, id) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref
+          .read(journalEntriesRepositoryProvider)
+          .getById(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });

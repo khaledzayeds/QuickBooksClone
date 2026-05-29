@@ -7,6 +7,7 @@ import '../../settings/data/models/printing_settings_model.dart';
 import '../data/datasources/printing_api.dart';
 import '../data/models/print_data_contracts.dart';
 import '../data/repositories/printing_repo.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
 final printingApiProvider = Provider<PrintingApi>(
   (ref) => PrintingApi(ApiClient.instance),
@@ -21,6 +22,10 @@ final documentPrintDataProvider =
       ref,
       request,
     ) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
       final result = await ref
           .read(printingRepoProvider)
           .getDocumentPrintData(

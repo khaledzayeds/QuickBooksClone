@@ -1,9 +1,10 @@
-﻿// customers_provider.dart
+// customers_provider.dart
 // customers_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_result.dart';
+import '../../companies/providers/company_registry_provider.dart';
 import '../data/datasources/customers_remote_datasource.dart';
 import '../data/models/customer_model.dart';
 import '../data/repositories/customers_repository.dart';
@@ -20,8 +21,8 @@ final customersRepositoryProvider = Provider<CustomersRepository>(
 // ─── List Provider ────────────────────────────────
 final customersProvider =
     AsyncNotifierProvider<CustomersNotifier, List<CustomerModel>>(
-  CustomersNotifier.new,
-);
+      CustomersNotifier.new,
+    );
 
 class CustomersNotifier extends AsyncNotifier<List<CustomerModel>> {
   String _search = '';
@@ -29,7 +30,11 @@ class CustomersNotifier extends AsyncNotifier<List<CustomerModel>> {
   int _page = 1;
 
   @override
-  Future<List<CustomerModel>> build() => _fetch();
+  Future<List<CustomerModel>> build() {
+    final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+    if (activeCompanyScope == null) return Future.value(const []);
+    return _fetch();
+  }
 
   Future<List<CustomerModel>> _fetch() async {
     final result = await ref
@@ -62,15 +67,19 @@ class CustomersNotifier extends AsyncNotifier<List<CustomerModel>> {
   }
 
   Future<ApiResult<CustomerModel>> createCustomer(
-      Map<String, dynamic> body) async {
-    final result =
-        await ref.read(customersRepositoryProvider).createCustomer(body);
+    Map<String, dynamic> body,
+  ) async {
+    final result = await ref
+        .read(customersRepositoryProvider)
+        .createCustomer(body);
     if (result.isSuccess) refresh();
     return result;
   }
 
   Future<ApiResult<CustomerModel>> updateCustomer(
-      String id, Map<String, dynamic> body) async {
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     final result = await ref
         .read(customersRepositoryProvider)
         .updateCustomer(id, body);
@@ -79,7 +88,9 @@ class CustomersNotifier extends AsyncNotifier<List<CustomerModel>> {
   }
 
   Future<ApiResult<CustomerModel>> toggleActive(
-      String id, bool isActive) async {
+    String id,
+    bool isActive,
+  ) async {
     final result = await ref
         .read(customersRepositoryProvider)
         .toggleActive(id, isActive);
@@ -89,12 +100,14 @@ class CustomersNotifier extends AsyncNotifier<List<CustomerModel>> {
 }
 
 // ─── Single Customer ──────────────────────────────
-final customerDetailProvider =
-    FutureProvider.family<CustomerModel, String>((ref, id) async {
-  final result =
-      await ref.read(customersRepositoryProvider).getCustomer(id);
-  return result.when(
-    success: (data) => data,
-    failure: (error) => throw error,
-  );
+final customerDetailProvider = FutureProvider.family<CustomerModel, String>((
+  ref,
+  id,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
+  final result = await ref.read(customersRepositoryProvider).getCustomer(id);
+  return result.when(success: (data) => data, failure: (error) => throw error);
 });

@@ -3,23 +3,49 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/json_utils.dart';
 import '../../invoices/providers/invoices_provider.dart';
+import '../../companies/providers/company_registry_provider.dart';
 
-final timeEntriesProvider = FutureProvider.autoDispose<TimeEntryList>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries');
+final timeEntriesProvider = FutureProvider.autoDispose<TimeEntryList>((
+  ref,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/time-entries',
+  );
   return TimeEntryList.fromJson(response.data!);
 });
 
-final timeEntryLookupsProvider = FutureProvider.autoDispose<TimeEntryLookups>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries/lookups');
+final timeEntryLookupsProvider = FutureProvider.autoDispose<TimeEntryLookups>((
+  ref,
+) async {
+  final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+  if (activeCompanyScope == null) {
+    throw StateError('No active company selected.');
+  }
+  final response = await ApiClient.instance.get<Map<String, dynamic>>(
+    '/api/time-entries/lookups',
+  );
   return TimeEntryLookups.fromJson(response.data!);
 });
 
-final timeEntrySummaryReportProvider = FutureProvider.autoDispose<TimeEntrySummaryReport>((ref) async {
-  final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/time-entries/reports/summary');
-  return TimeEntrySummaryReport.fromJson(response.data!);
-});
+final timeEntrySummaryReportProvider =
+    FutureProvider.autoDispose<TimeEntrySummaryReport>((ref) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final response = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/api/time-entries/reports/summary',
+      );
+      return TimeEntrySummaryReport.fromJson(response.data!);
+    });
 
-final timeEntriesCommandsProvider = Provider<TimeEntriesCommands>((ref) => TimeEntriesCommands(ref));
+final timeEntriesCommandsProvider = Provider<TimeEntriesCommands>(
+  (ref) => TimeEntriesCommands(ref),
+);
 
 class TimeEntriesCommands {
   const TimeEntriesCommands(this.ref);
@@ -53,12 +79,16 @@ class TimeEntriesCommands {
   }
 
   Future<void> approve(String id) async {
-    await ApiClient.instance.post<Map<String, dynamic>>('/api/time-entries/$id/approve');
+    await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/time-entries/$id/approve',
+    );
     _invalidateTime(ref);
   }
 
   Future<void> markBillable(String id) async {
-    await ApiClient.instance.post<Map<String, dynamic>>('/api/time-entries/$id/mark-billable');
+    await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/time-entries/$id/mark-billable',
+    );
     _invalidateTime(ref);
   }
 
@@ -93,7 +123,9 @@ class TimeEntriesCommands {
   }
 
   Future<void> voidEntry(String id) async {
-    await ApiClient.instance.patch<Map<String, dynamic>>('/api/time-entries/$id/void');
+    await ApiClient.instance.patch<Map<String, dynamic>>(
+      '/api/time-entries/$id/void',
+    );
     _invalidateTime(ref);
   }
 
@@ -123,14 +155,14 @@ class TimeEntryList {
   final double nonBillableHours;
 
   factory TimeEntryList.fromJson(Map<String, dynamic> json) => TimeEntryList(
-        items: JsonUtils.asList(json['items'], (row) => TimeEntry.fromJson(row)),
-        totalCount: JsonUtils.asInt(json['totalCount']),
-        page: JsonUtils.asInt(json['page']),
-        pageSize: JsonUtils.asInt(json['pageSize']),
-        totalHours: JsonUtils.asDouble(json['totalHours']),
-        billableHours: JsonUtils.asDouble(json['billableHours']),
-        nonBillableHours: JsonUtils.asDouble(json['nonBillableHours']),
-      );
+    items: JsonUtils.asList(json['items'], (row) => TimeEntry.fromJson(row)),
+    totalCount: JsonUtils.asInt(json['totalCount']),
+    page: JsonUtils.asInt(json['page']),
+    pageSize: JsonUtils.asInt(json['pageSize']),
+    totalHours: JsonUtils.asDouble(json['totalHours']),
+    billableHours: JsonUtils.asDouble(json['billableHours']),
+    nonBillableHours: JsonUtils.asDouble(json['nonBillableHours']),
+  );
 }
 
 class TimeEntryLookups {
@@ -139,9 +171,16 @@ class TimeEntryLookups {
   final List<TimeEntryCustomerLookup> customers;
   final List<TimeEntryServiceItemLookup> serviceItems;
 
-  factory TimeEntryLookups.fromJson(Map<String, dynamic> json) => TimeEntryLookups(
-        customers: JsonUtils.asList(json['customers'], (row) => TimeEntryCustomerLookup.fromJson(row)),
-        serviceItems: JsonUtils.asList(json['serviceItems'], (row) => TimeEntryServiceItemLookup.fromJson(row)),
+  factory TimeEntryLookups.fromJson(Map<String, dynamic> json) =>
+      TimeEntryLookups(
+        customers: JsonUtils.asList(
+          json['customers'],
+          (row) => TimeEntryCustomerLookup.fromJson(row),
+        ),
+        serviceItems: JsonUtils.asList(
+          json['serviceItems'],
+          (row) => TimeEntryServiceItemLookup.fromJson(row),
+        ),
       );
 }
 
@@ -151,7 +190,8 @@ class TimeEntryCustomerLookup {
   final String id;
   final String displayName;
 
-  factory TimeEntryCustomerLookup.fromJson(Map<String, dynamic> json) => TimeEntryCustomerLookup(
+  factory TimeEntryCustomerLookup.fromJson(Map<String, dynamic> json) =>
+      TimeEntryCustomerLookup(
         id: JsonUtils.asString(json['id']),
         displayName: JsonUtils.asString(json['displayName']),
       );
@@ -163,7 +203,8 @@ class TimeEntryServiceItemLookup {
   final String id;
   final String name;
 
-  factory TimeEntryServiceItemLookup.fromJson(Map<String, dynamic> json) => TimeEntryServiceItemLookup(
+  factory TimeEntryServiceItemLookup.fromJson(Map<String, dynamic> json) =>
+      TimeEntryServiceItemLookup(
         id: JsonUtils.asString(json['id']),
         name: JsonUtils.asString(json['name']),
       );
@@ -205,22 +246,22 @@ class TimeEntry {
   final DateTime? updatedAt;
 
   factory TimeEntry.fromJson(Map<String, dynamic> json) => TimeEntry(
-        id: JsonUtils.asString(json['id']),
-        workDate: _parseDate(json['workDate']),
-        personName: JsonUtils.asString(json['personName']),
-        hours: JsonUtils.asDouble(json['hours']),
-        activity: JsonUtils.asString(json['activity']),
-        notes: JsonUtils.asNullableString(json['notes']),
-        customerId: JsonUtils.asNullableString(json['customerId']),
-        customerName: JsonUtils.asNullableString(json['customerName']),
-        serviceItemId: JsonUtils.asNullableString(json['serviceItemId']),
-        serviceItemName: JsonUtils.asNullableString(json['serviceItemName']),
-        invoiceId: JsonUtils.asNullableString(json['invoiceId']),
-        isBillable: JsonUtils.asBool(json['isBillable']),
-        status: _status(json['status']),
-        createdAt: _parseDate(json['createdAt']),
-        updatedAt: json['updatedAt'] == null ? null : _parseDate(json['updatedAt']),
-      );
+    id: JsonUtils.asString(json['id']),
+    workDate: _parseDate(json['workDate']),
+    personName: JsonUtils.asString(json['personName']),
+    hours: JsonUtils.asDouble(json['hours']),
+    activity: JsonUtils.asString(json['activity']),
+    notes: JsonUtils.asNullableString(json['notes']),
+    customerId: JsonUtils.asNullableString(json['customerId']),
+    customerName: JsonUtils.asNullableString(json['customerName']),
+    serviceItemId: JsonUtils.asNullableString(json['serviceItemId']),
+    serviceItemName: JsonUtils.asNullableString(json['serviceItemName']),
+    invoiceId: JsonUtils.asNullableString(json['invoiceId']),
+    isBillable: JsonUtils.asBool(json['isBillable']),
+    status: _status(json['status']),
+    createdAt: _parseDate(json['createdAt']),
+    updatedAt: json['updatedAt'] == null ? null : _parseDate(json['updatedAt']),
+  );
 }
 
 class TimeEntrySummaryReport {
@@ -250,30 +291,51 @@ class TimeEntrySummaryReport {
   final List<TimeEntrySummaryByCustomer> byCustomer;
   final List<BillableTimeQueueItem> billableQueue;
 
-  factory TimeEntrySummaryReport.fromJson(Map<String, dynamic> json) => TimeEntrySummaryReport(
+  factory TimeEntrySummaryReport.fromJson(Map<String, dynamic> json) =>
+      TimeEntrySummaryReport(
         fromDate: _parseNullableDate(json['fromDate']),
         toDate: _parseNullableDate(json['toDate']),
         entryCount: JsonUtils.asInt(json['entryCount']),
         totalHours: JsonUtils.asDouble(json['totalHours']),
         billableHours: JsonUtils.asDouble(json['billableHours']),
         nonBillableHours: JsonUtils.asDouble(json['nonBillableHours']),
-        billableNotInvoicedHours: JsonUtils.asDouble(json['billableNotInvoicedHours']),
-        byStatus: JsonUtils.asList(json['byStatus'], (row) => TimeEntrySummaryByStatus.fromJson(row)),
-        byPerson: JsonUtils.asList(json['byPerson'], (row) => TimeEntrySummaryByPerson.fromJson(row)),
-        byCustomer: JsonUtils.asList(json['byCustomer'], (row) => TimeEntrySummaryByCustomer.fromJson(row)),
-        billableQueue: JsonUtils.asList(json['billableQueue'], (row) => BillableTimeQueueItem.fromJson(row)),
+        billableNotInvoicedHours: JsonUtils.asDouble(
+          json['billableNotInvoicedHours'],
+        ),
+        byStatus: JsonUtils.asList(
+          json['byStatus'],
+          (row) => TimeEntrySummaryByStatus.fromJson(row),
+        ),
+        byPerson: JsonUtils.asList(
+          json['byPerson'],
+          (row) => TimeEntrySummaryByPerson.fromJson(row),
+        ),
+        byCustomer: JsonUtils.asList(
+          json['byCustomer'],
+          (row) => TimeEntrySummaryByCustomer.fromJson(row),
+        ),
+        billableQueue: JsonUtils.asList(
+          json['billableQueue'],
+          (row) => BillableTimeQueueItem.fromJson(row),
+        ),
       );
 }
 
 class TimeEntrySummaryByStatus {
-  const TimeEntrySummaryByStatus({required this.status, required this.entryCount, required this.totalHours, required this.billableHours});
+  const TimeEntrySummaryByStatus({
+    required this.status,
+    required this.entryCount,
+    required this.totalHours,
+    required this.billableHours,
+  });
 
   final TimeEntryStatus status;
   final int entryCount;
   final double totalHours;
   final double billableHours;
 
-  factory TimeEntrySummaryByStatus.fromJson(Map<String, dynamic> json) => TimeEntrySummaryByStatus(
+  factory TimeEntrySummaryByStatus.fromJson(Map<String, dynamic> json) =>
+      TimeEntrySummaryByStatus(
         status: _status(json['status']),
         entryCount: JsonUtils.asInt(json['entryCount']),
         totalHours: JsonUtils.asDouble(json['totalHours']),
@@ -282,7 +344,13 @@ class TimeEntrySummaryByStatus {
 }
 
 class TimeEntrySummaryByPerson {
-  const TimeEntrySummaryByPerson({required this.personName, required this.entryCount, required this.totalHours, required this.billableHours, required this.invoicedHours});
+  const TimeEntrySummaryByPerson({
+    required this.personName,
+    required this.entryCount,
+    required this.totalHours,
+    required this.billableHours,
+    required this.invoicedHours,
+  });
 
   final String personName;
   final int entryCount;
@@ -290,7 +358,8 @@ class TimeEntrySummaryByPerson {
   final double billableHours;
   final double invoicedHours;
 
-  factory TimeEntrySummaryByPerson.fromJson(Map<String, dynamic> json) => TimeEntrySummaryByPerson(
+  factory TimeEntrySummaryByPerson.fromJson(Map<String, dynamic> json) =>
+      TimeEntrySummaryByPerson(
         personName: JsonUtils.asString(json['personName']),
         entryCount: JsonUtils.asInt(json['entryCount']),
         totalHours: JsonUtils.asDouble(json['totalHours']),
@@ -316,13 +385,16 @@ class TimeEntrySummaryByCustomer {
   final double billableHours;
   final double billableNotInvoicedHours;
 
-  factory TimeEntrySummaryByCustomer.fromJson(Map<String, dynamic> json) => TimeEntrySummaryByCustomer(
+  factory TimeEntrySummaryByCustomer.fromJson(Map<String, dynamic> json) =>
+      TimeEntrySummaryByCustomer(
         customerId: JsonUtils.asNullableString(json['customerId']),
         customerName: JsonUtils.asString(json['customerName']),
         entryCount: JsonUtils.asInt(json['entryCount']),
         totalHours: JsonUtils.asDouble(json['totalHours']),
         billableHours: JsonUtils.asDouble(json['billableHours']),
-        billableNotInvoicedHours: JsonUtils.asDouble(json['billableNotInvoicedHours']),
+        billableNotInvoicedHours: JsonUtils.asDouble(
+          json['billableNotInvoicedHours'],
+        ),
       );
 }
 
@@ -351,7 +423,8 @@ class BillableTimeQueueItem {
   final String serviceItemName;
   final TimeEntryStatus status;
 
-  factory BillableTimeQueueItem.fromJson(Map<String, dynamic> json) => BillableTimeQueueItem(
+  factory BillableTimeQueueItem.fromJson(Map<String, dynamic> json) =>
+      BillableTimeQueueItem(
         id: JsonUtils.asString(json['id']),
         workDate: _parseDate(json['workDate']),
         personName: JsonUtils.asString(json['personName']),
@@ -384,7 +457,8 @@ class CreateInvoiceFromTimeResult {
   final double invoiceTotal;
   final bool posted;
 
-  factory CreateInvoiceFromTimeResult.fromJson(Map<String, dynamic> json) => CreateInvoiceFromTimeResult(
+  factory CreateInvoiceFromTimeResult.fromJson(Map<String, dynamic> json) =>
+      CreateInvoiceFromTimeResult(
         invoiceId: JsonUtils.asString(json['invoiceId']),
         invoiceNumber: JsonUtils.asString(json['invoiceNumber']),
         customerId: JsonUtils.asString(json['customerId']),
@@ -409,13 +483,16 @@ TimeEntryStatus _status(dynamic value) {
 }
 
 String timeEntryStatusLabel(TimeEntryStatus status) => switch (status) {
-      TimeEntryStatus.open => 'Open',
-      TimeEntryStatus.approved => 'Approved',
-      TimeEntryStatus.billable => 'Billable',
-      TimeEntryStatus.invoiced => 'Invoiced',
-      TimeEntryStatus.voided => 'Void',
-    };
+  TimeEntryStatus.open => 'Open',
+  TimeEntryStatus.approved => 'Approved',
+  TimeEntryStatus.billable => 'Billable',
+  TimeEntryStatus.invoiced => 'Invoiced',
+  TimeEntryStatus.voided => 'Void',
+};
 
-String _dateOnly(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-DateTime? _parseNullableDate(dynamic value) => value == null ? null : DateTime.tryParse(value.toString());
+String _dateOnly(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+DateTime _parseDate(dynamic value) =>
+    DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+DateTime? _parseNullableDate(dynamic value) =>
+    value == null ? null : DateTime.tryParse(value.toString());
