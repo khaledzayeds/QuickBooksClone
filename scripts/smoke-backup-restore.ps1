@@ -33,7 +33,7 @@ function Wait-ForApi {
 
     for ($i = 0; $i -lt $Attempts; $i++) {
         try {
-            Invoke-Json -Method Get -Uri "$BaseUrl/api/accounts?pageSize=1" | Out-Null
+            Invoke-Json -Method Get -Uri "$BaseUrl/api/health" | Out-Null
             return
         }
         catch {
@@ -61,6 +61,7 @@ function Start-SmokeApi {
     $startInfo.Environment["ASPNETCORE_URLS"] = $BaseUrl
     $startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development"
     $startInfo.Environment["Database__Provider"] = "Sqlite"
+    $startInfo.Environment["Database__SeedDemoData"] = "true"
     $startInfo.Environment["Database__BackupDirectory"] = $BackupDirectory
     $startInfo.Environment["ConnectionStrings__Zayed"] = "Data Source=$DatabasePath"
     $startInfo.Environment["Logging__LogLevel__Default"] = "Warning"
@@ -69,6 +70,7 @@ function Start-SmokeApi {
     $process = [System.Diagnostics.Process]::Start($startInfo)
     try {
         Wait-ForApi -BaseUrl $BaseUrl
+        Initialize-SmokeCompanyRuntime -BaseUrl $BaseUrl -DatabasePath $DatabasePath
         return $process
     }
     catch {
@@ -102,6 +104,8 @@ function Assert-True {
 }
 
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
+$SmokeCompanyRuntimeScript = Join-Path $PSScriptRoot "smoke-company-runtime.ps1"
+. $SmokeCompanyRuntimeScript
 $BaseUrl = "http://localhost:$Port"
 $SmokeRoot = Join-Path $RepositoryRoot "artifacts\smoke\backup-restore"
 $DatabasePath = Join-Path $SmokeRoot "zayed-backup-smoke.db"
@@ -226,6 +230,9 @@ try {
     $restoreResult = Invoke-Json -Method Post -Uri "$BaseUrl/api/database/backups/restore" -Body @{
         fileName = $createdBackup.fileName
         createSafetyBackup = $true
+        confirmRestore = $true
+        requestedBy = "smoke"
+        reason = "Full backup restore smoke"
     }
 
     Assert-True ($restoreResult.createdSafetyBackup -eq $true) "Restore should create a safety backup by default."

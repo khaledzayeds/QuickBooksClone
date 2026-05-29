@@ -7,8 +7,11 @@ public sealed class ActiveCompanyRequiredMiddleware
 {
     private static readonly PathString ApiRootPath = new("/api");
     private static readonly PathString HealthPath = new("/api/health");
+    private static readonly PathString AuthPath = new("/api/auth");
     private static readonly PathString CompaniesRuntimePath = new("/api/companies");
+    private static readonly PathString LicensesPath = new("/api/licenses");
     private static readonly PathString SetupPath = new("/api/setup");
+    private static readonly PathString RuntimeSettingsPath = new("/api/settings/runtime");
 
     private readonly RequestDelegate _next;
 
@@ -21,8 +24,11 @@ public sealed class ActiveCompanyRequiredMiddleware
     {
         if (!context.Request.Path.StartsWithSegments(ApiRootPath, StringComparison.OrdinalIgnoreCase) ||
             context.Request.Path.StartsWithSegments(HealthPath, StringComparison.OrdinalIgnoreCase) ||
+            context.Request.Path.StartsWithSegments(AuthPath, StringComparison.OrdinalIgnoreCase) ||
             context.Request.Path.StartsWithSegments(CompaniesRuntimePath, StringComparison.OrdinalIgnoreCase) ||
-            context.Request.Path.StartsWithSegments(SetupPath, StringComparison.OrdinalIgnoreCase))
+            context.Request.Path.StartsWithSegments(LicensesPath, StringComparison.OrdinalIgnoreCase) ||
+            context.Request.Path.StartsWithSegments(SetupPath, StringComparison.OrdinalIgnoreCase) ||
+            context.Request.Path.StartsWithSegments(RuntimeSettingsPath, StringComparison.OrdinalIgnoreCase))
         {
             await _next(context);
             return;

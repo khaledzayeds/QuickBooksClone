@@ -73,7 +73,7 @@ public sealed class SetupController : ControllerBase
     public async Task<ActionResult<InitializeCompanyResponse>> InitializeCompany(InitializeCompanyRequest request, CancellationToken cancellationToken = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        timeout.CancelAfter(TimeSpan.FromSeconds(120));
         var setupCancellationToken = timeout.Token;
 
         try

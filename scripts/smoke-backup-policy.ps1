@@ -6,6 +6,8 @@ $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
 $apiProject = Join-Path $root "Zayed.Api\\Zayed.Api.csproj"
+$smokeCompanyRuntimeScript = Join-Path $PSScriptRoot "smoke-company-runtime.ps1"
+. $smokeCompanyRuntimeScript
 $runId = [DateTimeOffset]::UtcNow.ToString("yyyyMMddHHmmss")
 $logsPath = Join-Path $root "artifacts\\smoke\\backup-policy\\$runId"
 $databasePath = Join-Path $logsPath "backup-policy.db"
@@ -29,6 +31,7 @@ try {
     $startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development"
     $startInfo.Environment["ASPNETCORE_DETAILEDERRORS"] = "true"
     $startInfo.Environment["ConnectionStrings__Zayed"] = "Data Source=$databasePath"
+    $startInfo.Environment["Database__SeedDemoData"] = "true"
     $startInfo.Environment["Database__BackupDirectory"] = $backupPath
 
     $process = [System.Diagnostics.Process]::Start($startInfo)
@@ -38,7 +41,7 @@ try {
         Start-Sleep -Seconds 1
 
         try {
-            Invoke-RestMethod "$BaseUrl/api/database/settings" | Out-Null
+            Invoke-RestMethod "$BaseUrl/api/settings/runtime" | Out-Null
             $ready = $true
             return
         }
@@ -56,6 +59,8 @@ try {
         $stdErr = $process.StandardError.ReadToEnd()
         throw "API did not become ready in time.`nSTDOUT:`n$stdOut`nSTDERR:`n$stdErr"
     }
+
+    Initialize-SmokeCompanyRuntime -BaseUrl $BaseUrl -DatabasePath $databasePath
 
     $settings = Invoke-RestMethod "$BaseUrl/api/database/settings"
     if ($settings.retentionCount -lt 1) {

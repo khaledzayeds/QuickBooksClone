@@ -13,7 +13,7 @@ class LocalBackendBootstrap {
 
   static Future<void> ensureStarted({
     String baseUrl = AppConstants.defaultBaseUrl,
-    Duration startupTimeout = const Duration(seconds: 55),
+    Duration startupTimeout = const Duration(seconds: 120),
   }) async {
     if (await _isReady(baseUrl)) return;
 

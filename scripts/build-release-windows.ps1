@@ -1,7 +1,8 @@
 param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
-    [string]$ArtifactName = "ZayedOfflineERP-v1-win-x64"
+    [string]$ArtifactName = "ZayedOfflineERP-v1-win-x64",
+    [switch]$SkipFlutterBuild
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +16,9 @@ $apiPublish = Join-Path $repoRoot "artifacts\api-publish-$Runtime"
 $flutterRelease = Join-Path $flutterProject "build\windows\x64\runner\Release"
 
 Write-Host "Building Zayed Offline ERP v1 release..." -ForegroundColor Cyan
+
+Get-Process -Name Zayed,Zayed.Api -ErrorAction SilentlyContinue | Stop-Process -Force
+dotnet build-server shutdown
 
 if (Test-Path $releaseRoot) {
     Remove-Item -LiteralPath $releaseRoot -Recurse -Force
@@ -41,14 +45,19 @@ if (-not (Test-Path $apiExe)) {
     throw "API publish did not produce Zayed.Api.exe. Check .NET SDK/runtime support for $Runtime."
 }
 
-Write-Host "Building Flutter Windows app..." -ForegroundColor Cyan
-Push-Location $flutterProject
-try {
-    flutter pub get
-    flutter build windows --release
+if (-not $SkipFlutterBuild) {
+    Write-Host "Building Flutter Windows app..." -ForegroundColor Cyan
+    Push-Location $flutterProject
+    try {
+        flutter pub get
+        flutter build windows --release
+    }
+    finally {
+        Pop-Location
+    }
 }
-finally {
-    Pop-Location
+else {
+    Write-Host "Using existing Flutter Windows release build..." -ForegroundColor Cyan
 }
 
 $appExe = Join-Path $flutterRelease "Zayed.exe"

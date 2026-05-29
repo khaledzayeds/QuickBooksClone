@@ -33,7 +33,7 @@ function Wait-ForApi {
 
     for ($i = 0; $i -lt $Attempts; $i++) {
         try {
-            Invoke-Json -Method Get -Uri "$BaseUrl/api/accounts?pageSize=1" | Out-Null
+            Invoke-Json -Method Get -Uri "$BaseUrl/api/health" | Out-Null
             return
         }
         catch {
@@ -60,6 +60,7 @@ function Start-SmokeApi {
     $startInfo.Environment["ASPNETCORE_URLS"] = $BaseUrl
     $startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development"
     $startInfo.Environment["Database__Provider"] = "Sqlite"
+    $startInfo.Environment["Database__SeedDemoData"] = "true"
     $startInfo.Environment["ConnectionStrings__Zayed"] = "Data Source=$DatabasePath"
     $startInfo.Environment["Logging__LogLevel__Default"] = "Warning"
     $startInfo.Environment["Logging__LogLevel__Microsoft.AspNetCore"] = "Warning"
@@ -67,6 +68,7 @@ function Start-SmokeApi {
     $process = [System.Diagnostics.Process]::Start($startInfo)
     try {
         Wait-ForApi -BaseUrl $BaseUrl
+        Initialize-SmokeCompanyRuntime -BaseUrl $BaseUrl -DatabasePath $DatabasePath
         return $process
     }
     catch {
@@ -139,6 +141,8 @@ finally:
 }
 
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
+$SmokeCompanyRuntimeScript = Join-Path $PSScriptRoot "smoke-company-runtime.ps1"
+. $SmokeCompanyRuntimeScript
 $BaseUrl = "http://localhost:$Port"
 $SmokeRoot = Join-Path $RepositoryRoot "artifacts\smoke\existing-sqlite-adoption"
 $DatabasePath = Join-Path $SmokeRoot "zayed-adoption-smoke.db"

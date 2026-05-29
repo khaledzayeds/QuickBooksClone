@@ -34,7 +34,7 @@ public sealed class CompaniesController : ControllerBase
     public async Task<ActionResult<ActiveCompanyRuntimeResponse>> Open(OpenCompanyRequest request, CancellationToken cancellationToken = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        timeout.CancelAfter(TimeSpan.FromSeconds(120));
         var openCancellationToken = timeout.Token;
 
         try
