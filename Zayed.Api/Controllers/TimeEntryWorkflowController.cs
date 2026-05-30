@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zayed.Api.Contracts.TimeTracking;
 using Zayed.Api.Security;
+using Zayed.Api.Services;
 using Zayed.Core.TimeTracking;
 using Zayed.Infrastructure.Persistence;
 
@@ -26,7 +27,7 @@ public sealed class TimeEntryWorkflowController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TimeEntryDto>> MarkBillable(Guid id, CancellationToken cancellationToken = default)
     {
-        await EnsureInvoiceColumnAsync(cancellationToken);
+        await TimeEntrySchema.EnsureInvoiceColumnAsync(_db, cancellationToken);
         var row = await GetRowAsync(id, cancellationToken);
         if (row is null) return NotFound();
 
@@ -62,7 +63,7 @@ public sealed class TimeEntryWorkflowController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TimeEntryDto>> MarkInvoiced(Guid id, MarkTimeEntryInvoicedRequest request, CancellationToken cancellationToken = default)
     {
-        await EnsureInvoiceColumnAsync(cancellationToken);
+        await TimeEntrySchema.EnsureInvoiceColumnAsync(_db, cancellationToken);
         var row = await GetRowAsync(id, cancellationToken);
         if (row is null) return NotFound();
 
@@ -91,20 +92,6 @@ public sealed class TimeEntryWorkflowController : ControllerBase
             cancellationToken);
 
         return Ok(await BuildDtoAsync(id, cancellationToken));
-    }
-
-    private async Task EnsureInvoiceColumnAsync(CancellationToken cancellationToken)
-    {
-        await ExecuteNonQueryAsync(
-            """
-            IF OBJECT_ID(N'time_entries', N'U') IS NOT NULL AND COL_LENGTH('time_entries', 'InvoiceId') IS NULL
-            BEGIN
-                ALTER TABLE time_entries ADD InvoiceId uniqueidentifier NULL;
-                CREATE INDEX IX_time_entries_InvoiceId ON time_entries (InvoiceId);
-            END
-            """,
-            new Dictionary<string, object?>(),
-            cancellationToken);
     }
 
     private async Task<TimeEntryWorkflowRow?> GetRowAsync(Guid id, CancellationToken cancellationToken)

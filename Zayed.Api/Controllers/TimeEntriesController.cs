@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zayed.Api.Contracts.TimeTracking;
 using Zayed.Api.Security;
+using Zayed.Api.Services;
 using Zayed.Core.TimeTracking;
 using Zayed.Infrastructure.Persistence;
 
@@ -33,7 +34,7 @@ public sealed class TimeEntriesController : ControllerBase
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        await EnsureTableAsync(cancellationToken);
+        await TimeEntrySchema.EnsureTableAsync(_db, cancellationToken);
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 200);
 
@@ -48,13 +49,16 @@ public sealed class TimeEntriesController : ControllerBase
         var billableWhere = new List<string>(where) { "IsBillable = 1" };
         var billableHours = Convert.ToDecimal(await ExecuteScalarAsync($"SELECT COALESCE(SUM(Hours), 0) FROM time_entries WHERE {string.Join(" AND ", billableWhere)}", billableParameters, cancellationToken) ?? 0);
 
+        var paginationSql = TimeEntrySchema.IsSqlite(_db)
+            ? "LIMIT @PageSize OFFSET @Offset"
+            : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
         var rows = await QueryTimeEntriesAsync(
             $"""
             SELECT Id, CompanyId, WorkDate, PersonName, Hours, Activity, Notes, CustomerId, ServiceItemId, IsBillable, Status, CreatedAt, UpdatedAt
             FROM time_entries
             {whereSql}
             ORDER BY WorkDate DESC, PersonName ASC
-            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+            {paginationSql}
             """,
             new Dictionary<string, object?>(parameters)
             {
@@ -78,7 +82,7 @@ public sealed class TimeEntriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TimeEntryDto>> Get(Guid id, CancellationToken cancellationToken = default)
     {
-        await EnsureTableAsync(cancellationToken);
+        await TimeEntrySchema.EnsureTableAsync(_db, cancellationToken);
         var rows = await QueryTimeEntriesAsync(
             "SELECT Id, CompanyId, WorkDate, PersonName, Hours, Activity, Notes, CustomerId, ServiceItemId, IsBillable, Status, CreatedAt, UpdatedAt FROM time_entries WHERE Id = @Id",
             new Dictionary<string, object?> { ["Id"] = id },
@@ -92,7 +96,7 @@ public sealed class TimeEntriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TimeEntryDto>> Create(CreateTimeEntryRequest request, CancellationToken cancellationToken = default)
     {
-        await EnsureTableAsync(cancellationToken);
+        await TimeEntrySchema.EnsureTableAsync(_db, cancellationToken);
         var validation = await ValidateReferencesAsync(request.CustomerId, request.ServiceItemId, cancellationToken);
         if (validation is not null) return BadRequest(validation);
 
@@ -122,7 +126,7 @@ public sealed class TimeEntriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TimeEntryDto>> Update(Guid id, UpdateTimeEntryRequest request, CancellationToken cancellationToken = default)
     {
-        await EnsureTableAsync(cancellationToken);
+        await TimeEntrySchema.EnsureTableAsync(_db, cancellationToken);
         var rows = await QueryTimeEntriesAsync(
             "SELECT Id, CompanyId, WorkDate, PersonName, Hours, Activity, Notes, CustomerId, ServiceItemId, IsBillable, Status, CreatedAt, UpdatedAt FROM time_entries WHERE Id = @Id",
             new Dictionary<string, object?> { ["Id"] = id },
@@ -189,7 +193,7 @@ public sealed class TimeEntriesController : ControllerBase
 
     private async Task<ActionResult<TimeEntryDto>> ChangeStatus(Guid id, Action<TimeEntry> action, CancellationToken cancellationToken)
     {
-        await EnsureTableAsync(cancellationToken);
+        await TimeEntrySchema.EnsureTableAsync(_db, cancellationToken);
         var rows = await QueryTimeEntriesAsync(
             "SELECT Id, CompanyId, WorkDate, PersonName, Hours, Activity, Notes, CustomerId, ServiceItemId, IsBillable, Status, CreatedAt, UpdatedAt FROM time_entries WHERE Id = @Id",
             new Dictionary<string, object?> { ["Id"] = id },
@@ -210,45 +214,6 @@ public sealed class TimeEntriesController : ControllerBase
         {
             return BadRequest(exception.Message);
         }
-    }
-
-    private async Task EnsureTableAsync(CancellationToken cancellationToken)
-    {
-        await ExecuteNonQueryAsync(
-            """
-            IF OBJECT_ID(N'time_entries', N'U') IS NULL
-            BEGIN
-                CREATE TABLE time_entries (
-                    Id uniqueidentifier NOT NULL CONSTRAINT PK_time_entries PRIMARY KEY,
-                    CompanyId uniqueidentifier NOT NULL,
-                    WorkDate date NOT NULL,
-                    PersonName nvarchar(160) NOT NULL,
-                    Hours decimal(18,2) NOT NULL,
-                    Activity nvarchar(200) NOT NULL,
-                    Notes nvarchar(1000) NULL,
-                    CustomerId uniqueidentifier NULL,
-                    ServiceItemId uniqueidentifier NULL,
-                    InvoiceId uniqueidentifier NULL,
-                    IsBillable bit NOT NULL,
-                    Status int NOT NULL,
-                    CreatedAt datetimeoffset NOT NULL,
-                    UpdatedAt datetimeoffset NULL
-                );
-                CREATE INDEX IX_time_entries_WorkDate ON time_entries (WorkDate);
-                CREATE INDEX IX_time_entries_Status ON time_entries (Status);
-                CREATE INDEX IX_time_entries_CustomerId ON time_entries (CustomerId);
-                CREATE INDEX IX_time_entries_ServiceItemId ON time_entries (ServiceItemId);
-                CREATE INDEX IX_time_entries_InvoiceId ON time_entries (InvoiceId);
-            END
-
-            IF OBJECT_ID(N'time_entries', N'U') IS NOT NULL AND COL_LENGTH('time_entries', 'InvoiceId') IS NULL
-            BEGIN
-                ALTER TABLE time_entries ADD InvoiceId uniqueidentifier NULL;
-                CREATE INDEX IX_time_entries_InvoiceId ON time_entries (InvoiceId);
-            END
-            """,
-            new Dictionary<string, object?>(),
-            cancellationToken);
     }
 
     private async Task<string?> ValidateReferencesAsync(Guid? customerId, Guid? serviceItemId, CancellationToken cancellationToken)

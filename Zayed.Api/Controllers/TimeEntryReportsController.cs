@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zayed.Api.Contracts.TimeTracking;
 using Zayed.Api.Security;
+using Zayed.Api.Services;
 using Zayed.Core.TimeTracking;
 using Zayed.Infrastructure.Persistence;
 
@@ -24,7 +25,7 @@ public sealed class TimeEntryReportsController : ControllerBase
     [ProducesResponseType(typeof(TimeEntrySummaryReportDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<TimeEntrySummaryReportDto>> Summary([FromQuery] DateOnly? fromDate, [FromQuery] DateOnly? toDate, CancellationToken cancellationToken = default)
     {
-        await EnsureTableAsync(cancellationToken);
+        await TimeEntrySchema.EnsureTableAsync(_db, cancellationToken);
 
         var parameters = new Dictionary<string, object?>
         {
@@ -172,39 +173,6 @@ public sealed class TimeEntryReportsController : ControllerBase
             ["InvoicedStatus"] = (int)TimeEntryStatus.Invoiced,
         };
         return copy;
-    }
-
-    private async Task EnsureTableAsync(CancellationToken cancellationToken)
-    {
-        await ExecuteNonQueryAsync(
-            """
-            IF OBJECT_ID(N'time_entries', N'U') IS NULL
-            BEGIN
-                CREATE TABLE time_entries (
-                    Id uniqueidentifier NOT NULL CONSTRAINT PK_time_entries PRIMARY KEY,
-                    CompanyId uniqueidentifier NOT NULL,
-                    WorkDate date NOT NULL,
-                    PersonName nvarchar(160) NOT NULL,
-                    Hours decimal(18,2) NOT NULL,
-                    Activity nvarchar(200) NOT NULL,
-                    Notes nvarchar(1000) NULL,
-                    CustomerId uniqueidentifier NULL,
-                    ServiceItemId uniqueidentifier NULL,
-                    InvoiceId uniqueidentifier NULL,
-                    IsBillable bit NOT NULL,
-                    Status int NOT NULL,
-                    CreatedAt datetimeoffset NOT NULL,
-                    UpdatedAt datetimeoffset NULL
-                );
-            END
-
-            IF OBJECT_ID(N'time_entries', N'U') IS NOT NULL AND COL_LENGTH('time_entries', 'InvoiceId') IS NULL
-            BEGIN
-                ALTER TABLE time_entries ADD InvoiceId uniqueidentifier NULL;
-            END
-            """,
-            new Dictionary<string, object?>(),
-            cancellationToken);
     }
 
     private async Task ExecuteNonQueryAsync(string sql, IReadOnlyDictionary<string, object?> parameters, CancellationToken cancellationToken)

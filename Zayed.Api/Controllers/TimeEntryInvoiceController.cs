@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zayed.Api.Contracts.TimeTracking;
 using Zayed.Api.Security;
+using Zayed.Api.Services;
 using Zayed.Core.Common;
 using Zayed.Core.Customers;
 using Zayed.Core.Invoices;
@@ -46,7 +47,7 @@ public sealed class TimeEntryInvoiceController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreateInvoiceFromTimeResponse>> CreateInvoice(CreateInvoiceFromTimeRequest request, CancellationToken cancellationToken = default)
     {
-        await EnsureInvoiceColumnAsync(cancellationToken);
+        await TimeEntrySchema.EnsureInvoiceColumnAsync(_db, cancellationToken);
 
         if (request.CustomerId == Guid.Empty)
         {
@@ -209,20 +210,6 @@ public sealed class TimeEntryInvoiceController : ControllerBase
             WHERE Id IN ({string.Join(", ", names)})
             """,
             parameters,
-            cancellationToken);
-    }
-
-    private async Task EnsureInvoiceColumnAsync(CancellationToken cancellationToken)
-    {
-        await ExecuteNonQueryAsync(
-            """
-            IF OBJECT_ID(N'time_entries', N'U') IS NOT NULL AND COL_LENGTH('time_entries', 'InvoiceId') IS NULL
-            BEGIN
-                ALTER TABLE time_entries ADD InvoiceId uniqueidentifier NULL;
-                CREATE INDEX IX_time_entries_InvoiceId ON time_entries (InvoiceId);
-            END
-            """,
-            new Dictionary<string, object?>(),
             cancellationToken);
     }
 
