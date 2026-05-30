@@ -10,16 +10,16 @@ class CreateReceiveInventoryDto {
     this.saveMode = 2, // Backend: 1=Draft, 2=SaveAndPost
   });
 
-  final String  vendorId;
+  final String vendorId;
   final DateTime receiptDate;
   final List<CreateReceiveInventoryLineDto> lines;
   final String? purchaseOrderId;
-  final int     saveMode;
+  final int saveMode;
 
   Map<String, dynamic> toJson() => {
-    'vendorId':     vendorId,
-    'receiptDate':  _dateOnly(receiptDate),
-    'saveMode':     saveMode,
+    'vendorId': vendorId,
+    'receiptDate': _dateOnly(receiptDate),
+    'saveMode': saveMode,
     if (purchaseOrderId != null) 'purchaseOrderId': purchaseOrderId,
     'lines': lines.map((l) => l.toJson()).toList(),
   };
@@ -37,17 +37,17 @@ class CreateReceiveInventoryLineDto {
     this.purchaseOrderLineId,
   });
 
-  final String  itemId;
-  final double  quantity;
-  final double  unitCost;
+  final String itemId;
+  final double quantity;
+  final double unitCost;
   final String? description;
   final String? purchaseOrderLineId;
 
   Map<String, dynamic> toJson() => {
-    'itemId':    itemId,
-    'quantity':  quantity,
-    'unitCost':  unitCost,
-    if (description != null)          'description':          description,
-    if (purchaseOrderLineId != null)  'purchaseOrderLineId':  purchaseOrderLineId,
+    'itemId': itemId,
+    'quantity': quantity,
+    'unitCost': unitCost,
+    if (description != null) 'description': description,
+    if (purchaseOrderLineId != null) 'purchaseOrderLineId': purchaseOrderLineId,
   };
 }

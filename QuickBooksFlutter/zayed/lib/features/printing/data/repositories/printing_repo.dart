@@ -12,9 +12,8 @@ class PrintingRepo {
   Future<ApiResult<DocumentPrintDataModel>> getDocumentPrintData({
     required String documentType,
     required String documentId,
-  }) =>
-      _api.getDocumentPrintData(
-        documentType: documentType,
-        documentId: documentId,
-      );
+  }) => _api.getDocumentPrintData(
+    documentType: documentType,
+    documentId: documentId,
+  );
 }

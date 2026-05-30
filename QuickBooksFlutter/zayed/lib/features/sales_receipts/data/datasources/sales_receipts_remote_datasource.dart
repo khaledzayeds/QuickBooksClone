@@ -22,7 +22,8 @@ class SalesReceiptsRemoteDatasource {
         '/api/sales-receipts',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
@@ -39,7 +40,9 @@ class SalesReceiptsRemoteDatasource {
 
   Future<ApiResult<SalesReceiptModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/sales-receipts/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/sales-receipts/$id',
+      );
       return Success(SalesReceiptModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
@@ -60,7 +63,9 @@ class SalesReceiptsRemoteDatasource {
 
   Future<ApiResult<SalesReceiptModel>> voidReceipt(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/sales-receipts/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/sales-receipts/$id/void',
+      );
       return Success(SalesReceiptModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));

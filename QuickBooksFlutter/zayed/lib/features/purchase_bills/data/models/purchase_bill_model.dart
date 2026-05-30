@@ -30,7 +30,8 @@ class PurchaseBillModel {
   final String vendorName;
   final DateTime billDate;
   final DateTime dueDate;
-  final int status; // 1 Draft, 2 Posted, 3 Void, 4 PartiallyPaid, 5 Paid, 6 Returned
+  final int
+  status; // 1 Draft, 2 Posted, 3 Void, 4 PartiallyPaid, 5 Paid, 6 Returned
   final double subtotal;
   final double taxAmount;
   final double totalAmount;
@@ -74,10 +75,17 @@ class PurchaseBillModel {
       creditAppliedAmount: JsonUtils.asDouble(json['creditAppliedAmount']),
       returnedAmount: JsonUtils.asDouble(json['returnedAmount']),
       balanceDue: JsonUtils.asDouble(json['balanceDue']),
-      inventoryReceiptId: JsonUtils.asNullableString(json['inventoryReceiptId']),
-      inventoryReceiptNumber: JsonUtils.asNullableString(json['inventoryReceiptNumber']),
+      inventoryReceiptId: JsonUtils.asNullableString(
+        json['inventoryReceiptId'],
+      ),
+      inventoryReceiptNumber: JsonUtils.asNullableString(
+        json['inventoryReceiptNumber'],
+      ),
       memo: JsonUtils.asNullableString(json['memo']),
-      lines: JsonUtils.asList(json['lines'], (l) => PurchaseBillLineModel.fromJson(l)),
+      lines: JsonUtils.asList(
+        json['lines'],
+        (l) => PurchaseBillLineModel.fromJson(l),
+      ),
     );
   }
 
@@ -124,7 +132,8 @@ class PurchaseBillLineModel {
   final double lineTotal;
   final String? inventoryReceiptLineId;
 
-  factory PurchaseBillLineModel.fromJson(Map<String, dynamic> json) => PurchaseBillLineModel(
+  factory PurchaseBillLineModel.fromJson(Map<String, dynamic> json) =>
+      PurchaseBillLineModel(
         id: JsonUtils.asString(json['id']),
         itemId: JsonUtils.asString(json['itemId']),
         itemName: JsonUtils.asString(json['itemName']),
@@ -132,6 +141,8 @@ class PurchaseBillLineModel {
         quantity: JsonUtils.asDouble(json['quantity']),
         unitCost: JsonUtils.asDouble(json['unitCost']),
         lineTotal: JsonUtils.asDouble(json['lineTotal']),
-        inventoryReceiptLineId: JsonUtils.asNullableString(json['inventoryReceiptLineId']),
+        inventoryReceiptLineId: JsonUtils.asNullableString(
+          json['inventoryReceiptLineId'],
+        ),
       );
 }

@@ -53,7 +53,8 @@ class InvoiceListScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   itemCount: invoices.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) => _InvoiceCard(invoice: invoices[index]),
+                  itemBuilder: (context, index) =>
+                      _InvoiceCard(invoice: invoices[index]),
                 ),
               ),
       ),
@@ -81,8 +82,12 @@ class _InvoiceCard extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                invoice.invoiceNumber.isEmpty ? 'فاتورة بدون رقم' : invoice.invoiceNumber,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                invoice.invoiceNumber.isEmpty
+                    ? 'فاتورة بدون رقم'
+                    : invoice.invoiceNumber,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             _StatusChip(status: invoice.status),
@@ -95,19 +100,24 @@ class _InvoiceCard extends StatelessWidget {
             children: [
               Text(invoice.customerName ?? 'عميل غير محدد'),
               const SizedBox(height: 4),
-              Text('التاريخ: $date  •  المتبقي: ${invoice.balanceDue.toStringAsFixed(2)} ج.م'),
+              Text(
+                'التاريخ: $date  •  المتبقي: ${invoice.balanceDue.toStringAsFixed(2)} ج.م',
+              ),
             ],
           ),
         ),
         trailing: Text(
           '${invoice.totalAmount.toStringAsFixed(2)} ج.م',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
       ),
     );
   }
 
-  static String _dateOnly(DateTime date) => date.toIso8601String().split('T').first;
+  static String _dateOnly(DateTime date) =>
+      date.toIso8601String().split('T').first;
 }
 
 class _StatusChip extends StatelessWidget {

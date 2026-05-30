@@ -58,12 +58,16 @@ class _CalendarBody extends StatelessWidget {
                 children: [
                   Text(
                     'Business Calendar',
-                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Due invoices and bills from backend documents. Range: ${_date(summary.fromDate)} to ${_date(summary.toDate)}.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -78,7 +82,11 @@ class _CalendarBody extends StatelessWidget {
         const SizedBox(height: 24),
         LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 1024 ? 4 : constraints.maxWidth >= 680 ? 2 : 1;
+            final columns = constraints.maxWidth >= 1024
+                ? 4
+                : constraints.maxWidth >= 680
+                ? 2
+                : 1;
             return GridView.count(
               crossAxisCount: columns,
               childAspectRatio: columns == 1 ? 3.5 : 2.2,
@@ -87,10 +95,30 @@ class _CalendarBody extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
-                _SummaryTile('Total Events', summary.totalEvents.toString(), Icons.event_note_outlined, Colors.blue),
-                _SummaryTile('Overdue', summary.overdueCount.toString(), Icons.warning_amber_outlined, Theme.of(context).colorScheme.error),
-                _SummaryTile('Due Today', summary.dueTodayCount.toString(), Icons.today_outlined, Colors.orange),
-                _SummaryTile('Upcoming', summary.upcomingCount.toString(), Icons.upcoming_outlined, Colors.green),
+                _SummaryTile(
+                  'Total Events',
+                  summary.totalEvents.toString(),
+                  Icons.event_note_outlined,
+                  Colors.blue,
+                ),
+                _SummaryTile(
+                  'Overdue',
+                  summary.overdueCount.toString(),
+                  Icons.warning_amber_outlined,
+                  Theme.of(context).colorScheme.error,
+                ),
+                _SummaryTile(
+                  'Due Today',
+                  summary.dueTodayCount.toString(),
+                  Icons.today_outlined,
+                  Colors.orange,
+                ),
+                _SummaryTile(
+                  'Upcoming',
+                  summary.upcomingCount.toString(),
+                  Icons.upcoming_outlined,
+                  Colors.green,
+                ),
               ],
             );
           },
@@ -111,8 +139,17 @@ class _CalendarBody extends StatelessWidget {
               icon: Icons.north_east_outlined,
               color: Colors.orange,
             );
-            if (!wide) return Column(children: [receivable, const SizedBox(height: 12), payable]);
-            return Row(children: [Expanded(child: receivable), const SizedBox(width: 12), Expanded(child: payable)]);
+            if (!wide)
+              return Column(
+                children: [receivable, const SizedBox(height: 12), payable],
+              );
+            return Row(
+              children: [
+                Expanded(child: receivable),
+                const SizedBox(width: 12),
+                Expanded(child: payable),
+              ],
+            );
           },
         ),
         const SizedBox(height: 24),
@@ -159,9 +196,19 @@ class _SummaryTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    title,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    value,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -173,7 +220,12 @@ class _SummaryTile extends StatelessWidget {
 }
 
 class _AmountPanel extends StatelessWidget {
-  const _AmountPanel({required this.title, required this.amount, required this.icon, required this.color});
+  const _AmountPanel({
+    required this.title,
+    required this.amount,
+    required this.icon,
+    required this.color,
+  });
 
   final String title;
   final double amount;
@@ -190,8 +242,19 @@ class _AmountPanel extends StatelessWidget {
           children: [
             Icon(icon, color: color),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
-            Text(amount.toStringAsFixed(2), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: color)),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Text(
+              amount.toStringAsFixed(2),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
@@ -212,16 +275,21 @@ class _DateHeader extends StatelessWidget {
     final label = normalizedDate == normalizedToday
         ? 'Today'
         : normalizedDate == normalizedToday.add(const Duration(days: 1))
-            ? 'Tomorrow'
-            : normalizedDate.isBefore(normalizedToday)
-                ? 'Overdue - ${_date(date)}'
-                : _date(date);
+        ? 'Tomorrow'
+        : normalizedDate.isBefore(normalizedToday)
+        ? 'Overdue - ${_date(date)}'
+        : _date(date);
 
     return Row(
       children: [
         const Icon(Icons.calendar_month_outlined, size: 18),
         const SizedBox(width: 8),
-        Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
       ],
     );
   }
@@ -235,7 +303,9 @@ class _EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _severityColor(context, event.severity);
-    final icon = event.sourceType == 'invoice' ? Icons.receipt_long_outlined : Icons.request_quote_outlined;
+    final icon = event.sourceType == 'invoice'
+        ? Icons.receipt_long_outlined
+        : Icons.request_quote_outlined;
 
     return Card(
       child: InkWell(
@@ -256,14 +326,21 @@ class _EventCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(event.title, style: const TextStyle(fontWeight: FontWeight.w900))),
+                        Expanded(
+                          child: Text(
+                            event.title,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                        ),
                         _SeverityChip(severity: event.severity),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(event.partyName),
                     const SizedBox(height: 4),
-                    Text('Document: ${event.documentNumber} • Status: ${event.status}'),
+                    Text(
+                      'Document: ${event.documentNumber} • Status: ${event.status}',
+                    ),
                   ],
                 ),
               ),
@@ -271,7 +348,10 @@ class _EventCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(event.amountDue.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, color: color)),
+                  Text(
+                    event.amountDue.toStringAsFixed(2),
+                    style: TextStyle(fontWeight: FontWeight.w900, color: color),
+                  ),
                   const SizedBox(height: 4),
                   Text('Due ${_date(event.dueDate)}'),
                 ],
@@ -321,11 +401,22 @@ class _EmptyState extends StatelessWidget {
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            Icon(Icons.event_available_outlined, size: 42, color: theme.colorScheme.primary),
+            Icon(
+              Icons.event_available_outlined,
+              size: 42,
+              color: theme.colorScheme.primary,
+            ),
             const SizedBox(height: 12),
-            Text('No due invoices or bills in this range', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+            Text(
+              'No due invoices or bills in this range',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             const SizedBox(height: 8),
-            const Text('Posted invoices and purchase bills with open balances will appear here based on their due dates.'),
+            const Text(
+              'Posted invoices and purchase bills with open balances will appear here based on their due dates.',
+            ),
           ],
         ),
       ),
@@ -351,13 +442,24 @@ class _ErrorState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 42),
+                Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 42,
+                ),
                 const SizedBox(height: 12),
-                const Text('Could not load calendar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                const Text(
+                  'Could not load calendar',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 8),
                 Text(message, textAlign: TextAlign.center),
                 const SizedBox(height: 18),
-                FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+                FilledButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
               ],
             ),
           ),
@@ -370,17 +472,25 @@ class _ErrorState extends StatelessWidget {
 Map<DateTime, List<CalendarEvent>> _groupByDate(List<CalendarEvent> events) {
   final grouped = <DateTime, List<CalendarEvent>>{};
   for (final event in events) {
-    final key = DateTime(event.dueDate.year, event.dueDate.month, event.dueDate.day);
+    final key = DateTime(
+      event.dueDate.year,
+      event.dueDate.month,
+      event.dueDate.day,
+    );
     grouped.putIfAbsent(key, () => []).add(event);
   }
-  return Map.fromEntries(grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
+  return Map.fromEntries(
+    grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+  );
 }
 
-Color _severityColor(BuildContext context, CalendarSeverity severity) => switch (severity) {
+Color _severityColor(BuildContext context, CalendarSeverity severity) =>
+    switch (severity) {
       CalendarSeverity.overdue => Theme.of(context).colorScheme.error,
       CalendarSeverity.dueToday => Colors.orange,
       CalendarSeverity.soon => Colors.blue,
       CalendarSeverity.upcoming => Colors.green,
     };
 
-String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+String _date(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

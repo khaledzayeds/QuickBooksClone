@@ -53,7 +53,9 @@ class SalesReceiptModel {
         customerName: JsonUtils.asString(json['customerName']),
         receiptDate: _parseDate(json['invoiceDate']),
         depositAccountId: JsonUtils.asNullableString(json['depositAccountId']),
-        depositAccountName: JsonUtils.asNullableString(json['depositAccountName']),
+        depositAccountName: JsonUtils.asNullableString(
+          json['depositAccountName'],
+        ),
         paymentMethod: JsonUtils.asNullableString(json['paymentMethod']),
         receiptPaymentId: JsonUtils.asNullableString(json['receiptPaymentId']),
         status: JsonUtils.asInt(json['status']),

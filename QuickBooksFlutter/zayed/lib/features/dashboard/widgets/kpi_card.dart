@@ -1,4 +1,4 @@
-﻿// kpi_card.dart
+// kpi_card.dart
 // kpi_card.dart
 
 import 'package:flutter/material.dart';
@@ -43,24 +43,22 @@ class KpiCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(label,
-                      style: Theme.of(context).textTheme.labelSmall),
-                  Text(value,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(label, style: Theme.of(context).textTheme.labelSmall),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   if (subtitle != null)
-                    Text(subtitle!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.color
-                                    ?.withValues(alpha: 0.5))),
+                    Text(
+                      subtitle!,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                      ),
+                    ),
                 ],
               ),
             ),

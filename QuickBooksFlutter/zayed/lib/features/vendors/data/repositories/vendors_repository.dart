@@ -1,4 +1,4 @@
-﻿// vendors_repository.dart
+// vendors_repository.dart
 // vendors_repository.dart
 
 import '../../../../core/api/api_result.dart';
@@ -14,26 +14,24 @@ class VendorsRepository {
     bool includeInactive = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getVendors(
-        search: search,
-        includeInactive: includeInactive,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getVendors(
+    search: search,
+    includeInactive: includeInactive,
+    page: page,
+    pageSize: pageSize,
+  );
 
   Future<ApiResult<VendorModel>> getVendor(String id) =>
       _datasource.getVendor(id);
 
-  Future<ApiResult<VendorModel>> createVendor(
-          Map<String, dynamic> body) =>
+  Future<ApiResult<VendorModel>> createVendor(Map<String, dynamic> body) =>
       _datasource.createVendor(body);
 
   Future<ApiResult<VendorModel>> updateVendor(
-          String id, Map<String, dynamic> body) =>
-      _datasource.updateVendor(id, body);
+    String id,
+    Map<String, dynamic> body,
+  ) => _datasource.updateVendor(id, body);
 
-  Future<ApiResult<VendorModel>> toggleActive(
-          String id, bool isActive) =>
+  Future<ApiResult<VendorModel>> toggleActive(String id, bool isActive) =>
       _datasource.toggleActive(id, isActive);
 }

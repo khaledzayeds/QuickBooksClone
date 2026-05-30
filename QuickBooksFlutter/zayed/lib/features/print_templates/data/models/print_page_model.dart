@@ -17,24 +17,40 @@ class PrintPageModel {
   double get effectiveWidthMm => isLandscape ? heightMm : widthMm;
   double get effectiveHeightMm => isLandscape ? widthMm : heightMm;
 
-  factory PrintPageModel.a4Portrait() => const PrintPageModel(size: 'A4', widthMm: 210, heightMm: 297);
-  factory PrintPageModel.receipt80mm() => const PrintPageModel(size: 'Receipt 80mm', widthMm: 80, heightMm: 220, marginMm: 3);
-  factory PrintPageModel.receipt58mm() => const PrintPageModel(size: 'Receipt 58mm', widthMm: 58, heightMm: 220, marginMm: 2);
-  factory PrintPageModel.barcodeLabel50x25() => const PrintPageModel(size: 'Barcode Label 50x25', widthMm: 50, heightMm: 25, marginMm: 2);
+  factory PrintPageModel.a4Portrait() =>
+      const PrintPageModel(size: 'A4', widthMm: 210, heightMm: 297);
+  factory PrintPageModel.receipt80mm() => const PrintPageModel(
+    size: 'Receipt 80mm',
+    widthMm: 80,
+    heightMm: 220,
+    marginMm: 3,
+  );
+  factory PrintPageModel.receipt58mm() => const PrintPageModel(
+    size: 'Receipt 58mm',
+    widthMm: 58,
+    heightMm: 220,
+    marginMm: 2,
+  );
+  factory PrintPageModel.barcodeLabel50x25() => const PrintPageModel(
+    size: 'Barcode Label 50x25',
+    widthMm: 50,
+    heightMm: 25,
+    marginMm: 2,
+  );
 
   factory PrintPageModel.fromJson(Map<String, dynamic> json) => PrintPageModel(
-        size: json['size'] as String? ?? 'A4',
-        widthMm: (json['widthMm'] as num?)?.toDouble() ?? 210,
-        heightMm: (json['heightMm'] as num?)?.toDouble() ?? 297,
-        orientation: json['orientation'] as String? ?? 'portrait',
-        marginMm: (json['marginMm'] as num?)?.toDouble() ?? 8,
-      );
+    size: json['size'] as String? ?? 'A4',
+    widthMm: (json['widthMm'] as num?)?.toDouble() ?? 210,
+    heightMm: (json['heightMm'] as num?)?.toDouble() ?? 297,
+    orientation: json['orientation'] as String? ?? 'portrait',
+    marginMm: (json['marginMm'] as num?)?.toDouble() ?? 8,
+  );
 
   Map<String, dynamic> toJson() => {
-        'size': size,
-        'widthMm': widthMm,
-        'heightMm': heightMm,
-        'orientation': orientation,
-        'marginMm': marginMm,
-      };
+    'size': size,
+    'widthMm': widthMm,
+    'heightMm': heightMm,
+    'orientation': orientation,
+    'marginMm': marginMm,
+  };
 }

@@ -149,8 +149,6 @@ class InvoiceHeaderPanel extends StatelessWidget {
   }
 }
 
-
-
 class _BillToBox extends StatelessWidget {
   const _BillToBox({required this.customer});
 

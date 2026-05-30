@@ -20,7 +20,9 @@ class CustomerCreditDetailsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final creditAsync = ref.watch(customerCreditDetailsProvider(id));
 
-    final credits = ref.watch(customerCreditsProvider).maybeWhen(
+    final credits = ref
+        .watch(customerCreditsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => <CustomerCreditModel>[],
         );
@@ -217,9 +219,9 @@ class _CreditContextPanel extends StatelessWidget {
             child: Text(
               'Credit Info',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           Padding(
@@ -288,34 +290,34 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
-            const Spacer(),
-            Flexible(
-              child: isLink
-                  ? InkWell(
-                      onTap: onTap,
-                      child: Text(
-                        value,
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    )
-                  : Text(
-                      value,
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
+        const Spacer(),
+        Flexible(
+          child: isLink
+              ? InkWell(
+                  onTap: onTap,
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
                     ),
-            ),
-          ],
+                  ),
+                )
+              : Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _Stat extends StatelessWidget {

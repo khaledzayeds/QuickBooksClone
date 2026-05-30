@@ -14,19 +14,21 @@ class JournalEntriesRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<JournalEntryModel>> getById(String id) => _datasource.getById(id);
+  Future<ApiResult<JournalEntryModel>> getById(String id) =>
+      _datasource.getById(id);
 
-  Future<ApiResult<JournalEntryModel>> create(CreateJournalEntryDto dto) => _datasource.create(dto);
+  Future<ApiResult<JournalEntryModel>> create(CreateJournalEntryDto dto) =>
+      _datasource.create(dto);
 
   Future<ApiResult<JournalEntryModel>> post(String id) => _datasource.post(id);
 
-  Future<ApiResult<JournalEntryModel>> voidEntry(String id) => _datasource.voidEntry(id);
+  Future<ApiResult<JournalEntryModel>> voidEntry(String id) =>
+      _datasource.voidEntry(id);
 }

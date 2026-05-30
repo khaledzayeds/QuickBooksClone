@@ -33,22 +33,31 @@ class OpenWindowsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               itemBuilder: (context, index) {
                 final entry = windows[index];
-                final isCurrent = GoRouterState.of(context).uri.toString() == entry.path;
+                final isCurrent =
+                    GoRouterState.of(context).uri.toString() == entry.path;
 
                 return Card(
                   elevation: isCurrent ? 1 : 0,
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: isCurrent ? cs.primaryContainer : cs.surfaceContainerHighest,
+                      backgroundColor: isCurrent
+                          ? cs.primaryContainer
+                          : cs.surfaceContainerHighest,
                       child: Icon(
-                        isCurrent ? Icons.radio_button_checked : Icons.window_outlined,
-                        color: isCurrent ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+                        isCurrent
+                            ? Icons.radio_button_checked
+                            : Icons.window_outlined,
+                        color: isCurrent
+                            ? cs.onPrimaryContainer
+                            : cs.onSurfaceVariant,
                       ),
                     ),
                     title: Text(
                       entry.title,
                       style: TextStyle(
-                        fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w700,
+                        fontWeight: isCurrent
+                            ? FontWeight.w900
+                            : FontWeight.w700,
                       ),
                     ),
                     subtitle: Text(entry.path),
@@ -57,12 +66,16 @@ class OpenWindowsScreen extends ConsumerWidget {
                       children: [
                         IconButton(
                           tooltip: 'Open',
-                          onPressed: isCurrent ? null : () => context.go(entry.path),
+                          onPressed: isCurrent
+                              ? null
+                              : () => context.go(entry.path),
                           icon: const Icon(Icons.open_in_new),
                         ),
                         IconButton(
                           tooltip: 'Close from list',
-                          onPressed: () => ref.read(openWindowsProvider.notifier).close(entry.path),
+                          onPressed: () => ref
+                              .read(openWindowsProvider.notifier)
+                              .close(entry.path),
                           icon: const Icon(Icons.close),
                         ),
                       ],
@@ -99,18 +112,27 @@ class _EmptyState extends StatelessWidget {
                 CircleAvatar(
                   radius: 34,
                   backgroundColor: cs.primaryContainer,
-                  child: Icon(Icons.window_outlined, size: 34, color: cs.onPrimaryContainer),
+                  child: Icon(
+                    Icons.window_outlined,
+                    size: 34,
+                    color: cs.onPrimaryContainer,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 Text(
                   'No open windows yet',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Navigate through the application and recently opened work areas will appear here for quick switching.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.4),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 FilledButton.icon(

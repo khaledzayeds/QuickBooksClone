@@ -11,10 +11,22 @@ class OrderStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (Color bg, Color fg) = switch (status) {
-      PurchaseOrderStatus.draft     => (const Color(0xFFE8F0FE), const Color(0xFF1A56DB)),
-      PurchaseOrderStatus.open      => (const Color(0xFFDEF7EC), const Color(0xFF057A55)),
-      PurchaseOrderStatus.closed    => (const Color(0xFFF3F4F6), const Color(0xFF6B7280)),
-      PurchaseOrderStatus.cancelled => (const Color(0xFFFDE8E8), const Color(0xFFE02424)),
+      PurchaseOrderStatus.draft => (
+        const Color(0xFFE8F0FE),
+        const Color(0xFF1A56DB),
+      ),
+      PurchaseOrderStatus.open => (
+        const Color(0xFFDEF7EC),
+        const Color(0xFF057A55),
+      ),
+      PurchaseOrderStatus.closed => (
+        const Color(0xFFF3F4F6),
+        const Color(0xFF6B7280),
+      ),
+      PurchaseOrderStatus.cancelled => (
+        const Color(0xFFFDE8E8),
+        const Color(0xFFE02424),
+      ),
     };
 
     return Container(
@@ -25,11 +37,7 @@ class OrderStatusBadge extends StatelessWidget {
       ),
       child: Text(
         status.localizedLabel(context),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
       ),
     );
   }

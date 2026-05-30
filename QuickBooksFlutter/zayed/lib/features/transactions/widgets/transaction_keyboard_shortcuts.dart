@@ -33,18 +33,36 @@ class TransactionKeyboardShortcuts extends StatelessWidget {
   Widget build(BuildContext context) {
     return Shortcuts(
       shortcuts: <ShortcutActivator, Intent>{
-        const SingleActivator(LogicalKeyboardKey.enter, control: true): const _TransactionIntent(_TransactionShortcut.addLine),
-        const SingleActivator(LogicalKeyboardKey.f4): const _TransactionIntent(_TransactionShortcut.focusBarcode),
-        const SingleActivator(LogicalKeyboardKey.f5): const _TransactionIntent(_TransactionShortcut.previousQuantity),
-        const SingleActivator(LogicalKeyboardKey.f7): const _TransactionIntent(_TransactionShortcut.lookup),
-        const SingleActivator(LogicalKeyboardKey.f8): const _TransactionIntent(_TransactionShortcut.toggleSidePanel),
-        const SingleActivator(LogicalKeyboardKey.f9): const _TransactionIntent(_TransactionShortcut.save),
-        const SingleActivator(LogicalKeyboardKey.f10): const _TransactionIntent(_TransactionShortcut.print),
-        const SingleActivator(LogicalKeyboardKey.keyS, control: true): const _TransactionIntent(_TransactionShortcut.save),
-        const SingleActivator(LogicalKeyboardKey.keyP, control: true): const _TransactionIntent(_TransactionShortcut.print),
-        const SingleActivator(LogicalKeyboardKey.keyD, control: true): const _TransactionIntent(_TransactionShortcut.duplicateLine),
-        const SingleActivator(LogicalKeyboardKey.keyL, control: true): const _TransactionIntent(_TransactionShortcut.clearLine),
-        const SingleActivator(LogicalKeyboardKey.escape): const _TransactionIntent(_TransactionShortcut.escape),
+        const SingleActivator(LogicalKeyboardKey.enter, control: true):
+            const _TransactionIntent(_TransactionShortcut.addLine),
+        const SingleActivator(LogicalKeyboardKey.f4): const _TransactionIntent(
+          _TransactionShortcut.focusBarcode,
+        ),
+        const SingleActivator(LogicalKeyboardKey.f5): const _TransactionIntent(
+          _TransactionShortcut.previousQuantity,
+        ),
+        const SingleActivator(LogicalKeyboardKey.f7): const _TransactionIntent(
+          _TransactionShortcut.lookup,
+        ),
+        const SingleActivator(LogicalKeyboardKey.f8): const _TransactionIntent(
+          _TransactionShortcut.toggleSidePanel,
+        ),
+        const SingleActivator(LogicalKeyboardKey.f9): const _TransactionIntent(
+          _TransactionShortcut.save,
+        ),
+        const SingleActivator(LogicalKeyboardKey.f10): const _TransactionIntent(
+          _TransactionShortcut.print,
+        ),
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true):
+            const _TransactionIntent(_TransactionShortcut.save),
+        const SingleActivator(LogicalKeyboardKey.keyP, control: true):
+            const _TransactionIntent(_TransactionShortcut.print),
+        const SingleActivator(LogicalKeyboardKey.keyD, control: true):
+            const _TransactionIntent(_TransactionShortcut.duplicateLine),
+        const SingleActivator(LogicalKeyboardKey.keyL, control: true):
+            const _TransactionIntent(_TransactionShortcut.clearLine),
+        const SingleActivator(LogicalKeyboardKey.escape):
+            const _TransactionIntent(_TransactionShortcut.escape),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{

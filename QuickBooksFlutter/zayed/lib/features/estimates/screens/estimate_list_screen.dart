@@ -31,7 +31,7 @@ class _EstimateListScreenState extends ConsumerState<EstimateListScreen> {
   Widget build(BuildContext context) {
     final estimatesAsync = ref.watch(estimatesProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_date(_dateRange!.start)} - ${_date(_dateRange!.end)}';
@@ -131,7 +131,11 @@ class _EstimateListScreenState extends ConsumerState<EstimateListScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -321,7 +325,7 @@ class _EstimateListScreenState extends ConsumerState<EstimateListScreen> {
         _ => true,
       };
       if (!matchesStatus) return false;
-      
+
       final range = _dateRange;
       if (range != null) {
         final date = DateUtils.dateOnly(estimate.estimateDate);
@@ -330,7 +334,7 @@ class _EstimateListScreenState extends ConsumerState<EstimateListScreen> {
           return false;
         }
       }
-      
+
       if (query.isEmpty) return true;
       return estimate.estimateNumber.toLowerCase().contains(query) ||
           (estimate.customerName ?? '').toLowerCase().contains(query) ||

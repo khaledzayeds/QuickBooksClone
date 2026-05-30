@@ -1,15 +1,11 @@
-﻿// account_tree_widget.dart
+// account_tree_widget.dart
 // account_tree_widget.dart
 
 import 'package:flutter/material.dart';
 import '../data/models/account_model.dart';
 
 class AccountTreeWidget extends StatelessWidget {
-  const AccountTreeWidget({
-    super.key,
-    required this.accounts,
-    this.onSelect,
-  });
+  const AccountTreeWidget({super.key, required this.accounts, this.onSelect});
 
   final List<AccountModel> accounts;
   final void Function(AccountModel)? onSelect;
@@ -67,17 +63,18 @@ class _AccountTreeNodeState extends State<_AccountTreeNode> {
           onTap: () => widget.onSelect?.call(widget.account),
           child: Padding(
             padding: EdgeInsets.only(
-                right: 16.0 + widget.depth * 20, left: 8, top: 4, bottom: 4),
+              right: 16.0 + widget.depth * 20,
+              left: 8,
+              top: 4,
+              bottom: 4,
+            ),
             child: Row(
               children: [
                 if (hasChildren)
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => _expanded = !_expanded),
+                    onTap: () => setState(() => _expanded = !_expanded),
                     child: Icon(
-                      _expanded
-                          ? Icons.expand_more
-                          : Icons.chevron_right,
+                      _expanded ? Icons.expand_more : Icons.chevron_right,
                       size: 18,
                     ),
                   )
@@ -98,12 +95,14 @@ class _AccountTreeNodeState extends State<_AccountTreeNode> {
           ),
         ),
         if (hasChildren && _expanded)
-          ...children.map((child) => _AccountTreeNode(
-                account: child,
-                allAccounts: widget.allAccounts,
-                onSelect: widget.onSelect,
-                depth: widget.depth + 1,
-              )),
+          ...children.map(
+            (child) => _AccountTreeNode(
+              account: child,
+              allAccounts: widget.allAccounts,
+              onSelect: widget.onSelect,
+              depth: widget.depth + 1,
+            ),
+          ),
       ],
     );
   }

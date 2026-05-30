@@ -26,11 +26,15 @@ class PayrollRunsSection extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'Payroll Runs',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 OutlinedButton.icon(
-                  onPressed: setup.employees.isEmpty ? null : () => _showCreateRunSheet(context, ref, setup),
+                  onPressed: setup.employees.isEmpty
+                      ? null
+                      : () => _showCreateRunSheet(context, ref, setup),
                   icon: const Icon(Icons.playlist_add_outlined),
                   label: const Text('Create Run'),
                 ),
@@ -38,7 +42,12 @@ class PayrollRunsSection extends ConsumerWidget {
             ),
             const Divider(height: 26),
             runsAsync.when(
-              loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
               error: (error, _) => _InlineError(
                 message: error.toString(),
                 onRetry: () => ref.invalidate(payrollRunsProvider),
@@ -62,7 +71,11 @@ class _RunsBody extends StatelessWidget {
     if (runs.items.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 18),
-        child: Center(child: Text('No payroll runs yet. Create a run after adding active employees.')),
+        child: Center(
+          child: Text(
+            'No payroll runs yet. Create a run after adding active employees.',
+          ),
+        ),
       );
     }
 
@@ -70,7 +83,11 @@ class _RunsBody extends StatelessWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 900 ? 4 : constraints.maxWidth >= 560 ? 2 : 1;
+            final columns = constraints.maxWidth >= 900
+                ? 4
+                : constraints.maxWidth >= 560
+                ? 2
+                : 1;
             return GridView.count(
               crossAxisCount: columns,
               childAspectRatio: columns == 1 ? 3.4 : 2.2,
@@ -79,19 +96,41 @@ class _RunsBody extends StatelessWidget {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
-                _RunMetric('Runs', runs.totalCount.toString(), Icons.payments_outlined, Colors.blue),
-                _RunMetric('Gross', runs.totalGrossPay.toStringAsFixed(2), Icons.trending_up_outlined, Colors.green),
-                _RunMetric('Deductions', runs.totalDeductions.toStringAsFixed(2), Icons.remove_circle_outline, Colors.orange),
-                _RunMetric('Net Pay', runs.totalNetPay.toStringAsFixed(2), Icons.account_balance_wallet_outlined, Colors.deepPurple),
+                _RunMetric(
+                  'Runs',
+                  runs.totalCount.toString(),
+                  Icons.payments_outlined,
+                  Colors.blue,
+                ),
+                _RunMetric(
+                  'Gross',
+                  runs.totalGrossPay.toStringAsFixed(2),
+                  Icons.trending_up_outlined,
+                  Colors.green,
+                ),
+                _RunMetric(
+                  'Deductions',
+                  runs.totalDeductions.toStringAsFixed(2),
+                  Icons.remove_circle_outline,
+                  Colors.orange,
+                ),
+                _RunMetric(
+                  'Net Pay',
+                  runs.totalNetPay.toStringAsFixed(2),
+                  Icons.account_balance_wallet_outlined,
+                  Colors.deepPurple,
+                ),
               ],
             );
           },
         ),
         const SizedBox(height: 16),
-        ...runs.items.map((run) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _PayrollRunTile(run: run),
-            )),
+        ...runs.items.map(
+          (run) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _PayrollRunTile(run: run),
+          ),
+        ),
       ],
     );
   }
@@ -114,16 +153,29 @@ class _RunMetric extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            CircleAvatar(backgroundColor: color.withValues(alpha: 0.14), child: Icon(icon, color: color)),
+            CircleAvatar(
+              backgroundColor: color.withValues(alpha: 0.14),
+              child: Icon(icon, color: color),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    title,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    value,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -145,7 +197,10 @@ class _PayrollRunTile extends ConsumerWidget {
     final color = _statusColor(context, run.status);
     final journalEntryId = run.journalEntryId;
     final hasJournalEntry = journalEntryId != null && journalEntryId.isNotEmpty;
-    final canVoid = run.status == 'Draft' || run.status == 'Approved' || run.status == 'Posted';
+    final canVoid =
+        run.status == 'Draft' ||
+        run.status == 'Approved' ||
+        run.status == 'Posted';
 
     return Card(
       elevation: 0,
@@ -169,11 +224,18 @@ class _PayrollRunTile extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(run.runNumber, style: const TextStyle(fontWeight: FontWeight.w900)),
+                        Text(
+                          run.runNumber,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
                         const SizedBox(height: 4),
-                        Text('${_date(run.periodStart)} to ${_date(run.periodEnd)} • Pay ${_date(run.payDate)}'),
+                        Text(
+                          '${_date(run.periodStart)} to ${_date(run.periodEnd)} • Pay ${_date(run.payDate)}',
+                        ),
                         const SizedBox(height: 4),
-                        Text('${run.paySchedule} • ${run.employeeCount} employee(s)'),
+                        Text(
+                          '${run.paySchedule} • ${run.employeeCount} employee(s)',
+                        ),
                         if (hasJournalEntry) ...[
                           const SizedBox(height: 4),
                           Text('Journal Entry: $journalEntryId'),
@@ -186,7 +248,10 @@ class _PayrollRunTile extends ConsumerWidget {
                     children: [
                       _StatusChip(status: run.status),
                       const SizedBox(height: 8),
-                      Text('${run.currency} ${run.totalNetPay.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900)),
+                      Text(
+                        '${run.currency} ${run.totalNetPay.toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
                       Text('Gross ${run.totalGrossPay.toStringAsFixed(2)}'),
                     ],
                   ),
@@ -203,24 +268,34 @@ class _PayrollRunTile extends ConsumerWidget {
                     label: const Text('Details'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: run.status == 'Draft' ? () => _run(context, () => commands.approve(run.id)) : null,
+                    onPressed: run.status == 'Draft'
+                        ? () => _run(context, () => commands.approve(run.id))
+                        : null,
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text('Approve'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: run.status == 'Approved' ? () => _run(context, () => commands.post(run.id)) : null,
+                    onPressed: run.status == 'Approved'
+                        ? () => _run(context, () => commands.post(run.id))
+                        : null,
                     icon: const Icon(Icons.post_add_outlined),
                     label: const Text('Post'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: hasJournalEntry ? () => _openJournalEntry(context, journalEntryId) : null,
+                    onPressed: hasJournalEntry
+                        ? () => _openJournalEntry(context, journalEntryId)
+                        : null,
                     icon: const Icon(Icons.article_outlined),
                     label: const Text('Open Journal'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: canVoid ? () => _run(context, () => commands.voidRun(run.id)) : null,
+                    onPressed: canVoid
+                        ? () => _run(context, () => commands.voidRun(run.id))
+                        : null,
                     icon: const Icon(Icons.block_outlined),
-                    label: Text(run.status == 'Posted' ? 'Void + Reverse' : 'Void'),
+                    label: Text(
+                      run.status == 'Posted' ? 'Void + Reverse' : 'Void',
+                    ),
                   ),
                 ],
               ),
@@ -245,7 +320,10 @@ class _PayrollRunDetailsDialog extends ConsumerWidget {
       content: SizedBox(
         width: 900,
         child: detailsAsync.when(
-          loading: () => const SizedBox(height: 180, child: Center(child: CircularProgressIndicator())),
+          loading: () => const SizedBox(
+            height: 180,
+            child: Center(child: CircularProgressIndicator()),
+          ),
           error: (error, _) => _InlineError(
             message: error.toString(),
             onRetry: () => ref.invalidate(payrollRunDetailsProvider(runId)),
@@ -254,7 +332,10 @@ class _PayrollRunDetailsDialog extends ConsumerWidget {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
       ],
     );
   }
@@ -267,7 +348,9 @@ class _PayrollRunDetailsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final journalLinksAsync = ref.watch(payrollRunJournalLinksProvider(details.id));
+    final journalLinksAsync = ref.watch(
+      payrollRunJournalLinksProvider(details.id),
+    );
     final journalEntryId = details.journalEntryId;
     final hasJournalEntry = journalEntryId != null && journalEntryId.isNotEmpty;
 
@@ -281,26 +364,44 @@ class _PayrollRunDetailsView extends ConsumerWidget {
             children: [
               _InfoChip(label: 'Run', value: details.runNumber),
               _InfoChip(label: 'Status', value: details.status),
-              _InfoChip(label: 'Period', value: '${_date(details.periodStart)} → ${_date(details.periodEnd)}'),
+              _InfoChip(
+                label: 'Period',
+                value:
+                    '${_date(details.periodStart)} → ${_date(details.periodEnd)}',
+              ),
               _InfoChip(label: 'Pay Date', value: _date(details.payDate)),
-              _InfoChip(label: 'Tax Rate', value: '${(details.taxWithholdingRate * 100).toStringAsFixed(2)}%'),
+              _InfoChip(
+                label: 'Tax Rate',
+                value:
+                    '${(details.taxWithholdingRate * 100).toStringAsFixed(2)}%',
+              ),
               if (hasJournalEntry)
                 ActionChip(
                   avatar: const Icon(Icons.article_outlined, size: 18),
                   label: Text('Open Journal: $journalEntryId'),
-                  onPressed: () => _openJournalEntry(context, journalEntryId, closeDialog: true),
+                  onPressed: () => _openJournalEntry(
+                    context,
+                    journalEntryId,
+                    closeDialog: true,
+                  ),
                 ),
               journalLinksAsync.maybeWhen(
                 data: (links) {
                   final reversalId = links.reversalJournalEntryId;
-                  if (reversalId == null || reversalId.isEmpty) return const SizedBox.shrink();
+                  if (reversalId == null || reversalId.isEmpty)
+                    return const SizedBox.shrink();
                   return ActionChip(
                     avatar: const Icon(Icons.undo_outlined, size: 18),
                     label: Text('Open Reversal: $reversalId'),
-                    onPressed: () => _openJournalEntry(context, reversalId, closeDialog: true),
+                    onPressed: () => _openJournalEntry(
+                      context,
+                      reversalId,
+                      closeDialog: true,
+                    ),
                   );
                 },
-                loading: () => const Chip(label: Text('Loading journal links...')),
+                loading: () =>
+                    const Chip(label: Text('Loading journal links...')),
                 orElse: () => const SizedBox.shrink(),
               ),
             ],
@@ -317,16 +418,41 @@ class _PayrollRunDetailsView extends ConsumerWidget {
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
                 children: [
-                  _RunMetric('Employees', details.employeeCount.toString(), Icons.people_outline, Colors.blue),
-                  _RunMetric('Gross', '${details.currency} ${details.totalGrossPay.toStringAsFixed(2)}', Icons.trending_up_outlined, Colors.green),
-                  _RunMetric('Deductions', '${details.currency} ${details.totalDeductions.toStringAsFixed(2)}', Icons.remove_circle_outline, Colors.orange),
-                  _RunMetric('Net Pay', '${details.currency} ${details.totalNetPay.toStringAsFixed(2)}', Icons.account_balance_wallet_outlined, Colors.deepPurple),
+                  _RunMetric(
+                    'Employees',
+                    details.employeeCount.toString(),
+                    Icons.people_outline,
+                    Colors.blue,
+                  ),
+                  _RunMetric(
+                    'Gross',
+                    '${details.currency} ${details.totalGrossPay.toStringAsFixed(2)}',
+                    Icons.trending_up_outlined,
+                    Colors.green,
+                  ),
+                  _RunMetric(
+                    'Deductions',
+                    '${details.currency} ${details.totalDeductions.toStringAsFixed(2)}',
+                    Icons.remove_circle_outline,
+                    Colors.orange,
+                  ),
+                  _RunMetric(
+                    'Net Pay',
+                    '${details.currency} ${details.totalNetPay.toStringAsFixed(2)}',
+                    Icons.account_balance_wallet_outlined,
+                    Colors.deepPurple,
+                  ),
                 ],
               );
             },
           ),
           const SizedBox(height: 16),
-          Text('Employee Lines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          Text(
+            'Employee Lines',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -344,7 +470,9 @@ class _PayrollRunDetailsView extends ConsumerWidget {
                   .map(
                     (line) => DataRow(
                       cells: [
-                        DataCell(Text('${line.employeeNumber} - ${line.employeeName}')),
+                        DataCell(
+                          Text('${line.employeeNumber} - ${line.employeeName}'),
+                        ),
                         DataCell(Text(line.regularHours.toStringAsFixed(2))),
                         DataCell(Text(line.overtimeHours.toStringAsFixed(2))),
                         DataCell(Text(line.hourlyRate.toStringAsFixed(2))),
@@ -404,17 +532,29 @@ class _InlineError extends StatelessWidget {
         children: [
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+          ),
         ],
       ),
     );
   }
 }
 
-Future<void> _showCreateRunSheet(BuildContext context, WidgetRef ref, PayrollSetup setup) async {
+Future<void> _showCreateRunSheet(
+  BuildContext context,
+  WidgetRef ref,
+  PayrollSetup setup,
+) async {
   final formKey = GlobalKey<FormState>();
-  final schedule = TextEditingController(text: setup.settings.defaultPaySchedule);
-  final regularHours = TextEditingController(text: setup.settings.workWeekHours.toString());
+  final schedule = TextEditingController(
+    text: setup.settings.defaultPaySchedule,
+  );
+  final regularHours = TextEditingController(
+    text: setup.settings.workWeekHours.toString(),
+  );
   final overtimeHours = TextEditingController(text: '0');
   final taxRate = TextEditingController(text: '0.10');
   final today = DateTime.now();
@@ -428,7 +568,12 @@ Future<void> _showCreateRunSheet(BuildContext context, WidgetRef ref, PayrollSet
     isScrollControlled: true,
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, setState) => Padding(
-        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.viewInsetsOf(context).bottom + 24),
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+        ),
         child: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -436,23 +581,76 @@ Future<void> _showCreateRunSheet(BuildContext context, WidgetRef ref, PayrollSet
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Create Payroll Run', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                Text(
+                  'Create Payroll Run',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 18),
-                _DatePickerTile(label: 'Period start', date: periodStart, onPick: (date) => setState(() => periodStart = date)),
-                _DatePickerTile(label: 'Period end', date: periodEnd, onPick: (date) => setState(() => periodEnd = date)),
-                _DatePickerTile(label: 'Pay date', date: payDate, onPick: (date) => setState(() => payDate = date)),
-                TextFormField(controller: schedule, decoration: const InputDecoration(labelText: 'Pay schedule'), validator: _required),
+                _DatePickerTile(
+                  label: 'Period start',
+                  date: periodStart,
+                  onPick: (date) => setState(() => periodStart = date),
+                ),
+                _DatePickerTile(
+                  label: 'Period end',
+                  date: periodEnd,
+                  onPick: (date) => setState(() => periodEnd = date),
+                ),
+                _DatePickerTile(
+                  label: 'Pay date',
+                  date: payDate,
+                  onPick: (date) => setState(() => payDate = date),
+                ),
+                TextFormField(
+                  controller: schedule,
+                  decoration: const InputDecoration(labelText: 'Pay schedule'),
+                  validator: _required,
+                ),
                 const SizedBox(height: 12),
-                TextFormField(controller: regularHours, decoration: const InputDecoration(labelText: 'Regular hours per employee'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: _numberRequired),
+                TextFormField(
+                  controller: regularHours,
+                  decoration: const InputDecoration(
+                    labelText: 'Regular hours per employee',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: _numberRequired,
+                ),
                 const SizedBox(height: 12),
-                TextFormField(controller: overtimeHours, decoration: const InputDecoration(labelText: 'Overtime hours per employee'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: _numberRequired),
+                TextFormField(
+                  controller: overtimeHours,
+                  decoration: const InputDecoration(
+                    labelText: 'Overtime hours per employee',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: _numberRequired,
+                ),
                 const SizedBox(height: 12),
-                TextFormField(controller: taxRate, decoration: const InputDecoration(labelText: 'Tax withholding rate, e.g. 0.10'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: _numberRequired),
+                TextFormField(
+                  controller: taxRate,
+                  decoration: const InputDecoration(
+                    labelText: 'Tax withholding rate, e.g. 0.10',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: _numberRequired,
+                ),
                 const SizedBox(height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(onPressed: saving ? null : () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: saving
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
                     const SizedBox(width: 8),
                     FilledButton.icon(
                       onPressed: saving
@@ -461,22 +659,39 @@ Future<void> _showCreateRunSheet(BuildContext context, WidgetRef ref, PayrollSet
                               if (!formKey.currentState!.validate()) return;
                               setState(() => saving = true);
                               try {
-                                await ref.read(payrollRunCommandsProvider).create(
+                                await ref
+                                    .read(payrollRunCommandsProvider)
+                                    .create(
                                       periodStart: periodStart,
                                       periodEnd: periodEnd,
                                       payDate: payDate,
                                       paySchedule: schedule.text.trim(),
-                                      regularHoursPerEmployee: double.parse(regularHours.text.trim()),
-                                      overtimeHoursPerEmployee: double.parse(overtimeHours.text.trim()),
-                                      taxWithholdingRate: double.parse(taxRate.text.trim()),
+                                      regularHoursPerEmployee: double.parse(
+                                        regularHours.text.trim(),
+                                      ),
+                                      overtimeHoursPerEmployee: double.parse(
+                                        overtimeHours.text.trim(),
+                                      ),
+                                      taxWithholdingRate: double.parse(
+                                        taxRate.text.trim(),
+                                      ),
                                     );
-                                if (context.mounted) Navigator.of(context).pop();
+                                if (context.mounted)
+                                  Navigator.of(context).pop();
                               } catch (error) {
-                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+                                if (context.mounted)
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
                                 setState(() => saving = false);
                               }
                             },
-                      icon: saving ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined),
+                      icon: saving
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_outlined),
                       label: const Text('Create'),
                     ),
                   ],
@@ -496,7 +711,11 @@ Future<void> _showCreateRunSheet(BuildContext context, WidgetRef ref, PayrollSet
 }
 
 class _DatePickerTile extends StatelessWidget {
-  const _DatePickerTile({required this.label, required this.date, required this.onPick});
+  const _DatePickerTile({
+    required this.label,
+    required this.date,
+    required this.onPick,
+  });
 
   final String label;
   final DateTime date;
@@ -511,7 +730,12 @@ class _DatePickerTile extends StatelessWidget {
       subtitle: Text(label),
       trailing: TextButton(
         onPressed: () async {
-          final selected = await showDatePicker(context: context, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2100));
+          final selected = await showDatePicker(
+            context: context,
+            initialDate: date,
+            firstDate: DateTime(2020),
+            lastDate: DateTime(2100),
+          );
           if (selected != null) onPick(selected);
         },
         child: const Text('Change'),
@@ -531,24 +755,34 @@ Future<void> _run(BuildContext context, Future<void> Function() action) async {
   try {
     await action();
   } catch (error) {
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+    if (context.mounted)
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
   }
 }
 
-void _openJournalEntry(BuildContext context, String journalEntryId, {bool closeDialog = false}) {
+void _openJournalEntry(
+  BuildContext context,
+  String journalEntryId, {
+  bool closeDialog = false,
+}) {
   final router = GoRouter.of(context);
   if (closeDialog) Navigator.of(context).pop();
   router.go(AppRoutes.journalEntryDetails.replaceFirst(':id', journalEntryId));
 }
 
 Color _statusColor(BuildContext context, String status) => switch (status) {
-      'Draft' => Colors.blue,
-      'Approved' => Colors.green,
-      'Posted' => Colors.deepPurple,
-      'Void' => Theme.of(context).colorScheme.error,
-      _ => Theme.of(context).colorScheme.primary,
-    };
+  'Draft' => Colors.blue,
+  'Approved' => Colors.green,
+  'Posted' => Colors.deepPurple,
+  'Void' => Theme.of(context).colorScheme.error,
+  _ => Theme.of(context).colorScheme.primary,
+};
 
-String? _required(String? value) => value == null || value.trim().isEmpty ? 'Required' : null;
-String? _numberRequired(String? value) => double.tryParse(value ?? '') == null ? 'Enter a valid number' : null;
-String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+String? _required(String? value) =>
+    value == null || value.trim().isEmpty ? 'Required' : null;
+String? _numberRequired(String? value) =>
+    double.tryParse(value ?? '') == null ? 'Enter a valid number' : null;
+String _date(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

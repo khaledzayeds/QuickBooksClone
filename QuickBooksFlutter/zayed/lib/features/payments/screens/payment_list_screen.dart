@@ -29,7 +29,7 @@ class _PaymentListScreenState extends ConsumerState<PaymentListScreen> {
   @override
   Widget build(BuildContext context) {
     final paymentsAsync = ref.watch(paymentsProvider);
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_date(_dateRange!.start)} - ${_date(_dateRange!.end)}';
@@ -129,7 +129,11 @@ class _PaymentListScreenState extends ConsumerState<PaymentListScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -306,7 +310,7 @@ class _PaymentListScreenState extends ConsumerState<PaymentListScreen> {
         _ => true,
       };
       if (!matchesStatus) return false;
-      
+
       final range = _dateRange;
       if (range != null) {
         final date = DateUtils.dateOnly(payment.paymentDate);

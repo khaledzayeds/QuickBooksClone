@@ -193,9 +193,7 @@ class _SalesReceiptStatusStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.10),
-        border: Border(
-          bottom: BorderSide(color: color.withOpacity(0.35)),
-        ),
+        border: Border(bottom: BorderSide(color: color.withOpacity(0.35))),
       ),
       child: Row(
         children: [
@@ -210,9 +208,9 @@ class _SalesReceiptStatusStrip extends StatelessWidget {
             child: Text(
               badgeText,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -222,9 +220,9 @@ class _SalesReceiptStatusStrip extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w800,
-                  ),
+                color: color,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],

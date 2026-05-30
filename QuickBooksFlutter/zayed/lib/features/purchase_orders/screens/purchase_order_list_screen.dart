@@ -47,7 +47,7 @@ class _PurchaseOrderListScreenState
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(purchaseOrdersProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -79,7 +79,8 @@ class _PurchaseOrderListScreenState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(purchaseOrdersProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(purchaseOrdersProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -147,7 +148,11 @@ class _PurchaseOrderListScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -168,15 +173,37 @@ class _PurchaseOrderListScreenState
                         ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.all, child: Text('All')),
-                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.draft, child: Text('Draft')),
-                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.open, child: Text('Open')),
-                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.closed, child: Text('Closed')),
-                        DropdownMenuItem(value: _PurchaseOrderStatusFilter.cancelled, child: Text('Cancelled')),
+                        DropdownMenuItem(
+                          value: _PurchaseOrderStatusFilter.all,
+                          child: Text('All'),
+                        ),
+                        DropdownMenuItem(
+                          value: _PurchaseOrderStatusFilter.draft,
+                          child: Text('Draft'),
+                        ),
+                        DropdownMenuItem(
+                          value: _PurchaseOrderStatusFilter.open,
+                          child: Text('Open'),
+                        ),
+                        DropdownMenuItem(
+                          value: _PurchaseOrderStatusFilter.closed,
+                          child: Text('Closed'),
+                        ),
+                        DropdownMenuItem(
+                          value: _PurchaseOrderStatusFilter.cancelled,
+                          child: Text('Cancelled'),
+                        ),
                       ],
                       onChanged: (value) {
-                        setState(() => _selectedStatus = value ?? _PurchaseOrderStatusFilter.all);
-                        ref.read(purchaseOrdersProvider.notifier).setStatusFilter(_toPurchaseOrderStatus(_selectedStatus));
+                        setState(
+                          () => _selectedStatus =
+                              value ?? _PurchaseOrderStatusFilter.all,
+                        );
+                        ref
+                            .read(purchaseOrdersProvider.notifier)
+                            .setStatusFilter(
+                              _toPurchaseOrderStatus(_selectedStatus),
+                            );
                       },
                     ),
                   ),
@@ -191,7 +218,9 @@ class _PurchaseOrderListScreenState
                           _selectedStatus = _PurchaseOrderStatusFilter.all;
                           _queryCtrl.clear();
                         });
-                        ref.read(purchaseOrdersProvider.notifier).setStatusFilter(null);
+                        ref
+                            .read(purchaseOrdersProvider.notifier)
+                            .setStatusFilter(null);
                       },
                     ),
                   ],
@@ -237,7 +266,7 @@ class _PurchaseOrderListScreenState
                               itemBuilder: (context, index) {
                                 final order = filtered[index];
                                 final shaded = index.isEven;
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
                                     AppRoutes.purchaseOrderDetails.replaceFirst(
@@ -262,15 +291,14 @@ class _PurchaseOrderListScreenState
                                               : order.orderNumber,
                                           flex: 2,
                                         ),
-                                        _Cell(
-                                          order.vendorName,
-                                          flex: 4,
-                                        ),
+                                        _Cell(order.vendorName, flex: 4),
                                         _CellWidget(
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(status: order.status),
+                                            child: _StatusBadge(
+                                              status: order.status,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -443,10 +471,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 

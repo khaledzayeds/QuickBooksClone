@@ -36,7 +36,10 @@ class CustomerCard extends StatelessWidget {
                 backgroundColor: cs.primary.withValues(alpha: 0.10),
                 child: Text(
                   customer.initials,
-                  style: theme.textTheme.titleMedium?.copyWith(color: cs.primary, fontWeight: FontWeight.w900),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -51,7 +54,9 @@ class CustomerCard extends StatelessWidget {
                             customer.displayName,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w900,
-                              color: customer.isActive ? null : theme.disabledColor,
+                              color: customer.isActive
+                                  ? null
+                                  : theme.disabledColor,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -59,23 +64,48 @@ class CustomerCard extends StatelessWidget {
                         if (customer.needsAttention)
                           Tooltip(
                             message: 'Customer has open balance',
-                            child: Icon(Icons.warning_amber_outlined, color: cs.error, size: 20),
+                            child: Icon(
+                              Icons.warning_amber_outlined,
+                              color: cs.error,
+                              size: 20,
+                            ),
                           ),
                       ],
                     ),
                     if (customer.companyName?.isNotEmpty == true) ...[
                       const SizedBox(height: 3),
-                      Text(customer.companyName!, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                      Text(
+                        customer.companyName!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _MiniChip(label: customer.isActive ? 'Active' : 'Inactive', icon: customer.isActive ? Icons.check_circle_outline : Icons.block_outlined),
-                        _MiniChip(label: customer.currency, icon: Icons.attach_money_outlined),
-                        if (customer.phone?.isNotEmpty == true) _MiniChip(label: customer.phone!, icon: Icons.phone_outlined),
-                        if (customer.email?.isNotEmpty == true) _MiniChip(label: customer.email!, icon: Icons.email_outlined),
+                        _MiniChip(
+                          label: customer.isActive ? 'Active' : 'Inactive',
+                          icon: customer.isActive
+                              ? Icons.check_circle_outline
+                              : Icons.block_outlined,
+                        ),
+                        _MiniChip(
+                          label: customer.currency,
+                          icon: Icons.attach_money_outlined,
+                        ),
+                        if (customer.phone?.isNotEmpty == true)
+                          _MiniChip(
+                            label: customer.phone!,
+                            icon: Icons.phone_outlined,
+                          ),
+                        if (customer.email?.isNotEmpty == true)
+                          _MiniChip(
+                            label: customer.email!,
+                            icon: Icons.email_outlined,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -83,9 +113,21 @@ class CustomerCard extends StatelessWidget {
                       spacing: 10,
                       runSpacing: 8,
                       children: [
-                        _Metric(label: 'Open balance', value: '${customer.balance.toStringAsFixed(2)} ${customer.currency}'),
-                        _Metric(label: 'Credit balance', value: '${customer.creditBalance.toStringAsFixed(2)} ${customer.currency}'),
-                        _Metric(label: 'Net receivable', value: '${customer.netReceivable.toStringAsFixed(2)} ${customer.currency}'),
+                        _Metric(
+                          label: 'Open balance',
+                          value:
+                              '${customer.balance.toStringAsFixed(2)} ${customer.currency}',
+                        ),
+                        _Metric(
+                          label: 'Credit balance',
+                          value:
+                              '${customer.creditBalance.toStringAsFixed(2)} ${customer.currency}',
+                        ),
+                        _Metric(
+                          label: 'Net receivable',
+                          value:
+                              '${customer.netReceivable.toStringAsFixed(2)} ${customer.currency}',
+                        ),
                       ],
                     ),
                   ],
@@ -104,11 +146,17 @@ class CustomerCard extends StatelessWidget {
                   if (onToggleActive != null)
                     IconButton(
                       icon: Icon(
-                        customer.isActive ? Icons.toggle_on_outlined : Icons.toggle_off_outlined,
-                        color: customer.isActive ? cs.primary : theme.disabledColor,
+                        customer.isActive
+                            ? Icons.toggle_on_outlined
+                            : Icons.toggle_off_outlined,
+                        color: customer.isActive
+                            ? cs.primary
+                            : theme.disabledColor,
                       ),
                       onPressed: onToggleActive,
-                      tooltip: customer.isActive ? 'Make inactive' : 'Make active',
+                      tooltip: customer.isActive
+                          ? 'Make inactive'
+                          : 'Make active',
                     ),
                 ],
               ),
@@ -130,8 +178,18 @@ class _MiniChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(999)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: cs.primary), const SizedBox(width: 4), Text(label, style: Theme.of(context).textTheme.labelSmall)]),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: cs.primary),
+          const SizedBox(width: 4),
+          Text(label, style: Theme.of(context).textTheme.labelSmall),
+        ],
+      ),
     );
   }
 }
@@ -148,8 +206,17 @@ class _Metric extends StatelessWidget {
       text: TextSpan(
         style: Theme.of(context).textTheme.bodySmall,
         children: [
-          TextSpan(text: '$label: ', style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w600)),
-          TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.w800)),
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ],
       ),
     );

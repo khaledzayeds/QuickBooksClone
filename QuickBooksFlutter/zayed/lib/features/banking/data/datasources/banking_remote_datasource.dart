@@ -14,9 +14,13 @@ class BankingRemoteDatasource {
 
   Future<ApiResult<List<BankAccountModel>>> getAccounts() async {
     try {
-      final response = await _client.get<List<dynamic>>('/api/banking/accounts');
+      final response = await _client.get<List<dynamic>>(
+        '/api/banking/accounts',
+      );
       final list = (response.data ?? const [])
-          .map((json) => BankAccountModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => BankAccountModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
       return Success(list);
     } on DioException catch (error) {
@@ -24,7 +28,9 @@ class BankingRemoteDatasource {
     }
   }
 
-  Future<ApiResult<BankRegisterResponseModel>> getRegister(String accountId) async {
+  Future<ApiResult<BankRegisterResponseModel>> getRegister(
+    String accountId,
+  ) async {
     try {
       final response = await _client.get<Map<String, dynamic>>(
         '/api/banking/register',
@@ -38,7 +44,10 @@ class BankingRemoteDatasource {
 
   Future<ApiResult<void>> createTransfer(CreateBankTransferDto dto) async {
     try {
-      await _client.post<Map<String, dynamic>>('/api/banking/transfers', data: dto.toJson());
+      await _client.post<Map<String, dynamic>>(
+        '/api/banking/transfers',
+        data: dto.toJson(),
+      );
       return const Success(null);
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -47,7 +56,10 @@ class BankingRemoteDatasource {
 
   Future<ApiResult<void>> createDeposit(CreateBankDepositDto dto) async {
     try {
-      await _client.post<Map<String, dynamic>>('/api/banking/deposits', data: dto.toJson());
+      await _client.post<Map<String, dynamic>>(
+        '/api/banking/deposits',
+        data: dto.toJson(),
+      );
       return const Success(null);
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -56,14 +68,19 @@ class BankingRemoteDatasource {
 
   Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) async {
     try {
-      await _client.post<Map<String, dynamic>>('/api/banking/checks', data: dto.toJson());
+      await _client.post<Map<String, dynamic>>(
+        '/api/banking/checks',
+        data: dto.toJson(),
+      );
       return const Success(null);
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
   }
 
-  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(BankReconcilePreviewDto dto) async {
+  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(
+    BankReconcilePreviewDto dto,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/banking/reconcile/preview',

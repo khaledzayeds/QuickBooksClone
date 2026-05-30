@@ -41,7 +41,14 @@ class TransactionPartySelector extends StatelessWidget {
               children: [
                 Icon(_icon, color: cs.primary),
                 const SizedBox(width: 8),
-                Expanded(child: Text(label, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
                 if (onCreateNew != null)
                   TextButton.icon(
                     onPressed: onCreateNew,
@@ -59,8 +66,17 @@ class TransactionPartySelector extends StatelessWidget {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (onClear != null) IconButton(onPressed: onClear, icon: const Icon(Icons.clear), tooltip: 'Clear'),
-                    IconButton(onPressed: onSearch, icon: const Icon(Icons.search), tooltip: 'Search'),
+                    if (onClear != null)
+                      IconButton(
+                        onPressed: onClear,
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear',
+                      ),
+                    IconButton(
+                      onPressed: onSearch,
+                      icon: const Icon(Icons.search),
+                      tooltip: 'Search',
+                    ),
                   ],
                 ),
                 border: const OutlineInputBorder(),
@@ -68,15 +84,26 @@ class TransactionPartySelector extends StatelessWidget {
               ),
               onSubmitted: (_) => onSearch?.call(),
             ),
-            if (selectedDisplayName?.isNotEmpty == true || balanceText != null || creditText != null) ...[
+            if (selectedDisplayName?.isNotEmpty == true ||
+                balanceText != null ||
+                creditText != null) ...[
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (selectedDisplayName?.isNotEmpty == true) _InfoChip(icon: _icon, text: selectedDisplayName!),
-                  if (balanceText != null) _InfoChip(icon: Icons.account_balance_wallet_outlined, text: balanceText!),
-                  if (creditText != null) _InfoChip(icon: Icons.credit_score_outlined, text: creditText!),
+                  if (selectedDisplayName?.isNotEmpty == true)
+                    _InfoChip(icon: _icon, text: selectedDisplayName!),
+                  if (balanceText != null)
+                    _InfoChip(
+                      icon: Icons.account_balance_wallet_outlined,
+                      text: balanceText!,
+                    ),
+                  if (creditText != null)
+                    _InfoChip(
+                      icon: Icons.credit_score_outlined,
+                      text: creditText!,
+                    ),
                 ],
               ),
             ],
@@ -87,18 +114,19 @@ class TransactionPartySelector extends StatelessWidget {
   }
 
   IconData get _icon => switch (partyType) {
-        TransactionPartyType.customer => Icons.person_outline,
-        TransactionPartyType.vendor => Icons.store_outlined,
-        TransactionPartyType.account => Icons.account_tree_outlined,
-        TransactionPartyType.none => Icons.info_outline,
-      };
+    TransactionPartyType.customer => Icons.person_outline,
+    TransactionPartyType.vendor => Icons.store_outlined,
+    TransactionPartyType.account => Icons.account_tree_outlined,
+    TransactionPartyType.none => Icons.info_outline,
+  };
 
   String get _hint => switch (partyType) {
-        TransactionPartyType.customer => 'Search customer by name, phone, or email...',
-        TransactionPartyType.vendor => 'Search vendor by name, phone, or email...',
-        TransactionPartyType.account => 'Search account...',
-        TransactionPartyType.none => 'Search...',
-      };
+    TransactionPartyType.customer =>
+      'Search customer by name, phone, or email...',
+    TransactionPartyType.vendor => 'Search vendor by name, phone, or email...',
+    TransactionPartyType.account => 'Search account...',
+    TransactionPartyType.none => 'Search...',
+  };
 }
 
 class _InfoChip extends StatelessWidget {
@@ -111,8 +139,18 @@ class _InfoChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(999)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: cs.primary), const SizedBox(width: 5), Text(text, style: Theme.of(context).textTheme.labelSmall)]),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: cs.primary),
+          const SizedBox(width: 5),
+          Text(text, style: Theme.of(context).textTheme.labelSmall),
+        ],
+      ),
     );
   }
 }

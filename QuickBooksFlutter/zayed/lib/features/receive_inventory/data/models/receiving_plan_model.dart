@@ -18,16 +18,18 @@ class ReceivingPlanModel {
   final double totalRemainingQuantity;
   final List<ReceivingPlanLineModel> lines;
 
-  factory ReceivingPlanModel.fromJson(Map<String, dynamic> json) => ReceivingPlanModel(
-    purchaseOrderId:        json['purchaseOrderId'] ?? '',
-    orderNumber:            json['orderNumber']     ?? '',
-    vendorId:               json['vendorId']        ?? '',
-    vendorName:             json['vendorName'],
-    totalRemainingQuantity: (json['totalRemainingQuantity'] as num?)?.toDouble() ?? 0,
-    lines: (json['lines'] as List? ?? [])
-        .map((l) => ReceivingPlanLineModel.fromJson(l))
-        .toList(),
-  );
+  factory ReceivingPlanModel.fromJson(Map<String, dynamic> json) =>
+      ReceivingPlanModel(
+        purchaseOrderId: json['purchaseOrderId'] ?? '',
+        orderNumber: json['orderNumber'] ?? '',
+        vendorId: json['vendorId'] ?? '',
+        vendorName: json['vendorName'],
+        totalRemainingQuantity:
+            (json['totalRemainingQuantity'] as num?)?.toDouble() ?? 0,
+        lines: (json['lines'] as List? ?? [])
+            .map((l) => ReceivingPlanLineModel.fromJson(l))
+            .toList(),
+      );
 }
 
 class ReceivingPlanLineModel {
@@ -51,14 +53,16 @@ class ReceivingPlanLineModel {
   final double suggestedReceiveQuantity;
   final double unitCost;
 
-  factory ReceivingPlanLineModel.fromJson(Map<String, dynamic> json) => ReceivingPlanLineModel(
-    purchaseOrderLineId:      json['purchaseOrderLineId']      ?? '',
-    itemId:                   json['itemId']                   ?? '',
-    description:              json['description']              ?? '',
-    orderedQuantity:          (json['orderedQuantity']         as num?)?.toDouble() ?? 0,
-    receivedQuantity:         (json['receivedQuantity']        as num?)?.toDouble() ?? 0,
-    remainingQuantity:        (json['remainingQuantity']       as num?)?.toDouble() ?? 0,
-    suggestedReceiveQuantity: (json['suggestedReceiveQuantity'] as num?)?.toDouble() ?? 0,
-    unitCost:                 (json['unitCost']                as num?)?.toDouble() ?? 0,
-  );
+  factory ReceivingPlanLineModel.fromJson(Map<String, dynamic> json) =>
+      ReceivingPlanLineModel(
+        purchaseOrderLineId: json['purchaseOrderLineId'] ?? '',
+        itemId: json['itemId'] ?? '',
+        description: json['description'] ?? '',
+        orderedQuantity: (json['orderedQuantity'] as num?)?.toDouble() ?? 0,
+        receivedQuantity: (json['receivedQuantity'] as num?)?.toDouble() ?? 0,
+        remainingQuantity: (json['remainingQuantity'] as num?)?.toDouble() ?? 0,
+        suggestedReceiveQuantity:
+            (json['suggestedReceiveQuantity'] as num?)?.toDouble() ?? 0,
+        unitCost: (json['unitCost'] as num?)?.toDouble() ?? 0,
+      );
 }

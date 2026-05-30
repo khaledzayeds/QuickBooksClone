@@ -33,7 +33,7 @@ class _VendorPaymentListScreenState
   Widget build(BuildContext context) {
     final paymentsAsync = ref.watch(vendorPaymentsProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -65,7 +65,8 @@ class _VendorPaymentListScreenState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(vendorPaymentsProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(vendorPaymentsProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -133,7 +134,11 @@ class _VendorPaymentListScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -220,7 +225,7 @@ class _VendorPaymentListScreenState
                               itemBuilder: (context, index) {
                                 final payment = filtered[index];
                                 final shaded = index.isEven;
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
                                     AppRoutes.vendorPaymentDetails.replaceFirst(
@@ -245,10 +250,7 @@ class _VendorPaymentListScreenState
                                               : payment.paymentNumber,
                                           flex: 2,
                                         ),
-                                        _Cell(
-                                          payment.vendorName,
-                                          flex: 4,
-                                        ),
+                                        _Cell(payment.vendorName, flex: 4),
                                         _Cell(
                                           payment.paymentAccountName,
                                           flex: 3,
@@ -257,7 +259,9 @@ class _VendorPaymentListScreenState
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(status: payment.status),
+                                            child: _StatusBadge(
+                                              status: payment.status,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -423,10 +427,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 
@@ -453,7 +454,7 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     final Color bg;
     final Color fg;
-    
+
     switch (status) {
       case 1:
         label = 'Draft';

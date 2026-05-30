@@ -32,7 +32,9 @@ class LicenseSettingsRepository {
       'allowHostedMode': prefs.getString('${_prefix}allowHostedMode'),
       'allowBackupRestore': prefs.getString('${_prefix}allowBackupRestore'),
       'allowDemoCompany': prefs.getString('${_prefix}allowDemoCompany'),
-      'allowAdvancedInventory': prefs.getString('${_prefix}allowAdvancedInventory'),
+      'allowAdvancedInventory': prefs.getString(
+        '${_prefix}allowAdvancedInventory',
+      ),
       'allowPayroll': prefs.getString('${_prefix}allowPayroll'),
       'licenseKey': prefs.getString('${_prefix}licenseKey'),
       'companyName': prefs.getString('${_prefix}companyName'),
@@ -70,7 +72,10 @@ class LicenseSettingsRepository {
     required String appVersion,
   }) async {
     if (serial.trim().isEmpty) {
-      return const ApplyLicensePackageResult(success: false, message: 'Serial is required for online activation.');
+      return const ApplyLicensePackageResult(
+        success: false,
+        message: 'Serial is required for online activation.',
+      );
     }
 
     final response = await ApiClient.instance.post<Map<String, dynamic>>(
@@ -86,7 +91,10 @@ class LicenseSettingsRepository {
     final data = response.data;
     final package = data?['licensePackage']?.toString();
     if (package == null || package.isEmpty) {
-      return const ApplyLicensePackageResult(success: false, message: 'Activation server did not return a license package.');
+      return const ApplyLicensePackageResult(
+        success: false,
+        message: 'Activation server did not return a license package.',
+      );
     }
 
     return applyPackage(package: package, deviceFingerprint: deviceFingerprint);
@@ -106,12 +114,19 @@ class LicenseSettingsRepository {
     }
 
     final saved = await save(result.license!);
-    return ApplyLicensePackageResult(success: true, message: result.message, license: saved);
+    return ApplyLicensePackageResult(
+      success: true,
+      message: result.message,
+      license: saved,
+    );
   }
 
   Future<LicenseSettingsModel> reset() async {
     final prefs = await SharedPreferences.getInstance();
-    final keys = prefs.getKeys().where((key) => key.startsWith(_prefix)).toList();
+    final keys = prefs
+        .getKeys()
+        .where((key) => key.startsWith(_prefix))
+        .toList();
     for (final key in keys) {
       await prefs.remove(key);
     }

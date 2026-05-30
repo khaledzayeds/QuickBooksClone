@@ -37,10 +37,29 @@ class DashboardInsights extends ConsumerWidget {
                   spacing: 24,
                   runSpacing: 16,
                   children: [
-                    _Metric(label: l10n.netIncome.toUpperCase(), value: _money(snapshot.netProfit, snapshot.currency), tone: _tone(snapshot.netProfit)),
-                    _Metric(label: l10n.income.toUpperCase(), value: _money(snapshot.totalIncome, snapshot.currency), tone: _MetricTone.positive),
-                    _Metric(label: l10n.expensesByCategory.split(' ').first.toUpperCase(), value: _money(snapshot.totalExpenses, snapshot.currency), tone: _MetricTone.warning),
-                    _Metric(label: 'CASH', value: _money(snapshot.cashBalance, snapshot.currency), tone: _tone(snapshot.cashBalance)),
+                    _Metric(
+                      label: l10n.netIncome.toUpperCase(),
+                      value: _money(snapshot.netProfit, snapshot.currency),
+                      tone: _tone(snapshot.netProfit),
+                    ),
+                    _Metric(
+                      label: l10n.income.toUpperCase(),
+                      value: _money(snapshot.totalIncome, snapshot.currency),
+                      tone: _MetricTone.positive,
+                    ),
+                    _Metric(
+                      label: l10n.expensesByCategory
+                          .split(' ')
+                          .first
+                          .toUpperCase(),
+                      value: _money(snapshot.totalExpenses, snapshot.currency),
+                      tone: _MetricTone.warning,
+                    ),
+                    _Metric(
+                      label: 'CASH',
+                      value: _money(snapshot.cashBalance, snapshot.currency),
+                      tone: _tone(snapshot.cashBalance),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -58,9 +77,26 @@ class DashboardInsights extends ConsumerWidget {
                 onActionTap: () => context.go(AppRoutes.invoiceNew),
                 child: Column(
                   children: [
-                    _ProgressBar(label: l10n.unpaid.toUpperCase(), value: snapshot.expectedIncoming, maxValue: math.max(snapshot.expectedIncoming, snapshot.expectedOutgoing), currency: snapshot.currency, tone: _MetricTone.positive),
+                    _ProgressBar(
+                      label: l10n.unpaid.toUpperCase(),
+                      value: snapshot.expectedIncoming,
+                      maxValue: math.max(
+                        snapshot.expectedIncoming,
+                        snapshot.expectedOutgoing,
+                      ),
+                      currency: snapshot.currency,
+                      tone: _MetricTone.positive,
+                    ),
                     const SizedBox(height: 12),
-                    _ProgressBar(label: 'OVERDUE', value: snapshot.overdueIncoming, maxValue: math.max(snapshot.expectedIncoming, 1), currency: snapshot.currency, tone: snapshot.overdueIncoming > 0 ? _MetricTone.warning : _MetricTone.neutral),
+                    _ProgressBar(
+                      label: 'OVERDUE',
+                      value: snapshot.overdueIncoming,
+                      maxValue: math.max(snapshot.expectedIncoming, 1),
+                      currency: snapshot.currency,
+                      tone: snapshot.overdueIncoming > 0
+                          ? _MetricTone.warning
+                          : _MetricTone.neutral,
+                    ),
                   ],
                 ),
               );
@@ -70,15 +106,38 @@ class DashboardInsights extends ConsumerWidget {
                 onActionTap: () => context.go(AppRoutes.purchaseBillNew),
                 child: Column(
                   children: [
-                    _ProgressBar(label: 'OPEN BILLS', value: snapshot.expectedOutgoing, maxValue: math.max(snapshot.expectedIncoming, snapshot.expectedOutgoing), currency: snapshot.currency, tone: _MetricTone.warning),
+                    _ProgressBar(
+                      label: 'OPEN BILLS',
+                      value: snapshot.expectedOutgoing,
+                      maxValue: math.max(
+                        snapshot.expectedIncoming,
+                        snapshot.expectedOutgoing,
+                      ),
+                      currency: snapshot.currency,
+                      tone: _MetricTone.warning,
+                    ),
                     const SizedBox(height: 12),
-                    _ProgressBar(label: 'OVERDUE', value: snapshot.overdueOutgoing, maxValue: math.max(snapshot.expectedOutgoing, 1), currency: snapshot.currency, tone: snapshot.overdueOutgoing > 0 ? _MetricTone.negative : _MetricTone.neutral),
+                    _ProgressBar(
+                      label: 'OVERDUE',
+                      value: snapshot.overdueOutgoing,
+                      maxValue: math.max(snapshot.expectedOutgoing, 1),
+                      currency: snapshot.currency,
+                      tone: snapshot.overdueOutgoing > 0
+                          ? _MetricTone.negative
+                          : _MetricTone.neutral,
+                    ),
                   ],
                 ),
               );
 
               if (!wide) {
-                return Column(children: [incomeCard, const SizedBox(height: 24), expensesCard]);
+                return Column(
+                  children: [
+                    incomeCard,
+                    const SizedBox(height: 24),
+                    expensesCard,
+                  ],
+                );
               }
 
               return Row(
@@ -99,10 +158,12 @@ class DashboardInsights extends ConsumerWidget {
             child: Column(
               children: snapshot.alerts
                   .take(3)
-                  .map((alert) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _AlertSummary(alert: alert),
-                      ))
+                  .map(
+                    (alert) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _AlertSummary(alert: alert),
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -113,7 +174,12 @@ class DashboardInsights extends ConsumerWidget {
 }
 
 class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.title, required this.child, this.action, this.onActionTap});
+  const _InsightCard({
+    required this.title,
+    required this.child,
+    this.action,
+    this.onActionTap,
+  });
 
   final String title;
   final Widget child;
@@ -136,11 +202,24 @@ class _InsightCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               if (action != null)
                 InkWell(
                   onTap: onActionTap,
-                  child: Text(action!, style: TextStyle(fontSize: 12, color: theme.colorScheme.primary, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    action!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -167,9 +246,23 @@ class _Metric extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w700)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -177,7 +270,13 @@ class _Metric extends StatelessWidget {
 }
 
 class _ProgressBar extends StatelessWidget {
-  const _ProgressBar({required this.label, required this.value, required this.maxValue, required this.currency, required this.tone});
+  const _ProgressBar({
+    required this.label,
+    required this.value,
+    required this.maxValue,
+    required this.currency,
+    required this.tone,
+  });
 
   final String label;
   final double value;
@@ -195,8 +294,18 @@ class _ProgressBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey)),
-            Text(_money(value, currency), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Colors.grey,
+              ),
+            ),
+            Text(
+              _money(value, currency),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+            ),
           ],
         ),
         const SizedBox(height: 4),
@@ -220,10 +329,15 @@ class _CashForecastChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (snapshot.forecastPoints.every((point) => point.amount == 0)) {
-      return const SizedBox(height: 180, child: Center(child: Text('No cash-flow activity yet.')));
+      return const SizedBox(
+        height: 180,
+        child: Center(child: Text('No cash-flow activity yet.')),
+      );
     }
 
-    final values = snapshot.forecastPoints.map((point) => point.amount).toList();
+    final values = snapshot.forecastPoints
+        .map((point) => point.amount)
+        .toList();
     final minValue = values.reduce(math.min);
     final maxValue = values.reduce(math.max);
     final padding = math.max((maxValue - minValue).abs() * 0.2, 100.0);
@@ -237,10 +351,19 @@ class _CashForecastChart extends StatelessWidget {
           gridData: const FlGridData(show: false),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: true, reservedSize: 54, getTitlesWidget: (value, meta) => Text(_compact(value), style: const TextStyle(fontSize: 10))),
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 54,
+                getTitlesWidget: (value, meta) =>
+                    Text(_compact(value), style: const TextStyle(fontSize: 10)),
+              ),
             ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
@@ -248,10 +371,14 @@ class _CashForecastChart extends StatelessWidget {
                 reservedSize: 28,
                 getTitlesWidget: (value, meta) {
                   final index = value.round();
-                  if (index < 0 || index >= snapshot.forecastPoints.length) return const SizedBox.shrink();
+                  if (index < 0 || index >= snapshot.forecastPoints.length)
+                    return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text(snapshot.forecastPoints[index].label, style: const TextStyle(fontSize: 11)),
+                    child: Text(
+                      snapshot.forecastPoints[index].label,
+                      style: const TextStyle(fontSize: 11),
+                    ),
                   );
                 },
               ),
@@ -259,7 +386,10 @@ class _CashForecastChart extends StatelessWidget {
           ),
           lineBarsData: [
             LineChartBarData(
-              spots: [for (var i = 0; i < snapshot.forecastPoints.length; i++) FlSpot(i.toDouble(), snapshot.forecastPoints[i].amount)],
+              spots: [
+                for (var i = 0; i < snapshot.forecastPoints.length; i++)
+                  FlSpot(i.toDouble(), snapshot.forecastPoints[i].amount),
+              ],
               isCurved: true,
               barWidth: 3,
               dotData: const FlDotData(show: true),
@@ -295,7 +425,10 @@ class _AlertSummary extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(alert.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(
+                alert.title,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 2),
               Text(alert.message, maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
@@ -322,13 +455,23 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+              Icon(
+                Icons.error_outline,
+                color: Theme.of(context).colorScheme.error,
+              ),
               const SizedBox(height: 12),
-              const Text('Could not load insights', style: TextStyle(fontWeight: FontWeight.w900)),
+              const Text(
+                'Could not load insights',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 8),
               Text(message, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
             ],
           ),
         ),
@@ -346,13 +489,14 @@ _MetricTone _tone(double value) {
 }
 
 Color _toneColor(BuildContext context, _MetricTone tone) => switch (tone) {
-      _MetricTone.positive => Colors.green,
-      _MetricTone.warning => Colors.orange,
-      _MetricTone.negative => Theme.of(context).colorScheme.error,
-      _MetricTone.neutral => Colors.blueGrey,
-    };
+  _MetricTone.positive => Colors.green,
+  _MetricTone.warning => Colors.orange,
+  _MetricTone.negative => Theme.of(context).colorScheme.error,
+  _MetricTone.neutral => Colors.blueGrey,
+};
 
-String _money(double value, String currency) => '$currency ${value.toStringAsFixed(2)}';
+String _money(double value, String currency) =>
+    '$currency ${value.toStringAsFixed(2)}';
 
 String _compact(double value) {
   final abs = value.abs();

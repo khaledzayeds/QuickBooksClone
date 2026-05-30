@@ -17,12 +17,12 @@ class CreateVendorPaymentDto {
   final String paymentMethod;
 
   Map<String, dynamic> toJson() => {
-        'purchaseBillId': purchaseBillId,
-        'paymentAccountId': paymentAccountId,
-        'paymentDate': _dateOnly(paymentDate),
-        'amount': amount,
-        'paymentMethod': paymentMethod,
-      };
+    'purchaseBillId': purchaseBillId,
+    'paymentAccountId': paymentAccountId,
+    'paymentDate': _dateOnly(paymentDate),
+    'amount': amount,
+    'paymentMethod': paymentMethod,
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

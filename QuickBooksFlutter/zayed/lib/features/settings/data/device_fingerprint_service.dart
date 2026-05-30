@@ -63,7 +63,9 @@ class DeviceFingerprintService {
   static String _createInstallationId() {
     final random = Random.secure();
     final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-    final time = DateTime.now().toUtc().microsecondsSinceEpoch.toRadixString(16);
+    final time = DateTime.now().toUtc().microsecondsSinceEpoch.toRadixString(
+      16,
+    );
     return '$time-${base64UrlEncode(bytes).replaceAll('=', '')}';
   }
 }

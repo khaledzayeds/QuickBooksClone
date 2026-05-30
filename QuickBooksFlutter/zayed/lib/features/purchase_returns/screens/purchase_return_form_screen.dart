@@ -56,7 +56,8 @@ class _PurchaseReturnFormScreenState
     super.dispose();
   }
 
-  double get _draftTotal => _lines.fold(0, (sum, line) => sum + line.draftAmount);
+  double get _draftTotal =>
+      _lines.fold(0, (sum, line) => sum + line.draftAmount);
 
   static String _dateOnly(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-'
@@ -69,13 +70,18 @@ class _PurchaseReturnFormScreenState
     _tryPreselectBill(billsAsync);
 
     final bills = billsAsync.maybeWhen(
-      data: (data) =>
-          data.where((b) => b.status != 1 && b.status != 3 && b.lines.isNotEmpty).toList(),
+      data: (data) => data
+          .where((b) => b.status != 1 && b.status != 3 && b.lines.isNotEmpty)
+          .toList(),
       orElse: () => <PurchaseBillModel>[],
     );
-    final selectedBill = bills.where((b) => b.id == _purchaseBillId).firstOrNull;
+    final selectedBill = bills
+        .where((b) => b.id == _purchaseBillId)
+        .firstOrNull;
 
-    final returns = ref.watch(purchaseReturnsProvider).maybeWhen(
+    final returns = ref
+        .watch(purchaseReturnsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => <PurchaseReturnModel>[],
         );
@@ -89,8 +95,11 @@ class _PurchaseReturnFormScreenState
       onFind: () => context.go(AppRoutes.purchaseReturns),
       onPrevious: returns.isNotEmpty
           ? () => context.go(
-                AppRoutes.purchaseReturnDetails.replaceFirst(':id', returns.first.id),
-              )
+              AppRoutes.purchaseReturnDetails.replaceFirst(
+                ':id',
+                returns.first.id,
+              ),
+            )
           : null,
       onNext: null,
       onNew: () {
@@ -226,17 +235,19 @@ class _PurchaseReturnFormScreenState
   }
 }
 
-List<PurchaseReturnLineState> _linesFromBill(PurchaseBillModel bill) =>
-    bill.lines
-        .map(
-          (line) => PurchaseReturnLineState(
-            purchaseBillLineId: line.id,
-            description: line.description.isEmpty ? line.itemName : line.description,
-            originalQuantity: line.quantity,
-            unitCost: line.unitCost,
-          ),
-        )
-        .toList();
+List<PurchaseReturnLineState> _linesFromBill(PurchaseBillModel bill) => bill
+    .lines
+    .map(
+      (line) => PurchaseReturnLineState(
+        purchaseBillLineId: line.id,
+        description: line.description.isEmpty
+            ? line.itemName
+            : line.description,
+        originalQuantity: line.quantity,
+        unitCost: line.unitCost,
+      ),
+    )
+    .toList();
 
 // ── Form Sections ──────────────────────────────────────────────────────────
 
@@ -261,10 +272,12 @@ class _ReturnHeader extends StatelessWidget {
     final text = q.trim().toLowerCase();
     if (text.isEmpty) return bills.take(10).toList();
     return bills
-        .where((b) =>
-            b.billNumber.toLowerCase().contains(text) ||
-            b.vendorName.toLowerCase().contains(text) ||
-            b.totalAmount.toStringAsFixed(2).contains(text))
+        .where(
+          (b) =>
+              b.billNumber.toLowerCase().contains(text) ||
+              b.vendorName.toLowerCase().contains(text) ||
+              b.totalAmount.toStringAsFixed(2).contains(text),
+        )
         .take(12)
         .toList();
   }
@@ -295,7 +308,9 @@ class _ReturnHeader extends StatelessWidget {
               textFieldConfiguration: TextFieldConfiguration(
                 controller: billCtrl,
                 style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w700),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Purchase Bill *',
                   isDense: true,
@@ -303,10 +318,10 @@ class _ReturnHeader extends StatelessWidget {
                   fillColor: Colors.white,
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 9),
-                  prefixIcon: const Icon(
-                      Icons.receipt_long_outlined,
-                      size: 18),
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                  prefixIcon: const Icon(Icons.receipt_long_outlined, size: 18),
                   suffixIcon: selectedBill != null
                       ? IconButton(
                           visualDensity: VisualDensity.compact,
@@ -323,12 +338,17 @@ class _ReturnHeader extends StatelessWidget {
               suggestionsCallback: _matches,
               itemBuilder: (context, bill) => ListTile(
                 dense: true,
-                leading: const Icon(Icons.receipt_long_outlined,
-                    size: 18, color: Color(0xFF264D5B)),
+                leading: const Icon(
+                  Icons.receipt_long_outlined,
+                  size: 18,
+                  color: Color(0xFF264D5B),
+                ),
                 title: Text(
                   '${bill.billNumber} — ${bill.vendorName}',
                   style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 13),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
                 subtitle: Text(
                   'Total: ${bill.totalAmount.toStringAsFixed(2)} | Balance: ${bill.balanceDue.toStringAsFixed(2)}',
@@ -336,16 +356,17 @@ class _ReturnHeader extends StatelessWidget {
                 ),
               ),
               onSuggestionSelected: (bill) {
-                billCtrl.text =
-                    '${bill.billNumber} - ${bill.vendorName}';
+                billCtrl.text = '${bill.billNumber} - ${bill.vendorName}';
                 onBillChanged(bill);
               },
               noItemsFoundBuilder: (_) => const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Text('No matching bills')),
+                padding: EdgeInsets.all(10),
+                child: Text('No matching bills'),
+              ),
               suggestionsBoxDecoration: const SuggestionsBoxDecoration(
-                  elevation: 4,
-                  constraints: BoxConstraints(maxHeight: 300)),
+                elevation: 4,
+                constraints: BoxConstraints(maxHeight: 300),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -360,19 +381,17 @@ class _ReturnHeader extends StatelessWidget {
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(),
-                prefixIcon:
-                    Icon(Icons.calendar_today_outlined, size: 16),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                prefixIcon: Icon(Icons.calendar_today_outlined, size: 16),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
               ),
             ),
           ),
           if (selectedBill != null) ...[
             const SizedBox(width: 16),
-            _HeaderStat(
-              label: 'VENDOR',
-              value: selectedBill!.vendorName,
-            ),
+            _HeaderStat(label: 'VENDOR', value: selectedBill!.vendorName),
             const SizedBox(width: 16),
             _HeaderStat(
               label: 'BILL TOTAL',
@@ -392,27 +411,27 @@ class _HeaderStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF7D8B93),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF264D5B),
-            ),
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: Color(0xFF7D8B93),
+        ),
+      ),
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF264D5B),
+        ),
+      ),
+    ],
+  );
 }
 
 class _LinesPanel extends StatelessWidget {
@@ -428,13 +447,17 @@ class _LinesPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.keyboard_return_outlined, size: 48, color: Color(0xFF8CA0AA)),
+            const Icon(
+              Icons.keyboard_return_outlined,
+              size: 48,
+              color: Color(0xFF8CA0AA),
+            ),
             const SizedBox(height: 12),
             Text(
               'Select a purchase bill to see its lines.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF667A84),
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF667A84)),
             ),
           ],
         ),
@@ -484,17 +507,17 @@ class _ColHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Text(
-          text,
-          textAlign: right ? TextAlign.end : TextAlign.start,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF53656E),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    child: Text(
+      text,
+      textAlign: right ? TextAlign.end : TextAlign.start,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        color: Color(0xFF53656E),
+      ),
+    ),
+  );
 }
 
 class _LineRow extends StatelessWidget {
@@ -537,14 +560,21 @@ class _LineRow extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: TextFormField(
-                initialValue: line.quantity == 0 ? '' : line.quantity.toString(),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                initialValue: line.quantity == 0
+                    ? ''
+                    : line.quantity.toString(),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textAlign: TextAlign.end,
                 style: const TextStyle(fontSize: 13),
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                 ),
                 onChanged: (value) =>
                     onQuantityChanged(index, double.tryParse(value) ?? 0),
@@ -642,9 +672,9 @@ class _ReturnContextPanel extends StatelessWidget {
             child: Text(
               'Return Summary',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           Padding(

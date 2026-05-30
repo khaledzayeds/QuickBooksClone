@@ -35,7 +35,8 @@ class SalesReturnModel {
   final DateTime? voidedAt;
   final List<SalesReturnLineModel> lines;
 
-  factory SalesReturnModel.fromJson(Map<String, dynamic> json) => SalesReturnModel(
+  factory SalesReturnModel.fromJson(Map<String, dynamic> json) =>
+      SalesReturnModel(
         id: JsonUtils.asString(json['id']),
         returnNumber: JsonUtils.asString(json['returnNumber']),
         invoiceId: JsonUtils.asString(json['invoiceId']),
@@ -45,9 +46,13 @@ class SalesReturnModel {
         returnDate: _parseDate(json['returnDate']),
         status: JsonUtils.asInt(json['status']),
         totalAmount: JsonUtils.asDouble(json['totalAmount']),
-        postedTransactionId: JsonUtils.asNullableString(json['postedTransactionId']),
+        postedTransactionId: JsonUtils.asNullableString(
+          json['postedTransactionId'],
+        ),
         postedAt: _parseNullableDate(json['postedAt']),
-        reversalTransactionId: JsonUtils.asNullableString(json['reversalTransactionId']),
+        reversalTransactionId: JsonUtils.asNullableString(
+          json['reversalTransactionId'],
+        ),
         voidedAt: _parseNullableDate(json['voidedAt']),
         lines: JsonUtils.asList(
           json['lines'],
@@ -57,8 +62,10 @@ class SalesReturnModel {
 
   bool get isVoid => voidedAt != null;
 
-  static DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-  static DateTime? _parseNullableDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
+  static DateTime _parseDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+  static DateTime? _parseNullableDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '');
 }
 
 class SalesReturnLineModel {
@@ -82,7 +89,8 @@ class SalesReturnLineModel {
   final double discountPercent;
   final double lineTotal;
 
-  factory SalesReturnLineModel.fromJson(Map<String, dynamic> json) => SalesReturnLineModel(
+  factory SalesReturnLineModel.fromJson(Map<String, dynamic> json) =>
+      SalesReturnLineModel(
         id: JsonUtils.asString(json['id']),
         invoiceLineId: JsonUtils.asString(json['invoiceLineId']),
         itemId: JsonUtils.asString(json['itemId']),
@@ -106,10 +114,10 @@ class CreateSalesReturnDto {
   final List<CreateSalesReturnLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'invoiceId': invoiceId,
-        'returnDate': _dateOnly(returnDate),
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'invoiceId': invoiceId,
+    'returnDate': _dateOnly(returnDate),
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -129,9 +137,9 @@ class CreateSalesReturnLineDto {
   final double discountPercent;
 
   Map<String, dynamic> toJson() => {
-        'invoiceLineId': invoiceLineId,
-        'quantity': quantity,
-        if (unitPrice != null && unitPrice! > 0) 'unitPrice': unitPrice,
-        'discountPercent': discountPercent,
-      };
+    'invoiceLineId': invoiceLineId,
+    'quantity': quantity,
+    if (unitPrice != null && unitPrice! > 0) 'unitPrice': unitPrice,
+    'discountPercent': discountPercent,
+  };
 }

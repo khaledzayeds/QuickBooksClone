@@ -71,7 +71,10 @@ class SalesReceiptLinesPanel extends StatelessWidget {
                 label: const Text('Add Line'),
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                 ),
               ),
             ],
@@ -143,17 +146,37 @@ class _SalesReceiptFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('CUSTOMER MESSAGE', style: theme.textTheme.labelSmall?.copyWith(color: const Color(0xFF53646D), fontWeight: FontWeight.w900)),
+                Text(
+                  'CUSTOMER MESSAGE',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFF53646D),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Container(
                   height: 30,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFB7C3CB))),
-                  child: Text('Thank you for your business.', style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF3B4D56))),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFB7C3CB)),
+                  ),
+                  child: Text(
+                    'Thank you for your business.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF3B4D56),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text('REFERENCE / MEMO', style: theme.textTheme.labelSmall?.copyWith(color: const Color(0xFF53646D), fontWeight: FontWeight.w900)),
+                Text(
+                  'REFERENCE / MEMO',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: const Color(0xFF53646D),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 SizedBox(height: 34, child: memo),
               ],
@@ -164,23 +187,55 @@ class _SalesReceiptFooter extends StatelessWidget {
             width: 310,
             child: Column(
               children: [
-                _TotalRow(label: 'TOTAL', value: totals.total, currency: totals.currency),
-                _TotalRow(label: 'PAYMENTS APPLIED', value: totals.paid, currency: totals.currency),
+                _TotalRow(
+                  label: 'TOTAL',
+                  value: totals.total,
+                  currency: totals.currency,
+                ),
+                _TotalRow(
+                  label: 'PAYMENTS APPLIED',
+                  value: totals.paid,
+                  currency: totals.currency,
+                ),
                 Container(
                   margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(color: const Color(0xFFE7F1F4), border: Border.all(color: const Color(0xFF9DB2BC))),
-                  child: _TotalRow(label: 'BALANCE DUE', value: totals.balanceDue, currency: totals.currency, strong: true, noPadding: true),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE7F1F4),
+                    border: Border.all(color: const Color(0xFF9DB2BC)),
+                  ),
+                  child: _TotalRow(
+                    label: 'BALANCE DUE',
+                    value: totals.balanceDue,
+                    currency: totals.currency,
+                    strong: true,
+                    noPadding: true,
+                  ),
                 ),
                 const Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    OutlinedButton(onPressed: saving || readOnly ? null : onSaveAndClose, style: _buttonStyle(), child: Text(saving ? 'Saving...' : 'Save & Close')),
+                    OutlinedButton(
+                      onPressed: saving || readOnly ? null : onSaveAndClose,
+                      style: _buttonStyle(),
+                      child: Text(saving ? 'Saving...' : 'Save & Close'),
+                    ),
                     const SizedBox(width: 6),
-                    OutlinedButton(onPressed: saving || readOnly ? null : onSaveAndNew, style: _buttonStyle(), child: const Text('Save & New')),
+                    OutlinedButton(
+                      onPressed: saving || readOnly ? null : onSaveAndNew,
+                      style: _buttonStyle(),
+                      child: const Text('Save & New'),
+                    ),
                     const SizedBox(width: 6),
-                    OutlinedButton(onPressed: saving ? null : onClear, style: _buttonStyle(), child: const Text('Clear')),
+                    OutlinedButton(
+                      onPressed: saving ? null : onClear,
+                      style: _buttonStyle(),
+                      child: const Text('Clear'),
+                    ),
                   ],
                 ),
               ],
@@ -209,14 +264,28 @@ class _MemoPlaceholder extends StatelessWidget {
     return Container(
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFB7C3CB))),
-      child: Text('Optional', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF7B8B93))),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFB7C3CB)),
+      ),
+      child: Text(
+        'Optional',
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: const Color(0xFF7B8B93)),
+      ),
     );
   }
 }
 
 class _TotalRow extends StatelessWidget {
-  const _TotalRow({required this.label, required this.value, required this.currency, this.strong = false, this.noPadding = false});
+  const _TotalRow({
+    required this.label,
+    required this.value,
+    required this.currency,
+    this.strong = false,
+    this.noPadding = false,
+  });
   final String label;
   final double value;
   final String currency;
@@ -225,10 +294,18 @@ class _TotalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: strong ? FontWeight.w900 : FontWeight.w700, color: const Color(0xFF253C47));
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+      color: const Color(0xFF253C47),
+    );
     return Padding(
       padding: EdgeInsets.symmetric(vertical: noPadding ? 0 : 3),
-      child: Row(children: [Expanded(child: Text(label, style: style)), Text('${value.toStringAsFixed(2)} $currency', style: style)]),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          Text('${value.toStringAsFixed(2)} $currency', style: style),
+        ],
+      ),
     );
   }
 }

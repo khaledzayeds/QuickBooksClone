@@ -24,22 +24,28 @@ class ReceiveInventoryModel {
   final String status;
   final String? notes;
   final List<ReceiveInventoryLineModel> lines;
-  
-  double get totalAmount => lines.fold(0.0, (sum, line) => sum + line.lineTotal);
+
+  double get totalAmount =>
+      lines.fold(0.0, (sum, line) => sum + line.lineTotal);
 
   factory ReceiveInventoryModel.fromJson(Map<String, dynamic> json) {
     final rawLines = json['lines'] as List<dynamic>? ?? [];
     return ReceiveInventoryModel(
-      id:              json['id']?.toString() ?? '',
-      receiptNumber:   json['receiptNumber']?.toString() ?? '',
+      id: json['id']?.toString() ?? '',
+      receiptNumber: json['receiptNumber']?.toString() ?? '',
       purchaseOrderId: json['purchaseOrderId']?.toString() ?? '',
-      vendorId:        json['vendorId']?.toString() ?? '',
-      vendorName:      json['vendorName']?.toString() ?? '',
-      receiptDate:     DateTime.tryParse(json['receiptDate']?.toString() ?? '') ?? DateTime.now(),
-      status:          json['status']?.toString() ?? 'Posted',
-      notes:           json['notes']?.toString(),
+      vendorId: json['vendorId']?.toString() ?? '',
+      vendorName: json['vendorName']?.toString() ?? '',
+      receiptDate:
+          DateTime.tryParse(json['receiptDate']?.toString() ?? '') ??
+          DateTime.now(),
+      status: json['status']?.toString() ?? 'Posted',
+      notes: json['notes']?.toString(),
       lines: rawLines
-          .map((e) => ReceiveInventoryLineModel.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) =>
+                ReceiveInventoryLineModel.fromJson(e as Map<String, dynamic>),
+          )
           .toList(),
     );
   }

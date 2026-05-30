@@ -58,35 +58,35 @@ class InvoiceModel {
   final List<InvoiceLineModel> lines;
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) => InvoiceModel(
-        id: json['id']?.toString() ?? '',
-        invoiceNumber: json['invoiceNumber']?.toString() ?? '',
-        customerId: json['customerId']?.toString() ?? '',
-        customerName: json['customerName']?.toString(),
-        salesOrderId: json['salesOrderId']?.toString(),
-        invoiceDate: _parseDate(json['invoiceDate']) ?? DateTime.now(),
-        dueDate: _parseDate(json['dueDate']) ?? DateTime.now(),
-        paymentMode: InvoicePaymentMode.fromValue(json['paymentMode']),
-        depositAccountId: json['depositAccountId']?.toString(),
-        depositAccountName: json['depositAccountName']?.toString(),
-        paymentMethod: json['paymentMethod']?.toString(),
-        receiptPaymentId: json['receiptPaymentId']?.toString(),
-        status: InvoiceStatus.fromValue(json['status']),
-        subtotal: _toDouble(json['subtotal']),
-        discountAmount: _toDouble(json['discountAmount']),
-        taxAmount: _toDouble(json['taxAmount']),
-        totalAmount: _toDouble(json['totalAmount']),
-        paidAmount: _toDouble(json['paidAmount']),
-        creditAppliedAmount: _toDouble(json['creditAppliedAmount']),
-        returnedAmount: _toDouble(json['returnedAmount']),
-        balanceDue: _toDouble(json['balanceDue']),
-        postedTransactionId: json['postedTransactionId']?.toString(),
-        postedAt: _parseDate(json['postedAt']),
-        reversalTransactionId: json['reversalTransactionId']?.toString(),
-        voidedAt: _parseDate(json['voidedAt']),
-        lines: ((json['lines'] as List?) ?? const [])
-            .map((line) => InvoiceLineModel.fromJson(line as Map<String, dynamic>))
-            .toList(),
-      );
+    id: json['id']?.toString() ?? '',
+    invoiceNumber: json['invoiceNumber']?.toString() ?? '',
+    customerId: json['customerId']?.toString() ?? '',
+    customerName: json['customerName']?.toString(),
+    salesOrderId: json['salesOrderId']?.toString(),
+    invoiceDate: _parseDate(json['invoiceDate']) ?? DateTime.now(),
+    dueDate: _parseDate(json['dueDate']) ?? DateTime.now(),
+    paymentMode: InvoicePaymentMode.fromValue(json['paymentMode']),
+    depositAccountId: json['depositAccountId']?.toString(),
+    depositAccountName: json['depositAccountName']?.toString(),
+    paymentMethod: json['paymentMethod']?.toString(),
+    receiptPaymentId: json['receiptPaymentId']?.toString(),
+    status: InvoiceStatus.fromValue(json['status']),
+    subtotal: _toDouble(json['subtotal']),
+    discountAmount: _toDouble(json['discountAmount']),
+    taxAmount: _toDouble(json['taxAmount']),
+    totalAmount: _toDouble(json['totalAmount']),
+    paidAmount: _toDouble(json['paidAmount']),
+    creditAppliedAmount: _toDouble(json['creditAppliedAmount']),
+    returnedAmount: _toDouble(json['returnedAmount']),
+    balanceDue: _toDouble(json['balanceDue']),
+    postedTransactionId: json['postedTransactionId']?.toString(),
+    postedAt: _parseDate(json['postedAt']),
+    reversalTransactionId: json['reversalTransactionId']?.toString(),
+    voidedAt: _parseDate(json['voidedAt']),
+    lines: ((json['lines'] as List?) ?? const [])
+        .map((line) => InvoiceLineModel.fromJson(line as Map<String, dynamic>))
+        .toList(),
+  );
 
   bool get isCreditInvoice => paymentMode == InvoicePaymentMode.credit;
   bool get isSalesReceipt => paymentMode == InvoicePaymentMode.cash;
@@ -120,7 +120,8 @@ class InvoiceLineModel {
   final double taxAmount;
   final double lineTotal;
 
-  factory InvoiceLineModel.fromJson(Map<String, dynamic> json) => InvoiceLineModel(
+  factory InvoiceLineModel.fromJson(Map<String, dynamic> json) =>
+      InvoiceLineModel(
         id: json['id']?.toString() ?? '',
         itemId: json['itemId']?.toString() ?? '',
         salesOrderLineId: json['salesOrderLineId']?.toString(),
@@ -129,7 +130,9 @@ class InvoiceLineModel {
         unitPrice: _toDouble(json['unitPrice']),
         discountPercent: _toDouble(json['discountPercent']),
         taxCodeId: json['taxCodeId']?.toString(),
-        taxRatePercent: json['taxRatePercent'] == null ? null : _toDouble(json['taxRatePercent']),
+        taxRatePercent: json['taxRatePercent'] == null
+            ? null
+            : _toDouble(json['taxRatePercent']),
         taxAmount: _toDouble(json['taxAmount']),
         lineTotal: _toDouble(json['lineTotal']),
       );
@@ -177,4 +180,5 @@ DateTime? _parseDate(dynamic value) {
   return DateTime.tryParse(value.toString());
 }
 
-double _toDouble(dynamic value) => double.tryParse(value?.toString() ?? '') ?? 0;
+double _toDouble(dynamic value) =>
+    double.tryParse(value?.toString() ?? '') ?? 0;

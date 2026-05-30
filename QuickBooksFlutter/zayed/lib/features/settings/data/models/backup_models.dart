@@ -17,9 +17,12 @@ class BackupFileModel {
   final String? requestedBy;
   final String? reason;
 
-  factory BackupFileModel.fromJson(Map<String, dynamic> json) => BackupFileModel(
+  factory BackupFileModel.fromJson(Map<String, dynamic> json) =>
+      BackupFileModel(
         fileName: json['fileName']?.toString() ?? '',
-        sizeBytes: json['sizeBytes'] is num ? (json['sizeBytes'] as num).toInt() : int.tryParse(json['sizeBytes']?.toString() ?? '') ?? 0,
+        sizeBytes: json['sizeBytes'] is num
+            ? (json['sizeBytes'] as num).toInt()
+            : int.tryParse(json['sizeBytes']?.toString() ?? '') ?? 0,
         createdAtIso: json['createdAt']?.toString() ?? '',
         backupKind: json['backupKind']?.toString() ?? '',
         label: json['label']?.toString(),
@@ -49,16 +52,23 @@ class DatabaseMaintenanceSettingsModel {
   final String? updatedAtIso;
   final String? updatedBy;
 
-  factory DatabaseMaintenanceSettingsModel.fromJson(Map<String, dynamic> json) => DatabaseMaintenanceSettingsModel(
-        autoBackupEnabled: json['autoBackupEnabled'] == true,
-        scheduleMode: json['scheduleMode']?.toString() ?? 'Daily',
-        runAtHourLocal: json['runAtHourLocal'] is num ? (json['runAtHourLocal'] as num).toInt() : int.tryParse(json['runAtHourLocal']?.toString() ?? '') ?? 2,
-        retentionCount: json['retentionCount'] is num ? (json['retentionCount'] as num).toInt() : int.tryParse(json['retentionCount']?.toString() ?? '') ?? 14,
-        createSafetyBackupBeforeRestore: json['createSafetyBackupBeforeRestore'] != false,
-        preferredLabelPrefix: json['preferredLabelPrefix']?.toString(),
-        updatedAtIso: json['updatedAt']?.toString(),
-        updatedBy: json['updatedBy']?.toString(),
-      );
+  factory DatabaseMaintenanceSettingsModel.fromJson(
+    Map<String, dynamic> json,
+  ) => DatabaseMaintenanceSettingsModel(
+    autoBackupEnabled: json['autoBackupEnabled'] == true,
+    scheduleMode: json['scheduleMode']?.toString() ?? 'Daily',
+    runAtHourLocal: json['runAtHourLocal'] is num
+        ? (json['runAtHourLocal'] as num).toInt()
+        : int.tryParse(json['runAtHourLocal']?.toString() ?? '') ?? 2,
+    retentionCount: json['retentionCount'] is num
+        ? (json['retentionCount'] as num).toInt()
+        : int.tryParse(json['retentionCount']?.toString() ?? '') ?? 14,
+    createSafetyBackupBeforeRestore:
+        json['createSafetyBackupBeforeRestore'] != false,
+    preferredLabelPrefix: json['preferredLabelPrefix']?.toString(),
+    updatedAtIso: json['updatedAt']?.toString(),
+    updatedBy: json['updatedBy']?.toString(),
+  );
 }
 
 class RestoreAuditModel {
@@ -80,7 +90,8 @@ class RestoreAuditModel {
   final String? requestedBy;
   final String? reason;
 
-  factory RestoreAuditModel.fromJson(Map<String, dynamic> json) => RestoreAuditModel(
+  factory RestoreAuditModel.fromJson(Map<String, dynamic> json) =>
+      RestoreAuditModel(
         backupFileName: json['backupFileName']?.toString() ?? '',
         restoredAtIso: json['restoredAt']?.toString() ?? '',
         createdSafetyBackup: json['createdSafetyBackup'] == true,

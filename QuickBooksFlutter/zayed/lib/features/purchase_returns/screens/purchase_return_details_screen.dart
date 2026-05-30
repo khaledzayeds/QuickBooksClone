@@ -24,7 +24,10 @@ class PurchaseReturnDetailsScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: Icon(Icons.block_outlined, color: Theme.of(context).colorScheme.error),
+        icon: Icon(
+          Icons.block_outlined,
+          color: Theme.of(context).colorScheme.error,
+        ),
         title: Text('Void ${purchaseReturn.returnNumber}?'),
         content: const Text(
           'This reverses the purchase return accounting and inventory effect.',
@@ -56,11 +59,15 @@ class PurchaseReturnDetailsScreen extends ConsumerWidget {
     result.when(
       success: (_) {
         ref.invalidate(purchaseReturnDetailsProvider(purchaseReturn.id));
-        ref.invalidate(purchaseBillDetailsProvider(purchaseReturn.purchaseBillId));
+        ref.invalidate(
+          purchaseBillDetailsProvider(purchaseReturn.purchaseBillId),
+        );
         ref.read(purchaseBillsProvider.notifier).refresh();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Purchase return ${purchaseReturn.returnNumber} voided.'),
+            content: Text(
+              'Purchase return ${purchaseReturn.returnNumber} voided.',
+            ),
           ),
         );
       },
@@ -77,7 +84,9 @@ class PurchaseReturnDetailsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final purchaseReturnAsync = ref.watch(purchaseReturnDetailsProvider(id));
 
-    final returns = ref.watch(purchaseReturnsProvider).maybeWhen(
+    final returns = ref
+        .watch(purchaseReturnsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => <PurchaseReturnModel>[],
         );
@@ -185,7 +194,8 @@ class _DetailsBody extends StatelessWidget {
               ),
               _InfoRow(
                 label: 'Purchase Bill',
-                value: purchaseReturn.billNumber ?? purchaseReturn.purchaseBillId,
+                value:
+                    purchaseReturn.billNumber ?? purchaseReturn.purchaseBillId,
                 isLink: true,
                 onTap: () => context.push(
                   AppRoutes.purchaseBillDetails.replaceFirst(
@@ -304,9 +314,9 @@ class _ReturnContextPanel extends StatelessWidget {
             child: Text(
               'Return Summary',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           Padding(
@@ -373,8 +383,11 @@ class _LineTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.keyboard_return_outlined,
-              size: 18, color: Color(0xFF5B7A89)),
+          const Icon(
+            Icons.keyboard_return_outlined,
+            size: 18,
+            color: Color(0xFF5B7A89),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -422,34 +435,34 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
-            const Spacer(),
-            Flexible(
-              child: isLink
-                  ? InkWell(
-                      onTap: onTap,
-                      child: Text(
-                        value,
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    )
-                  : Text(
-                      value,
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
+        const Spacer(),
+        Flexible(
+          child: isLink
+              ? InkWell(
+                  onTap: onTap,
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
                     ),
-            ),
-          ],
+                  ),
+                )
+              : Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _Stat extends StatelessWidget {

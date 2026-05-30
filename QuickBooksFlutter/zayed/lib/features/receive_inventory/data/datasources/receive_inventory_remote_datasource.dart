@@ -29,12 +29,14 @@ class ReceiveInventoryRemoteDatasource {
         },
       );
       final data = response.data;
-      final list = (data is List
-          ? data
-          : (data['items'] ?? data['data'] ?? [])) as List<dynamic>;
+      final list =
+          (data is List ? data : (data['items'] ?? data['data'] ?? []))
+              as List<dynamic>;
       return Success(
         list
-            .map((e) => ReceiveInventoryModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) => ReceiveInventoryModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList(),
       );
     } on DioException catch (e) {
@@ -44,14 +46,18 @@ class ReceiveInventoryRemoteDatasource {
 
   Future<ApiResult<ReceiveInventoryModel>> getById(String id) async {
     try {
-      final r = await _client.get<Map<String, dynamic>>('/api/receive-inventory/$id');
+      final r = await _client.get<Map<String, dynamic>>(
+        '/api/receive-inventory/$id',
+      );
       return Success(ReceiveInventoryModel.fromJson(r.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
   }
 
-  Future<ApiResult<ReceiveInventoryModel>> create(CreateReceiveInventoryDto dto) async {
+  Future<ApiResult<ReceiveInventoryModel>> create(
+    CreateReceiveInventoryDto dto,
+  ) async {
     try {
       final r = await _client.post<Map<String, dynamic>>(
         '/api/receive-inventory',
@@ -65,7 +71,9 @@ class ReceiveInventoryRemoteDatasource {
 
   Future<ApiResult<ReceivingPlanModel>> getReceivingPlan(String poId) async {
     try {
-      final r = await _client.get<Map<String, dynamic>>('/api/purchase-orders/$poId/receiving-plan');
+      final r = await _client.get<Map<String, dynamic>>(
+        '/api/purchase-orders/$poId/receiving-plan',
+      );
       return Success(ReceivingPlanModel.fromJson(r.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));

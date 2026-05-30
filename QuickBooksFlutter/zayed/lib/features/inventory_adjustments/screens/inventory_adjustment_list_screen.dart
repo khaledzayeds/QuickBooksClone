@@ -31,7 +31,7 @@ class _InventoryAdjustmentListScreenState
   @override
   Widget build(BuildContext context) {
     final adjustmentsAsync = ref.watch(inventoryAdjustmentsProvider);
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -63,7 +63,9 @@ class _InventoryAdjustmentListScreenState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(inventoryAdjustmentsProvider.notifier).refresh(),
+                    onTap: () => ref
+                        .read(inventoryAdjustmentsProvider.notifier)
+                        .refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -131,7 +133,11 @@ class _InventoryAdjustmentListScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -219,13 +225,11 @@ class _InventoryAdjustmentListScreenState
                               itemBuilder: (context, index) {
                                 final adj = filtered[index];
                                 final shaded = index.isEven;
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
-                                    AppRoutes.inventoryAdjustmentDetails.replaceFirst(
-                                      ':id',
-                                      adj.id,
-                                    ),
+                                    AppRoutes.inventoryAdjustmentDetails
+                                        .replaceFirst(':id', adj.id),
                                   ),
                                   child: Container(
                                     height: 34,
@@ -244,10 +248,7 @@ class _InventoryAdjustmentListScreenState
                                               : adj.adjustmentNumber,
                                           flex: 2,
                                         ),
-                                        _Cell(
-                                          adj.itemName ?? 'Item',
-                                          flex: 3,
-                                        ),
+                                        _Cell(adj.itemName ?? 'Item', flex: 3),
                                         _Cell(
                                           adj.adjustmentAccountName ?? '',
                                           flex: 3,
@@ -257,15 +258,17 @@ class _InventoryAdjustmentListScreenState
                                           flex: 2,
                                           right: true,
                                           strong: true,
-                                          color: adj.isIncrease 
-                                            ? const Color(0xFF2E7D32) 
-                                            : const Color(0xFFC62828),
+                                          color: adj.isIncrease
+                                              ? const Color(0xFF2E7D32)
+                                              : const Color(0xFFC62828),
                                         ),
                                         _CellWidget(
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(status: adj.status),
+                                            child: _StatusBadge(
+                                              status: adj.status,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -310,7 +313,9 @@ class _InventoryAdjustmentListScreenState
     );
   }
 
-  List<InventoryAdjustmentModel> _filter(List<InventoryAdjustmentModel> adjustments) {
+  List<InventoryAdjustmentModel> _filter(
+    List<InventoryAdjustmentModel> adjustments,
+  ) {
     final query = _queryCtrl.text.trim().toLowerCase();
     return adjustments.where((adj) {
       if (_selectedStatus != 0 && adj.status != _selectedStatus) {
@@ -430,10 +435,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 
@@ -460,7 +462,7 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     final Color bg;
     final Color fg;
-    
+
     switch (status) {
       case 1:
         label = 'Draft';

@@ -340,7 +340,9 @@ class _PurchaseBillFormScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final vendors = ref.watch(vendorsProvider).maybeWhen(
+    final vendors = ref
+        .watch(vendorsProvider)
+        .maybeWhen(
           data: (items) => items.where((vendor) => vendor.isActive).toList(),
           orElse: () => const <VendorModel>[],
         );
@@ -349,17 +351,20 @@ class _PurchaseBillFormScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final bills = ref.watch(purchaseBillsProvider).maybeWhen(
-          data: (items) => items,
-          orElse: () => <PurchaseBillModel>[],
-        );
+    final bills = ref
+        .watch(purchaseBillsProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <PurchaseBillModel>[]);
 
     final currentId = widget.billId;
-    final currentIdx = currentId != null ? bills.indexWhere((b) => b.id == currentId) : -1;
+    final currentIdx = currentId != null
+        ? bills.indexWhere((b) => b.id == currentId)
+        : -1;
 
     void navigateTo(int idx) {
       if (idx >= 0 && idx < bills.length) {
-        context.go(AppRoutes.purchaseBillDetails.replaceFirst(':id', bills[idx].id));
+        context.go(
+          AppRoutes.purchaseBillDetails.replaceFirst(':id', bills[idx].id),
+        );
       }
     }
 
@@ -375,7 +380,10 @@ class _PurchaseBillFormScreenState
       onPrevious: widget.billId == null
           ? (bills.isNotEmpty ? () => navigateTo(0) : null)
           : (currentIdx > 0 ? () => navigateTo(currentIdx - 1) : null),
-      onNext: (widget.billId != null && currentIdx >= 0 && currentIdx < bills.length - 1)
+      onNext:
+          (widget.billId != null &&
+              currentIdx >= 0 &&
+              currentIdx < bills.length - 1)
           ? () => navigateTo(currentIdx + 1)
           : null,
       onNew: () => context.go(AppRoutes.purchaseBillNew),
@@ -440,13 +448,13 @@ class _PurchaseBillFormScreenState
         receipt: _selectedReceipt,
         total: total,
         notes: _memoCtrl.text,
-        onViewAll: _selectedVendor == null ? null : () => context.go(AppRoutes.purchaseBills),
+        onViewAll: _selectedVendor == null
+            ? null
+            : () => context.go(AppRoutes.purchaseBills),
       ),
     );
   }
 }
-
-
 
 class _BillHeader extends StatelessWidget {
   const _BillHeader({
@@ -485,6 +493,7 @@ class _BillHeader extends StatelessWidget {
       );
       if (d != null) onBillDateChanged(d);
     }
+
     Future<void> pickDueDate() async {
       final d = await showDatePicker(
         context: context,
@@ -624,19 +633,20 @@ class _InlineVendorFieldState extends State<_InlineVendorField> {
     final text = q.trim().toLowerCase();
     if (text.isEmpty) return widget.vendors.take(20).toList();
     return widget.vendors
-        .where((v) =>
-            v.displayName.toLowerCase().contains(text) ||
-            (v.companyName?.toLowerCase().contains(text) ?? false) ||
-            (v.phone?.contains(text) ?? false) ||
-            (v.email?.toLowerCase().contains(text) ?? false))
+        .where(
+          (v) =>
+              v.displayName.toLowerCase().contains(text) ||
+              (v.companyName?.toLowerCase().contains(text) ?? false) ||
+              (v.phone?.contains(text) ?? false) ||
+              (v.email?.toLowerCase().contains(text) ?? false),
+        )
         .take(20)
         .toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.selected != null &&
-        _ctrl.text != widget.selected!.displayName) {
+    if (widget.selected != null && _ctrl.text != widget.selected!.displayName) {
       _ctrl.text = widget.selected!.displayName;
     }
     return SizedBox(
@@ -645,26 +655,42 @@ class _InlineVendorFieldState extends State<_InlineVendorField> {
         textFieldConfiguration: TextFieldConfiguration(
           controller: _ctrl,
           style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
           decoration: InputDecoration(
             isDense: true,
             filled: true,
             fillColor: Colors.white.withOpacity(0.15),
-            prefixIcon: const Icon(Icons.search, size: 16, color: Colors.white70),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+            prefixIcon: const Icon(
+              Icons.search,
+              size: 16,
+              color: Colors.white70,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 7,
+            ),
             border: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+            ),
             enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+            ),
             focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.white, width: 1.5)),
+              borderSide: BorderSide(color: Colors.white, width: 1.5),
+            ),
             hintText: 'Search vendor...',
             hintStyle: const TextStyle(color: Colors.white54, fontSize: 12),
             suffixIcon: widget.selected != null
                 ? IconButton(
                     visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.clear, size: 16, color: Colors.white70),
+                    icon: const Icon(
+                      Icons.clear,
+                      size: 16,
+                      color: Colors.white70,
+                    ),
                     onPressed: () {
                       _ctrl.clear();
                       widget.onSelected(null);
@@ -677,23 +703,30 @@ class _InlineVendorFieldState extends State<_InlineVendorField> {
         itemBuilder: (context, vendor) => ListTile(
           dense: true,
           leading: CircleAvatar(
-              radius: 14,
-              child: Text(vendor.initials,
-                  style: const TextStyle(fontSize: 10))),
-          title: Text(vendor.displayName,
-              style: const TextStyle(fontWeight: FontWeight.w800)),
+            radius: 14,
+            child: Text(vendor.initials, style: const TextStyle(fontSize: 10)),
+          ),
+          title: Text(
+            vendor.displayName,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
           subtitle: Text(
-              '${vendor.primaryContact} | Bal: ${vendor.balance.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 11)),
+            '${vendor.primaryContact} | Bal: ${vendor.balance.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 11),
+          ),
         ),
         onSuggestionSelected: (vendor) {
           _ctrl.text = vendor.displayName;
           widget.onSelected(vendor);
         },
         noItemsFoundBuilder: (_) => const Padding(
-            padding: EdgeInsets.all(10), child: Text('No vendors found')),
+          padding: EdgeInsets.all(10),
+          child: Text('No vendors found'),
+        ),
         suggestionsBoxDecoration: const SuggestionsBoxDecoration(
-            elevation: 4, constraints: BoxConstraints(maxHeight: 280)),
+          elevation: 4,
+          constraints: BoxConstraints(maxHeight: 280),
+        ),
       ),
     );
   }
@@ -838,8 +871,6 @@ class _BillFooter extends StatelessWidget {
   );
 }
 
-
-
 class _BillContextPanel extends StatelessWidget {
   const _BillContextPanel({
     required this.vendor,
@@ -913,10 +944,6 @@ class _BillContextPanel extends StatelessWidget {
     return parts.take(2).map((part) => part[0].toUpperCase()).join();
   }
 }
-
-
-
-
 
 class _ReceiptPicker extends ConsumerWidget {
   const _ReceiptPicker({

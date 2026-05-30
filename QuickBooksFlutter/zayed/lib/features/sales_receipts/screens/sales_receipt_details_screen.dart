@@ -62,10 +62,14 @@ class _DetailsBody extends StatelessWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: receipt.isVoid ? cs.errorContainer : cs.primaryContainer,
+                      backgroundColor: receipt.isVoid
+                          ? cs.errorContainer
+                          : cs.primaryContainer,
                       child: Icon(
                         receipt.isVoid ? Icons.block : Icons.point_of_sale,
-                        color: receipt.isVoid ? cs.onErrorContainer : cs.onPrimaryContainer,
+                        color: receipt.isVoid
+                            ? cs.onErrorContainer
+                            : cs.onPrimaryContainer,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -74,12 +78,18 @@ class _DetailsBody extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            receipt.receiptNumber.isEmpty ? l10n.salesReceipt : receipt.receiptNumber,
-                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                            receipt.receiptNumber.isEmpty
+                                ? l10n.salesReceipt
+                                : receipt.receiptNumber,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            receipt.customerName.isEmpty ? l10n.customer : receipt.customerName,
+                            receipt.customerName.isEmpty
+                                ? l10n.customer
+                                : receipt.customerName,
                             style: theme.textTheme.titleMedium,
                           ),
                         ],
@@ -107,7 +117,8 @@ class _DetailsBody extends StatelessWidget {
                     ),
                     _InfoTile(
                       label: l10n.total,
-                      value: '${receipt.totalAmount.toStringAsFixed(2)} ${l10n.egp}',
+                      value:
+                          '${receipt.totalAmount.toStringAsFixed(2)} ${l10n.egp}',
                     ),
                   ],
                 ),
@@ -122,7 +133,12 @@ class _DetailsBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.items, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  l10n.items,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _LinesTable(lines: receipt.lines),
               ],
@@ -153,7 +169,9 @@ class _StatusPill extends StatelessWidget {
     return Chip(
       label: Text(isVoid ? l10n.statusCancelled : l10n.paid),
       backgroundColor: isVoid ? cs.errorContainer : cs.primaryContainer,
-      labelStyle: TextStyle(color: isVoid ? cs.onErrorContainer : cs.onPrimaryContainer),
+      labelStyle: TextStyle(
+        color: isVoid ? cs.onErrorContainer : cs.onPrimaryContainer,
+      ),
     );
   }
 }
@@ -174,7 +192,12 @@ class _InfoTile extends StatelessWidget {
         children: [
           Text(label, style: theme.textTheme.labelMedium),
           const SizedBox(height: 4),
-          Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -213,10 +236,15 @@ class _LinesTable extends StatelessWidget {
                   DataCell(Text(line.quantity.toStringAsFixed(2))),
                   DataCell(Text(line.unitPrice.toStringAsFixed(2))),
                   DataCell(Text(line.taxAmount.toStringAsFixed(2))),
-                  DataCell(Text(
-                    line.lineTotal.toStringAsFixed(2),
-                    style: TextStyle(fontWeight: FontWeight.w800, color: cs.primary),
-                  )),
+                  DataCell(
+                    Text(
+                      line.lineTotal.toStringAsFixed(2),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: cs.primary,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -247,7 +275,11 @@ class _TotalsCard extends StatelessWidget {
               const SizedBox(height: 8),
               _AmountRow(label: l10n.amountPaid, amount: receipt.paidAmount),
               const Divider(height: 24),
-              _AmountRow(label: l10n.total, amount: receipt.totalAmount, isTotal: true),
+              _AmountRow(
+                label: l10n.total,
+                amount: receipt.totalAmount,
+                isTotal: true,
+              ),
             ],
           ),
         ),
@@ -257,7 +289,11 @@ class _TotalsCard extends StatelessWidget {
 }
 
 class _AmountRow extends StatelessWidget {
-  const _AmountRow({required this.label, required this.amount, this.isTotal = false});
+  const _AmountRow({
+    required this.label,
+    required this.amount,
+    this.isTotal = false,
+  });
 
   final String label;
   final double amount;
@@ -266,8 +302,12 @@ class _AmountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = isTotal
-        ? Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
+        ? Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)
+        : Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

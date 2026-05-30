@@ -66,7 +66,10 @@ class PrintTemplatePdfService {
         pageFormat: pageFormat,
         build: (context) => pw.Stack(
           children: elementsToRender
-              .map((element) => _element(element, data: data, logoImage: logoImage))
+              .map(
+                (element) =>
+                    _element(element, data: data, logoImage: logoImage),
+              )
               .toList(),
         ),
       ),
@@ -313,7 +316,15 @@ class PrintTemplatePdfService {
     if (key.isEmpty) return null;
 
     // Normalize prefix (e.g. estimate.number -> document.number)
-    for (final docType in ['invoice', 'salesreceipt', 'estimate', 'salesreturn', 'purchaseorder', 'receiveinventory', 'inventoryadjustment']) {
+    for (final docType in [
+      'invoice',
+      'salesreceipt',
+      'estimate',
+      'salesreturn',
+      'purchaseorder',
+      'receiveinventory',
+      'inventoryadjustment',
+    ]) {
       if (key.startsWith('$docType.')) {
         key = 'document.${key.substring(docType.length + 1)}';
         break;

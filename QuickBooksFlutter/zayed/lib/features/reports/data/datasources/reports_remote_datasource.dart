@@ -46,7 +46,9 @@ class ReportsRemoteDatasource {
           'includeInactiveAccounts': includeInactiveAccounts,
         },
       );
-      return Success(FinancialStatementReportModel.fromBalanceSheetJson(response.data!));
+      return Success(
+        FinancialStatementReportModel.fromBalanceSheetJson(response.data!),
+      );
     } on DioException catch (error) {
       return Failure(parseError(error));
     }

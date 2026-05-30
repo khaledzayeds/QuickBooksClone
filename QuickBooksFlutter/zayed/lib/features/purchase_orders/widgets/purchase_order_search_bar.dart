@@ -7,12 +7,10 @@ class PurchaseOrderSearchBar extends StatefulWidget {
   final ValueChanged<String>? onChanged;
 
   @override
-  State<PurchaseOrderSearchBar> createState() =>
-      _PurchaseOrderSearchBarState();
+  State<PurchaseOrderSearchBar> createState() => _PurchaseOrderSearchBarState();
 }
 
-class _PurchaseOrderSearchBarState
-    extends State<PurchaseOrderSearchBar> {
+class _PurchaseOrderSearchBarState extends State<PurchaseOrderSearchBar> {
   final _ctrl = TextEditingController();
 
   @override

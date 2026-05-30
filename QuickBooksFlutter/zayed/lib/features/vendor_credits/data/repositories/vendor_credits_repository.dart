@@ -16,17 +16,18 @@ class VendorCreditsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        vendorId: vendorId,
-        action: action,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    vendorId: vendorId,
+    action: action,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<VendorCreditModel>> getById(String id) => _datasource.getById(id);
+  Future<ApiResult<VendorCreditModel>> getById(String id) =>
+      _datasource.getById(id);
 
-  Future<ApiResult<VendorCreditModel>> create(CreateVendorCreditDto dto) => _datasource.create(dto);
+  Future<ApiResult<VendorCreditModel>> create(CreateVendorCreditDto dto) =>
+      _datasource.create(dto);
 }

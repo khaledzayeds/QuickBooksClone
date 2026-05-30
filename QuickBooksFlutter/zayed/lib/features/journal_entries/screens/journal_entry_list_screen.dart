@@ -31,7 +31,7 @@ class _JournalEntryListScreenState
   @override
   Widget build(BuildContext context) {
     final entriesAsync = ref.watch(journalEntriesProvider);
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -63,7 +63,8 @@ class _JournalEntryListScreenState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(journalEntriesProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(journalEntriesProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -131,7 +132,11 @@ class _JournalEntryListScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -186,7 +191,9 @@ class _JournalEntryListScreenState
                 data: (entries) {
                   final filtered = _filter(entries);
                   if (filtered.isEmpty) {
-                    return const Center(child: Text('No journal entries found.'));
+                    return const Center(
+                      child: Text('No journal entries found.'),
+                    );
                   }
 
                   return Padding(
@@ -218,7 +225,7 @@ class _JournalEntryListScreenState
                               itemBuilder: (context, index) {
                                 final entry = filtered[index];
                                 final shaded = index.isEven;
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
                                     AppRoutes.journalEntryDetails.replaceFirst(
@@ -256,7 +263,9 @@ class _JournalEntryListScreenState
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(status: entry.status),
+                                            child: _StatusBadge(
+                                              status: entry.status,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -420,10 +429,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 
@@ -450,7 +456,7 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     final Color bg;
     final Color fg;
-    
+
     switch (status) {
       case 1:
         label = 'Draft';

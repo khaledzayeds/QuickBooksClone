@@ -10,14 +10,14 @@ class TransactionLineEntry {
     this.qty = 1,
     this.rate = 0,
     this.inventoryReceiptLineId,
-  })  : descCtrl = TextEditingController(),
-        qtyCtrl  = TextEditingController(text: qty.toString()),
-        rateCtrl = TextEditingController(text: rate.toString());
+  }) : descCtrl = TextEditingController(),
+       qtyCtrl = TextEditingController(text: qty.toString()),
+       rateCtrl = TextEditingController(text: rate.toString());
 
   String? itemId;
-  String  itemName;
-  double  qty;
-  double  rate;
+  String itemName;
+  double qty;
+  double rate;
   String? inventoryReceiptLineId;
 
   final TextEditingController descCtrl;

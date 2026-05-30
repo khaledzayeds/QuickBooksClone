@@ -1,6 +1,7 @@
 // customer_credit_model.dart
 
-import '../../../../core/constants/api_enums.dart' show CustomerCreditAction, PaymentMethod;
+import '../../../../core/constants/api_enums.dart'
+    show CustomerCreditAction, PaymentMethod;
 import '../../../../core/utils/json_utils.dart';
 
 class CustomerCreditModel {
@@ -38,21 +39,28 @@ class CustomerCreditModel {
   final String? postedTransactionId;
   final DateTime? postedAt;
 
-  factory CustomerCreditModel.fromJson(Map<String, dynamic> json) => CustomerCreditModel(
+  factory CustomerCreditModel.fromJson(Map<String, dynamic> json) =>
+      CustomerCreditModel(
         id: JsonUtils.asString(json['id']),
         referenceNumber: JsonUtils.asString(json['referenceNumber']),
         customerId: JsonUtils.asString(json['customerId']),
         customerName: JsonUtils.asNullableString(json['customerName']),
         activityDate: _parseDate(json['activityDate']),
         amount: JsonUtils.asDouble(json['amount']),
-        action: CustomerCreditAction.fromValue(JsonUtils.asInt(json['action'], defaultValue: 1)),
+        action: CustomerCreditAction.fromValue(
+          JsonUtils.asInt(json['action'], defaultValue: 1),
+        ),
         invoiceId: JsonUtils.asNullableString(json['invoiceId']),
         invoiceNumber: JsonUtils.asNullableString(json['invoiceNumber']),
         refundAccountId: JsonUtils.asNullableString(json['refundAccountId']),
-        refundAccountName: JsonUtils.asNullableString(json['refundAccountName']),
+        refundAccountName: JsonUtils.asNullableString(
+          json['refundAccountName'],
+        ),
         paymentMethod: _parsePaymentMethod(json['paymentMethod']),
         status: JsonUtils.asInt(json['status']),
-        postedTransactionId: JsonUtils.asNullableString(json['postedTransactionId']),
+        postedTransactionId: JsonUtils.asNullableString(
+          json['postedTransactionId'],
+        ),
         postedAt: _parseNullableDate(json['postedAt']),
       );
 
@@ -62,8 +70,10 @@ class CustomerCreditModel {
     return PaymentMethod.fromString(text);
   }
 
-  static DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-  static DateTime? _parseNullableDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
+  static DateTime _parseDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+  static DateTime? _parseNullableDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '');
 }
 
 class CreateCustomerCreditDto {
@@ -86,14 +96,15 @@ class CreateCustomerCreditDto {
   final PaymentMethod? paymentMethod;
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'activityDate': _dateOnly(activityDate),
-        'amount': amount,
-        'action': action.value,
-        if (invoiceId != null && invoiceId!.isNotEmpty) 'invoiceId': invoiceId,
-        if (refundAccountId != null && refundAccountId!.isNotEmpty) 'refundAccountId': refundAccountId,
-        if (paymentMethod != null) 'paymentMethod': paymentMethod!.toApiString(),
-      };
+    'customerId': customerId,
+    'activityDate': _dateOnly(activityDate),
+    'amount': amount,
+    'action': action.value,
+    if (invoiceId != null && invoiceId!.isNotEmpty) 'invoiceId': invoiceId,
+    if (refundAccountId != null && refundAccountId!.isNotEmpty)
+      'refundAccountId': refundAccountId,
+    if (paymentMethod != null) 'paymentMethod': paymentMethod!.toApiString(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

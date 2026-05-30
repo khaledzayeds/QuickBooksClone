@@ -31,7 +31,8 @@ class JournalEntryModel {
   final DateTime? voidedAt;
   final List<JournalEntryLineModel> lines;
 
-  factory JournalEntryModel.fromJson(Map<String, dynamic> json) => JournalEntryModel(
+  factory JournalEntryModel.fromJson(Map<String, dynamic> json) =>
+      JournalEntryModel(
         id: JsonUtils.asString(json['id']),
         entryNumber: JsonUtils.asString(json['entryNumber']),
         entryDate: _parseDate(json['entryDate']),
@@ -39,18 +40,27 @@ class JournalEntryModel {
         status: JsonUtils.asInt(json['status']),
         totalDebit: JsonUtils.asDouble(json['totalDebit']),
         totalCredit: JsonUtils.asDouble(json['totalCredit']),
-        postedTransactionId: JsonUtils.asNullableString(json['postedTransactionId']),
-        reversalTransactionId: JsonUtils.asNullableString(json['reversalTransactionId']),
+        postedTransactionId: JsonUtils.asNullableString(
+          json['postedTransactionId'],
+        ),
+        reversalTransactionId: JsonUtils.asNullableString(
+          json['reversalTransactionId'],
+        ),
         postedAt: _parseNullableDate(json['postedAt']),
         voidedAt: _parseNullableDate(json['voidedAt']),
-        lines: JsonUtils.asList(json['lines'], (line) => JournalEntryLineModel.fromJson(line)),
+        lines: JsonUtils.asList(
+          json['lines'],
+          (line) => JournalEntryLineModel.fromJson(line),
+        ),
       );
 
   bool get isPosted => postedAt != null;
   bool get isVoid => voidedAt != null;
 
-  static DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-  static DateTime? _parseNullableDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
+  static DateTime _parseDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+  static DateTime? _parseNullableDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '');
 }
 
 class JournalEntryLineModel {
@@ -72,7 +82,8 @@ class JournalEntryLineModel {
   final double debit;
   final double credit;
 
-  factory JournalEntryLineModel.fromJson(Map<String, dynamic> json) => JournalEntryLineModel(
+  factory JournalEntryLineModel.fromJson(Map<String, dynamic> json) =>
+      JournalEntryLineModel(
         id: JsonUtils.asString(json['id']),
         accountId: JsonUtils.asString(json['accountId']),
         accountCode: JsonUtils.asNullableString(json['accountCode']),
@@ -97,11 +108,11 @@ class CreateJournalEntryDto {
   final List<CreateJournalEntryLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'entryDate': _dateOnly(entryDate),
-        if (memo.trim().isNotEmpty) 'memo': memo.trim(),
-        'saveMode': saveMode,
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'entryDate': _dateOnly(entryDate),
+    if (memo.trim().isNotEmpty) 'memo': memo.trim(),
+    'saveMode': saveMode,
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -121,9 +132,10 @@ class CreateJournalEntryLineDto {
   final double credit;
 
   Map<String, dynamic> toJson() => {
-        'accountId': accountId,
-        if (description != null && description!.trim().isNotEmpty) 'description': description!.trim(),
-        'debit': debit,
-        'credit': credit,
-      };
+    'accountId': accountId,
+    if (description != null && description!.trim().isNotEmpty)
+      'description': description!.trim(),
+    'debit': debit,
+    'credit': credit,
+  };
 }

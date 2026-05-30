@@ -53,7 +53,9 @@ class SalesReceiptModel {
         customerName: JsonUtils.asString(json['customerName']),
         receiptDate: _parseDate(json['invoiceDate']),
         depositAccountId: JsonUtils.asNullableString(json['depositAccountId']),
-        depositAccountName: JsonUtils.asNullableString(json['depositAccountName']),
+        depositAccountName: JsonUtils.asNullableString(
+          json['depositAccountName'],
+        ),
         paymentMethod: JsonUtils.asNullableString(json['paymentMethod']),
         receiptPaymentId: JsonUtils.asNullableString(json['receiptPaymentId']),
         status: JsonUtils.asInt(json['status']),
@@ -133,12 +135,12 @@ class CreateSalesReceiptDto {
   final List<CreateSalesReceiptLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'receiptDate': _dateOnly(receiptDate),
-        'depositAccountId': depositAccountId,
-        'paymentMethod': paymentMethod,
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'customerId': customerId,
+    'receiptDate': _dateOnly(receiptDate),
+    'depositAccountId': depositAccountId,
+    'paymentMethod': paymentMethod,
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -162,12 +164,12 @@ class CreateSalesReceiptLineDto {
   final String? taxCodeId;
 
   Map<String, dynamic> toJson() => {
-        'itemId': itemId,
-        if (description != null && description!.trim().isNotEmpty)
-          'description': description,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        'discountPercent': discountPercent,
-        if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
-      };
+    'itemId': itemId,
+    if (description != null && description!.trim().isNotEmpty)
+      'description': description,
+    'quantity': quantity,
+    'unitPrice': unitPrice,
+    'discountPercent': discountPercent,
+    if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
+  };
 }

@@ -80,7 +80,9 @@ class VendorPaymentDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final paymentAsync = ref.watch(vendorPaymentDetailsProvider(id));
-    final payments = ref.watch(vendorPaymentsProvider).maybeWhen(
+    final payments = ref
+        .watch(vendorPaymentsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => <VendorPaymentModel>[],
         );
@@ -89,12 +91,15 @@ class VendorPaymentDetailsScreen extends ConsumerWidget {
 
     void navigateTo(int idx) {
       if (idx >= 0 && idx < payments.length) {
-        context.go(AppRoutes.vendorPaymentDetails.replaceFirst(':id', payments[idx].id));
+        context.go(
+          AppRoutes.vendorPaymentDetails.replaceFirst(':id', payments[idx].id),
+        );
       }
     }
 
     return paymentAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         body: Center(
           child: Padding(
@@ -115,7 +120,9 @@ class VendorPaymentDetailsScreen extends ConsumerWidget {
             ? () => navigateTo(currentIdx + 1)
             : null,
         onNew: () => context.go(AppRoutes.vendorPaymentNew),
-        onVoid: payment.status == 3 ? null : () => _voidPayment(context, ref, payment),
+        onVoid: payment.status == 3
+            ? null
+            : () => _voidPayment(context, ref, payment),
         onClose: () => context.go(AppRoutes.vendorPayments),
         formContent: _PaymentBody(payment: payment),
         contextPanel: _PaymentContextPanel(
@@ -177,7 +184,11 @@ class _PaymentContextPanel extends StatelessWidget {
 }
 
 class _SidebarStat extends StatelessWidget {
-  const _SidebarStat({required this.label, required this.value, this.isTotal = false});
+  const _SidebarStat({
+    required this.label,
+    required this.value,
+    this.isTotal = false,
+  });
   final String label;
   final String value;
   final bool isTotal;
@@ -189,9 +200,23 @@ class _SidebarStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF7D8B93), fontWeight: FontWeight.w900)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF7D8B93),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700, color: const Color(0xFF264D5B))),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
+              color: const Color(0xFF264D5B),
+            ),
+          ),
         ],
       ),
     );

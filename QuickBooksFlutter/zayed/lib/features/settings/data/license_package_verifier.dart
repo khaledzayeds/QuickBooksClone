@@ -31,7 +31,10 @@ class LicensePackageVerifier {
   }) async {
     final trimmed = package.trim();
     if (trimmed.isEmpty) {
-      return const LicensePackageVerificationResult(success: false, message: 'License package is empty.');
+      return const LicensePackageVerificationResult(
+        success: false,
+        message: 'License package is empty.',
+      );
     }
 
     final parts = trimmed.split('.');
@@ -48,16 +51,22 @@ class LicensePackageVerifier {
       final payload = jsonDecode(payloadText) as Map<String, dynamic>;
       final signatureBytes = base64Url.decode(base64Url.normalize(parts[1]));
 
-      final signatureOk = await _verifySignature(payloadBytes: payloadBytes, signatureBytes: signatureBytes);
+      final signatureOk = await _verifySignature(
+        payloadBytes: payloadBytes,
+        signatureBytes: signatureBytes,
+      );
       if (!signatureOk) {
         return const LicensePackageVerificationResult(
           success: false,
-          message: 'License signature is invalid. Check the public key or package contents.',
+          message:
+              'License signature is invalid. Check the public key or package contents.',
         );
       }
 
       final payloadDeviceId = payload['deviceId']?.toString();
-      if (payloadDeviceId != null && payloadDeviceId.isNotEmpty && payloadDeviceId != deviceFingerprint) {
+      if (payloadDeviceId != null &&
+          payloadDeviceId.isNotEmpty &&
+          payloadDeviceId != deviceFingerprint) {
         return const LicensePackageVerificationResult(
           success: false,
           message: 'This license package is for another device.',
@@ -79,25 +88,43 @@ class LicensePackageVerifier {
     }
   }
 
-  Future<bool> _verifySignature({required List<int> payloadBytes, required List<int> signatureBytes}) async {
+  Future<bool> _verifySignature({
+    required List<int> payloadBytes,
+    required List<int> signatureBytes,
+  }) async {
     if (!LicensePublicKeyConfig.hasConfiguredPublicKey) {
-      throw StateError('License public key is not configured. Generate a keypair and paste the public key in LicensePublicKeyConfig.');
+      throw StateError(
+        'License public key is not configured. Generate a keypair and paste the public key in LicensePublicKeyConfig.',
+      );
     }
 
-    final publicKeyBytes = base64.decode(LicensePublicKeyConfig.ed25519PublicKeyBase64);
+    final publicKeyBytes = base64.decode(
+      LicensePublicKeyConfig.ed25519PublicKeyBase64,
+    );
     final algorithm = Ed25519();
-    final publicKey = SimplePublicKey(publicKeyBytes, type: KeyPairType.ed25519);
+    final publicKey = SimplePublicKey(
+      publicKeyBytes,
+      type: KeyPairType.ed25519,
+    );
     final signature = Signature(signatureBytes, publicKey: publicKey);
     return algorithm.verify(payloadBytes, signature: signature);
   }
 
-  LicenseSettingsModel _licenseFromPayload(Map<String, dynamic> payload, String fallbackDeviceFingerprint) {
-    final features = (payload['features'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
+  LicenseSettingsModel _licenseFromPayload(
+    Map<String, dynamic> payload,
+    String fallbackDeviceFingerprint,
+  ) {
+    final features =
+        (payload['features'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
     final edition = LicenseEdition.fromName(payload['edition']?.toString());
     final base = LicenseSettingsModel.forEdition(edition);
 
-    bool feature(String key, bool fallback) => features[key] is bool ? features[key] as bool : fallback;
-    int intValue(String key, int fallback) => payload[key] is num ? (payload[key] as num).toInt() : int.tryParse(payload[key]?.toString() ?? '') ?? fallback;
+    bool feature(String key, bool fallback) =>
+        features[key] is bool ? features[key] as bool : fallback;
+    int intValue(String key, int fallback) => payload[key] is num
+        ? (payload[key] as num).toInt()
+        : int.tryParse(payload[key]?.toString() ?? '') ?? fallback;
 
     return base.copyWith(
       status: LicenseStatus.fromName(payload['status']?.toString()),
@@ -109,11 +136,16 @@ class LicensePackageVerifier {
       allowHostedMode: feature('hostedMode', base.allowHostedMode),
       allowBackupRestore: feature('backupRestore', base.allowBackupRestore),
       allowDemoCompany: feature('demoCompany', base.allowDemoCompany),
-      allowAdvancedInventory: feature('advancedInventory', base.allowAdvancedInventory),
+      allowAdvancedInventory: feature(
+        'advancedInventory',
+        base.allowAdvancedInventory,
+      ),
       allowPayroll: feature('payroll', base.allowPayroll),
-      licenseKey: payload['serial']?.toString() ?? payload['licenseId']?.toString(),
+      licenseKey:
+          payload['serial']?.toString() ?? payload['licenseId']?.toString(),
       companyName: payload['customerName']?.toString(),
-      activatedDeviceId: payload['deviceId']?.toString() ?? fallbackDeviceFingerprint,
+      activatedDeviceId:
+          payload['deviceId']?.toString() ?? fallbackDeviceFingerprint,
       expiresAtIso: payload['expiresAt']?.toString(),
       lastValidatedAtIso: DateTime.now().toUtc().toIso8601String(),
     );

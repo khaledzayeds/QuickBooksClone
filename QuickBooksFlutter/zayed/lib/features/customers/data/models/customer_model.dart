@@ -24,37 +24,39 @@ class CustomerModel {
   final String currency;
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) => CustomerModel(
-        id: json['id']?.toString() ?? '',
-        displayName: json['displayName']?.toString() ?? '',
-        isActive: json['isActive'] != false,
-        balance: double.tryParse(json['balance']?.toString() ?? '') ?? 0,
-        creditBalance: double.tryParse(json['creditBalance']?.toString() ?? '') ?? 0,
-        companyName: json['companyName']?.toString(),
-        email: json['email']?.toString(),
-        phone: json['phone']?.toString(),
-        currency: json['currency']?.toString() ?? 'EGP',
-      );
+    id: json['id']?.toString() ?? '',
+    displayName: json['displayName']?.toString() ?? '',
+    isActive: json['isActive'] != false,
+    balance: double.tryParse(json['balance']?.toString() ?? '') ?? 0,
+    creditBalance:
+        double.tryParse(json['creditBalance']?.toString() ?? '') ?? 0,
+    companyName: json['companyName']?.toString(),
+    email: json['email']?.toString(),
+    phone: json['phone']?.toString(),
+    currency: json['currency']?.toString() ?? 'EGP',
+  );
 
   Map<String, dynamic> toCreateJson({double openingBalance = 0}) => {
-        'displayName': displayName,
-        if (companyName?.isNotEmpty == true) 'companyName': companyName,
-        if (email?.isNotEmpty == true) 'email': email,
-        if (phone?.isNotEmpty == true) 'phone': phone,
-        'currency': currency,
-        'openingBalance': openingBalance,
-      };
+    'displayName': displayName,
+    if (companyName?.isNotEmpty == true) 'companyName': companyName,
+    if (email?.isNotEmpty == true) 'email': email,
+    if (phone?.isNotEmpty == true) 'phone': phone,
+    'currency': currency,
+    'openingBalance': openingBalance,
+  };
 
   Map<String, dynamic> toUpdateJson() => {
-        'displayName': displayName,
-        if (companyName?.isNotEmpty == true) 'companyName': companyName,
-        if (email?.isNotEmpty == true) 'email': email,
-        if (phone?.isNotEmpty == true) 'phone': phone,
-        'currency': currency,
-      };
+    'displayName': displayName,
+    if (companyName?.isNotEmpty == true) 'companyName': companyName,
+    if (email?.isNotEmpty == true) 'email': email,
+    if (phone?.isNotEmpty == true) 'phone': phone,
+    'currency': currency,
+  };
 
   bool get hasBalance => balance > 0;
   bool get hasCreditBalance => creditBalance > 0;
-  bool get hasContactInfo => (email?.isNotEmpty == true) || (phone?.isNotEmpty == true);
+  bool get hasContactInfo =>
+      (email?.isNotEmpty == true) || (phone?.isNotEmpty == true);
   bool get needsAttention => hasBalance && !hasCreditBalance;
   double get netReceivable => balance - creditBalance;
 
@@ -65,7 +67,11 @@ class CustomerModel {
   }
 
   String get initials {
-    final parts = displayName.trim().split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    final parts = displayName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     return displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
   }

@@ -15,20 +15,23 @@ class SalesReceiptsRepo {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _api.getAll(
-        search: search,
-        customerId: customerId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _api.getAll(
+    search: search,
+    customerId: customerId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
   Future<ApiResult<SalesReceiptModel>> getById(String id) => _api.getById(id);
 
-  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewSalesReceiptDto dto) => _api.preview(dto);
+  Future<ApiResult<SalesPostingPreviewModel>> preview(
+    PreviewSalesReceiptDto dto,
+  ) => _api.preview(dto);
 
-  Future<ApiResult<SalesReceiptModel>> create(CreateSalesReceiptDto dto) => _api.create(dto);
+  Future<ApiResult<SalesReceiptModel>> create(CreateSalesReceiptDto dto) =>
+      _api.create(dto);
 
-  Future<ApiResult<SalesReceiptModel>> voidReceipt(String id) => _api.voidReceipt(id);
+  Future<ApiResult<SalesReceiptModel>> voidReceipt(String id) =>
+      _api.voidReceipt(id);
 }

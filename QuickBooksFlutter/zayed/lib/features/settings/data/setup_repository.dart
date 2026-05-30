@@ -3,11 +3,15 @@ import 'models/setup_models.dart';
 
 class SetupRepository {
   Future<SetupStatusModel> getStatus() async {
-    final response = await ApiClient.instance.get<Map<String, dynamic>>('/api/setup/status');
+    final response = await ApiClient.instance.get<Map<String, dynamic>>(
+      '/api/setup/status',
+    );
     return SetupStatusModel.fromJson(response.data ?? const {});
   }
 
-  Future<InitializeCompanyResultModel> initializeCompany(InitializeCompanyPayload payload) async {
+  Future<InitializeCompanyResultModel> initializeCompany(
+    InitializeCompanyPayload payload,
+  ) async {
     final response = await ApiClient.instance.post<Map<String, dynamic>>(
       '/api/setup/initialize-company',
       data: payload.toJson(),
@@ -16,7 +20,9 @@ class SetupRepository {
   }
 
   Future<DefaultAccountsSeedResultModel> seedDefaultAccounts() async {
-    final response = await ApiClient.instance.post<Map<String, dynamic>>('/api/setup/seed-default-accounts');
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      '/api/setup/seed-default-accounts',
+    );
     return DefaultAccountsSeedResultModel.fromJson(response.data ?? const {});
   }
 }

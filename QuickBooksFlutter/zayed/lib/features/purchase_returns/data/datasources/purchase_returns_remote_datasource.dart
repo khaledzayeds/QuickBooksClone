@@ -25,7 +25,8 @@ class PurchaseReturnsRemoteDatasource {
         '/api/purchase-returns',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (purchaseBillId != null && purchaseBillId.isNotEmpty) 'purchaseBillId': purchaseBillId,
+          if (purchaseBillId != null && purchaseBillId.isNotEmpty)
+            'purchaseBillId': purchaseBillId,
           if (vendorId != null && vendorId.isNotEmpty) 'vendorId': vendorId,
           'includeVoid': includeVoid,
           'page': page,
@@ -34,7 +35,10 @@ class PurchaseReturnsRemoteDatasource {
       );
 
       final returns = ((response.data?['items'] as List?) ?? const [])
-          .map((json) => PurchaseReturnModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) =>
+                PurchaseReturnModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
       return Success(returns);
     } on DioException catch (error) {
@@ -44,14 +48,18 @@ class PurchaseReturnsRemoteDatasource {
 
   Future<ApiResult<PurchaseReturnModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/purchase-returns/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/purchase-returns/$id',
+      );
       return Success(PurchaseReturnModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
   }
 
-  Future<ApiResult<PurchaseReturnModel>> create(CreatePurchaseReturnDto dto) async {
+  Future<ApiResult<PurchaseReturnModel>> create(
+    CreatePurchaseReturnDto dto,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/purchase-returns',
@@ -65,7 +73,9 @@ class PurchaseReturnsRemoteDatasource {
 
   Future<ApiResult<PurchaseReturnModel>> voidReturn(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/purchase-returns/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/purchase-returns/$id/void',
+      );
       return Success(PurchaseReturnModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));

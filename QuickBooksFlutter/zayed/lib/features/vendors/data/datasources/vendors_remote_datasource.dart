@@ -1,4 +1,4 @@
-﻿// vendors_remote_datasource.dart
+// vendors_remote_datasource.dart
 // vendors_remote_datasource.dart
 
 import 'package:dio/dio.dart';
@@ -23,7 +23,7 @@ class VendorsRemoteDatasource {
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
           'includeInactive': includeInactive,
-          'page':     page,
+          'page': page,
           'pageSize': pageSize,
         },
       );
@@ -38,16 +38,16 @@ class VendorsRemoteDatasource {
 
   Future<ApiResult<VendorModel>> getVendor(String id) async {
     try {
-      final response =
-          await _client.get<Map<String, dynamic>>('/api/vendors/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/vendors/$id',
+      );
       return Success(VendorModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
   }
 
-  Future<ApiResult<VendorModel>> createVendor(
-      Map<String, dynamic> body) async {
+  Future<ApiResult<VendorModel>> createVendor(Map<String, dynamic> body) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/vendors',
@@ -60,7 +60,9 @@ class VendorsRemoteDatasource {
   }
 
   Future<ApiResult<VendorModel>> updateVendor(
-      String id, Map<String, dynamic> body) async {
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final response = await _client.put<Map<String, dynamic>>(
         '/api/vendors/$id',
@@ -72,8 +74,7 @@ class VendorsRemoteDatasource {
     }
   }
 
-  Future<ApiResult<VendorModel>> toggleActive(
-      String id, bool isActive) async {
+  Future<ApiResult<VendorModel>> toggleActive(String id, bool isActive) async {
     try {
       final response = await _client.patch<Map<String, dynamic>>(
         '/api/vendors/$id/active',

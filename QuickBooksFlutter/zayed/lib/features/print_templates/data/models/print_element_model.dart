@@ -62,32 +62,41 @@ class PrintElementStyleModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'fontSize': fontSize,
-        'bold': bold,
-        'italic': italic,
-        'align': align,
-        'color': color,
-        'backgroundColor': backgroundColor,
-        'borderColor': borderColor,
-        'borderWidth': borderWidth,
-        'padding': padding,
-      };
+    'fontSize': fontSize,
+    'bold': bold,
+    'italic': italic,
+    'align': align,
+    'color': color,
+    'backgroundColor': backgroundColor,
+    'borderColor': borderColor,
+    'borderWidth': borderWidth,
+    'padding': padding,
+  };
 }
 
 class PrintTableColumnModel {
-  const PrintTableColumnModel({required this.title, required this.field, required this.width});
+  const PrintTableColumnModel({
+    required this.title,
+    required this.field,
+    required this.width,
+  });
 
   final String title;
   final String field;
   final double width;
 
-  factory PrintTableColumnModel.fromJson(Map<String, dynamic> json) => PrintTableColumnModel(
+  factory PrintTableColumnModel.fromJson(Map<String, dynamic> json) =>
+      PrintTableColumnModel(
         title: json['title'] as String? ?? '',
         field: json['field'] as String? ?? '',
         width: (json['width'] as num?)?.toDouble() ?? 20,
       );
 
-  Map<String, dynamic> toJson() => {'title': title, 'field': field, 'width': width};
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'field': field,
+    'width': width,
+  };
 }
 
 class PrintElementModel {
@@ -149,7 +158,8 @@ class PrintElementModel {
     );
   }
 
-  factory PrintElementModel.fromJson(Map<String, dynamic> json) => PrintElementModel(
+  factory PrintElementModel.fromJson(Map<String, dynamic> json) =>
+      PrintElementModel(
         id: json['id'] as String? ?? '',
         type: json['type'] as String? ?? 'text',
         x: (json['x'] as num?)?.toDouble() ?? 0,
@@ -159,28 +169,36 @@ class PrintElementModel {
         value: json['value'] as String? ?? '',
         binding: json['binding'] as String?,
         assetPath: json['assetPath'] as String?,
-        style: PrintElementStyleModel.fromJson((json['style'] as Map?)?.cast<String, dynamic>() ?? const {}),
+        style: PrintElementStyleModel.fromJson(
+          (json['style'] as Map?)?.cast<String, dynamic>() ?? const {},
+        ),
         columns: ((json['columns'] as List?) ?? const [])
             .whereType<Map>()
-            .map((item) => PrintTableColumnModel.fromJson(item.cast<String, dynamic>()))
+            .map(
+              (item) =>
+                  PrintTableColumnModel.fromJson(item.cast<String, dynamic>()),
+            )
             .toList(),
-        metadata: (json['metadata'] as Map?)?.cast<String, dynamic>() ?? const {},
+        metadata:
+            (json['metadata'] as Map?)?.cast<String, dynamic>() ?? const {},
       );
 
-  factory PrintElementModel.fromJsonString(String source) => PrintElementModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
+  factory PrintElementModel.fromJsonString(String source) =>
+      PrintElementModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type,
-        'x': x,
-        'y': y,
-        'width': width,
-        'height': height,
-        'value': value,
-        if (binding != null) 'binding': binding,
-        if (assetPath != null) 'assetPath': assetPath,
-        'style': style.toJson(),
-        if (columns.isNotEmpty) 'columns': columns.map((item) => item.toJson()).toList(),
-        if (metadata.isNotEmpty) 'metadata': metadata,
-      };
+    'id': id,
+    'type': type,
+    'x': x,
+    'y': y,
+    'width': width,
+    'height': height,
+    'value': value,
+    if (binding != null) 'binding': binding,
+    if (assetPath != null) 'assetPath': assetPath,
+    'style': style.toJson(),
+    if (columns.isNotEmpty)
+      'columns': columns.map((item) => item.toJson()).toList(),
+    if (metadata.isNotEmpty) 'metadata': metadata,
+  };
 }

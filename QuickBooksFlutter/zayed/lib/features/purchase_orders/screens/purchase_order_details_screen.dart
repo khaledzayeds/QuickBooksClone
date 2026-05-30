@@ -28,55 +28,59 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
                 data: (o) => o.canEdit
                     ? IconButton(
                         tooltip: 'Edit draft',
-                        onPressed: () => context.go('/purchases/orders/edit/${o.id}'),
+                        onPressed: () =>
+                            context.go('/purchases/orders/edit/${o.id}'),
                         icon: const Icon(Icons.edit_outlined),
                       )
                     : const SizedBox.shrink(),
               ) ??
               const SizedBox.shrink(),
           orderAsync.whenOrNull(
-            data: (o) => PopupMenuButton<_Action>(
-              onSelected: (a) => _handleAction(context, ref, o, a),
-              itemBuilder: (_) => [
-                if (o.canEdit)
-                  PopupMenuItem(
-                    value: _Action.open,
-                    child: ListTile(
-                      leading: const Icon(Icons.lock_open_outlined),
-                      title: Text(l10n.openOrder),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                if (o.canReceive)
-                  PopupMenuItem(
-                    value: _Action.receive,
-                    child: ListTile(
-                      leading: const Icon(Icons.inventory_2_outlined),
-                      title: Text(l10n.receiveInventoryAction),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                if (o.isOpen)
-                  PopupMenuItem(
-                    value: _Action.close,
-                    child: ListTile(
-                      leading: const Icon(Icons.lock_outline),
-                      title: Text(l10n.closeOrder),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                if (o.canCancel)
-                  PopupMenuItem(
-                    value: _Action.cancel,
-                    child: ListTile(
-                      leading: const Icon(Icons.cancel_outlined, color: Colors.red),
-                      title: Text(l10n.cancelOrder),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-              ],
-            ),
-          ) ??
+                data: (o) => PopupMenuButton<_Action>(
+                  onSelected: (a) => _handleAction(context, ref, o, a),
+                  itemBuilder: (_) => [
+                    if (o.canEdit)
+                      PopupMenuItem(
+                        value: _Action.open,
+                        child: ListTile(
+                          leading: const Icon(Icons.lock_open_outlined),
+                          title: Text(l10n.openOrder),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    if (o.canReceive)
+                      PopupMenuItem(
+                        value: _Action.receive,
+                        child: ListTile(
+                          leading: const Icon(Icons.inventory_2_outlined),
+                          title: Text(l10n.receiveInventoryAction),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    if (o.isOpen)
+                      PopupMenuItem(
+                        value: _Action.close,
+                        child: ListTile(
+                          leading: const Icon(Icons.lock_outline),
+                          title: Text(l10n.closeOrder),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    if (o.canCancel)
+                      PopupMenuItem(
+                        value: _Action.cancel,
+                        child: ListTile(
+                          leading: const Icon(
+                            Icons.cancel_outlined,
+                            color: Colors.red,
+                          ),
+                          title: Text(l10n.cancelOrder),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                  ],
+                ),
+              ) ??
               const SizedBox.shrink(),
         ],
       ),
@@ -86,7 +90,11 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
               const SizedBox(height: 12),
               Text(e.toString()),
               const SizedBox(height: 12),
@@ -103,7 +111,12 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleAction(BuildContext context, WidgetRef ref, PurchaseOrderModel order, _Action action) async {
+  Future<void> _handleAction(
+    BuildContext context,
+    WidgetRef ref,
+    PurchaseOrderModel order,
+    _Action action,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
 
     if (action == _Action.receive) {
@@ -136,15 +149,18 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
         ref.invalidate(purchaseOrderProvider(id));
         ref.read(purchaseOrdersProvider.notifier).refresh();
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_successMsg(action, l10n))),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_successMsg(action, l10n))));
         }
       },
       failure: (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message), backgroundColor: Theme.of(context).colorScheme.error),
+            SnackBar(
+              content: Text(e.message),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         }
       },
@@ -152,11 +168,11 @@ class PurchaseOrderDetailsScreen extends ConsumerWidget {
   }
 
   String _successMsg(_Action a, AppLocalizations l10n) => switch (a) {
-        _Action.open => l10n.poOpenedSuccess,
-        _Action.close => l10n.poClosedSuccess,
-        _Action.cancel => l10n.poCancelledSuccess,
-        _Action.receive => '',
-      };
+    _Action.open => l10n.poOpenedSuccess,
+    _Action.close => l10n.poClosedSuccess,
+    _Action.cancel => l10n.poCancelledSuccess,
+    _Action.receive => '',
+  };
 }
 
 enum _Action { open, close, cancel, receive }
@@ -184,15 +200,32 @@ class _OrderDetails extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(order.orderNumber, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                      child: Text(
+                        order.orderNumber,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                     _StatusChip(status: order.status),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _InfoRow(icon: Icons.business_outlined, label: l10n.vendor, value: order.vendorName),
-                _InfoRow(icon: Icons.calendar_today_outlined, label: l10n.poDate, value: fmt.format(order.orderDate)),
-                _InfoRow(icon: Icons.event_outlined, label: l10n.expectedDate, value: fmt.format(order.expectedDate)),
+                _InfoRow(
+                  icon: Icons.business_outlined,
+                  label: l10n.vendor,
+                  value: order.vendorName,
+                ),
+                _InfoRow(
+                  icon: Icons.calendar_today_outlined,
+                  label: l10n.poDate,
+                  value: fmt.format(order.orderDate),
+                ),
+                _InfoRow(
+                  icon: Icons.event_outlined,
+                  label: l10n.expectedDate,
+                  value: fmt.format(order.expectedDate),
+                ),
               ],
             ),
           ),
@@ -204,14 +237,59 @@ class _OrderDetails extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${l10n.items} (${order.lines.length})', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  '${l10n.items} (${order.lines.length})',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const Divider(height: 24),
                 Row(
                   children: [
-                    Expanded(flex: 3, child: Text(l10n.itemService, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
-                    Expanded(child: Text(l10n.qty, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
-                    Expanded(child: Text(l10n.rate, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
-                    Expanded(child: Text(l10n.amount, textAlign: TextAlign.end, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.outline))),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        l10n.itemService,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: cs.outline,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        l10n.qty,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: cs.outline,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        l10n.rate,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: cs.outline,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        l10n.amount,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: cs.outline,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const Divider(height: 12),
@@ -228,13 +306,27 @@ class _OrderDetails extends StatelessWidget {
             child: Column(
               children: [
                 _SummaryRow(l10n.subtotal, order.subtotal.toStringAsFixed(2)),
-                if (order.taxAmount > 0) _SummaryRow(l10n.tax, order.taxAmount.toStringAsFixed(2)),
+                if (order.taxAmount > 0)
+                  _SummaryRow(l10n.tax, order.taxAmount.toStringAsFixed(2)),
                 const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(l10n.total, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                    Text(order.totalAmount.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: cs.primary)),
+                    Text(
+                      l10n.total,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      order.totalAmount.toStringAsFixed(2),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                        color: cs.primary,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -255,38 +347,63 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (Color bg, Color fg) = switch (status) {
       PurchaseOrderStatus.draft => (Colors.grey.shade200, Colors.grey.shade700),
-      PurchaseOrderStatus.open => (Colors.green.shade100, Colors.green.shade800),
-      PurchaseOrderStatus.closed => (Colors.blue.shade100, Colors.blue.shade800),
-      PurchaseOrderStatus.cancelled => (Colors.red.shade100, Colors.red.shade800),
+      PurchaseOrderStatus.open => (
+        Colors.green.shade100,
+        Colors.green.shade800,
+      ),
+      PurchaseOrderStatus.closed => (
+        Colors.blue.shade100,
+        Colors.blue.shade800,
+      ),
+      PurchaseOrderStatus.cancelled => (
+        Colors.red.shade100,
+        Colors.red.shade800,
+      ),
     };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
-      child: Text(status.localizedLabel(context), style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        status.localizedLabel(context),
+        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700),
+      ),
     );
   }
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: Theme.of(context).hintColor),
-            const SizedBox(width: 12),
-            Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
-            const Spacer(),
-            Flexible(child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w600))),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: Theme.of(context).hintColor),
+        const SizedBox(width: 12),
+        Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _LineRow extends StatelessWidget {
@@ -295,18 +412,41 @@ class _LineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            Expanded(flex: 3, child: Text(line.description, style: const TextStyle(fontWeight: FontWeight.w600))),
-            Expanded(child: Text(line.quantity.toStringAsFixed(0), textAlign: TextAlign.center)),
-            Expanded(child: Text(line.unitCost.toStringAsFixed(2), textAlign: TextAlign.center)),
-            Expanded(
-              child: Text(line.lineTotal.toStringAsFixed(2), textAlign: TextAlign.end, style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.primary)),
-            ),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
+            line.description,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
-      );
+        Expanded(
+          child: Text(
+            line.quantity.toStringAsFixed(0),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            line.unitCost.toStringAsFixed(2),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            line.lineTotal.toStringAsFixed(2),
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SummaryRow extends StatelessWidget {
@@ -316,13 +456,13 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: Theme.of(context).hintColor)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ],
+    ),
+  );
 }

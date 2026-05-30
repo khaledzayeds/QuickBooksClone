@@ -7,7 +7,8 @@ import '../../../core/utils/error_handler.dart';
 import 'models/connection_settings_model.dart';
 
 class ConnectionSettingsRepository {
-  ConnectionSettingsRepository({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient.instance;
+  ConnectionSettingsRepository({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient.instance;
 
   static const _profileTypeKey = 'connection.profileType';
   static const _baseUrlKey = 'connection.baseUrl';
@@ -37,11 +38,17 @@ class ConnectionSettingsRepository {
     _apiClient.updateBaseUrl(resolved.baseUrl);
 
     try {
-      final response = await _apiClient.get<Map<String, dynamic>>('/api/settings/runtime');
-      final provider = response.data?['databaseProvider'] ?? response.data?['provider'] ?? 'unknown database';
+      final response = await _apiClient.get<Map<String, dynamic>>(
+        '/api/settings/runtime',
+      );
+      final provider =
+          response.data?['databaseProvider'] ??
+          response.data?['provider'] ??
+          'unknown database';
       return ConnectionTestResult(
         success: true,
-        message: '${AppConstants.appDisplayName} local runtime is ready. Database provider: $provider',
+        message:
+            '${AppConstants.appDisplayName} local runtime is ready. Database provider: $provider',
       );
     } on DioException catch (error) {
       final parsed = parseError(error);

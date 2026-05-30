@@ -42,7 +42,11 @@ class PurchaseOrdersRemoteDatasource {
         list = [];
       }
 
-      return Success(list.map((e) => PurchaseOrderModel.fromJson(e as Map<String, dynamic>)).toList());
+      return Success(
+        list
+            .map((e) => PurchaseOrderModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
@@ -50,14 +54,18 @@ class PurchaseOrdersRemoteDatasource {
 
   Future<ApiResult<PurchaseOrderModel>> getById(String id) async {
     try {
-      final r = await _client.get<Map<String, dynamic>>('/api/purchase-orders/$id');
+      final r = await _client.get<Map<String, dynamic>>(
+        '/api/purchase-orders/$id',
+      );
       return Success(PurchaseOrderModel.fromJson(r.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
   }
 
-  Future<ApiResult<PurchaseOrderModel>> create(CreatePurchaseOrderDto dto) async {
+  Future<ApiResult<PurchaseOrderModel>> create(
+    CreatePurchaseOrderDto dto,
+  ) async {
     try {
       final r = await _client.post<Map<String, dynamic>>(
         '/api/purchase-orders',
@@ -69,7 +77,10 @@ class PurchaseOrdersRemoteDatasource {
     }
   }
 
-  Future<ApiResult<PurchaseOrderModel>> update(String id, UpdatePurchaseOrderDto dto) async {
+  Future<ApiResult<PurchaseOrderModel>> update(
+    String id,
+    UpdatePurchaseOrderDto dto,
+  ) async {
     try {
       final r = await _client.put<Map<String, dynamic>>(
         '/api/purchase-orders/$id',
@@ -83,7 +94,9 @@ class PurchaseOrdersRemoteDatasource {
 
   Future<ApiResult<PurchaseOrderModel>> openOrder(String id) async {
     try {
-      final r = await _client.post<Map<String, dynamic>>('/api/purchase-orders/$id/open');
+      final r = await _client.post<Map<String, dynamic>>(
+        '/api/purchase-orders/$id/open',
+      );
       return Success(PurchaseOrderModel.fromJson(r.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
@@ -92,7 +105,9 @@ class PurchaseOrdersRemoteDatasource {
 
   Future<ApiResult<PurchaseOrderModel>> closeOrder(String id) async {
     try {
-      final r = await _client.post<Map<String, dynamic>>('/api/purchase-orders/$id/close');
+      final r = await _client.post<Map<String, dynamic>>(
+        '/api/purchase-orders/$id/close',
+      );
       return Success(PurchaseOrderModel.fromJson(r.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
@@ -101,7 +116,9 @@ class PurchaseOrdersRemoteDatasource {
 
   Future<ApiResult<PurchaseOrderModel>> cancelOrder(String id) async {
     try {
-      final r = await _client.patch<Map<String, dynamic>>('/api/purchase-orders/$id/cancel');
+      final r = await _client.patch<Map<String, dynamic>>(
+        '/api/purchase-orders/$id/cancel',
+      );
       return Success(PurchaseOrderModel.fromJson(r.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));

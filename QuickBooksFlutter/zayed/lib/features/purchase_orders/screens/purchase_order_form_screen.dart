@@ -401,173 +401,173 @@ class _PurchaseOrderFormScreenState
     return SingleChildScrollView(
       padding: const EdgeInsets.all(10),
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  flex: 6,
-                  child: _PoTopSearchBar(
-                    label: 'VENDOR',
-                    child: _readOnly
-                        ? _ReadonlyBox(
-                            text: _vendor?.displayName ?? 'Select vendor',
-                          )
-                        : VendorPickerField(
-                            value: _vendor,
-                            onChanged: (v) => setState(() => _vendor = v),
-                            label: l10n.vendor,
-                          ),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 6,
+                child: _PoTopSearchBar(
+                  label: 'VENDOR',
+                  child: _readOnly
+                      ? _ReadonlyBox(
+                          text: _vendor?.displayName ?? 'Select vendor',
+                        )
+                      : VendorPickerField(
+                          value: _vendor,
+                          onChanged: (v) => setState(() => _vendor = v),
+                          label: l10n.vendor,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 4,
+                child: _PoTopSearchBar(
+                  label: 'TEMPLATE',
+                  child: const _ReadonlyBox(text: 'Standard Purchase Order'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                flex: 2,
+                child: Text(
+                  'Purchase Order',
+                  style: TextStyle(
+                    fontSize: 34,
+                    color: Color(0xFF203A49),
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 4,
-                  child: _PoTopSearchBar(
-                    label: 'TEMPLATE',
-                    child: const _ReadonlyBox(text: 'Standard Purchase Order'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Purchase Order',
-                    style: TextStyle(
-                      fontSize: 34,
-                      color: Color(0xFF203A49),
-                      fontWeight: FontWeight.w400,
+              ),
+              Expanded(
+                flex: 5,
+                child: Wrap(
+                  spacing: 18,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  children: [
+                    _DateField(
+                      label: l10n.poDate.toUpperCase(),
+                      value: _orderDate,
+                      fmt: fmt,
+                      enabled: !_readOnly,
+                      onTap: () => _pickDate(false),
                     ),
-                  ),
+                    _DateField(
+                      label: l10n.expectedDate.toUpperCase(),
+                      value: _expectedDate,
+                      fmt: fmt,
+                      enabled: !_readOnly,
+                      onTap: () => _pickDate(true),
+                    ),
+                    _PoNumberField(
+                      label: 'P.O. #',
+                      value: _editingOrder?.orderNumber ?? 'AUTO',
+                    ),
+                  ],
                 ),
-                Expanded(
-                  flex: 5,
-                  child: Wrap(
-                    spacing: 18,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.end,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF9EADB6)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  color: const Color(0xFFE8F0F4),
+                  child: Row(
                     children: [
-                      _DateField(
-                        label: l10n.poDate.toUpperCase(),
-                        value: _orderDate,
-                        fmt: fmt,
-                        enabled: !_readOnly,
-                        onTap: () => _pickDate(false),
+                      const Text(
+                        'Products and Services',
+                        style: TextStyle(
+                          color: Color(0xFF203A49),
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      _DateField(
-                        label: l10n.expectedDate.toUpperCase(),
-                        value: _expectedDate,
-                        fmt: fmt,
-                        enabled: !_readOnly,
-                        onTap: () => _pickDate(true),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Tab moves across cells • Enter commits row',
+                        style: TextStyle(
+                          color: Color(0xFF607D8B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      _PoNumberField(
-                        label: 'P.O. #',
-                        value: _editingOrder?.orderNumber ?? 'AUTO',
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: _readOnly
+                            ? null
+                            : () => setState(
+                                () => _lines.add(TransactionLineEntry()),
+                              ),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Line'),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF9EADB6)),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    height: 36,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    color: const Color(0xFFE8F0F4),
-                    child: Row(
-                      children: [
-                        const Text(
-                          'Products and Services',
-                          style: TextStyle(
-                            color: Color(0xFF203A49),
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Tab moves across cells • Enter commits row',
-                          style: TextStyle(
-                            color: Color(0xFF607D8B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: _readOnly
-                              ? null
-                              : () => setState(
-                                  () => _lines.add(TransactionLineEntry()),
-                                ),
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add Line'),
-                        ),
-                      ],
+                IgnorePointer(
+                  ignoring: _readOnly,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: TransactionLineTable(
+                      lines: _lines,
+                      onChanged: () {
+                        if (_readOnly) return;
+                        setState(() {});
+                      },
                     ),
-                  ),
-                  IgnorePointer(
-                    ignoring: _readOnly,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: TransactionLineTable(
-                        lines: _lines,
-                        onChanged: () {
-                          if (_readOnly) return;
-                          setState(() {});
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _FieldLabel(l10n.memoInternal.toUpperCase()),
-                      const SizedBox(height: 5),
-                      TextField(
-                        enabled: !_readOnly,
-                        minLines: 1,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          hintText: 'Optional',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                SizedBox(
-                  width: 310,
-                  child: _PoTotalsBox(
-                    total: _editingOrder?.totalAmount ?? _draftTotal,
-                    currency: l10n.egp,
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _FieldLabel(l10n.memoInternal.toUpperCase()),
+                    const SizedBox(height: 5),
+                    TextField(
+                      enabled: !_readOnly,
+                      minLines: 1,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        hintText: 'Optional',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              SizedBox(
+                width: 310,
+                child: _PoTotalsBox(
+                  total: _editingOrder?.totalAmount ?? _draftTotal,
+                  currency: l10n.egp,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -637,8 +637,6 @@ class _DateField extends StatelessWidget {
     ],
   );
 }
-
-
 
 class _PoTopSearchBar extends StatelessWidget {
   const _PoTopSearchBar({required this.label, required this.child});

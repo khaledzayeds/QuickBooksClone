@@ -21,13 +21,16 @@ class BankAccountModel {
 
   String get displayName => code.isEmpty ? name : '$code - $name';
 
-  factory BankAccountModel.fromJson(Map<String, dynamic> json) => BankAccountModel(
+  factory BankAccountModel.fromJson(Map<String, dynamic> json) =>
+      BankAccountModel(
         id: JsonUtils.asString(json['id']),
         code: JsonUtils.asString(json['code']),
         name: JsonUtils.asString(json['name']),
         accountType: JsonUtils.asInt(json['accountType']),
         balance: JsonUtils.asDouble(json['balance']),
-        isActive: json['isActive'] == true || json['isActive']?.toString().toLowerCase() == 'true',
+        isActive:
+            json['isActive'] == true ||
+            json['isActive']?.toString().toLowerCase() == 'true',
       );
 }
 
@@ -46,12 +49,16 @@ class BankRegisterResponseModel {
   final double endingBalance;
   final List<BankRegisterLineModel> items;
 
-  factory BankRegisterResponseModel.fromJson(Map<String, dynamic> json) => BankRegisterResponseModel(
+  factory BankRegisterResponseModel.fromJson(Map<String, dynamic> json) =>
+      BankRegisterResponseModel(
         accountId: JsonUtils.asString(json['accountId']),
         accountName: JsonUtils.asString(json['accountName']),
         openingBalance: JsonUtils.asDouble(json['openingBalance']),
         endingBalance: JsonUtils.asDouble(json['endingBalance']),
-        items: JsonUtils.asList(json['items'], (line) => BankRegisterLineModel.fromJson(line)),
+        items: JsonUtils.asList(
+          json['items'],
+          (line) => BankRegisterLineModel.fromJson(line),
+        ),
       );
 }
 
@@ -82,9 +89,12 @@ class BankRegisterLineModel {
   final String? sourceEntityType;
   final String? sourceEntityId;
 
-  factory BankRegisterLineModel.fromJson(Map<String, dynamic> json) => BankRegisterLineModel(
+  factory BankRegisterLineModel.fromJson(Map<String, dynamic> json) =>
+      BankRegisterLineModel(
         transactionId: JsonUtils.asString(json['transactionId']),
-        transactionDate: DateTime.tryParse(json['transactionDate']?.toString() ?? '') ?? DateTime.now(),
+        transactionDate:
+            DateTime.tryParse(json['transactionDate']?.toString() ?? '') ??
+            DateTime.now(),
         transactionType: JsonUtils.asString(json['transactionType']),
         referenceNumber: JsonUtils.asString(json['referenceNumber']),
         description: JsonUtils.asString(json['description']),
@@ -118,56 +128,116 @@ class BankReconcilePreviewModel {
   final bool isBalanced;
   final List<BankRegisterLineModel> registerLines;
 
-  factory BankReconcilePreviewModel.fromJson(Map<String, dynamic> json) => BankReconcilePreviewModel(
+  factory BankReconcilePreviewModel.fromJson(Map<String, dynamic> json) =>
+      BankReconcilePreviewModel(
         accountId: JsonUtils.asString(json['accountId']),
         accountName: JsonUtils.asString(json['accountName']),
-        statementDate: DateTime.tryParse(json['statementDate']?.toString() ?? '') ?? DateTime.now(),
+        statementDate:
+            DateTime.tryParse(json['statementDate']?.toString() ?? '') ??
+            DateTime.now(),
         bookBalance: JsonUtils.asDouble(json['bookBalance']),
-        statementEndingBalance: JsonUtils.asDouble(json['statementEndingBalance']),
+        statementEndingBalance: JsonUtils.asDouble(
+          json['statementEndingBalance'],
+        ),
         difference: JsonUtils.asDouble(json['difference']),
-        isBalanced: json['isBalanced'] == true || json['isBalanced']?.toString().toLowerCase() == 'true',
-        registerLines: JsonUtils.asList(json['registerLines'], (line) => BankRegisterLineModel.fromJson(line)),
+        isBalanced:
+            json['isBalanced'] == true ||
+            json['isBalanced']?.toString().toLowerCase() == 'true',
+        registerLines: JsonUtils.asList(
+          json['registerLines'],
+          (line) => BankRegisterLineModel.fromJson(line),
+        ),
       );
 }
 
 class CreateBankTransferDto {
-  const CreateBankTransferDto({required this.fromAccountId, required this.toAccountId, required this.transferDate, required this.amount, this.memo});
+  const CreateBankTransferDto({
+    required this.fromAccountId,
+    required this.toAccountId,
+    required this.transferDate,
+    required this.amount,
+    this.memo,
+  });
   final String fromAccountId;
   final String toAccountId;
   final DateTime transferDate;
   final double amount;
   final String? memo;
-  Map<String, dynamic> toJson() => {'fromAccountId': fromAccountId, 'toAccountId': toAccountId, 'transferDate': _dateOnly(transferDate), 'amount': amount, if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim()};
+  Map<String, dynamic> toJson() => {
+    'fromAccountId': fromAccountId,
+    'toAccountId': toAccountId,
+    'transferDate': _dateOnly(transferDate),
+    'amount': amount,
+    if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim(),
+  };
 }
 
 class CreateBankDepositDto {
-  const CreateBankDepositDto({required this.depositAccountId, required this.offsetAccountId, required this.depositDate, required this.amount, this.receivedFrom, this.memo});
+  const CreateBankDepositDto({
+    required this.depositAccountId,
+    required this.offsetAccountId,
+    required this.depositDate,
+    required this.amount,
+    this.receivedFrom,
+    this.memo,
+  });
   final String depositAccountId;
   final String offsetAccountId;
   final DateTime depositDate;
   final double amount;
   final String? receivedFrom;
   final String? memo;
-  Map<String, dynamic> toJson() => {'depositAccountId': depositAccountId, 'offsetAccountId': offsetAccountId, 'depositDate': _dateOnly(depositDate), 'amount': amount, if (receivedFrom != null && receivedFrom!.trim().isNotEmpty) 'receivedFrom': receivedFrom!.trim(), if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim()};
+  Map<String, dynamic> toJson() => {
+    'depositAccountId': depositAccountId,
+    'offsetAccountId': offsetAccountId,
+    'depositDate': _dateOnly(depositDate),
+    'amount': amount,
+    if (receivedFrom != null && receivedFrom!.trim().isNotEmpty)
+      'receivedFrom': receivedFrom!.trim(),
+    if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim(),
+  };
 }
 
 class CreateBankCheckDto {
-  const CreateBankCheckDto({required this.bankAccountId, required this.expenseAccountId, required this.checkDate, required this.amount, this.payee, this.memo});
+  const CreateBankCheckDto({
+    required this.bankAccountId,
+    required this.expenseAccountId,
+    required this.checkDate,
+    required this.amount,
+    this.payee,
+    this.memo,
+  });
   final String bankAccountId;
   final String expenseAccountId;
   final DateTime checkDate;
   final double amount;
   final String? payee;
   final String? memo;
-  Map<String, dynamic> toJson() => {'bankAccountId': bankAccountId, 'expenseAccountId': expenseAccountId, 'checkDate': _dateOnly(checkDate), 'amount': amount, if (payee != null && payee!.trim().isNotEmpty) 'payee': payee!.trim(), if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim()};
+  Map<String, dynamic> toJson() => {
+    'bankAccountId': bankAccountId,
+    'expenseAccountId': expenseAccountId,
+    'checkDate': _dateOnly(checkDate),
+    'amount': amount,
+    if (payee != null && payee!.trim().isNotEmpty) 'payee': payee!.trim(),
+    if (memo != null && memo!.trim().isNotEmpty) 'memo': memo!.trim(),
+  };
 }
 
 class BankReconcilePreviewDto {
-  const BankReconcilePreviewDto({required this.accountId, required this.statementDate, required this.statementEndingBalance});
+  const BankReconcilePreviewDto({
+    required this.accountId,
+    required this.statementDate,
+    required this.statementEndingBalance,
+  });
   final String accountId;
   final DateTime statementDate;
   final double statementEndingBalance;
-  Map<String, dynamic> toJson() => {'accountId': accountId, 'statementDate': _dateOnly(statementDate), 'statementEndingBalance': statementEndingBalance};
+  Map<String, dynamic> toJson() => {
+    'accountId': accountId,
+    'statementDate': _dateOnly(statementDate),
+    'statementEndingBalance': statementEndingBalance,
+  };
 }
 
-String _dateOnly(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+String _dateOnly(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

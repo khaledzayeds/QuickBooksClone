@@ -9,15 +9,22 @@ class BankingRepository {
 
   final BankingRemoteDatasource _remote;
 
-  Future<ApiResult<List<BankAccountModel>>> getAccounts() => _remote.getAccounts();
+  Future<ApiResult<List<BankAccountModel>>> getAccounts() =>
+      _remote.getAccounts();
 
-  Future<ApiResult<BankRegisterResponseModel>> getRegister(String accountId) => _remote.getRegister(accountId);
+  Future<ApiResult<BankRegisterResponseModel>> getRegister(String accountId) =>
+      _remote.getRegister(accountId);
 
-  Future<ApiResult<void>> createTransfer(CreateBankTransferDto dto) => _remote.createTransfer(dto);
+  Future<ApiResult<void>> createTransfer(CreateBankTransferDto dto) =>
+      _remote.createTransfer(dto);
 
-  Future<ApiResult<void>> createDeposit(CreateBankDepositDto dto) => _remote.createDeposit(dto);
+  Future<ApiResult<void>> createDeposit(CreateBankDepositDto dto) =>
+      _remote.createDeposit(dto);
 
-  Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) => _remote.createCheck(dto);
+  Future<ApiResult<void>> createCheck(CreateBankCheckDto dto) =>
+      _remote.createCheck(dto);
 
-  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(BankReconcilePreviewDto dto) => _remote.previewReconcile(dto);
+  Future<ApiResult<BankReconcilePreviewModel>> previewReconcile(
+    BankReconcilePreviewDto dto,
+  ) => _remote.previewReconcile(dto);
 }

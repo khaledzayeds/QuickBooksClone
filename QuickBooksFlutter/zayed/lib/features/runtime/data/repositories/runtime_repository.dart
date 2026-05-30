@@ -1,4 +1,3 @@
-﻿
 // runtime_repository.dart
 
 import '../../../../core/api/api_result.dart';
@@ -9,6 +8,5 @@ class RuntimeRepository {
   RuntimeRepository(this._datasource);
   final RuntimeRemoteDatasource _datasource;
 
-  Future<ApiResult<RuntimeModel>> getRuntime() =>
-      _datasource.getRuntime();
+  Future<ApiResult<RuntimeModel>> getRuntime() => _datasource.getRuntime();
 }

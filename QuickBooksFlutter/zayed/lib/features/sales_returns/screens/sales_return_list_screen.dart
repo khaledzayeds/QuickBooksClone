@@ -17,8 +17,7 @@ class SalesReturnListScreen extends ConsumerStatefulWidget {
       _SalesReturnListScreenState();
 }
 
-class _SalesReturnListScreenState
-    extends ConsumerState<SalesReturnListScreen> {
+class _SalesReturnListScreenState extends ConsumerState<SalesReturnListScreen> {
   final _queryCtrl = TextEditingController();
   int _selectedStatus = 0; // 0: All, 1: Draft, 2: Posted, 3: Void
   DateTimeRange? _dateRange;
@@ -33,7 +32,7 @@ class _SalesReturnListScreenState
   Widget build(BuildContext context) {
     final returnsAsync = ref.watch(salesReturnsProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -65,7 +64,8 @@ class _SalesReturnListScreenState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(salesReturnsProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(salesReturnsProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -133,7 +133,11 @@ class _SalesReturnListScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -220,7 +224,7 @@ class _SalesReturnListScreenState
                               itemBuilder: (context, index) {
                                 final salesReturn = filtered[index];
                                 final shaded = index.isEven;
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
                                     AppRoutes.salesReturnDetails.replaceFirst(
@@ -246,7 +250,8 @@ class _SalesReturnListScreenState
                                           flex: 2,
                                         ),
                                         _Cell(
-                                          salesReturn.customerName ?? 'Customer',
+                                          salesReturn.customerName ??
+                                              'Customer',
                                           flex: 4,
                                         ),
                                         _Cell(
@@ -257,7 +262,9 @@ class _SalesReturnListScreenState
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(status: salesReturn.status),
+                                            child: _StatusBadge(
+                                              status: salesReturn.status,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -422,10 +429,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 
@@ -452,7 +456,7 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     final Color bg;
     final Color fg;
-    
+
     switch (status) {
       case 1:
         label = 'Draft';

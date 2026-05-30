@@ -27,17 +27,47 @@ class TransactionTotalsFooter extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _TotalRow(label: 'Subtotal', value: totals.subtotal, currency: totals.currency),
+                  _TotalRow(
+                    label: 'Subtotal',
+                    value: totals.subtotal,
+                    currency: totals.currency,
+                  ),
                   if (totals.discountTotal != 0)
-                    _TotalRow(label: 'Discount', value: totals.discountTotal, currency: totals.currency),
+                    _TotalRow(
+                      label: 'Discount',
+                      value: totals.discountTotal,
+                      currency: totals.currency,
+                    ),
                   if (totals.taxTotal != 0)
-                    _TotalRow(label: 'Tax', value: totals.taxTotal, currency: totals.currency),
+                    _TotalRow(
+                      label: 'Tax',
+                      value: totals.taxTotal,
+                      currency: totals.currency,
+                    ),
                   if (totals.shipping != 0)
-                    _TotalRow(label: 'Shipping', value: totals.shipping, currency: totals.currency),
+                    _TotalRow(
+                      label: 'Shipping',
+                      value: totals.shipping,
+                      currency: totals.currency,
+                    ),
                   const Divider(height: 12),
-                  _TotalRow(label: 'Total', value: totals.total, currency: totals.currency, strong: true),
-                  _TotalRow(label: 'Payments Applied', value: totals.paid, currency: totals.currency),
-                  _TotalRow(label: 'Balance Due', value: totals.balanceDue, currency: totals.currency, strong: true),
+                  _TotalRow(
+                    label: 'Total',
+                    value: totals.total,
+                    currency: totals.currency,
+                    strong: true,
+                  ),
+                  _TotalRow(
+                    label: 'Payments Applied',
+                    value: totals.paid,
+                    currency: totals.currency,
+                  ),
+                  _TotalRow(
+                    label: 'Balance Due',
+                    value: totals.balanceDue,
+                    currency: totals.currency,
+                    strong: true,
+                  ),
                 ],
               ),
             ),
@@ -75,10 +105,7 @@ class _TotalRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label, style: style)),
-          Text(
-            '${value.toStringAsFixed(2)} $currency',
-            style: style,
-          ),
+          Text('${value.toStringAsFixed(2)} $currency', style: style),
         ],
       ),
     );

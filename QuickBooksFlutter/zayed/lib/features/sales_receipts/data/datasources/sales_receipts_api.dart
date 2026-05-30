@@ -23,7 +23,8 @@ class SalesReceiptsApi {
         '/api/sales-receipts',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
@@ -40,14 +41,18 @@ class SalesReceiptsApi {
 
   Future<ApiResult<SalesReceiptModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/sales-receipts/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/sales-receipts/$id',
+      );
       return Success(SalesReceiptModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
   }
 
-  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewSalesReceiptDto dto) async {
+  Future<ApiResult<SalesPostingPreviewModel>> preview(
+    PreviewSalesReceiptDto dto,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/sales-receipts/preview',
@@ -73,7 +78,9 @@ class SalesReceiptsApi {
 
   Future<ApiResult<SalesReceiptModel>> voidReceipt(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/sales-receipts/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/sales-receipts/$id/void',
+      );
       return Success(SalesReceiptModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));

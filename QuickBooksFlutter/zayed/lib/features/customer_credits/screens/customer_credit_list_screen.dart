@@ -32,7 +32,7 @@ class _CustomerCreditListScreenState
   @override
   Widget build(BuildContext context) {
     final creditsAsync = ref.watch(customerCreditsProvider);
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -64,7 +64,8 @@ class _CustomerCreditListScreenState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(customerCreditsProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(customerCreditsProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -132,7 +133,11 @@ class _CustomerCreditListScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -220,14 +225,14 @@ class _CustomerCreditListScreenState
                               itemBuilder: (context, index) {
                                 final credit = filtered[index];
                                 final shaded = index.isEven;
-                                final isRefund = credit.action == CustomerCreditAction.refundReceipt;
-                                
+                                final isRefund =
+                                    credit.action ==
+                                    CustomerCreditAction.refundReceipt;
+
                                 return InkWell(
                                   onTap: () => context.push(
-                                    AppRoutes.customerCreditDetails.replaceFirst(
-                                      ':id',
-                                      credit.id,
-                                    ),
+                                    AppRoutes.customerCreditDetails
+                                        .replaceFirst(':id', credit.id),
                                   ),
                                   child: Container(
                                     height: 34,
@@ -255,16 +260,18 @@ class _CustomerCreditListScreenState
                                           flex: 4,
                                         ),
                                         _Cell(
-                                          isRefund 
-                                            ? (credit.refundAccountName ?? '') 
-                                            : (credit.invoiceNumber ?? ''),
+                                          isRefund
+                                              ? (credit.refundAccountName ?? '')
+                                              : (credit.invoiceNumber ?? ''),
                                           flex: 3,
                                         ),
                                         _CellWidget(
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(status: credit.status),
+                                            child: _StatusBadge(
+                                              status: credit.status,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -430,10 +437,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 
@@ -460,7 +464,7 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     final Color bg;
     final Color fg;
-    
+
     switch (status) {
       case 1:
         label = 'Draft';

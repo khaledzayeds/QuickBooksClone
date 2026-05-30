@@ -25,7 +25,8 @@ class PaymentsRemoteDatasource {
         '/api/payments',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
           if (invoiceId != null && invoiceId.isNotEmpty) 'invoiceId': invoiceId,
           'includeVoid': includeVoid,
           'page': page,
@@ -44,7 +45,9 @@ class PaymentsRemoteDatasource {
 
   Future<ApiResult<PaymentModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/payments/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/payments/$id',
+      );
       return Success(PaymentModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -80,7 +83,9 @@ class PaymentsRemoteDatasource {
 
   Future<ApiResult<PaymentModel>> voidPayment(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/payments/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/payments/$id/void',
+      );
       return Success(PaymentModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));

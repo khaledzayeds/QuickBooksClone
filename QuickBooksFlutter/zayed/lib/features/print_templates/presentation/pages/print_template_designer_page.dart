@@ -229,22 +229,29 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
                               ),
                             ],
                             selected: {
-                              if (template.page.size == 'A4' || template.page.widthMm > 90)
+                              if (template.page.size == 'A4' ||
+                                  template.page.widthMm > 90)
                                 'a4'
                               else if (template.page.widthMm <= 60)
                                 'thermal_58'
                               else
-                                'thermal_80'
+                                'thermal_80',
                             },
                             showSelectedIcon: false,
                             onSelectionChanged: (values) {
                               final selected = values.first;
                               if (selected == 'a4') {
-                                _controller.updatePage(PrintPageModel.a4Portrait());
+                                _controller.updatePage(
+                                  PrintPageModel.a4Portrait(),
+                                );
                               } else if (selected == 'thermal_80') {
-                                _controller.updatePage(PrintPageModel.receipt80mm());
+                                _controller.updatePage(
+                                  PrintPageModel.receipt80mm(),
+                                );
                               } else if (selected == 'thermal_58') {
-                                _controller.updatePage(PrintPageModel.receipt58mm());
+                                _controller.updatePage(
+                                  PrintPageModel.receipt58mm(),
+                                );
                               }
                             },
                           ),
@@ -451,7 +458,9 @@ class _TemplateNavigator extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: selected
-                          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+                          ? theme.colorScheme.primaryContainer.withValues(
+                              alpha: 0.3,
+                            )
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -480,7 +489,9 @@ class _TemplateNavigator extends StatelessWidget {
                         item.name,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: selected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                           color: selected
                               ? theme.colorScheme.primary
                               : theme.colorScheme.onSurface,

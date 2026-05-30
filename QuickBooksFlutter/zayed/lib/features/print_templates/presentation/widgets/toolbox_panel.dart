@@ -33,14 +33,25 @@ class ToolboxPanel extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Add elements to the canvas',
-              style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 14),
             _toolButton('Text', Icons.text_fields, controller.addText),
             _toolButton('Field', Icons.data_object, controller.addField),
-            _toolButton('Rectangle', Icons.crop_square, controller.addRectangle),
+            _toolButton(
+              'Rectangle',
+              Icons.crop_square,
+              controller.addRectangle,
+            ),
             _toolButton('Line', Icons.horizontal_rule, controller.addLine),
-            _toolButton('Table', Icons.table_chart_outlined, controller.addTable),
+            _toolButton(
+              'Table',
+              Icons.table_chart_outlined,
+              controller.addTable,
+            ),
             _toolButton('QR', Icons.qr_code_2, controller.addQr),
             _toolButton(
               'Barcode',
@@ -51,7 +62,10 @@ class ToolboxPanel extends StatelessWidget {
             if (controller.lastMessage != null) ...[
               Text(
                 controller.lastMessage!,
-                style: TextStyle(fontSize: 11, color: theme.colorScheme.primary),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.colorScheme.primary,
+                ),
               ),
               const SizedBox(height: 10),
             ],
@@ -162,9 +176,9 @@ class _JsonEditorDialogState extends State<JsonEditorDialog> {
 
   void _copyToClipboard() {
     Clipboard.setData(ClipboardData(text: _textController.text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied to clipboard')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
   }
 
   void _apply() {
@@ -262,12 +276,10 @@ class _JsonEditorDialogState extends State<JsonEditorDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: _apply,
-          child: const Text('Apply & Save'),
-        ),
+        FilledButton(onPressed: _apply, child: const Text('Apply & Save')),
       ],
     );
   }
 }
+
 // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]

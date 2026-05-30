@@ -90,26 +90,49 @@ class CustomerStatementPrintService {
     return doc.save();
   }
 
-  pw.Widget _header(CustomerStatementPrintModel model, DateFormat dateFmt, bool rtl) {
+  pw.Widget _header(
+    CustomerStatementPrintModel model,
+    DateFormat dateFmt,
+    bool rtl,
+  ) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Column(
-          crossAxisAlignment: rtl ? pw.CrossAxisAlignment.end : pw.CrossAxisAlignment.start,
+          crossAxisAlignment: rtl
+              ? pw.CrossAxisAlignment.end
+              : pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('Zayed', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Zayed',
+              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 4),
-            pw.Text('Customer Statement', style: const pw.TextStyle(fontSize: 10)),
+            pw.Text(
+              'Customer Statement',
+              style: const pw.TextStyle(fontSize: 10),
+            ),
           ],
         ),
         pw.Column(
-          crossAxisAlignment: rtl ? pw.CrossAxisAlignment.start : pw.CrossAxisAlignment.end,
+          crossAxisAlignment: rtl
+              ? pw.CrossAxisAlignment.start
+              : pw.CrossAxisAlignment.end,
           children: [
-            pw.Text('Customer Statement', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Customer Statement',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 4),
-            pw.Text(model.customerName, style: const pw.TextStyle(fontSize: 11)),
-            pw.Text(dateFmt.format(DateTime.now()), style: const pw.TextStyle(fontSize: 10)),
+            pw.Text(
+              model.customerName,
+              style: const pw.TextStyle(fontSize: 11),
+            ),
+            pw.Text(
+              dateFmt.format(DateTime.now()),
+              style: const pw.TextStyle(fontSize: 10),
+            ),
           ],
         ),
       ],
@@ -138,30 +161,50 @@ class CustomerStatementPrintService {
     );
   }
 
-  pw.Widget _summary(CustomerStatementPrintModel model, NumberFormat moneyFmt, double total) {
+  pw.Widget _summary(
+    CustomerStatementPrintModel model,
+    NumberFormat moneyFmt,
+    double total,
+  ) {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(10),
-      decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(4)),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text('Transactions: ${model.lines.length}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Text('Net amount: ${moneyFmt.format(total)} ${model.currency}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            'Transactions: ${model.lines.length}',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(
+            'Net amount: ${moneyFmt.format(total)} ${model.currency}',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 
-  pw.Widget _table(CustomerStatementPrintModel model, DateFormat dateFmt, NumberFormat moneyFmt, bool rtl) {
+  pw.Widget _table(
+    CustomerStatementPrintModel model,
+    DateFormat dateFmt,
+    NumberFormat moneyFmt,
+    bool rtl,
+  ) {
     final data = model.lines
-        .map((line) => [
-              dateFmt.format(line.date),
-              line.type,
-              line.number,
-              line.status,
-              '${moneyFmt.format(line.amount)} ${model.currency}',
-            ])
+        .map(
+          (line) => [
+            dateFmt.format(line.date),
+            line.type,
+            line.number,
+            line.status,
+            '${moneyFmt.format(line.amount)} ${model.currency}',
+          ],
+        )
         .toList();
 
     return pw.Directionality(
@@ -195,7 +238,10 @@ class CustomerStatementPrintService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8)),
+        pw.Text(
+          label,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+        ),
         pw.SizedBox(height: 3),
         pw.Text(value, style: const pw.TextStyle(fontSize: 9)),
       ],
@@ -227,7 +273,12 @@ class CustomerStatementPrintService {
       final manifestRaw = await rootBundle.loadString('AssetManifest.json');
       final manifest = jsonDecode(manifestRaw) as Map<String, dynamic>;
       final fontPaths = manifest.keys
-          .where((path) => path.startsWith('assets/fonts/') && (path.toLowerCase().endsWith('.ttf') || path.toLowerCase().endsWith('.otf')))
+          .where(
+            (path) =>
+                path.startsWith('assets/fonts/') &&
+                (path.toLowerCase().endsWith('.ttf') ||
+                    path.toLowerCase().endsWith('.otf')),
+          )
           .toList();
       if (fontPaths.isEmpty) return null;
 
@@ -240,7 +291,8 @@ class CustomerStatementPrintService {
         if (lower.contains('tajawal')) value += 35;
         if (lower.contains('noto')) value += 30;
         if (bold && lower.contains('bold')) value += 20;
-        if (!bold && (lower.contains('regular') || lower.contains('medium'))) value += 15;
+        if (!bold && (lower.contains('regular') || lower.contains('medium')))
+          value += 15;
         return value;
       }
 
@@ -252,5 +304,6 @@ class CustomerStatementPrintService {
     }
   }
 
-  bool _containsArabic(String text) => RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+  bool _containsArabic(String text) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(text);
 }

@@ -32,7 +32,7 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
   Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(invoicesStateProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_date(_dateRange!.start)} - ${_date(_dateRange!.end)}';
@@ -64,7 +64,8 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(invoicesStateProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(invoicesStateProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -132,7 +133,11 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -157,7 +162,10 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
                         DropdownMenuItem(value: 'open', child: Text('Open')),
                         DropdownMenuItem(value: 'draft', child: Text('Draft')),
                         DropdownMenuItem(value: 'paid', child: Text('Paid')),
-                        DropdownMenuItem(value: 'voided', child: Text('Voided')),
+                        DropdownMenuItem(
+                          value: 'voided',
+                          child: Text('Voided'),
+                        ),
                       ],
                       onChanged: (value) =>
                           setState(() => _status = value ?? 'all'),
@@ -221,7 +229,7 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
                                 final invoice = filtered[index];
                                 final shaded = index.isEven;
                                 final statusColor = _statusColor(invoice);
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
                                     AppRoutes.invoiceDetails.replaceFirst(
@@ -246,20 +254,14 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
                                               : invoice.invoiceNumber,
                                           flex: 2,
                                         ),
+                                        _Cell(invoice.customerName, flex: 4),
                                         _Cell(
-                                          invoice.customerName,
-                                          flex: 4,
-                                        ),
-                                        _Cell(
-                                          _statusLabel(invoice), 
+                                          _statusLabel(invoice),
                                           flex: 2,
                                           color: statusColor,
                                           strong: true,
                                         ),
-                                        _Cell(
-                                          _date(invoice.dueDate),
-                                          flex: 2,
-                                        ),
+                                        _Cell(_date(invoice.dueDate), flex: 2),
                                         _Cell(
                                           _fmtMoney(invoice.totalAmount),
                                           flex: 2,
@@ -270,7 +272,9 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
                                           flex: 2,
                                           right: true,
                                           strong: true,
-                                          color: invoice.balanceDue > 0 ? Colors.red.shade700 : const Color(0xFF177A25),
+                                          color: invoice.balanceDue > 0
+                                              ? Colors.red.shade700
+                                              : const Color(0xFF177A25),
                                         ),
                                       ],
                                     ),
@@ -321,8 +325,7 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
 
       final matchesStatus = switch (_status) {
         'all' => true,
-        'open' =>
-          !invoice.isDraft && !invoice.isVoid && invoice.balanceDue > 0,
+        'open' => !invoice.isDraft && !invoice.isVoid && invoice.balanceDue > 0,
         'draft' => invoice.isDraft,
         'paid' => invoice.isPaid && !invoice.isVoid,
         'voided' => invoice.isVoid,
@@ -344,7 +347,8 @@ class _InvoicesListPageState extends ConsumerState<InvoicesListPage> {
   static String _date(DateTime date) =>
       '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
-  static String _fmtMoney(double value) => NumberFormat('#,##0.00').format(value);
+  static String _fmtMoney(double value) =>
+      NumberFormat('#,##0.00').format(value);
 
   static String _statusLabel(InvoiceModel invoice) {
     if (invoice.isVoid) return 'Void';

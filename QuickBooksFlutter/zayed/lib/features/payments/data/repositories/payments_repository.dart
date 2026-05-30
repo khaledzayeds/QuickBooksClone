@@ -16,21 +16,23 @@ class PaymentsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        customerId: customerId,
-        invoiceId: invoiceId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    customerId: customerId,
+    invoiceId: invoiceId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
   Future<ApiResult<PaymentModel>> getById(String id) => _datasource.getById(id);
 
-  Future<ApiResult<PaymentModel>> create(CreatePaymentDto dto) => _datasource.create(dto);
+  Future<ApiResult<PaymentModel>> create(CreatePaymentDto dto) =>
+      _datasource.create(dto);
 
-  Future<ApiResult<List<PaymentModel>>> receive(ReceivePaymentDto dto) => _datasource.receive(dto);
+  Future<ApiResult<List<PaymentModel>>> receive(ReceivePaymentDto dto) =>
+      _datasource.receive(dto);
 
-  Future<ApiResult<PaymentModel>> voidPayment(String id) => _datasource.voidPayment(id);
+  Future<ApiResult<PaymentModel>> voidPayment(String id) =>
+      _datasource.voidPayment(id);
 }

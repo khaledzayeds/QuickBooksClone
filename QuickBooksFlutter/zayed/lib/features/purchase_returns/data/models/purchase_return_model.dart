@@ -35,7 +35,8 @@ class PurchaseReturnModel {
   final DateTime? voidedAt;
   final List<PurchaseReturnLineModel> lines;
 
-  factory PurchaseReturnModel.fromJson(Map<String, dynamic> json) => PurchaseReturnModel(
+  factory PurchaseReturnModel.fromJson(Map<String, dynamic> json) =>
+      PurchaseReturnModel(
         id: JsonUtils.asString(json['id']),
         returnNumber: JsonUtils.asString(json['returnNumber']),
         purchaseBillId: JsonUtils.asString(json['purchaseBillId']),
@@ -45,17 +46,26 @@ class PurchaseReturnModel {
         returnDate: _parseDate(json['returnDate']),
         status: JsonUtils.asInt(json['status']),
         totalAmount: JsonUtils.asDouble(json['totalAmount']),
-        postedTransactionId: JsonUtils.asNullableString(json['postedTransactionId']),
+        postedTransactionId: JsonUtils.asNullableString(
+          json['postedTransactionId'],
+        ),
         postedAt: _parseNullableDate(json['postedAt']),
-        reversalTransactionId: JsonUtils.asNullableString(json['reversalTransactionId']),
+        reversalTransactionId: JsonUtils.asNullableString(
+          json['reversalTransactionId'],
+        ),
         voidedAt: _parseNullableDate(json['voidedAt']),
-        lines: JsonUtils.asList(json['lines'], (line) => PurchaseReturnLineModel.fromJson(line)),
+        lines: JsonUtils.asList(
+          json['lines'],
+          (line) => PurchaseReturnLineModel.fromJson(line),
+        ),
       );
 
   bool get isVoid => voidedAt != null;
 
-  static DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-  static DateTime? _parseNullableDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
+  static DateTime _parseDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+  static DateTime? _parseNullableDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '');
 }
 
 class PurchaseReturnLineModel {
@@ -77,7 +87,8 @@ class PurchaseReturnLineModel {
   final double unitCost;
   final double lineTotal;
 
-  factory PurchaseReturnLineModel.fromJson(Map<String, dynamic> json) => PurchaseReturnLineModel(
+  factory PurchaseReturnLineModel.fromJson(Map<String, dynamic> json) =>
+      PurchaseReturnLineModel(
         id: JsonUtils.asString(json['id']),
         purchaseBillLineId: JsonUtils.asString(json['purchaseBillLineId']),
         itemId: JsonUtils.asString(json['itemId']),
@@ -100,10 +111,10 @@ class CreatePurchaseReturnDto {
   final List<CreatePurchaseReturnLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'purchaseBillId': purchaseBillId,
-        'returnDate': _dateOnly(returnDate),
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'purchaseBillId': purchaseBillId,
+    'returnDate': _dateOnly(returnDate),
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -121,8 +132,8 @@ class CreatePurchaseReturnLineDto {
   final double? unitCost;
 
   Map<String, dynamic> toJson() => {
-        'purchaseBillLineId': purchaseBillLineId,
-        'quantity': quantity,
-        if (unitCost != null && unitCost! > 0) 'unitCost': unitCost,
-      };
+    'purchaseBillLineId': purchaseBillLineId,
+    'quantity': quantity,
+    if (unitCost != null && unitCost! > 0) 'unitCost': unitCost,
+  };
 }

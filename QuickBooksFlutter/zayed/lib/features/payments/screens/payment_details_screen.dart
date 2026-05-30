@@ -74,20 +74,22 @@ class PaymentDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final paymentAsync = ref.watch(paymentDetailsProvider(id));
-    final payments = ref.watch(paymentsProvider).maybeWhen(
-      data: (items) => items,
-      orElse: () => <PaymentModel>[],
-    );
+    final payments = ref
+        .watch(paymentsProvider)
+        .maybeWhen(data: (items) => items, orElse: () => <PaymentModel>[]);
     final currentIdx = payments.indexWhere((p) => p.id == id);
 
     void navigateTo(int idx) {
       if (idx >= 0 && idx < payments.length) {
-        context.go(AppRoutes.paymentDetails.replaceFirst(':id', payments[idx].id));
+        context.go(
+          AppRoutes.paymentDetails.replaceFirst(':id', payments[idx].id),
+        );
       }
     }
 
     return paymentAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         body: Center(
           child: Padding(
@@ -109,7 +111,9 @@ class PaymentDetailsScreen extends ConsumerWidget {
             ? () => navigateTo(currentIdx + 1)
             : null,
         onNew: () => context.go(AppRoutes.paymentNew),
-        onVoid: payment.isVoid ? null : () => _voidPayment(context, ref, payment),
+        onVoid: payment.isVoid
+            ? null
+            : () => _voidPayment(context, ref, payment),
         onClose: () => context.go(AppRoutes.payments),
         showSaveDraft: false,
         showSaveAndPrint: false,

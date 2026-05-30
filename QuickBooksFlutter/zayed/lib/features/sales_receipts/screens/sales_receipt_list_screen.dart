@@ -50,7 +50,8 @@ class SalesReceiptListScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             itemCount: receipts.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) => _ReceiptCard(receipt: receipts[index]),
+            itemBuilder: (context, index) =>
+                _ReceiptCard(receipt: receipts[index]),
           );
         },
       ),
@@ -77,10 +78,14 @@ class _ReceiptCard extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: receipt.isVoid ? cs.errorContainer : cs.primaryContainer,
+                backgroundColor: receipt.isVoid
+                    ? cs.errorContainer
+                    : cs.primaryContainer,
                 child: Icon(
                   receipt.isVoid ? Icons.block : Icons.point_of_sale,
-                  color: receipt.isVoid ? cs.onErrorContainer : cs.onPrimaryContainer,
+                  color: receipt.isVoid
+                      ? cs.onErrorContainer
+                      : cs.onPrimaryContainer,
                 ),
               ),
               const SizedBox(width: 16),
@@ -89,18 +94,26 @@ class _ReceiptCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      receipt.receiptNumber.isEmpty ? l10n.salesReceipt : receipt.receiptNumber,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      receipt.receiptNumber.isEmpty
+                          ? l10n.salesReceipt
+                          : receipt.receiptNumber,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      receipt.customerName.isEmpty ? l10n.customer : receipt.customerName,
+                      receipt.customerName.isEmpty
+                          ? l10n.customer
+                          : receipt.customerName,
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${receipt.receiptDate.day}/${receipt.receiptDate.month}/${receipt.receiptDate.year} • ${receipt.paymentMethod ?? l10n.paymentMethod}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -111,7 +124,9 @@ class _ReceiptCard extends StatelessWidget {
                 children: [
                   Text(
                     '${receipt.totalAmount.toStringAsFixed(2)} ${l10n.egp}',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -145,7 +160,10 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Icon(Icons.point_of_sale, size: 56),
             const SizedBox(height: 16),
-            Text(l10n.noSalesReceipts, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              l10n.noSalesReceipts,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             Text(l10n.startSalesReceipt, textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -175,7 +193,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

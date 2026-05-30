@@ -24,15 +24,21 @@ class BillingPlanModel {
   final double totalRemainingQuantity;
   final List<BillingPlanLineModel> lines;
 
-  factory BillingPlanModel.fromJson(Map<String, dynamic> json) => BillingPlanModel(
-        inventoryReceiptId:     JsonUtils.asString(json['inventoryReceiptId']),
-        receiptNumber:          JsonUtils.asString(json['receiptNumber']),
-        vendorId:               JsonUtils.asString(json['vendorId']),
-        vendorName:             JsonUtils.asString(json['vendorName']),
-        purchaseOrderId:        JsonUtils.asString(json['purchaseOrderId']),
-        purchaseOrderNumber:    JsonUtils.asString(json['purchaseOrderNumber']),
-        totalRemainingQuantity: JsonUtils.asDouble(json['totalRemainingQuantity']),
-        lines: JsonUtils.asList(json['lines'], (l) => BillingPlanLineModel.fromJson(l)),
+  factory BillingPlanModel.fromJson(Map<String, dynamic> json) =>
+      BillingPlanModel(
+        inventoryReceiptId: JsonUtils.asString(json['inventoryReceiptId']),
+        receiptNumber: JsonUtils.asString(json['receiptNumber']),
+        vendorId: JsonUtils.asString(json['vendorId']),
+        vendorName: JsonUtils.asString(json['vendorName']),
+        purchaseOrderId: JsonUtils.asString(json['purchaseOrderId']),
+        purchaseOrderNumber: JsonUtils.asString(json['purchaseOrderNumber']),
+        totalRemainingQuantity: JsonUtils.asDouble(
+          json['totalRemainingQuantity'],
+        ),
+        lines: JsonUtils.asList(
+          json['lines'],
+          (l) => BillingPlanLineModel.fromJson(l),
+        ),
       );
 }
 
@@ -59,15 +65,17 @@ class BillingPlanLineModel {
   final double suggestedBillQuantity;
   final double unitCost;
 
-  factory BillingPlanLineModel.fromJson(Map<String, dynamic> json) => BillingPlanLineModel(
-        inventoryReceiptLineId: JsonUtils.asString(json['inventoryReceiptLineId']),
-        itemId:                 JsonUtils.asString(json['itemId']),
-        purchaseOrderLineId:    JsonUtils.asString(json['purchaseOrderLineId']),
-        description:            JsonUtils.asString(json['description']),
-        receivedQuantity:       JsonUtils.asDouble(json['receivedQuantity']),
-        billedQuantity:         JsonUtils.asDouble(json['billedQuantity']),
-        remainingQuantity:      JsonUtils.asDouble(json['remainingQuantity']),
-        suggestedBillQuantity:  JsonUtils.asDouble(json['suggestedBillQuantity']),
-        unitCost:               JsonUtils.asDouble(json['unitCost']),
-      );
+  factory BillingPlanLineModel.fromJson(
+    Map<String, dynamic> json,
+  ) => BillingPlanLineModel(
+    inventoryReceiptLineId: JsonUtils.asString(json['inventoryReceiptLineId']),
+    itemId: JsonUtils.asString(json['itemId']),
+    purchaseOrderLineId: JsonUtils.asString(json['purchaseOrderLineId']),
+    description: JsonUtils.asString(json['description']),
+    receivedQuantity: JsonUtils.asDouble(json['receivedQuantity']),
+    billedQuantity: JsonUtils.asDouble(json['billedQuantity']),
+    remainingQuantity: JsonUtils.asDouble(json['remainingQuantity']),
+    suggestedBillQuantity: JsonUtils.asDouble(json['suggestedBillQuantity']),
+    unitCost: JsonUtils.asDouble(json['unitCost']),
+  );
 }

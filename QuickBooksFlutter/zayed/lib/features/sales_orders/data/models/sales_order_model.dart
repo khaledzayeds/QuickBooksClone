@@ -37,7 +37,8 @@ class SalesOrderModel {
   final DateTime? cancelledAt;
   final List<SalesOrderLineModel> lines;
 
-  factory SalesOrderModel.fromJson(Map<String, dynamic> json) => SalesOrderModel(
+  factory SalesOrderModel.fromJson(Map<String, dynamic> json) =>
+      SalesOrderModel(
         id: JsonUtils.asString(json['id']),
         orderNumber: JsonUtils.asString(json['orderNumber']),
         customerId: JsonUtils.asString(json['customerId']),
@@ -52,15 +53,21 @@ class SalesOrderModel {
         openedAt: _parseNullableDate(json['openedAt']),
         closedAt: _parseNullableDate(json['closedAt']),
         cancelledAt: _parseNullableDate(json['cancelledAt']),
-        lines: JsonUtils.asList(json['lines'], (line) => SalesOrderLineModel.fromJson(line)),
+        lines: JsonUtils.asList(
+          json['lines'],
+          (line) => SalesOrderLineModel.fromJson(line),
+        ),
       );
 
   bool get isCancelled => cancelledAt != null;
   bool get isClosed => closedAt != null;
-  bool get isOpen => openedAt != null && closedAt == null && cancelledAt == null;
+  bool get isOpen =>
+      openedAt != null && closedAt == null && cancelledAt == null;
 
-  static DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-  static DateTime? _parseNullableDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
+  static DateTime _parseDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+  static DateTime? _parseNullableDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '');
 }
 
 class SalesOrderLineModel {
@@ -88,7 +95,8 @@ class SalesOrderLineModel {
   final double taxAmount;
   final double lineTotal;
 
-  factory SalesOrderLineModel.fromJson(Map<String, dynamic> json) => SalesOrderLineModel(
+  factory SalesOrderLineModel.fromJson(Map<String, dynamic> json) =>
+      SalesOrderLineModel(
         id: JsonUtils.asString(json['id']),
         itemId: JsonUtils.asString(json['itemId']),
         estimateLineId: JsonUtils.asNullableString(json['estimateLineId']),
@@ -118,12 +126,12 @@ class CreateSalesOrderDto {
   final List<CreateSalesOrderLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'orderDate': _dateOnly(orderDate),
-        'expectedDate': _dateOnly(expectedDate),
-        'saveMode': saveMode,
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'customerId': customerId,
+    'orderDate': _dateOnly(orderDate),
+    'expectedDate': _dateOnly(expectedDate),
+    'saveMode': saveMode,
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -145,10 +153,11 @@ class CreateSalesOrderLineDto {
   final String? taxCodeId;
 
   Map<String, dynamic> toJson() => {
-        'itemId': itemId,
-        if (description != null && description!.trim().isNotEmpty) 'description': description!.trim(),
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
-      };
+    'itemId': itemId,
+    if (description != null && description!.trim().isNotEmpty)
+      'description': description!.trim(),
+    'quantity': quantity,
+    'unitPrice': unitPrice,
+    if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
+  };
 }

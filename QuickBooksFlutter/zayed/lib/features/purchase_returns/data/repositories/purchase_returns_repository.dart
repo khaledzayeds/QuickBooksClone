@@ -16,19 +16,21 @@ class PurchaseReturnsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        purchaseBillId: purchaseBillId,
-        vendorId: vendorId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    purchaseBillId: purchaseBillId,
+    vendorId: vendorId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<PurchaseReturnModel>> getById(String id) => _datasource.getById(id);
+  Future<ApiResult<PurchaseReturnModel>> getById(String id) =>
+      _datasource.getById(id);
 
-  Future<ApiResult<PurchaseReturnModel>> create(CreatePurchaseReturnDto dto) => _datasource.create(dto);
+  Future<ApiResult<PurchaseReturnModel>> create(CreatePurchaseReturnDto dto) =>
+      _datasource.create(dto);
 
-  Future<ApiResult<PurchaseReturnModel>> voidReturn(String id) => _datasource.voidReturn(id);
+  Future<ApiResult<PurchaseReturnModel>> voidReturn(String id) =>
+      _datasource.voidReturn(id);
 }

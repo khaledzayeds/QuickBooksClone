@@ -15,16 +15,18 @@ class InventoryAdjustmentsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        itemId: itemId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    itemId: itemId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<InventoryAdjustmentModel>> getById(String id) => _datasource.getById(id);
+  Future<ApiResult<InventoryAdjustmentModel>> getById(String id) =>
+      _datasource.getById(id);
 
-  Future<ApiResult<InventoryAdjustmentModel>> create(CreateInventoryAdjustmentDto dto) => _datasource.create(dto);
+  Future<ApiResult<InventoryAdjustmentModel>> create(
+    CreateInventoryAdjustmentDto dto,
+  ) => _datasource.create(dto);
 }

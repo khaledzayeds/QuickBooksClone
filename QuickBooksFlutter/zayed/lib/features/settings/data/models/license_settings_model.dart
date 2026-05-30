@@ -5,18 +5,22 @@ enum LicenseEdition {
   hosted;
 
   String get label => switch (this) {
-        LicenseEdition.trial => 'Trial / Demo',
-        LicenseEdition.solo => 'Solo Desktop',
-        LicenseEdition.network => 'Network / LAN',
-        LicenseEdition.hosted => 'Hosted / Cloud',
-      };
+    LicenseEdition.trial => 'Trial / Demo',
+    LicenseEdition.solo => 'Solo Desktop',
+    LicenseEdition.network => 'Network / LAN',
+    LicenseEdition.hosted => 'Hosted / Cloud',
+  };
 
   String get description => switch (this) {
-        LicenseEdition.trial => 'For demos, evaluation, and limited sample-company usage.',
-        LicenseEdition.solo => 'Single device, local API, local SQLite/company file.',
-        LicenseEdition.network => 'LAN server/client setup with SQL Server and multiple users/devices.',
-        LicenseEdition.hosted => 'Hosted API/database subscription with remote access.',
-      };
+    LicenseEdition.trial =>
+      'For demos, evaluation, and limited sample-company usage.',
+    LicenseEdition.solo =>
+      'Single device, local API, local SQLite/company file.',
+    LicenseEdition.network =>
+      'LAN server/client setup with SQL Server and multiple users/devices.',
+    LicenseEdition.hosted =>
+      'Hosted API/database subscription with remote access.',
+  };
 
   static LicenseEdition fromName(String? value) {
     return LicenseEdition.values.firstWhere(
@@ -34,12 +38,12 @@ enum LicenseStatus {
   blocked;
 
   String get label => switch (this) {
-        LicenseStatus.inactive => 'Inactive',
-        LicenseStatus.trial => 'Trial',
-        LicenseStatus.active => 'Active',
-        LicenseStatus.expired => 'Expired',
-        LicenseStatus.blocked => 'Blocked',
-      };
+    LicenseStatus.inactive => 'Inactive',
+    LicenseStatus.trial => 'Trial',
+    LicenseStatus.active => 'Active',
+    LicenseStatus.expired => 'Expired',
+    LicenseStatus.blocked => 'Blocked',
+  };
 
   static LicenseStatus fromName(String? value) {
     return LicenseStatus.values.firstWhere(
@@ -59,14 +63,14 @@ enum LicenseFeature {
   payroll;
 
   String get label => switch (this) {
-        LicenseFeature.localMode => 'Local Mode',
-        LicenseFeature.lanMode => 'LAN / Network Mode',
-        LicenseFeature.hostedMode => 'Hosted Mode',
-        LicenseFeature.backupRestore => 'Backup / Restore',
-        LicenseFeature.demoCompany => 'Demo Company',
-        LicenseFeature.advancedInventory => 'Advanced Inventory',
-        LicenseFeature.payroll => 'Payroll',
-      };
+    LicenseFeature.localMode => 'Local Mode',
+    LicenseFeature.lanMode => 'LAN / Network Mode',
+    LicenseFeature.hostedMode => 'Hosted Mode',
+    LicenseFeature.backupRestore => 'Backup / Restore',
+    LicenseFeature.demoCompany => 'Demo Company',
+    LicenseFeature.advancedInventory => 'Advanced Inventory',
+    LicenseFeature.payroll => 'Payroll',
+  };
 }
 
 class LicenseSettingsModel {
@@ -108,7 +112,8 @@ class LicenseSettingsModel {
   final String? expiresAtIso;
   final String? lastValidatedAtIso;
 
-  bool get isActiveLike => status == LicenseStatus.active || status == LicenseStatus.trial;
+  bool get isActiveLike =>
+      status == LicenseStatus.active || status == LicenseStatus.trial;
 
   bool get isExpiredByDate {
     final raw = expiresAtIso;
@@ -118,7 +123,8 @@ class LicenseSettingsModel {
     return DateTime.now().isAfter(expiresAt);
   }
 
-  bool get canUseApp => isActiveLike && !isExpiredByDate && status != LicenseStatus.blocked;
+  bool get canUseApp =>
+      isActiveLike && !isExpiredByDate && status != LicenseStatus.blocked;
 
   bool allows(LicenseFeature feature) {
     if (!canUseApp) return false;
@@ -135,71 +141,73 @@ class LicenseSettingsModel {
 
   String denialReason(LicenseFeature feature) {
     if (status == LicenseStatus.blocked) return 'This license is blocked.';
-    if (status == LicenseStatus.inactive) return 'No active license is installed.';
-    if (status == LicenseStatus.expired || isExpiredByDate) return 'This license has expired.';
+    if (status == LicenseStatus.inactive)
+      return 'No active license is installed.';
+    if (status == LicenseStatus.expired || isExpiredByDate)
+      return 'This license has expired.';
     return '${feature.label} is not included in the ${edition.label} edition.';
   }
 
   factory LicenseSettingsModel.defaults() => const LicenseSettingsModel(
-        edition: LicenseEdition.trial,
-        status: LicenseStatus.trial,
-        maxUsers: 1,
-        maxDevices: 1,
-        offlineGraceDays: 7,
-        allowLocalMode: true,
-        allowLanMode: false,
-        allowHostedMode: false,
-        allowBackupRestore: false,
-        allowDemoCompany: true,
-        allowAdvancedInventory: false,
-        allowPayroll: false,
-      );
+    edition: LicenseEdition.trial,
+    status: LicenseStatus.trial,
+    maxUsers: 1,
+    maxDevices: 1,
+    offlineGraceDays: 7,
+    allowLocalMode: true,
+    allowLanMode: false,
+    allowHostedMode: false,
+    allowBackupRestore: false,
+    allowDemoCompany: true,
+    allowAdvancedInventory: false,
+    allowPayroll: false,
+  );
 
   factory LicenseSettingsModel.forEdition(LicenseEdition edition) {
     return switch (edition) {
       LicenseEdition.trial => LicenseSettingsModel.defaults(),
       LicenseEdition.solo => const LicenseSettingsModel(
-          edition: LicenseEdition.solo,
-          status: LicenseStatus.active,
-          maxUsers: 1,
-          maxDevices: 1,
-          offlineGraceDays: 30,
-          allowLocalMode: true,
-          allowLanMode: false,
-          allowHostedMode: false,
-          allowBackupRestore: true,
-          allowDemoCompany: true,
-          allowAdvancedInventory: false,
-          allowPayroll: false,
-        ),
+        edition: LicenseEdition.solo,
+        status: LicenseStatus.active,
+        maxUsers: 1,
+        maxDevices: 1,
+        offlineGraceDays: 30,
+        allowLocalMode: true,
+        allowLanMode: false,
+        allowHostedMode: false,
+        allowBackupRestore: true,
+        allowDemoCompany: true,
+        allowAdvancedInventory: false,
+        allowPayroll: false,
+      ),
       LicenseEdition.network => const LicenseSettingsModel(
-          edition: LicenseEdition.network,
-          status: LicenseStatus.active,
-          maxUsers: 5,
-          maxDevices: 3,
-          offlineGraceDays: 14,
-          allowLocalMode: true,
-          allowLanMode: true,
-          allowHostedMode: false,
-          allowBackupRestore: true,
-          allowDemoCompany: true,
-          allowAdvancedInventory: true,
-          allowPayroll: false,
-        ),
+        edition: LicenseEdition.network,
+        status: LicenseStatus.active,
+        maxUsers: 5,
+        maxDevices: 3,
+        offlineGraceDays: 14,
+        allowLocalMode: true,
+        allowLanMode: true,
+        allowHostedMode: false,
+        allowBackupRestore: true,
+        allowDemoCompany: true,
+        allowAdvancedInventory: true,
+        allowPayroll: false,
+      ),
       LicenseEdition.hosted => const LicenseSettingsModel(
-          edition: LicenseEdition.hosted,
-          status: LicenseStatus.active,
-          maxUsers: 10,
-          maxDevices: 10,
-          offlineGraceDays: 3,
-          allowLocalMode: false,
-          allowLanMode: false,
-          allowHostedMode: true,
-          allowBackupRestore: true,
-          allowDemoCompany: true,
-          allowAdvancedInventory: true,
-          allowPayroll: true,
-        ),
+        edition: LicenseEdition.hosted,
+        status: LicenseStatus.active,
+        maxUsers: 10,
+        maxDevices: 10,
+        offlineGraceDays: 3,
+        allowLocalMode: false,
+        allowLanMode: false,
+        allowHostedMode: true,
+        allowBackupRestore: true,
+        allowDemoCompany: true,
+        allowAdvancedInventory: true,
+        allowPayroll: true,
+      ),
     };
   }
 
@@ -233,7 +241,8 @@ class LicenseSettingsModel {
       allowHostedMode: allowHostedMode ?? this.allowHostedMode,
       allowBackupRestore: allowBackupRestore ?? this.allowBackupRestore,
       allowDemoCompany: allowDemoCompany ?? this.allowDemoCompany,
-      allowAdvancedInventory: allowAdvancedInventory ?? this.allowAdvancedInventory,
+      allowAdvancedInventory:
+          allowAdvancedInventory ?? this.allowAdvancedInventory,
       allowPayroll: allowPayroll ?? this.allowPayroll,
       licenseKey: licenseKey ?? this.licenseKey,
       companyName: companyName ?? this.companyName,
@@ -244,30 +253,33 @@ class LicenseSettingsModel {
   }
 
   Map<String, String> toStorage() => {
-        'edition': edition.name,
-        'status': status.name,
-        'maxUsers': maxUsers.toString(),
-        'maxDevices': maxDevices.toString(),
-        'offlineGraceDays': offlineGraceDays.toString(),
-        'allowLocalMode': allowLocalMode.toString(),
-        'allowLanMode': allowLanMode.toString(),
-        'allowHostedMode': allowHostedMode.toString(),
-        'allowBackupRestore': allowBackupRestore.toString(),
-        'allowDemoCompany': allowDemoCompany.toString(),
-        'allowAdvancedInventory': allowAdvancedInventory.toString(),
-        'allowPayroll': allowPayroll.toString(),
-        'licenseKey': licenseKey ?? '',
-        'companyName': companyName ?? '',
-        'activatedDeviceId': activatedDeviceId ?? '',
-        'expiresAtIso': expiresAtIso ?? '',
-        'lastValidatedAtIso': lastValidatedAtIso ?? '',
-      };
+    'edition': edition.name,
+    'status': status.name,
+    'maxUsers': maxUsers.toString(),
+    'maxDevices': maxDevices.toString(),
+    'offlineGraceDays': offlineGraceDays.toString(),
+    'allowLocalMode': allowLocalMode.toString(),
+    'allowLanMode': allowLanMode.toString(),
+    'allowHostedMode': allowHostedMode.toString(),
+    'allowBackupRestore': allowBackupRestore.toString(),
+    'allowDemoCompany': allowDemoCompany.toString(),
+    'allowAdvancedInventory': allowAdvancedInventory.toString(),
+    'allowPayroll': allowPayroll.toString(),
+    'licenseKey': licenseKey ?? '',
+    'companyName': companyName ?? '',
+    'activatedDeviceId': activatedDeviceId ?? '',
+    'expiresAtIso': expiresAtIso ?? '',
+    'lastValidatedAtIso': lastValidatedAtIso ?? '',
+  };
 
   factory LicenseSettingsModel.fromStorage(Map<String, String?> values) {
     final defaults = LicenseSettingsModel.defaults();
-    bool boolValue(String key, bool fallback) => values[key] == null ? fallback : values[key] == 'true';
-    int intValue(String key, int fallback) => int.tryParse(values[key] ?? '') ?? fallback;
-    String? stringValue(String key) => values[key]?.isNotEmpty == true ? values[key] : null;
+    bool boolValue(String key, bool fallback) =>
+        values[key] == null ? fallback : values[key] == 'true';
+    int intValue(String key, int fallback) =>
+        int.tryParse(values[key] ?? '') ?? fallback;
+    String? stringValue(String key) =>
+        values[key]?.isNotEmpty == true ? values[key] : null;
 
     return LicenseSettingsModel(
       edition: LicenseEdition.fromName(values['edition']),
@@ -278,9 +290,18 @@ class LicenseSettingsModel {
       allowLocalMode: boolValue('allowLocalMode', defaults.allowLocalMode),
       allowLanMode: boolValue('allowLanMode', defaults.allowLanMode),
       allowHostedMode: boolValue('allowHostedMode', defaults.allowHostedMode),
-      allowBackupRestore: boolValue('allowBackupRestore', defaults.allowBackupRestore),
-      allowDemoCompany: boolValue('allowDemoCompany', defaults.allowDemoCompany),
-      allowAdvancedInventory: boolValue('allowAdvancedInventory', defaults.allowAdvancedInventory),
+      allowBackupRestore: boolValue(
+        'allowBackupRestore',
+        defaults.allowBackupRestore,
+      ),
+      allowDemoCompany: boolValue(
+        'allowDemoCompany',
+        defaults.allowDemoCompany,
+      ),
+      allowAdvancedInventory: boolValue(
+        'allowAdvancedInventory',
+        defaults.allowAdvancedInventory,
+      ),
       allowPayroll: boolValue('allowPayroll', defaults.allowPayroll),
       licenseKey: stringValue('licenseKey'),
       companyName: stringValue('companyName'),

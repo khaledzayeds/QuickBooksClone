@@ -74,12 +74,26 @@ class LicenseBlockedScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: cs.errorContainer,
-                    child: Icon(Icons.lock_outline, color: cs.onErrorContainer, size: 30),
+                    child: Icon(
+                      Icons.lock_outline,
+                      color: cs.onErrorContainer,
+                      size: 30,
+                    ),
                   ),
                   const SizedBox(height: 18),
-                  Text(title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    title,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(description, style: theme.textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                  Text(
+                    description,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   _InfoRow(label: 'Current Edition', value: editionLabel),
                   _InfoRow(label: 'License Status', value: statusLabel),
@@ -122,8 +136,21 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          SizedBox(width: 150, child: Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w700))),
+          SizedBox(
+            width: 150,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );

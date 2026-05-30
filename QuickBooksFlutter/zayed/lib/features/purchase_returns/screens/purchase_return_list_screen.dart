@@ -33,7 +33,7 @@ class _PurchaseReturnListScreenState
   Widget build(BuildContext context) {
     final returnsAsync = ref.watch(purchaseReturnsProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -65,7 +65,8 @@ class _PurchaseReturnListScreenState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(purchaseReturnsProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(purchaseReturnsProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -133,7 +134,11 @@ class _PurchaseReturnListScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -220,13 +225,11 @@ class _PurchaseReturnListScreenState
                               itemBuilder: (context, index) {
                                 final purchaseReturn = filtered[index];
                                 final shaded = index.isEven;
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
-                                    AppRoutes.purchaseReturnDetails.replaceFirst(
-                                      ':id',
-                                      purchaseReturn.id,
-                                    ),
+                                    AppRoutes.purchaseReturnDetails
+                                        .replaceFirst(':id', purchaseReturn.id),
                                   ),
                                   child: Container(
                                     height: 34,
@@ -257,7 +260,9 @@ class _PurchaseReturnListScreenState
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(status: purchaseReturn.status),
+                                            child: _StatusBadge(
+                                              status: purchaseReturn.status,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -422,10 +427,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 
@@ -452,7 +454,7 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     final Color bg;
     final Color fg;
-    
+
     switch (status) {
       case 1:
         label = 'Draft';

@@ -44,14 +44,18 @@ class PurchaseBillsRemoteDatasource {
 
   Future<ApiResult<PurchaseBillModel>> getBill(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/purchase-bills/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/purchase-bills/$id',
+      );
       return Success(PurchaseBillModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
   }
 
-  Future<ApiResult<BillingPlanModel>> getBillingPlan(String inventoryReceiptId) async {
+  Future<ApiResult<BillingPlanModel>> getBillingPlan(
+    String inventoryReceiptId,
+  ) async {
     try {
       final response = await _client.get<Map<String, dynamic>>(
         '/api/receive-inventory/$inventoryReceiptId/billing-plan',
@@ -62,7 +66,9 @@ class PurchaseBillsRemoteDatasource {
     }
   }
 
-  Future<ApiResult<PurchaseBillModel>> createBill(CreatePurchaseBillDto dto) async {
+  Future<ApiResult<PurchaseBillModel>> createBill(
+    CreatePurchaseBillDto dto,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/purchase-bills',
@@ -76,7 +82,9 @@ class PurchaseBillsRemoteDatasource {
 
   Future<ApiResult<PurchaseBillModel>> voidBill(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/purchase-bills/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/purchase-bills/$id/void',
+      );
       return Success(PurchaseBillModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));

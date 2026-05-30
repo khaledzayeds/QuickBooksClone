@@ -41,28 +41,37 @@ class PaymentModel {
   final DateTime? voidedAt;
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) => PaymentModel(
-        id: JsonUtils.asString(json['id']),
-        paymentNumber: JsonUtils.asString(json['paymentNumber']),
-        customerId: JsonUtils.asString(json['customerId']),
-        customerName: JsonUtils.asNullableString(json['customerName']),
-        invoiceId: JsonUtils.asString(json['invoiceId']),
-        invoiceNumber: JsonUtils.asNullableString(json['invoiceNumber']),
-        depositAccountId: JsonUtils.asString(json['depositAccountId']),
-        depositAccountName: JsonUtils.asNullableString(json['depositAccountName']),
-        paymentDate: _parseDate(json['paymentDate']),
-        amount: JsonUtils.asDouble(json['amount']),
-        paymentMethod: JsonUtils.asString(json['paymentMethod'], defaultValue: 'Cash'),
-        status: JsonUtils.asInt(json['status']),
-        postedTransactionId: JsonUtils.asNullableString(json['postedTransactionId']),
-        postedAt: _parseNullableDate(json['postedAt']),
-        reversalTransactionId: JsonUtils.asNullableString(json['reversalTransactionId']),
-        voidedAt: _parseNullableDate(json['voidedAt']),
-      );
+    id: JsonUtils.asString(json['id']),
+    paymentNumber: JsonUtils.asString(json['paymentNumber']),
+    customerId: JsonUtils.asString(json['customerId']),
+    customerName: JsonUtils.asNullableString(json['customerName']),
+    invoiceId: JsonUtils.asString(json['invoiceId']),
+    invoiceNumber: JsonUtils.asNullableString(json['invoiceNumber']),
+    depositAccountId: JsonUtils.asString(json['depositAccountId']),
+    depositAccountName: JsonUtils.asNullableString(json['depositAccountName']),
+    paymentDate: _parseDate(json['paymentDate']),
+    amount: JsonUtils.asDouble(json['amount']),
+    paymentMethod: JsonUtils.asString(
+      json['paymentMethod'],
+      defaultValue: 'Cash',
+    ),
+    status: JsonUtils.asInt(json['status']),
+    postedTransactionId: JsonUtils.asNullableString(
+      json['postedTransactionId'],
+    ),
+    postedAt: _parseNullableDate(json['postedAt']),
+    reversalTransactionId: JsonUtils.asNullableString(
+      json['reversalTransactionId'],
+    ),
+    voidedAt: _parseNullableDate(json['voidedAt']),
+  );
 
   bool get isVoid => voidedAt != null;
 
-  static DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-  static DateTime? _parseNullableDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
+  static DateTime _parseDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+  static DateTime? _parseNullableDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '');
 }
 
 class CreatePaymentDto {
@@ -81,12 +90,12 @@ class CreatePaymentDto {
   final PaymentMethod paymentMethod;
 
   Map<String, dynamic> toJson() => {
-        'invoiceId': invoiceId,
-        'depositAccountId': depositAccountId,
-        'paymentDate': _dateOnly(paymentDate),
-        'amount': amount,
-        'paymentMethod': paymentMethod.toApiString(),
-      };
+    'invoiceId': invoiceId,
+    'depositAccountId': depositAccountId,
+    'paymentDate': _dateOnly(paymentDate),
+    'amount': amount,
+    'paymentMethod': paymentMethod.toApiString(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -101,10 +110,7 @@ class ReceivePaymentAllocationDto {
   final String invoiceId;
   final double amount;
 
-  Map<String, dynamic> toJson() => {
-        'invoiceId': invoiceId,
-        'amount': amount,
-      };
+  Map<String, dynamic> toJson() => {'invoiceId': invoiceId, 'amount': amount};
 }
 
 class ReceivePaymentDto {
@@ -123,12 +129,14 @@ class ReceivePaymentDto {
   final List<ReceivePaymentAllocationDto> allocations;
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'depositAccountId': depositAccountId,
-        'paymentDate': _dateOnly(paymentDate),
-        'paymentMethod': paymentMethod.toApiString(),
-        'allocations': allocations.map((allocation) => allocation.toJson()).toList(),
-      };
+    'customerId': customerId,
+    'depositAccountId': depositAccountId,
+    'paymentDate': _dateOnly(paymentDate),
+    'paymentMethod': paymentMethod.toApiString(),
+    'allocations': allocations
+        .map((allocation) => allocation.toJson())
+        .toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

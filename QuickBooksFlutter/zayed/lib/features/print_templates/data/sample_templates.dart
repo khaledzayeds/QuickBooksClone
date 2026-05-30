@@ -65,7 +65,10 @@ class SamplePrintTemplates {
           y: 35,
           width: 74,
           height: 1,
-          style: PrintElementStyleModel(borderWidth: 0.5, borderColor: '#888888'),
+          style: PrintElementStyleModel(
+            borderWidth: 0.5,
+            borderColor: '#888888',
+          ),
         ),
         // ─── Items Table: x=3, w=74 → ends at 77mm ✓ ───
         // Column widths sum: 15+14+12+33 = 74mm ✓
@@ -114,7 +117,10 @@ class SamplePrintTemplates {
           y: 124,
           width: 74,
           height: 1,
-          style: PrintElementStyleModel(borderWidth: 0.5, borderColor: '#888888'),
+          style: PrintElementStyleModel(
+            borderWidth: 0.5,
+            borderColor: '#888888',
+          ),
         ),
         // ─── Subtotal row ───
         PrintElementModel(
@@ -169,7 +175,10 @@ class SamplePrintTemplates {
           y: 164,
           width: 74,
           height: 1,
-          style: PrintElementStyleModel(borderWidth: 0.5, borderColor: '#888888'),
+          style: PrintElementStyleModel(
+            borderWidth: 0.5,
+            borderColor: '#888888',
+          ),
         ),
         // ─── Payment Method ───
         PrintElementModel(
@@ -194,7 +203,10 @@ class SamplePrintTemplates {
           y: 178,
           width: 74,
           height: 1,
-          style: PrintElementStyleModel(borderWidth: 0.5, borderColor: '#888888'),
+          style: PrintElementStyleModel(
+            borderWidth: 0.5,
+            borderColor: '#888888',
+          ),
         ),
         // ─── Footer phone + address ───
         PrintElementModel(
@@ -220,7 +232,6 @@ class SamplePrintTemplates {
       ],
     );
   }
-
 
   /// Professional A4 invoice template with Arabic RTL layout:
   /// Logo + company name top-left | Invoice title + number top-right
@@ -324,7 +335,11 @@ class SamplePrintTemplates {
           width: 58,
           height: 7,
           binding: '{{Invoice.DueDate}}',
-          style: PrintElementStyleModel(fontSize: 9, align: 'right', color: '#DC2626'),
+          style: PrintElementStyleModel(
+            fontSize: 9,
+            align: 'right',
+            color: '#DC2626',
+          ),
         ),
         // ─── Divider ───
         PrintElementModel(
@@ -345,7 +360,11 @@ class SamplePrintTemplates {
           width: 40,
           height: 7,
           value: 'العميل:',
-          style: PrintElementStyleModel(fontSize: 9, bold: true, color: '#6B7280'),
+          style: PrintElementStyleModel(
+            fontSize: 9,
+            bold: true,
+            color: '#6B7280',
+          ),
         ),
         PrintElementModel(
           id: 'customer_name',
@@ -393,10 +412,26 @@ class SamplePrintTemplates {
           height: 130,
           binding: '{{Invoice.Lines}}',
           columns: [
-            PrintTableColumnModel(title: 'اسم الصنف', field: 'itemName', width: 80),
-            PrintTableColumnModel(title: 'الكمية', field: 'quantity', width: 25),
-            PrintTableColumnModel(title: 'السعر', field: 'unitPrice', width: 40),
-            PrintTableColumnModel(title: 'الإجمالي', field: 'lineTotal', width: 45),
+            PrintTableColumnModel(
+              title: 'اسم الصنف',
+              field: 'itemName',
+              width: 80,
+            ),
+            PrintTableColumnModel(
+              title: 'الكمية',
+              field: 'quantity',
+              width: 25,
+            ),
+            PrintTableColumnModel(
+              title: 'السعر',
+              field: 'unitPrice',
+              width: 40,
+            ),
+            PrintTableColumnModel(
+              title: 'الإجمالي',
+              field: 'lineTotal',
+              width: 45,
+            ),
           ],
           style: PrintElementStyleModel(
             fontSize: 9,
@@ -425,7 +460,11 @@ class SamplePrintTemplates {
           width: 68,
           height: 7,
           value: 'قيمة الفاتورة:',
-          style: PrintElementStyleModel(fontSize: 8.5, align: 'right', color: '#6B7280'),
+          style: PrintElementStyleModel(
+            fontSize: 8.5,
+            align: 'right',
+            color: '#6B7280',
+          ),
         ),
         PrintElementModel(
           id: 'subtotal_value',
@@ -435,7 +474,11 @@ class SamplePrintTemplates {
           width: 68,
           height: 7,
           binding: '{{Invoice.Subtotal}}',
-          style: PrintElementStyleModel(fontSize: 9, bold: true, align: 'right'),
+          style: PrintElementStyleModel(
+            fontSize: 9,
+            bold: true,
+            align: 'right',
+          ),
         ),
         PrintElementModel(
           id: 'tax_label',
@@ -445,7 +488,11 @@ class SamplePrintTemplates {
           width: 68,
           height: 7,
           value: 'الضريبة:',
-          style: PrintElementStyleModel(fontSize: 8.5, align: 'right', color: '#6B7280'),
+          style: PrintElementStyleModel(
+            fontSize: 8.5,
+            align: 'right',
+            color: '#6B7280',
+          ),
         ),
         PrintElementModel(
           id: 'tax_value',
@@ -455,7 +502,11 @@ class SamplePrintTemplates {
           width: 68,
           height: 7,
           binding: '{{Invoice.Tax}}',
-          style: PrintElementStyleModel(fontSize: 9, bold: true, align: 'right'),
+          style: PrintElementStyleModel(
+            fontSize: 9,
+            bold: true,
+            align: 'right',
+          ),
         ),
         PrintElementModel(
           id: 'total_label',
@@ -465,7 +516,11 @@ class SamplePrintTemplates {
           width: 68,
           height: 7,
           value: 'الإجمالي:',
-          style: PrintElementStyleModel(fontSize: 10, bold: true, align: 'right'),
+          style: PrintElementStyleModel(
+            fontSize: 10,
+            bold: true,
+            align: 'right',
+          ),
         ),
         PrintElementModel(
           id: 'grand_total',
@@ -861,8 +916,14 @@ class SamplePrintTemplates {
 
       if (e.id == 'meta' && val.isNotEmpty) {
         val = val
-            .replaceAll('رقم الفاتورة', 'رقم ${_arabicDocumentLabel(documentType)}')
-            .replaceAll('Invoice Number', '${_englishDocumentLabel(documentType)} Number');
+            .replaceAll(
+              'رقم الفاتورة',
+              'رقم ${_arabicDocumentLabel(documentType)}',
+            )
+            .replaceAll(
+              'Invoice Number',
+              '${_englishDocumentLabel(documentType)} Number',
+            );
       }
 
       final prefix = _bindingPrefixFor(documentType);
@@ -960,5 +1021,6 @@ class SamplePrintTemplates {
         .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
         .join(' ');
   }
+
   // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
 }

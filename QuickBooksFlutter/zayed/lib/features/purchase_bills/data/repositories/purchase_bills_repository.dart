@@ -17,23 +17,25 @@ class PurchaseBillsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getBills(
-        search: search,
-        vendorId: vendorId,
-        inventoryReceiptId: inventoryReceiptId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getBills(
+    search: search,
+    vendorId: vendorId,
+    inventoryReceiptId: inventoryReceiptId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<PurchaseBillModel>> getBill(String id) => _datasource.getBill(id);
+  Future<ApiResult<PurchaseBillModel>> getBill(String id) =>
+      _datasource.getBill(id);
 
-  Future<ApiResult<BillingPlanModel>> getBillingPlan(String inventoryReceiptId) =>
-      _datasource.getBillingPlan(inventoryReceiptId);
+  Future<ApiResult<BillingPlanModel>> getBillingPlan(
+    String inventoryReceiptId,
+  ) => _datasource.getBillingPlan(inventoryReceiptId);
 
   Future<ApiResult<PurchaseBillModel>> createBill(CreatePurchaseBillDto dto) =>
       _datasource.createBill(dto);
 
-  Future<ApiResult<PurchaseBillModel>> voidBill(String id) => _datasource.voidBill(id);
+  Future<ApiResult<PurchaseBillModel>> voidBill(String id) =>
+      _datasource.voidBill(id);
 }

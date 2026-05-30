@@ -50,31 +50,35 @@ class InvoiceModel {
   final List<InvoiceLineModel> lines;
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) => InvoiceModel(
-        id: JsonUtils.asString(json['id']),
-        invoiceNumber: JsonUtils.asString(json['invoiceNumber']),
-        customerId: JsonUtils.asString(json['customerId']),
-        customerName: JsonUtils.asString(json['customerName']),
-        salesOrderId: JsonUtils.asNullableString(json['salesOrderId']),
-        invoiceDate: _parseDate(json['invoiceDate']),
-        dueDate: _parseDate(json['dueDate']),
-        status: JsonUtils.asInt(json['status']),
-        subtotal: JsonUtils.asDouble(json['subtotal']),
-        discountAmount: JsonUtils.asDouble(json['discountAmount']),
-        taxAmount: JsonUtils.asDouble(json['taxAmount']),
-        totalAmount: JsonUtils.asDouble(json['totalAmount']),
-        paidAmount: JsonUtils.asDouble(json['paidAmount']),
-        creditAppliedAmount: JsonUtils.asDouble(json['creditAppliedAmount']),
-        returnedAmount: JsonUtils.asDouble(json['returnedAmount']),
-        balanceDue: JsonUtils.asDouble(json['balanceDue']),
-        postedTransactionId: JsonUtils.asNullableString(json['postedTransactionId']),
-        postedAt: _parseNullableDate(json['postedAt']),
-        reversalTransactionId: JsonUtils.asNullableString(json['reversalTransactionId']),
-        voidedAt: _parseNullableDate(json['voidedAt']),
-        lines: JsonUtils.asList(
-          json['lines'],
-          (line) => InvoiceLineModel.fromJson(line),
-        ),
-      );
+    id: JsonUtils.asString(json['id']),
+    invoiceNumber: JsonUtils.asString(json['invoiceNumber']),
+    customerId: JsonUtils.asString(json['customerId']),
+    customerName: JsonUtils.asString(json['customerName']),
+    salesOrderId: JsonUtils.asNullableString(json['salesOrderId']),
+    invoiceDate: _parseDate(json['invoiceDate']),
+    dueDate: _parseDate(json['dueDate']),
+    status: JsonUtils.asInt(json['status']),
+    subtotal: JsonUtils.asDouble(json['subtotal']),
+    discountAmount: JsonUtils.asDouble(json['discountAmount']),
+    taxAmount: JsonUtils.asDouble(json['taxAmount']),
+    totalAmount: JsonUtils.asDouble(json['totalAmount']),
+    paidAmount: JsonUtils.asDouble(json['paidAmount']),
+    creditAppliedAmount: JsonUtils.asDouble(json['creditAppliedAmount']),
+    returnedAmount: JsonUtils.asDouble(json['returnedAmount']),
+    balanceDue: JsonUtils.asDouble(json['balanceDue']),
+    postedTransactionId: JsonUtils.asNullableString(
+      json['postedTransactionId'],
+    ),
+    postedAt: _parseNullableDate(json['postedAt']),
+    reversalTransactionId: JsonUtils.asNullableString(
+      json['reversalTransactionId'],
+    ),
+    voidedAt: _parseNullableDate(json['voidedAt']),
+    lines: JsonUtils.asList(
+      json['lines'],
+      (line) => InvoiceLineModel.fromJson(line),
+    ),
+  );
 
   bool get isDraft => status == 1;
   bool get isPosted => status == 2;
@@ -116,7 +120,8 @@ class InvoiceLineModel {
   final String? taxCodeId;
   final double? taxRatePercent;
 
-  factory InvoiceLineModel.fromJson(Map<String, dynamic> json) => InvoiceLineModel(
+  factory InvoiceLineModel.fromJson(Map<String, dynamic> json) =>
+      InvoiceLineModel(
         id: JsonUtils.asString(json['id']),
         itemId: JsonUtils.asString(json['itemId']),
         salesOrderLineId: JsonUtils.asNullableString(json['salesOrderLineId']),
@@ -149,12 +154,12 @@ class CreateInvoiceDto {
   final List<CreateInvoiceLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'invoiceDate': _dateOnly(invoiceDate),
-        'dueDate': _dateOnly(dueDate),
-        'saveMode': saveMode,
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'customerId': customerId,
+    'invoiceDate': _dateOnly(invoiceDate),
+    'dueDate': _dateOnly(dueDate),
+    'saveMode': saveMode,
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -174,11 +179,11 @@ class UpdateInvoiceDto {
   final List<CreateInvoiceLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'invoiceDate': CreateInvoiceDto._dateOnly(invoiceDate),
-        'dueDate': CreateInvoiceDto._dateOnly(dueDate),
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'customerId': customerId,
+    'invoiceDate': CreateInvoiceDto._dateOnly(invoiceDate),
+    'dueDate': CreateInvoiceDto._dateOnly(dueDate),
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 }
 
 class CreateInvoiceLineDto {
@@ -199,12 +204,12 @@ class CreateInvoiceLineDto {
   final String? taxCodeId;
 
   Map<String, dynamic> toJson() => {
-        'itemId': itemId,
-        if (description != null && description!.trim().isNotEmpty)
-          'description': description,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        'discountPercent': discountPercent,
-        if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
-      };
+    'itemId': itemId,
+    if (description != null && description!.trim().isNotEmpty)
+      'description': description,
+    'quantity': quantity,
+    'unitPrice': unitPrice,
+    'discountPercent': discountPercent,
+    if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
+  };
 }

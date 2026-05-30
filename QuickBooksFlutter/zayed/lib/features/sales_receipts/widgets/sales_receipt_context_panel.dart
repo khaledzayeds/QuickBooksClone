@@ -20,7 +20,8 @@ Widget buildSalesReceiptContextPanel({
     subtitle: customer?.companyName ?? customer?.primaryContact,
     initials: customer?.initials,
     emptyTitle: 'Select a customer',
-    emptyMessage: 'Choose a customer to see balances, credits, and recent activity.',
+    emptyMessage:
+        'Choose a customer to see balances, credits, and recent activity.',
     metrics: metrics,
     activities: activities,
     warning: warning,

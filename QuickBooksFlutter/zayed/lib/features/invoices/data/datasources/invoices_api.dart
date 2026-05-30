@@ -23,7 +23,8 @@ class InvoicesApi {
         '/api/invoices',
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
@@ -40,14 +41,18 @@ class InvoicesApi {
 
   Future<ApiResult<InvoiceModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/invoices/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/invoices/$id',
+      );
       return Success(InvoiceModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
     }
   }
 
-  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewInvoiceDto dto) async {
+  Future<ApiResult<SalesPostingPreviewModel>> preview(
+    PreviewInvoiceDto dto,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/invoices/preview',
@@ -59,7 +64,10 @@ class InvoicesApi {
     }
   }
 
-  Future<ApiResult<CustomerSalesActivityModel>> getCustomerActivity(String customerId, {int limit = 5}) async {
+  Future<ApiResult<CustomerSalesActivityModel>> getCustomerActivity(
+    String customerId, {
+    int limit = 5,
+  }) async {
     try {
       final response = await _client.get<Map<String, dynamic>>(
         '/api/invoices/customers/$customerId/activity',
@@ -83,7 +91,10 @@ class InvoicesApi {
     }
   }
 
-  Future<ApiResult<InvoiceModel>> update(String id, UpdateInvoiceDto dto) async {
+  Future<ApiResult<InvoiceModel>> update(
+    String id,
+    UpdateInvoiceDto dto,
+  ) async {
     try {
       final response = await _client.put<Map<String, dynamic>>(
         '/api/invoices/$id',
@@ -97,7 +108,9 @@ class InvoicesApi {
 
   Future<ApiResult<InvoiceModel>> postInvoice(String id) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>('/api/invoices/$id/post');
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/invoices/$id/post',
+      );
       return Success(InvoiceModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
@@ -115,7 +128,9 @@ class InvoicesApi {
 
   Future<ApiResult<InvoiceModel>> voidInvoice(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/invoices/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/invoices/$id/void',
+      );
       return Success(InvoiceModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));

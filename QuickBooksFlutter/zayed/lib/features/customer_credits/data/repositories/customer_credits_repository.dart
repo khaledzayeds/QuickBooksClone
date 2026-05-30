@@ -16,19 +16,21 @@ class CustomerCreditsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        customerId: customerId,
-        action: action,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    customerId: customerId,
+    action: action,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<CustomerCreditModel>> getById(String id) => _datasource.getById(id);
+  Future<ApiResult<CustomerCreditModel>> getById(String id) =>
+      _datasource.getById(id);
 
-  Future<ApiResult<CustomerCreditModel>> create(CreateCustomerCreditDto dto) => _datasource.create(dto);
+  Future<ApiResult<CustomerCreditModel>> create(CreateCustomerCreditDto dto) =>
+      _datasource.create(dto);
 
-  Future<ApiResult<CustomerCreditModel>> post(String id) => _datasource.post(id);
+  Future<ApiResult<CustomerCreditModel>> post(String id) =>
+      _datasource.post(id);
 }

@@ -52,10 +52,14 @@ class OfflineActivationService {
     }
 
     final encoded = trimmed.substring(requestPrefix.length + 1);
-    final jsonText = utf8.decode(base64Url.decode(base64Url.normalize(encoded)));
+    final jsonText = utf8.decode(
+      base64Url.decode(base64Url.normalize(encoded)),
+    );
     final decoded = jsonDecode(jsonText);
     if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Invalid offline activation request payload.');
+      throw const FormatException(
+        'Invalid offline activation request payload.',
+      );
     }
 
     return decoded;

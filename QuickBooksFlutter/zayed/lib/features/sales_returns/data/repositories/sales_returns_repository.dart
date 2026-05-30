@@ -16,21 +16,23 @@ class SalesReturnsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        invoiceId: invoiceId,
-        customerId: customerId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    invoiceId: invoiceId,
+    customerId: customerId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<SalesReturnModel>> getById(String id) => _datasource.getById(id);
+  Future<ApiResult<SalesReturnModel>> getById(String id) =>
+      _datasource.getById(id);
 
-  Future<ApiResult<SalesReturnModel>> create(CreateSalesReturnDto dto) => _datasource.create(dto);
+  Future<ApiResult<SalesReturnModel>> create(CreateSalesReturnDto dto) =>
+      _datasource.create(dto);
 
   Future<ApiResult<SalesReturnModel>> post(String id) => _datasource.post(id);
 
-  Future<ApiResult<SalesReturnModel>> voidReturn(String id) => _datasource.voidReturn(id);
+  Future<ApiResult<SalesReturnModel>> voidReturn(String id) =>
+      _datasource.voidReturn(id);
 }

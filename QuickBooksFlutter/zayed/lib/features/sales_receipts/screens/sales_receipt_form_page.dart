@@ -157,7 +157,9 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
 
   Future<void> _runPreview() async {
     final validLines = _validLines();
-    if (_selectedCustomer == null || _depositAccountId == null || validLines.isEmpty) {
+    if (_selectedCustomer == null ||
+        _depositAccountId == null ||
+        validLines.isEmpty) {
       if (_previewing) {
         setState(() => _previewing = false);
       }
@@ -221,12 +223,14 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
   }
 
   String _previewSignature(List<TransactionLineEntry> validLines) {
-    final lineSignature = validLines.map((line) {
-      final description = line.descCtrl.text.trim().isEmpty
-          ? line.itemName
-          : line.descCtrl.text.trim();
-      return '${line.itemId}|$description|${line.qty}|${line.rate}';
-    }).join(';');
+    final lineSignature = validLines
+        .map((line) {
+          final description = line.descCtrl.text.trim().isEmpty
+              ? line.itemName
+              : line.descCtrl.text.trim();
+          return '${line.itemId}|$description|${line.qty}|${line.rate}';
+        })
+        .join(';');
 
     return '${_selectedCustomer?.id}|$_depositAccountId|${_formatDate(_receiptDate)}|$_paymentMethod|$lineSignature';
   }

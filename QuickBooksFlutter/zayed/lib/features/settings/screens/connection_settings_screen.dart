@@ -31,12 +31,16 @@ class ConnectionSettingsScreen extends ConsumerWidget {
         children: [
           Text(
             '${AppConstants.appDisplayName} Runtime',
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'This offline edition always uses the internal local API. LAN, hosted, and custom endpoints are intentionally hidden in this build.',
-            style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 24),
           if (state.loading)
@@ -67,7 +71,10 @@ class ConnectionSettingsScreen extends ConsumerWidget {
                       children: [
                         CircleAvatar(
                           backgroundColor: cs.primaryContainer,
-                          child: Icon(Icons.computer_outlined, color: cs.onPrimaryContainer),
+                          child: Icon(
+                            Icons.computer_outlined,
+                            color: cs.onPrimaryContainer,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -76,12 +83,16 @@ class ConnectionSettingsScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 'Internal Local API',
-                                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Managed by Zayed. Users should not configure or start a server manually.',
-                                style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
@@ -90,9 +101,18 @@ class ConnectionSettingsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     _RuntimeRow(label: 'Mode', value: AppConstants.appEdition),
-                    _RuntimeRow(label: 'Endpoint', value: state.settings.baseUrl),
-                    _RuntimeRow(label: 'Company DB name', value: AppConstants.defaultCompanyDatabaseFileName),
-                    _RuntimeRow(label: 'Company file extension', value: AppConstants.companyFileExtension),
+                    _RuntimeRow(
+                      label: 'Endpoint',
+                      value: state.settings.baseUrl,
+                    ),
+                    _RuntimeRow(
+                      label: 'Company DB name',
+                      value: AppConstants.defaultCompanyDatabaseFileName,
+                    ),
+                    _RuntimeRow(
+                      label: 'Company file extension',
+                      value: AppConstants.companyFileExtension,
+                    ),
                   ],
                 ),
               ),
@@ -106,12 +126,16 @@ class ConnectionSettingsScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Runtime Check',
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Checks the internal local API by calling /api/settings/runtime.',
-                      style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
@@ -162,7 +186,9 @@ class _RuntimeRow extends StatelessWidget {
             width: 180,
             child: Text(
               label,
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           Expanded(child: SelectableText(value.isEmpty ? '-' : value)),
@@ -181,7 +207,9 @@ class _ResultBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final success = result.success == true;
-    final bg = success ? Colors.green.withValues(alpha: 0.12) : Colors.orange.withValues(alpha: 0.12);
+    final bg = success
+        ? Colors.green.withValues(alpha: 0.12)
+        : Colors.orange.withValues(alpha: 0.12);
     final fg = success ? Colors.green.shade800 : Colors.orange.shade900;
 
     return Container(
@@ -194,12 +222,18 @@ class _ResultBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(success ? Icons.check_circle_outline : Icons.warning_amber_outlined, color: fg),
+          Icon(
+            success ? Icons.check_circle_outline : Icons.warning_amber_outlined,
+            color: fg,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               result.message.toString(),
-              style: theme.textTheme.bodyMedium?.copyWith(color: fg, fontWeight: FontWeight.w700),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -231,7 +265,10 @@ class _ErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.red.shade800, fontWeight: FontWeight.w700),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.red.shade800,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

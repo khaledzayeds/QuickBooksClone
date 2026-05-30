@@ -78,7 +78,7 @@ class TransactionWorkspaceShell extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback? onEmail;
   final VoidCallback? onEditNotes;
-  
+
   final bool showPagination;
   final bool showSaveDraft;
   final bool showSaveAndPrint;
@@ -452,7 +452,10 @@ class TransactionCommandBar extends StatelessWidget {
             label: 'New',
             onTap: busy ? null : onNew,
           ),
-          if (onSave != null || onSaveDraft != null || onSaveAndPrint != null || onSaveAndNew != null)
+          if (onSave != null ||
+              onSaveDraft != null ||
+              onSaveAndPrint != null ||
+              onSaveAndNew != null)
             _SaveToolAction(
               saving: saving,
               posting: posting,
@@ -609,10 +612,7 @@ class _SaveToolAction extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: _SaveMenuCommand.save,
-          child: Text('Save'),
-        ),
+        const PopupMenuItem(value: _SaveMenuCommand.save, child: Text('Save')),
         if (onSaveAndPrint != null)
           const PopupMenuItem(
             value: _SaveMenuCommand.saveAndPrint,

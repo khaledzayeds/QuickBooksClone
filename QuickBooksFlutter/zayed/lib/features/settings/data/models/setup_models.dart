@@ -13,7 +13,8 @@ class SetupStatusModel {
   final String? companyName;
   final String? adminUserName;
 
-  factory SetupStatusModel.fromJson(Map<String, dynamic> json) => SetupStatusModel(
+  factory SetupStatusModel.fromJson(Map<String, dynamic> json) =>
+      SetupStatusModel(
         hasCompanySettings: json['hasCompanySettings'] == true,
         hasAdminUser: json['hasAdminUser'] == true,
         isInitialized: json['isInitialized'] == true,
@@ -52,19 +53,19 @@ class InitializeCompanyPayload {
   final String initialAdminSecret;
 
   Map<String, dynamic> toJson() => {
-        'companyName': companyName,
-        'currency': currency,
-        'country': country,
-        'timeZoneId': timeZoneId,
-        'defaultLanguage': defaultLanguage,
-        'legalName': legalName,
-        'email': email,
-        'phone': phone,
-        'adminUserName': adminUserName,
-        'adminDisplayName': adminDisplayName,
-        'adminEmail': adminEmail,
-        'initialAdminSecret': initialAdminSecret,
-      };
+    'companyName': companyName,
+    'currency': currency,
+    'country': country,
+    'timeZoneId': timeZoneId,
+    'defaultLanguage': defaultLanguage,
+    'legalName': legalName,
+    'email': email,
+    'phone': phone,
+    'adminUserName': adminUserName,
+    'adminDisplayName': adminDisplayName,
+    'adminEmail': adminEmail,
+    'initialAdminSecret': initialAdminSecret,
+  };
 }
 
 class InitializeCompanyResultModel {
@@ -80,7 +81,8 @@ class InitializeCompanyResultModel {
   final String adminUserName;
   final String adminRoleKey;
 
-  factory InitializeCompanyResultModel.fromJson(Map<String, dynamic> json) => InitializeCompanyResultModel(
+  factory InitializeCompanyResultModel.fromJson(Map<String, dynamic> json) =>
+      InitializeCompanyResultModel(
         initialized: json['initialized'] == true,
         companyName: json['companyName']?.toString() ?? '',
         adminUserName: json['adminUserName']?.toString() ?? '',
@@ -101,10 +103,19 @@ class DefaultAccountsSeedResultModel {
   final List<String> createdCodes;
   final List<String> skippedCodes;
 
-  factory DefaultAccountsSeedResultModel.fromJson(Map<String, dynamic> json) => DefaultAccountsSeedResultModel(
-        createdCount: json['createdCount'] is num ? (json['createdCount'] as num).toInt() : int.tryParse(json['createdCount']?.toString() ?? '') ?? 0,
-        skippedCount: json['skippedCount'] is num ? (json['skippedCount'] as num).toInt() : int.tryParse(json['skippedCount']?.toString() ?? '') ?? 0,
-        createdCodes: (json['createdCodes'] as List? ?? const []).map((item) => item.toString()).toList(),
-        skippedCodes: (json['skippedCodes'] as List? ?? const []).map((item) => item.toString()).toList(),
+  factory DefaultAccountsSeedResultModel.fromJson(Map<String, dynamic> json) =>
+      DefaultAccountsSeedResultModel(
+        createdCount: json['createdCount'] is num
+            ? (json['createdCount'] as num).toInt()
+            : int.tryParse(json['createdCount']?.toString() ?? '') ?? 0,
+        skippedCount: json['skippedCount'] is num
+            ? (json['skippedCount'] as num).toInt()
+            : int.tryParse(json['skippedCount']?.toString() ?? '') ?? 0,
+        createdCodes: (json['createdCodes'] as List? ?? const [])
+            .map((item) => item.toString())
+            .toList(),
+        skippedCodes: (json['skippedCodes'] as List? ?? const [])
+            .map((item) => item.toString())
+            .toList(),
       );
 }

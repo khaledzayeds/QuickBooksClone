@@ -63,12 +63,16 @@ class _CashFlowHubBody extends StatelessWidget {
                   children: [
                     Text(
                       'Cash Flow Command Center',
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Live snapshot from Balance Sheet, Profit & Loss, AR Aging, and AP Aging reports.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -98,7 +102,9 @@ class _CashFlowHubBody extends StatelessWidget {
               );
 
               if (!wide) {
-                return Column(children: [forecast, const SizedBox(height: 16), alerts]);
+                return Column(
+                  children: [forecast, const SizedBox(height: 16), alerts],
+                );
               }
 
               return Row(
@@ -145,7 +151,9 @@ class _CashFlowHubBody extends StatelessWidget {
               );
 
               if (!wide) {
-                return Column(children: [incoming, const SizedBox(height: 16), outgoing]);
+                return Column(
+                  children: [incoming, const SizedBox(height: 16), outgoing],
+                );
               }
 
               return Row(
@@ -174,7 +182,11 @@ class _MetricGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1100 ? 4 : constraints.maxWidth >= 720 ? 2 : 1;
+        final columns = constraints.maxWidth >= 1100
+            ? 4
+            : constraints.maxWidth >= 720
+            ? 2
+            : 1;
         final cards = [
           _MetricCard(
             title: 'Cash Balance',
@@ -185,16 +197,20 @@ class _MetricGrid extends StatelessWidget {
           _MetricCard(
             title: 'Expected Incoming',
             value: _money(snapshot.expectedIncoming, snapshot.currency),
-            subtitle: 'Overdue ${_money(snapshot.overdueIncoming, snapshot.currency)}',
+            subtitle:
+                'Overdue ${_money(snapshot.overdueIncoming, snapshot.currency)}',
             icon: Icons.south_west_outlined,
             tone: _MetricTone.positive,
           ),
           _MetricCard(
             title: 'Expected Outgoing',
             value: _money(snapshot.expectedOutgoing, snapshot.currency),
-            subtitle: 'Overdue ${_money(snapshot.overdueOutgoing, snapshot.currency)}',
+            subtitle:
+                'Overdue ${_money(snapshot.overdueOutgoing, snapshot.currency)}',
             icon: Icons.north_east_outlined,
-            tone: snapshot.overdueOutgoing > 0 ? _MetricTone.warning : _MetricTone.neutral,
+            tone: snapshot.overdueOutgoing > 0
+                ? _MetricTone.warning
+                : _MetricTone.neutral,
           ),
           _MetricCard(
             title: 'Projected Cash',
@@ -219,7 +235,9 @@ class _MetricGrid extends StatelessWidget {
             title: 'Liabilities',
             value: _money(snapshot.totalLiabilities, snapshot.currency),
             icon: Icons.receipt_long_outlined,
-            tone: snapshot.totalLiabilities > 0 ? _MetricTone.warning : _MetricTone.neutral,
+            tone: snapshot.totalLiabilities > 0
+                ? _MetricTone.warning
+                : _MetricTone.neutral,
           ),
           _MetricCard(
             title: 'Equity',
@@ -278,12 +296,27 @@ class _MetricCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    title,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    value,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 3),
-                    Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                    Text(
+                      subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ],
                 ],
               ),
@@ -302,10 +335,15 @@ class _ForecastChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (snapshot.forecastPoints.every((point) => point.amount == 0)) {
-      return const _EmptyBox(message: 'No cash-flow activity yet. Create invoices, bills, payments, or bank transactions to populate the forecast.');
+      return const _EmptyBox(
+        message:
+            'No cash-flow activity yet. Create invoices, bills, payments, or bank transactions to populate the forecast.',
+      );
     }
 
-    final values = snapshot.forecastPoints.map((point) => point.amount).toList();
+    final values = snapshot.forecastPoints
+        .map((point) => point.amount)
+        .toList();
     final minValue = values.reduce(math.min);
     final maxValue = values.reduce(math.max);
     final padding = math.max((maxValue - minValue).abs() * 0.2, 100.0);
@@ -319,16 +357,18 @@ class _ForecastChart extends StatelessWidget {
           gridData: FlGridData(show: true, drawVerticalLine: false),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 58,
-                getTitlesWidget: (value, meta) => Text(
-                  _compact(value),
-                  style: const TextStyle(fontSize: 10),
-                ),
+                getTitlesWidget: (value, meta) =>
+                    Text(_compact(value), style: const TextStyle(fontSize: 10)),
               ),
             ),
             bottomTitles: AxisTitles(
@@ -337,10 +377,14 @@ class _ForecastChart extends StatelessWidget {
                 reservedSize: 30,
                 getTitlesWidget: (value, meta) {
                   final index = value.round();
-                  if (index < 0 || index >= snapshot.forecastPoints.length) return const SizedBox.shrink();
+                  if (index < 0 || index >= snapshot.forecastPoints.length)
+                    return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text(snapshot.forecastPoints[index].label, style: const TextStyle(fontSize: 11)),
+                    child: Text(
+                      snapshot.forecastPoints[index].label,
+                      style: const TextStyle(fontSize: 11),
+                    ),
                   );
                 },
               ),
@@ -365,7 +409,11 @@ class _ForecastChart extends StatelessWidget {
 }
 
 class _BucketBars extends StatelessWidget {
-  const _BucketBars({required this.buckets, required this.total, required this.currency});
+  const _BucketBars({
+    required this.buckets,
+    required this.total,
+    required this.currency,
+  });
 
   final List<CashFlowBucket> buckets;
   final double total;
@@ -377,7 +425,9 @@ class _BucketBars extends StatelessWidget {
       return const _EmptyBox(message: 'No open balances in this report.');
     }
 
-    final maxValue = buckets.map((bucket) => bucket.amount).fold<double>(0, math.max);
+    final maxValue = buckets
+        .map((bucket) => bucket.amount)
+        .fold<double>(0, math.max);
 
     return Column(
       children: [
@@ -456,7 +506,10 @@ class _AlertTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(alert.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  alert.title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 4),
                 Text(alert.message),
               ],
@@ -472,12 +525,32 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      _ActionSpec('Create Invoice', Icons.add_card_outlined, AppRoutes.invoiceNew),
-      _ActionSpec('Receive Payment', Icons.payments_outlined, AppRoutes.paymentNew),
-      _ActionSpec('Enter Bill', Icons.receipt_long_outlined, AppRoutes.purchaseBillNew),
+      _ActionSpec(
+        'Create Invoice',
+        Icons.add_card_outlined,
+        AppRoutes.invoiceNew,
+      ),
+      _ActionSpec(
+        'Receive Payment',
+        Icons.payments_outlined,
+        AppRoutes.paymentNew,
+      ),
+      _ActionSpec(
+        'Enter Bill',
+        Icons.receipt_long_outlined,
+        AppRoutes.purchaseBillNew,
+      ),
       _ActionSpec('Pay Bills', Icons.outbox_outlined, AppRoutes.vendorPayments),
-      _ActionSpec('Make Deposit', Icons.south_west_outlined, AppRoutes.bankingDeposits),
-      _ActionSpec('Bank Register', Icons.account_balance_outlined, AppRoutes.bankingRegister),
+      _ActionSpec(
+        'Make Deposit',
+        Icons.south_west_outlined,
+        AppRoutes.bankingDeposits,
+      ),
+      _ActionSpec(
+        'Bank Register',
+        Icons.account_balance_outlined,
+        AppRoutes.bankingRegister,
+      ),
     ];
 
     return _Panel(
@@ -500,7 +573,12 @@ class _QuickActions extends StatelessWidget {
 }
 
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.child, this.subtitle, this.action});
+  const _Panel({
+    required this.title,
+    required this.child,
+    this.subtitle,
+    this.action,
+  });
 
   final String title;
   final String? subtitle;
@@ -525,10 +603,20 @@ class _Panel extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                      Text(
+                        title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 4),
-                        Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                        Text(
+                          subtitle!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -579,9 +667,16 @@ class _ErrorState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline, size: 42, color: Theme.of(context).colorScheme.error),
+                Icon(
+                  Icons.error_outline,
+                  size: 42,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 const SizedBox(height: 12),
-                const Text('Could not load Cash Flow Hub', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                const Text(
+                  'Could not load Cash Flow Hub',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                ),
                 const SizedBox(height: 8),
                 Text(message, textAlign: TextAlign.center),
                 const SizedBox(height: 18),
@@ -633,20 +728,21 @@ _MetricTone _toneFor(double value) {
 }
 
 Color _toneColor(BuildContext context, _MetricTone tone) => switch (tone) {
-      _MetricTone.positive => Colors.green,
-      _MetricTone.warning => Colors.orange,
-      _MetricTone.negative => Theme.of(context).colorScheme.error,
-      _MetricTone.neutral => Theme.of(context).colorScheme.primary,
-    };
+  _MetricTone.positive => Colors.green,
+  _MetricTone.warning => Colors.orange,
+  _MetricTone.negative => Theme.of(context).colorScheme.error,
+  _MetricTone.neutral => Theme.of(context).colorScheme.primary,
+};
 
 IconData _alertIcon(CashFlowAlertSeverity severity) => switch (severity) {
-      CashFlowAlertSeverity.success => Icons.check_circle_outline,
-      CashFlowAlertSeverity.info => Icons.info_outline,
-      CashFlowAlertSeverity.warning => Icons.warning_amber_outlined,
-      CashFlowAlertSeverity.critical => Icons.error_outline,
-    };
+  CashFlowAlertSeverity.success => Icons.check_circle_outline,
+  CashFlowAlertSeverity.info => Icons.info_outline,
+  CashFlowAlertSeverity.warning => Icons.warning_amber_outlined,
+  CashFlowAlertSeverity.critical => Icons.error_outline,
+};
 
-String _money(double value, String currency) => '$currency ${value.toStringAsFixed(2)}';
+String _money(double value, String currency) =>
+    '$currency ${value.toStringAsFixed(2)}';
 String _compact(double value) {
   final abs = value.abs();
   if (abs >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
@@ -654,4 +750,5 @@ String _compact(double value) {
   return value.toStringAsFixed(0);
 }
 
-String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+String _date(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

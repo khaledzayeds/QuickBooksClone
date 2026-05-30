@@ -15,28 +15,35 @@ class InvoicesRepo {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _api.getAll(
-        search: search,
-        customerId: customerId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _api.getAll(
+    search: search,
+    customerId: customerId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
   Future<ApiResult<InvoiceModel>> getById(String id) => _api.getById(id);
 
-  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewInvoiceDto dto) => _api.preview(dto);
+  Future<ApiResult<SalesPostingPreviewModel>> preview(PreviewInvoiceDto dto) =>
+      _api.preview(dto);
 
-  Future<ApiResult<CustomerSalesActivityModel>> getCustomerActivity(String customerId, {int limit = 5}) => _api.getCustomerActivity(customerId, limit: limit);
+  Future<ApiResult<CustomerSalesActivityModel>> getCustomerActivity(
+    String customerId, {
+    int limit = 5,
+  }) => _api.getCustomerActivity(customerId, limit: limit);
 
-  Future<ApiResult<InvoiceModel>> create(CreateInvoiceDto dto) => _api.create(dto);
+  Future<ApiResult<InvoiceModel>> create(CreateInvoiceDto dto) =>
+      _api.create(dto);
 
-  Future<ApiResult<InvoiceModel>> update(String id, UpdateInvoiceDto dto) => _api.update(id, dto);
+  Future<ApiResult<InvoiceModel>> update(String id, UpdateInvoiceDto dto) =>
+      _api.update(id, dto);
 
-  Future<ApiResult<InvoiceModel>> postInvoice(String id) => _api.postInvoice(id);
+  Future<ApiResult<InvoiceModel>> postInvoice(String id) =>
+      _api.postInvoice(id);
 
   Future<ApiResult<void>> markSent(String id) => _api.markSent(id);
 
-  Future<ApiResult<InvoiceModel>> voidInvoice(String id) => _api.voidInvoice(id);
+  Future<ApiResult<InvoiceModel>> voidInvoice(String id) =>
+      _api.voidInvoice(id);
 }

@@ -85,8 +85,14 @@ class _TemplateCanvasState extends State<TemplateCanvas> {
                   const horizontalPadding = 72.0;
                   const verticalPadding = 112.0;
 
-                  final contentWidth = (scaledWidth + horizontalPadding).clamp(viewportWidth, double.infinity);
-                  final contentHeight = (scaledHeight + verticalPadding).clamp(viewportHeight, double.infinity);
+                  final contentWidth = (scaledWidth + horizontalPadding).clamp(
+                    viewportWidth,
+                    double.infinity,
+                  );
+                  final contentHeight = (scaledHeight + verticalPadding).clamp(
+                    viewportHeight,
+                    double.infinity,
+                  );
 
                   return Scrollbar(
                     controller: _verticalController,

@@ -18,15 +18,14 @@ class AccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme   = Theme.of(context);
+    final theme = Theme.of(context);
     final isDebit = account.isDebitNormal;
-    final l10n    = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       child: ListTile(
         onTap: onTap,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 44,
           height: 44,
@@ -75,8 +74,9 @@ class AccountCard extends StatelessWidget {
                 Text(
                   isDebit ? l10n.debit : l10n.credit,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.textTheme.bodyMedium?.color
-                        ?.withValues(alpha: 0.4),
+                    color: theme.textTheme.bodyMedium?.color?.withValues(
+                      alpha: 0.4,
+                    ),
                   ),
                 ),
               ],

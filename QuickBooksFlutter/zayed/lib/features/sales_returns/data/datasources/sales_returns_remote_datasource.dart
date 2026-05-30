@@ -26,7 +26,8 @@ class SalesReturnsRemoteDatasource {
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
           if (invoiceId != null && invoiceId.isNotEmpty) 'invoiceId': invoiceId,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
@@ -34,7 +35,9 @@ class SalesReturnsRemoteDatasource {
       );
 
       final returns = ((response.data?['items'] as List?) ?? const [])
-          .map((json) => SalesReturnModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => SalesReturnModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
       return Success(returns);
     } on DioException catch (error) {
@@ -44,7 +47,9 @@ class SalesReturnsRemoteDatasource {
 
   Future<ApiResult<SalesReturnModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/sales-returns/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/sales-returns/$id',
+      );
       return Success(SalesReturnModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -65,7 +70,9 @@ class SalesReturnsRemoteDatasource {
 
   Future<ApiResult<SalesReturnModel>> post(String id) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>('/api/sales-returns/$id/post');
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/sales-returns/$id/post',
+      );
       return Success(SalesReturnModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -74,7 +81,9 @@ class SalesReturnsRemoteDatasource {
 
   Future<ApiResult<SalesReturnModel>> voidReturn(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('/api/sales-returns/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/api/sales-returns/$id/void',
+      );
       return Success(SalesReturnModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));

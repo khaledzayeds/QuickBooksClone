@@ -1,16 +1,12 @@
-﻿// item_unit_selector.dart
+// item_unit_selector.dart
 // item_unit_selector.dart
 
 import 'package:flutter/material.dart';
 
 class ItemUnitSelector extends StatefulWidget {
-  const ItemUnitSelector({
-    super.key,
-    this.initialValue,
-    this.onChanged,
-  });
+  const ItemUnitSelector({super.key, this.initialValue, this.onChanged});
 
-  final String?                initialValue;
+  final String? initialValue;
   final ValueChanged<String?>? onChanged;
 
   @override
@@ -34,7 +30,7 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
 
   final _customCtrl = TextEditingController();
   String? _selected;
-  bool    _showCustom = false;
+  bool _showCustom = false;
 
   @override
   void initState() {
@@ -46,7 +42,7 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
       _selected = v;
     } else {
       // قيمة مخصصة من الـ API
-      _selected   = '__custom__';
+      _selected = '__custom__';
       _showCustom = true;
       _customCtrl.text = v;
     }
@@ -67,27 +63,25 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
         Text(
           'وحدة القياس',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.color
-                    ?.withValues(alpha: 0.7),
-              ),
+            color: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+          ),
         ),
         const SizedBox(height: 6),
 
         // ── Preset Chips ──────────────────────────
         Wrap(
-          spacing:    8,
+          spacing: 8,
           runSpacing: 8,
           children: [
             // فارغ
             _UnitChip(
-              label:    'بدون',
+              label: 'بدون',
               selected: _selected == null && !_showCustom,
               onTap: () {
                 setState(() {
-                  _selected   = null;
+                  _selected = null;
                   _showCustom = false;
                 });
                 widget.onChanged?.call(null);
@@ -95,26 +89,28 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
             ),
 
             // Presets
-            ..._presets.map((unit) => _UnitChip(
-                  label:    unit,
-                  selected: _selected == unit,
-                  onTap: () {
-                    setState(() {
-                      _selected   = unit;
-                      _showCustom = false;
-                    });
-                    widget.onChanged?.call(unit);
-                  },
-                )),
+            ..._presets.map(
+              (unit) => _UnitChip(
+                label: unit,
+                selected: _selected == unit,
+                onTap: () {
+                  setState(() {
+                    _selected = unit;
+                    _showCustom = false;
+                  });
+                  widget.onChanged?.call(unit);
+                },
+              ),
+            ),
 
             // مخصص
             _UnitChip(
-              label:    'أخرى...',
+              label: 'أخرى...',
               selected: _selected == '__custom__',
-              icon:     Icons.edit_outlined,
+              icon: Icons.edit_outlined,
               onTap: () {
                 setState(() {
-                  _selected   = '__custom__';
+                  _selected = '__custom__';
                   _showCustom = true;
                 });
                 if (_customCtrl.text.isNotEmpty) {
@@ -130,10 +126,10 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
           const SizedBox(height: 12),
           TextField(
             controller: _customCtrl,
-            autofocus:  true,
+            autofocus: true,
             decoration: InputDecoration(
               hintText: 'اكتب وحدة القياس...',
-              isDense:  true,
+              isDense: true,
               suffixIcon: _customCtrl.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.check, size: 18),
@@ -172,14 +168,14 @@ class _UnitChip extends StatelessWidget {
     this.icon,
   });
 
-  final String     label;
-  final bool       selected;
+  final String label;
+  final bool selected;
   final VoidCallback onTap;
-  final IconData?  icon;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final theme   = Theme.of(context);
+    final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
     return GestureDetector(
@@ -192,9 +188,7 @@ class _UnitChip extends StatelessWidget {
               ? primary.withValues(alpha: 0.12)
               : theme.colorScheme.surface,
           border: Border.all(
-            color: selected
-                ? primary
-                : theme.dividerColor,
+            color: selected ? primary : theme.dividerColor,
             width: selected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(20),
@@ -203,15 +197,13 @@ class _UnitChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon,
-                  size:  14,
-                  color: selected ? primary : theme.hintColor),
+              Icon(icon, size: 14, color: selected ? primary : theme.hintColor),
               const SizedBox(width: 4),
             ],
             Text(
               label,
               style: theme.textTheme.labelSmall?.copyWith(
-                color:      selected ? primary : theme.hintColor,
+                color: selected ? primary : theme.hintColor,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
               ),
             ),

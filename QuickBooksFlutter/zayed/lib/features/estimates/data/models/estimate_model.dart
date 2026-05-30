@@ -38,29 +38,34 @@ class EstimateModel {
   final List<EstimateLineModel> lines;
 
   factory EstimateModel.fromJson(Map<String, dynamic> json) => EstimateModel(
-        id: JsonUtils.asString(json['id']),
-        estimateNumber: JsonUtils.asString(json['estimateNumber']),
-        customerId: JsonUtils.asString(json['customerId']),
-        customerName: JsonUtils.asNullableString(json['customerName']),
-        estimateDate: _parseDate(json['estimateDate']),
-        expirationDate: _parseDate(json['expirationDate']),
-        status: JsonUtils.asInt(json['status']),
-        subtotal: JsonUtils.asDouble(json['subtotal']),
-        taxAmount: JsonUtils.asDouble(json['taxAmount']),
-        totalAmount: JsonUtils.asDouble(json['totalAmount']),
-        sentAt: _parseNullableDate(json['sentAt']),
-        acceptedAt: _parseNullableDate(json['acceptedAt']),
-        declinedAt: _parseNullableDate(json['declinedAt']),
-        cancelledAt: _parseNullableDate(json['cancelledAt']),
-        lines: JsonUtils.asList(json['lines'], (line) => EstimateLineModel.fromJson(line)),
-      );
+    id: JsonUtils.asString(json['id']),
+    estimateNumber: JsonUtils.asString(json['estimateNumber']),
+    customerId: JsonUtils.asString(json['customerId']),
+    customerName: JsonUtils.asNullableString(json['customerName']),
+    estimateDate: _parseDate(json['estimateDate']),
+    expirationDate: _parseDate(json['expirationDate']),
+    status: JsonUtils.asInt(json['status']),
+    subtotal: JsonUtils.asDouble(json['subtotal']),
+    taxAmount: JsonUtils.asDouble(json['taxAmount']),
+    totalAmount: JsonUtils.asDouble(json['totalAmount']),
+    sentAt: _parseNullableDate(json['sentAt']),
+    acceptedAt: _parseNullableDate(json['acceptedAt']),
+    declinedAt: _parseNullableDate(json['declinedAt']),
+    cancelledAt: _parseNullableDate(json['cancelledAt']),
+    lines: JsonUtils.asList(
+      json['lines'],
+      (line) => EstimateLineModel.fromJson(line),
+    ),
+  );
 
   bool get isCancelled => cancelledAt != null;
   bool get isAccepted => acceptedAt != null;
   bool get isDeclined => declinedAt != null;
 
-  static DateTime _parseDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
-  static DateTime? _parseNullableDate(dynamic value) => DateTime.tryParse(value?.toString() ?? '');
+  static DateTime _parseDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+  static DateTime? _parseNullableDate(dynamic value) =>
+      DateTime.tryParse(value?.toString() ?? '');
 }
 
 class EstimateLineModel {
@@ -86,7 +91,8 @@ class EstimateLineModel {
   final double taxAmount;
   final double lineTotal;
 
-  factory EstimateLineModel.fromJson(Map<String, dynamic> json) => EstimateLineModel(
+  factory EstimateLineModel.fromJson(Map<String, dynamic> json) =>
+      EstimateLineModel(
         id: JsonUtils.asString(json['id']),
         itemId: JsonUtils.asString(json['itemId']),
         description: JsonUtils.asString(json['description']),
@@ -115,12 +121,12 @@ class CreateEstimateDto {
   final List<CreateEstimateLineDto> lines;
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        'estimateDate': _dateOnly(estimateDate),
-        'expirationDate': _dateOnly(expirationDate),
-        'saveMode': saveMode,
-        'lines': lines.map((line) => line.toJson()).toList(),
-      };
+    'customerId': customerId,
+    'estimateDate': _dateOnly(estimateDate),
+    'expirationDate': _dateOnly(expirationDate),
+    'saveMode': saveMode,
+    'lines': lines.map((line) => line.toJson()).toList(),
+  };
 
   static String _dateOnly(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -142,10 +148,11 @@ class CreateEstimateLineDto {
   final String? taxCodeId;
 
   Map<String, dynamic> toJson() => {
-        'itemId': itemId,
-        if (description != null && description!.trim().isNotEmpty) 'description': description!.trim(),
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
-      };
+    'itemId': itemId,
+    if (description != null && description!.trim().isNotEmpty)
+      'description': description!.trim(),
+    'quantity': quantity,
+    'unitPrice': unitPrice,
+    if (taxCodeId != null && taxCodeId!.isNotEmpty) 'taxCodeId': taxCodeId,
+  };
 }

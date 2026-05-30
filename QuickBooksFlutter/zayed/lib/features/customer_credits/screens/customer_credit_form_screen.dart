@@ -74,27 +74,33 @@ class _CustomerCreditFormScreenState
 
     final customerInvoices = invoicesAsync.maybeWhen(
       data: (invoices) => invoices
-          .where((inv) =>
-              !inv.isVoid &&
-              inv.balanceDue > 0 &&
-              (_selectedCustomer == null ||
-                  inv.customerId == _selectedCustomer!.id))
+          .where(
+            (inv) =>
+                !inv.isVoid &&
+                inv.balanceDue > 0 &&
+                (_selectedCustomer == null ||
+                    inv.customerId == _selectedCustomer!.id),
+          )
           .toList(),
       orElse: () => <InvoiceModel>[],
     );
 
     final refundAccounts = accountsAsync.maybeWhen(
       data: (accounts) => accounts
-          .where((a) =>
-              a.isActive &&
-              (a.accountType == AccountType.bank ||
-                  a.accountType == AccountType.otherCurrentAsset ||
-                  a.accountType == AccountType.creditCard))
+          .where(
+            (a) =>
+                a.isActive &&
+                (a.accountType == AccountType.bank ||
+                    a.accountType == AccountType.otherCurrentAsset ||
+                    a.accountType == AccountType.creditCard),
+          )
           .toList(),
       orElse: () => <AccountModel>[],
     );
 
-    final credits = ref.watch(customerCreditsProvider).maybeWhen(
+    final credits = ref
+        .watch(customerCreditsProvider)
+        .maybeWhen(
           data: (items) => items,
           orElse: () => <CustomerCreditModel>[],
         );
@@ -108,9 +114,11 @@ class _CustomerCreditFormScreenState
       onFind: () => context.go(AppRoutes.customerCredits),
       onPrevious: credits.isNotEmpty
           ? () => context.go(
-                AppRoutes.customerCreditDetails
-                    .replaceFirst(':id', credits.first.id),
-              )
+              AppRoutes.customerCreditDetails.replaceFirst(
+                ':id',
+                credits.first.id,
+              ),
+            )
           : null,
       onNext: null,
       onNew: _clearState,
@@ -163,8 +171,8 @@ class _CustomerCreditFormScreenState
                 child: Text(
                   'Customer balances, invoice balances, and accounting impact are computed by the backend automatically upon saving.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF667A84),
-                      ),
+                    color: const Color(0xFF667A84),
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -216,8 +224,9 @@ class _CustomerCreditFormScreenState
       refundAccountId: _action == CustomerCreditAction.refundReceipt
           ? _refundAccountId
           : null,
-      paymentMethod:
-          _action == CustomerCreditAction.refundReceipt ? _paymentMethod : null,
+      paymentMethod: _action == CustomerCreditAction.refundReceipt
+          ? _paymentMethod
+          : null,
     );
 
     setState(() => _saving = true);
@@ -228,9 +237,9 @@ class _CustomerCreditFormScreenState
     result.when(
       success: (_) {
         ref.read(invoicesProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.paymentCreatedSuccess)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.paymentCreatedSuccess)));
         context.go(AppRoutes.customerCredits);
       },
       failure: (error) => _error(context, error.message),
@@ -293,8 +302,9 @@ class _CreditHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final safeAccountId =
-        refundAccounts.any((a) => a.id == refundAccountId) ? refundAccountId : null;
+    final safeAccountId = refundAccounts.any((a) => a.id == refundAccountId)
+        ? refundAccountId
+        : null;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -330,21 +340,28 @@ class _CreditHeader extends StatelessWidget {
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 18),
+                      Icons.account_balance_wallet_outlined,
+                      size: 18,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                   ),
                   items: [
                     DropdownMenuItem(
                       value: CustomerCreditAction.applyToInvoice,
-                      child: Text(l10n.invoice,
-                          overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        l10n.invoice,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     DropdownMenuItem(
                       value: CustomerCreditAction.refundReceipt,
-                      child: Text(l10n.recordDeposits,
-                          overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        l10n.recordDeposits,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                   onChanged: (v) {
@@ -364,10 +381,14 @@ class _CreditHeader extends StatelessWidget {
                     filled: true,
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
-                    prefixIcon:
-                        const Icon(Icons.calendar_today_outlined, size: 16),
+                    prefixIcon: const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 16,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                   ),
                 ),
               ),
@@ -402,17 +423,25 @@ class _CreditHeader extends StatelessWidget {
                       filled: true,
                       fillColor: Colors.white,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.account_balance_outlined,
-                          size: 18),
+                      prefixIcon: const Icon(
+                        Icons.account_balance_outlined,
+                        size: 18,
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                     ),
                     items: refundAccounts
-                        .map((a) => DropdownMenuItem<String>(
-                              value: a.id,
-                              child: Text('${a.code} - ${a.name}',
-                                  overflow: TextOverflow.ellipsis),
-                            ))
+                        .map(
+                          (a) => DropdownMenuItem<String>(
+                            value: a.id,
+                            child: Text(
+                              '${a.code} - ${a.name}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: onRefundAccountChanged,
                   ),
@@ -428,28 +457,38 @@ class _CreditHeader extends StatelessWidget {
                       filled: true,
                       fillColor: Colors.white,
                       border: const OutlineInputBorder(),
-                      prefixIcon:
-                          const Icon(Icons.payments_outlined, size: 18),
+                      prefixIcon: const Icon(Icons.payments_outlined, size: 18),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                     ),
                     items: [
                       DropdownMenuItem(
-                          value: PaymentMethod.cash,
-                          child: Text(l10n.cash,
-                              overflow: TextOverflow.ellipsis)),
+                        value: PaymentMethod.cash,
+                        child: Text(l10n.cash, overflow: TextOverflow.ellipsis),
+                      ),
                       DropdownMenuItem(
-                          value: PaymentMethod.check,
-                          child: Text(l10n.check,
-                              overflow: TextOverflow.ellipsis)),
+                        value: PaymentMethod.check,
+                        child: Text(
+                          l10n.check,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       DropdownMenuItem(
-                          value: PaymentMethod.bankTransfer,
-                          child: Text(l10n.bankTransfer,
-                              overflow: TextOverflow.ellipsis)),
+                        value: PaymentMethod.bankTransfer,
+                        child: Text(
+                          l10n.bankTransfer,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       DropdownMenuItem(
-                          value: PaymentMethod.creditCard,
-                          child: Text(l10n.creditCard,
-                              overflow: TextOverflow.ellipsis)),
+                        value: PaymentMethod.creditCard,
+                        child: Text(
+                          l10n.creditCard,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                     onChanged: (v) {
                       if (v != null) onPaymentMethodChanged(v);
@@ -461,8 +500,9 @@ class _CreditHeader extends StatelessWidget {
               Expanded(
                 child: TextFormField(
                   initialValue: amount == 0 ? '' : amount.toString(),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     labelText: '${l10n.amount} *',
                     isDense: true,
@@ -470,7 +510,9 @@ class _CreditHeader extends StatelessWidget {
                     fillColor: Colors.white,
                     border: const OutlineInputBorder(),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                   ),
                   onChanged: (v) => onAmountChanged(double.tryParse(v) ?? 0),
                 ),
@@ -505,17 +547,19 @@ class _CreditFooter extends StatelessWidget {
           const Text(
             'CREDIT AMOUNT',
             style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF7D8B93)),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF7D8B93),
+            ),
           ),
           const SizedBox(width: 16),
           Text(
             '${total.toStringAsFixed(2)} $currency',
             style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF264D5B)),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF264D5B),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -554,9 +598,9 @@ class _CreditContextPanel extends StatelessWidget {
             child: Text(
               'Credit Info',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           Padding(
@@ -603,17 +647,23 @@ class _Stat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFF7D8B93),
-                  fontWeight: FontWeight.w900)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF7D8B93),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: isTotal ? 18 : 14,
-                  fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
-                  color: const Color(0xFF264D5B))),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isTotal ? 18 : 14,
+              fontWeight: isTotal ? FontWeight.w900 : FontWeight.w700,
+              color: const Color(0xFF264D5B),
+            ),
+          ),
         ],
       ),
     );
@@ -643,10 +693,12 @@ class _CustomerTypeAhead extends StatelessWidget {
     final text = q.trim().toLowerCase();
     if (text.isEmpty) return customers.take(10).toList();
     return customers
-        .where((c) =>
-            c.displayName.toLowerCase().contains(text) ||
-            (c.companyName?.toLowerCase().contains(text) ?? false) ||
-            (c.phone?.contains(text) ?? false))
+        .where(
+          (c) =>
+              c.displayName.toLowerCase().contains(text) ||
+              (c.companyName?.toLowerCase().contains(text) ?? false) ||
+              (c.phone?.contains(text) ?? false),
+        )
         .take(12)
         .toList();
   }
@@ -666,8 +718,10 @@ class _CustomerTypeAhead extends StatelessWidget {
           filled: true,
           fillColor: Colors.white,
           border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 9,
+          ),
           prefixIcon: const Icon(Icons.person_outline, size: 18),
           suffixIcon: selected != null
               ? IconButton(
@@ -685,22 +739,30 @@ class _CustomerTypeAhead extends StatelessWidget {
       itemBuilder: (context, c) => ListTile(
         dense: true,
         leading: CircleAvatar(
-            radius: 14,
-            child: Text(c.initials, style: const TextStyle(fontSize: 11))),
-        title: Text(c.displayName,
-            style: const TextStyle(fontWeight: FontWeight.w800)),
+          radius: 14,
+          child: Text(c.initials, style: const TextStyle(fontSize: 11)),
+        ),
+        title: Text(
+          c.displayName,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         subtitle: Text(
-            '${c.primaryContact} | Bal: ${c.balance.toStringAsFixed(2)}',
-            style: const TextStyle(fontSize: 11)),
+          '${c.primaryContact} | Bal: ${c.balance.toStringAsFixed(2)}',
+          style: const TextStyle(fontSize: 11),
+        ),
       ),
       onSuggestionSelected: (c) {
         controller.text = c.displayName;
         onSelected(c);
       },
       noItemsFoundBuilder: (_) => const Padding(
-          padding: EdgeInsets.all(10), child: Text('No matching customers')),
+        padding: EdgeInsets.all(10),
+        child: Text('No matching customers'),
+      ),
       suggestionsBoxDecoration: const SuggestionsBoxDecoration(
-          elevation: 4, constraints: BoxConstraints(maxHeight: 300)),
+        elevation: 4,
+        constraints: BoxConstraints(maxHeight: 300),
+      ),
     );
   }
 }
@@ -730,9 +792,11 @@ class _InvoiceTypeAhead extends StatelessWidget {
     final text = q.trim().toLowerCase();
     if (text.isEmpty) return invoices.take(10).toList();
     return invoices
-        .where((inv) =>
-            inv.invoiceNumber.toLowerCase().contains(text) ||
-            (inv.customerName?.toLowerCase().contains(text) ?? false))
+        .where(
+          (inv) =>
+              inv.invoiceNumber.toLowerCase().contains(text) ||
+              (inv.customerName?.toLowerCase().contains(text) ?? false),
+        )
         .take(12)
         .toList();
   }
@@ -753,8 +817,10 @@ class _InvoiceTypeAhead extends StatelessWidget {
           filled: true,
           fillColor: Colors.white,
           border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 9,
+          ),
           prefixIcon: const Icon(Icons.receipt_long_outlined, size: 18),
           suffixIcon: selected != null
               ? IconButton(
@@ -771,24 +837,32 @@ class _InvoiceTypeAhead extends StatelessWidget {
       suggestionsCallback: _matches,
       itemBuilder: (context, inv) => ListTile(
         dense: true,
-        leading: const Icon(Icons.receipt_long_outlined,
-            size: 18, color: Color(0xFF264D5B)),
+        leading: const Icon(
+          Icons.receipt_long_outlined,
+          size: 18,
+          color: Color(0xFF264D5B),
+        ),
         title: Text(
-            '${inv.invoiceNumber} — ${inv.customerName ?? inv.customerId}',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+          '${inv.invoiceNumber} — ${inv.customerName ?? inv.customerId}',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+        ),
         subtitle: Text(
-            'Balance: ${inv.balanceDue.toStringAsFixed(2)} $currency',
-            style: const TextStyle(fontSize: 11)),
+          'Balance: ${inv.balanceDue.toStringAsFixed(2)} $currency',
+          style: const TextStyle(fontSize: 11),
+        ),
       ),
       onSuggestionSelected: (inv) {
-        controller.text =
-            '${inv.invoiceNumber} - ${inv.customerName ?? ''}';
+        controller.text = '${inv.invoiceNumber} - ${inv.customerName ?? ''}';
         onSelected(inv);
       },
       noItemsFoundBuilder: (_) => const Padding(
-          padding: EdgeInsets.all(10), child: Text('No matching invoices')),
+        padding: EdgeInsets.all(10),
+        child: Text('No matching invoices'),
+      ),
       suggestionsBoxDecoration: const SuggestionsBoxDecoration(
-          elevation: 4, constraints: BoxConstraints(maxHeight: 300)),
+        elevation: 4,
+        constraints: BoxConstraints(maxHeight: 300),
+      ),
     );
   }
 }

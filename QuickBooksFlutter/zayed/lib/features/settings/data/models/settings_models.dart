@@ -16,7 +16,10 @@ class RuntimeSettingsModel {
   factory RuntimeSettingsModel.fromJson(Map<String, dynamic> json) {
     return RuntimeSettingsModel(
       environmentName: json['environmentName']?.toString() ?? '-',
-      databaseProvider: json['databaseProvider']?.toString() ?? json['provider']?.toString() ?? '-',
+      databaseProvider:
+          json['databaseProvider']?.toString() ??
+          json['provider']?.toString() ??
+          '-',
       supportsBackupRestore: json['supportsBackupRestore'] == true,
       liveDatabasePath: json['liveDatabasePath']?.toString(),
       backupDirectory: json['backupDirectory']?.toString(),
@@ -121,8 +124,10 @@ class CompanySettingsModel {
       defaultSalesTaxCodeId: json['defaultSalesTaxCodeId']?.toString(),
       defaultPurchaseTaxCodeId: json['defaultPurchaseTaxCodeId']?.toString(),
       taxRoundingMode: _toInt(json['taxRoundingMode']) ?? 1,
-      defaultSalesTaxPayableAccountId: json['defaultSalesTaxPayableAccountId']?.toString(),
-      defaultPurchaseTaxReceivableAccountId: json['defaultPurchaseTaxReceivableAccountId']?.toString(),
+      defaultSalesTaxPayableAccountId: json['defaultSalesTaxPayableAccountId']
+          ?.toString(),
+      defaultPurchaseTaxReceivableAccountId:
+          json['defaultPurchaseTaxReceivableAccountId']?.toString(),
     );
   }
 
@@ -166,7 +171,8 @@ class CompanySettingsModel {
       country: country ?? this.country,
       timeZoneId: timeZoneId ?? this.timeZoneId,
       defaultLanguage: defaultLanguage ?? this.defaultLanguage,
-      taxRegistrationNumber: taxRegistrationNumber ?? this.taxRegistrationNumber,
+      taxRegistrationNumber:
+          taxRegistrationNumber ?? this.taxRegistrationNumber,
       addressLine1: addressLine1 ?? this.addressLine1,
       addressLine2: addressLine2 ?? this.addressLine2,
       city: city ?? this.city,
@@ -175,14 +181,21 @@ class CompanySettingsModel {
       fiscalYearStartMonth: fiscalYearStartMonth ?? this.fiscalYearStartMonth,
       fiscalYearStartDay: fiscalYearStartDay ?? this.fiscalYearStartDay,
       defaultSalesTaxRate: defaultSalesTaxRate ?? this.defaultSalesTaxRate,
-      defaultPurchaseTaxRate: defaultPurchaseTaxRate ?? this.defaultPurchaseTaxRate,
+      defaultPurchaseTaxRate:
+          defaultPurchaseTaxRate ?? this.defaultPurchaseTaxRate,
       taxesEnabled: taxesEnabled ?? this.taxesEnabled,
       pricesIncludeTax: pricesIncludeTax ?? this.pricesIncludeTax,
-      defaultSalesTaxCodeId: defaultSalesTaxCodeId ?? this.defaultSalesTaxCodeId,
-      defaultPurchaseTaxCodeId: defaultPurchaseTaxCodeId ?? this.defaultPurchaseTaxCodeId,
+      defaultSalesTaxCodeId:
+          defaultSalesTaxCodeId ?? this.defaultSalesTaxCodeId,
+      defaultPurchaseTaxCodeId:
+          defaultPurchaseTaxCodeId ?? this.defaultPurchaseTaxCodeId,
       taxRoundingMode: taxRoundingMode ?? this.taxRoundingMode,
-      defaultSalesTaxPayableAccountId: defaultSalesTaxPayableAccountId ?? this.defaultSalesTaxPayableAccountId,
-      defaultPurchaseTaxReceivableAccountId: defaultPurchaseTaxReceivableAccountId ?? this.defaultPurchaseTaxReceivableAccountId,
+      defaultSalesTaxPayableAccountId:
+          defaultSalesTaxPayableAccountId ??
+          this.defaultSalesTaxPayableAccountId,
+      defaultPurchaseTaxReceivableAccountId:
+          defaultPurchaseTaxReceivableAccountId ??
+          this.defaultPurchaseTaxReceivableAccountId,
     );
   }
 
@@ -192,10 +205,16 @@ class CompanySettingsModel {
       'legalName': _emptyToNull(legalName),
       'email': _emptyToNull(email),
       'phone': _emptyToNull(phone),
-      'currency': currency.trim().isEmpty ? 'EGP' : currency.trim().toUpperCase(),
+      'currency': currency.trim().isEmpty
+          ? 'EGP'
+          : currency.trim().toUpperCase(),
       'country': country.trim().isEmpty ? 'EG' : country.trim().toUpperCase(),
-      'timeZoneId': timeZoneId.trim().isEmpty ? 'Africa/Cairo' : timeZoneId.trim(),
-      'defaultLanguage': defaultLanguage.trim().isEmpty ? 'ar' : defaultLanguage.trim(),
+      'timeZoneId': timeZoneId.trim().isEmpty
+          ? 'Africa/Cairo'
+          : timeZoneId.trim(),
+      'defaultLanguage': defaultLanguage.trim().isEmpty
+          ? 'ar'
+          : defaultLanguage.trim(),
       'taxRegistrationNumber': _emptyToNull(taxRegistrationNumber),
       'addressLine1': _emptyToNull(addressLine1),
       'addressLine2': _emptyToNull(addressLine2),
@@ -211,8 +230,12 @@ class CompanySettingsModel {
       'defaultPurchaseTaxCodeId': _emptyToNull(defaultPurchaseTaxCodeId),
       'pricesIncludeTax': pricesIncludeTax,
       'taxRoundingMode': taxRoundingMode <= 0 ? 1 : taxRoundingMode,
-      'defaultSalesTaxPayableAccountId': _emptyToNull(defaultSalesTaxPayableAccountId),
-      'defaultPurchaseTaxReceivableAccountId': _emptyToNull(defaultPurchaseTaxReceivableAccountId),
+      'defaultSalesTaxPayableAccountId': _emptyToNull(
+        defaultSalesTaxPayableAccountId,
+      ),
+      'defaultPurchaseTaxReceivableAccountId': _emptyToNull(
+        defaultPurchaseTaxReceivableAccountId,
+      ),
     };
   }
 

@@ -13,7 +13,8 @@ class InvoicesRemoteDatasource {
   final ApiClient _client;
   final bool salesReceiptMode;
 
-  String get _basePath => salesReceiptMode ? '/api/sales-receipts' : '/api/invoices';
+  String get _basePath =>
+      salesReceiptMode ? '/api/sales-receipts' : '/api/invoices';
 
   Future<ApiResult<List<InvoiceModel>>> getInvoices({
     String? search,
@@ -27,7 +28,8 @@ class InvoicesRemoteDatasource {
         _basePath,
         queryParameters: {
           if (search != null && search.isNotEmpty) 'search': search,
-          if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
+          if (customerId != null && customerId.isNotEmpty)
+            'customerId': customerId,
           'includeVoid': includeVoid,
           'page': page,
           'pageSize': pageSize,
@@ -45,16 +47,23 @@ class InvoicesRemoteDatasource {
 
   Future<ApiResult<InvoiceModel>> getInvoice(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('$_basePath/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '$_basePath/$id',
+      );
       return Success(InvoiceModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
   }
 
-  Future<ApiResult<InvoiceModel>> createInvoice(Map<String, dynamic> body) async {
+  Future<ApiResult<InvoiceModel>> createInvoice(
+    Map<String, dynamic> body,
+  ) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>(_basePath, data: body);
+      final response = await _client.post<Map<String, dynamic>>(
+        _basePath,
+        data: body,
+      );
       return Success(InvoiceModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -63,7 +72,9 @@ class InvoicesRemoteDatasource {
 
   Future<ApiResult<InvoiceModel>> postInvoice(String id) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>('/api/invoices/$id/post');
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/invoices/$id/post',
+      );
       return Success(InvoiceModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
@@ -72,7 +83,9 @@ class InvoicesRemoteDatasource {
 
   Future<ApiResult<InvoiceModel>> voidInvoice(String id) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>('$_basePath/$id/void');
+      final response = await _client.patch<Map<String, dynamic>>(
+        '$_basePath/$id/void',
+      );
       return Success(InvoiceModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));

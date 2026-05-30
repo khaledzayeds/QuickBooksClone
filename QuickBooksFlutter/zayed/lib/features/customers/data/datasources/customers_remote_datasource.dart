@@ -1,4 +1,4 @@
-﻿// customers_remote_datasource.dart
+// customers_remote_datasource.dart
 // customers_remote_datasource.dart
 
 import 'package:dio/dio.dart';
@@ -38,8 +38,9 @@ class CustomersRemoteDatasource {
 
   Future<ApiResult<CustomerModel>> getCustomer(String id) async {
     try {
-      final response =
-          await _client.get<Map<String, dynamic>>('/api/customers/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/customers/$id',
+      );
       return Success(CustomerModel.fromJson(response.data!));
     } on DioException catch (e) {
       return Failure(parseError(e));
@@ -47,7 +48,8 @@ class CustomersRemoteDatasource {
   }
 
   Future<ApiResult<CustomerModel>> createCustomer(
-      Map<String, dynamic> body) async {
+    Map<String, dynamic> body,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/customers',
@@ -60,7 +62,9 @@ class CustomersRemoteDatasource {
   }
 
   Future<ApiResult<CustomerModel>> updateCustomer(
-      String id, Map<String, dynamic> body) async {
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final response = await _client.put<Map<String, dynamic>>(
         '/api/customers/$id',
@@ -73,7 +77,9 @@ class CustomersRemoteDatasource {
   }
 
   Future<ApiResult<CustomerModel>> toggleActive(
-      String id, bool isActive) async {
+    String id,
+    bool isActive,
+  ) async {
     try {
       final response = await _client.patch<Map<String, dynamic>>(
         '/api/customers/$id/active',

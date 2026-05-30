@@ -64,7 +64,10 @@ class _NotesEditDialogState extends State<NotesEditDialog> {
         FilledButton.icon(
           onPressed: _saving ? null : _save,
           icon: _saving
-              ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox.square(
+                  dimension: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Icon(Icons.save_outlined),
           label: const Text('Save'),
         ),

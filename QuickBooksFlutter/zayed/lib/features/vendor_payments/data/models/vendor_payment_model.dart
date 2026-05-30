@@ -31,19 +31,23 @@ class VendorPaymentModel {
   final int status; // 1 Draft, 2 Posted, 3 Void
   final List<VendorPaymentLineModel> lines;
 
-  factory VendorPaymentModel.fromJson(Map<String, dynamic> json) => VendorPaymentModel(
-        id:                 JsonUtils.asString(json['id']),
-        paymentNumber:      JsonUtils.asString(json['paymentNumber']),
-        vendorId:           JsonUtils.asString(json['vendorId']),
-        vendorName:         JsonUtils.asString(json['vendorName']),
-        paymentAccountId:   JsonUtils.asString(json['paymentAccountId']),
+  factory VendorPaymentModel.fromJson(Map<String, dynamic> json) =>
+      VendorPaymentModel(
+        id: JsonUtils.asString(json['id']),
+        paymentNumber: JsonUtils.asString(json['paymentNumber']),
+        vendorId: JsonUtils.asString(json['vendorId']),
+        vendorName: JsonUtils.asString(json['vendorName']),
+        paymentAccountId: JsonUtils.asString(json['paymentAccountId']),
         paymentAccountName: JsonUtils.asString(json['paymentAccountName']),
-        paymentDate:        DateTime.parse(json['paymentDate']),
-        amount:             JsonUtils.asDouble(json['amount']),
-        paymentMethod:      JsonUtils.asString(json['paymentMethod']),
-        memo:               JsonUtils.asString(json['memo']),
-        status:             JsonUtils.asInt(json['status']),
-        lines:              JsonUtils.asList(json['lines'], (l) => VendorPaymentLineModel.fromJson(l)),
+        paymentDate: DateTime.parse(json['paymentDate']),
+        amount: JsonUtils.asDouble(json['amount']),
+        paymentMethod: JsonUtils.asString(json['paymentMethod']),
+        memo: JsonUtils.asString(json['memo']),
+        status: JsonUtils.asInt(json['status']),
+        lines: JsonUtils.asList(
+          json['lines'],
+          (l) => VendorPaymentLineModel.fromJson(l),
+        ),
       );
 }
 
@@ -60,10 +64,11 @@ class VendorPaymentLineModel {
   final String billNumber;
   final double amount;
 
-  factory VendorPaymentLineModel.fromJson(Map<String, dynamic> json) => VendorPaymentLineModel(
-        id:             JsonUtils.asString(json['id']),
+  factory VendorPaymentLineModel.fromJson(Map<String, dynamic> json) =>
+      VendorPaymentLineModel(
+        id: JsonUtils.asString(json['id']),
         purchaseBillId: JsonUtils.asString(json['purchaseBillId']),
-        billNumber:     JsonUtils.asString(json['billNumber']),
-        amount:         JsonUtils.asDouble(json['amount']),
+        billNumber: JsonUtils.asString(json['billNumber']),
+        amount: JsonUtils.asDouble(json['amount']),
       );
 }

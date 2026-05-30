@@ -20,7 +20,9 @@ class InvoiceNotesBox extends StatelessWidget {
       decoration: InputDecoration(
         labelText: 'Notes',
         hintText: 'Write notes here',
-        border: OutlineInputBorder(borderSide: BorderSide(color: cs.outlineVariant)),
+        border: OutlineInputBorder(
+          borderSide: BorderSide(color: cs.outlineVariant),
+        ),
       ),
     );
   }

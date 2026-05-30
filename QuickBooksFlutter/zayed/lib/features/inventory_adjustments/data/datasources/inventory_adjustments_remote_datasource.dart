@@ -32,7 +32,10 @@ class InventoryAdjustmentsRemoteDatasource {
       );
 
       final items = ((response.data?['items'] as List?) ?? const [])
-          .map((json) => InventoryAdjustmentModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) =>
+                InventoryAdjustmentModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
       return Success(items);
     } on DioException catch (error) {
@@ -42,14 +45,18 @@ class InventoryAdjustmentsRemoteDatasource {
 
   Future<ApiResult<InventoryAdjustmentModel>> getById(String id) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/api/inventory-adjustments/$id');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/inventory-adjustments/$id',
+      );
       return Success(InventoryAdjustmentModel.fromJson(response.data!));
     } on DioException catch (error) {
       return Failure(parseError(error));
     }
   }
 
-  Future<ApiResult<InventoryAdjustmentModel>> create(CreateInventoryAdjustmentDto dto) async {
+  Future<ApiResult<InventoryAdjustmentModel>> create(
+    CreateInventoryAdjustmentDto dto,
+  ) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         '/api/inventory-adjustments',

@@ -14,14 +14,13 @@ class SalesReceiptsRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getAll(
-        search: search,
-        customerId: customerId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getAll(
+    search: search,
+    customerId: customerId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
   Future<ApiResult<SalesReceiptModel>> getById(String id) =>
       _datasource.getById(id);

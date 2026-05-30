@@ -17,8 +17,7 @@ class SalesReceiptsListPage extends ConsumerStatefulWidget {
       _SalesReceiptsListPageState();
 }
 
-class _SalesReceiptsListPageState
-    extends ConsumerState<SalesReceiptsListPage> {
+class _SalesReceiptsListPageState extends ConsumerState<SalesReceiptsListPage> {
   final _queryCtrl = TextEditingController();
   int _selectedStatus = 0; // 0: All, 1: Posted, 2: Void
   DateTimeRange? _dateRange;
@@ -33,7 +32,7 @@ class _SalesReceiptsListPageState
   Widget build(BuildContext context) {
     final receiptsAsync = ref.watch(salesReceiptsStateProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final dateLabel = _dateRange == null
         ? 'Any date'
         : '${_fmtDate(_dateRange!.start)} - ${_fmtDate(_dateRange!.end)}';
@@ -65,7 +64,8 @@ class _SalesReceiptsListPageState
                   _Tool(
                     icon: Icons.refresh,
                     label: 'Refresh',
-                    onTap: () => ref.read(salesReceiptsStateProvider.notifier).refresh(),
+                    onTap: () =>
+                        ref.read(salesReceiptsStateProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -133,7 +133,11 @@ class _SalesReceiptsListPageState
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.centerLeft,
                       ),
-                      icon: const Icon(Icons.date_range, size: 18, color: Color(0xFF49454F)),
+                      icon: const Icon(
+                        Icons.date_range,
+                        size: 18,
+                        color: Color(0xFF49454F),
+                      ),
                       label: Text(
                         dateLabel,
                         style: const TextStyle(color: Color(0xFF1D1B20)),
@@ -220,7 +224,7 @@ class _SalesReceiptsListPageState
                               itemBuilder: (context, index) {
                                 final receipt = filtered[index];
                                 final shaded = index.isEven;
-                                
+
                                 return InkWell(
                                   onTap: () => context.push(
                                     AppRoutes.salesReceiptDetails.replaceFirst(
@@ -245,10 +249,7 @@ class _SalesReceiptsListPageState
                                               : receipt.receiptNumber,
                                           flex: 2,
                                         ),
-                                        _Cell(
-                                          receipt.customerName,
-                                          flex: 4,
-                                        ),
+                                        _Cell(receipt.customerName, flex: 4),
                                         _Cell(
                                           receipt.paymentMethod ?? '-',
                                           flex: 2,
@@ -261,7 +262,9 @@ class _SalesReceiptsListPageState
                                           flex: 2,
                                           child: Align(
                                             alignment: Alignment.centerLeft,
-                                            child: _StatusBadge(isVoid: receipt.isVoid),
+                                            child: _StatusBadge(
+                                              isVoid: receipt.isVoid,
+                                            ),
                                           ),
                                         ),
                                         _Cell(
@@ -325,7 +328,8 @@ class _SalesReceiptsListPageState
       return receipt.receiptNumber.toLowerCase().contains(query) ||
           receipt.customerName.toLowerCase().contains(query) ||
           (receipt.paymentMethod?.toLowerCase().contains(query) ?? false) ||
-          (receipt.depositAccountName?.toLowerCase().contains(query) ?? false) ||
+          (receipt.depositAccountName?.toLowerCase().contains(query) ??
+              false) ||
           receipt.totalAmount.toStringAsFixed(2).contains(query);
     }).toList()..sort((a, b) => b.receiptDate.compareTo(a.receiptDate));
   }
@@ -427,10 +431,7 @@ class _Cell extends StatelessWidget {
 }
 
 class _CellWidget extends StatelessWidget {
-  const _CellWidget({
-    required this.child,
-    required this.flex,
-  });
+  const _CellWidget({required this.child, required this.flex});
   final Widget child;
   final int flex;
 
@@ -457,7 +458,7 @@ class _StatusBadge extends StatelessWidget {
     final String label;
     final Color bg;
     final Color fg;
-    
+
     if (isVoid) {
       label = 'Void';
       bg = Colors.red.shade100;

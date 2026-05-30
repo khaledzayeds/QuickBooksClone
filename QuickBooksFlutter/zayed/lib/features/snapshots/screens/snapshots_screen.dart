@@ -59,12 +59,16 @@ class _SnapshotsBody extends StatelessWidget {
                 children: [
                   Text(
                     'Company Snapshot',
-                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'A compact financial view powered by backend reports, ready for quick daily review.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -79,7 +83,11 @@ class _SnapshotsBody extends StatelessWidget {
         const SizedBox(height: 24),
         LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 1040 ? 4 : constraints.maxWidth >= 680 ? 2 : 1;
+            final columns = constraints.maxWidth >= 1040
+                ? 4
+                : constraints.maxWidth >= 680
+                ? 2
+                : 1;
             return GridView.count(
               crossAxisCount: columns,
               childAspectRatio: columns == 1 ? 3.4 : 2.2,
@@ -108,7 +116,9 @@ class _SnapshotsBody extends StatelessWidget {
                   value: _money(snapshot.expectedOutgoing, snapshot.currency),
                   subtitle: '${snapshot.openBillCount} open bill(s)',
                   icon: Icons.north_east_outlined,
-                  tone: snapshot.overdueOutgoing > 0 ? _SnapshotTone.warning : _SnapshotTone.neutral,
+                  tone: snapshot.overdueOutgoing > 0
+                      ? _SnapshotTone.warning
+                      : _SnapshotTone.neutral,
                   route: AppRoutes.purchaseBills,
                 ),
                 _SnapshotTile(
@@ -128,25 +138,49 @@ class _SnapshotsBody extends StatelessWidget {
             final wide = constraints.maxWidth >= 980;
             final position = _Panel(
               title: 'Financial Position',
-              subtitle: 'Assets, liabilities, and equity from the Balance Sheet report.',
+              subtitle:
+                  'Assets, liabilities, and equity from the Balance Sheet report.',
               child: _PositionChart(snapshot: snapshot),
             );
             final cashFlow = _Panel(
               title: 'Cash Flow Summary',
-              subtitle: 'Open receivables and payables compared to current cash.',
+              subtitle:
+                  'Open receivables and payables compared to current cash.',
               child: Column(
                 children: [
-                  _SnapshotRow('Cash', snapshot.cashBalance, snapshot.currency, _tone(snapshot.cashBalance)),
-                  _SnapshotRow('Expected In', snapshot.expectedIncoming, snapshot.currency, _SnapshotTone.positive),
-                  _SnapshotRow('Expected Out', snapshot.expectedOutgoing, snapshot.currency, _SnapshotTone.warning),
+                  _SnapshotRow(
+                    'Cash',
+                    snapshot.cashBalance,
+                    snapshot.currency,
+                    _tone(snapshot.cashBalance),
+                  ),
+                  _SnapshotRow(
+                    'Expected In',
+                    snapshot.expectedIncoming,
+                    snapshot.currency,
+                    _SnapshotTone.positive,
+                  ),
+                  _SnapshotRow(
+                    'Expected Out',
+                    snapshot.expectedOutgoing,
+                    snapshot.currency,
+                    _SnapshotTone.warning,
+                  ),
                   const Divider(height: 28),
-                  _SnapshotRow('Projected Cash', snapshot.netCashAfterOpenItems, snapshot.currency, _tone(snapshot.netCashAfterOpenItems)),
+                  _SnapshotRow(
+                    'Projected Cash',
+                    snapshot.netCashAfterOpenItems,
+                    snapshot.currency,
+                    _tone(snapshot.netCashAfterOpenItems),
+                  ),
                 ],
               ),
             );
 
             if (!wide) {
-              return Column(children: [position, const SizedBox(height: 16), cashFlow]);
+              return Column(
+                children: [position, const SizedBox(height: 16), cashFlow],
+              );
             }
 
             return Row(
@@ -164,7 +198,9 @@ class _SnapshotsBody extends StatelessWidget {
           title: 'Attention Needed',
           subtitle: 'Backend-generated alerts from current financial reports.',
           child: Column(
-            children: snapshot.alerts.map((alert) => _AlertCard(alert: alert)).toList(),
+            children: snapshot.alerts
+                .map((alert) => _AlertCard(alert: alert))
+                .toList(),
           ),
         ),
         const SizedBox(height: 24),
@@ -243,17 +279,34 @@ class _SnapshotTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    Text(
+                      title,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    Text(
+                      value,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 3),
-                      Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -280,10 +333,20 @@ class _Panel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             if (subtitle != null) ...[
               const SizedBox(height: 4),
-              Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+              Text(
+                subtitle!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
             ],
             const Divider(height: 28),
             child,
@@ -301,7 +364,10 @@ class _PositionChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = snapshot.totalAssets.abs() + snapshot.totalLiabilities.abs() + snapshot.totalEquity.abs();
+    final total =
+        snapshot.totalAssets.abs() +
+        snapshot.totalLiabilities.abs() +
+        snapshot.totalEquity.abs();
     if (total == 0) {
       return const SizedBox(
         height: 220,
@@ -356,7 +422,12 @@ class _SnapshotRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
           Text(
             _money(value, currency),
             style: TextStyle(fontWeight: FontWeight.w900, color: color),
@@ -398,7 +469,10 @@ class _AlertCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(alert.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  alert.title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 4),
                 Text(alert.message),
               ],
@@ -428,9 +502,16 @@ class _ErrorState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 42),
+                Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 42,
+                ),
                 const SizedBox(height: 12),
-                const Text('Could not load snapshots', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                const Text(
+                  'Could not load snapshots',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 8),
                 Text(message, textAlign: TextAlign.center),
                 const SizedBox(height: 18),
@@ -457,11 +538,13 @@ _SnapshotTone _tone(double value) {
 }
 
 Color _toneColor(BuildContext context, _SnapshotTone tone) => switch (tone) {
-      _SnapshotTone.positive => Colors.green,
-      _SnapshotTone.warning => Colors.orange,
-      _SnapshotTone.negative => Theme.of(context).colorScheme.error,
-      _SnapshotTone.neutral => Theme.of(context).colorScheme.primary,
-    };
+  _SnapshotTone.positive => Colors.green,
+  _SnapshotTone.warning => Colors.orange,
+  _SnapshotTone.negative => Theme.of(context).colorScheme.error,
+  _SnapshotTone.neutral => Theme.of(context).colorScheme.primary,
+};
 
-String _money(double value, String currency) => '$currency ${value.toStringAsFixed(2)}';
-String _date(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+String _money(double value, String currency) =>
+    '$currency ${value.toStringAsFixed(2)}';
+String _date(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

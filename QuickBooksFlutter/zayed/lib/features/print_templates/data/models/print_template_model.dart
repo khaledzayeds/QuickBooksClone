@@ -55,7 +55,11 @@ class PrintTemplateModel {
   }
 
   PrintTemplateModel updateElement(PrintElementModel next) {
-    return copyWith(elements: elements.map((item) => item.id == next.id ? next : item).toList());
+    return copyWith(
+      elements: elements
+          .map((item) => item.id == next.id ? next : item)
+          .toList(),
+    );
   }
 
   PrintTemplateModel addElement(PrintElementModel next) {
@@ -67,18 +71,25 @@ class PrintTemplateModel {
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       documentType: json['documentType'] as String? ?? 'invoice',
-      page: PrintPageModel.fromJson((json['page'] as Map?)?.cast<String, dynamic>() ?? const {}),
+      page: PrintPageModel.fromJson(
+        (json['page'] as Map?)?.cast<String, dynamic>() ?? const {},
+      ),
       elements: ((json['elements'] as List?) ?? const [])
           .whereType<Map>()
-          .map((item) => PrintElementModel.fromJson(item.cast<String, dynamic>()))
+          .map(
+            (item) => PrintElementModel.fromJson(item.cast<String, dynamic>()),
+          )
           .toList(),
       isDefault: json['isDefault'] == true,
       backendId: json['backendId'] as String?,
-      pageSize: json['pageSize'] as String? ?? ((json['page'] as Map?)?['size'] as String? ?? 'A4'),
+      pageSize:
+          json['pageSize'] as String? ??
+          ((json['page'] as Map?)?['size'] as String? ?? 'A4'),
     );
   }
 
-  factory PrintTemplateModel.fromJsonString(String source) => PrintTemplateModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
+  factory PrintTemplateModel.fromJsonString(String source) =>
+      PrintTemplateModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
 
   factory PrintTemplateModel.fromApiJson(Map<String, dynamic> json) {
     final content = json['jsonContent'] as String? ?? '{}';
@@ -93,23 +104,23 @@ class PrintTemplateModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'documentType': documentType,
-        'page': page.toJson(),
-        'elements': elements.map((item) => item.toJson()).toList(),
-        'isDefault': isDefault,
-        if (backendId != null) 'backendId': backendId,
-        'pageSize': pageSize,
-      };
+    'id': id,
+    'name': name,
+    'documentType': documentType,
+    'page': page.toJson(),
+    'elements': elements.map((item) => item.toJson()).toList(),
+    'isDefault': isDefault,
+    if (backendId != null) 'backendId': backendId,
+    'pageSize': pageSize,
+  };
 
   Map<String, dynamic> toApiJson() => {
-        'name': name,
-        'documentType': documentType,
-        'pageSize': pageSize,
-        'jsonContent': toPrettyJson(),
-        'isDefault': isDefault,
-      };
+    'name': name,
+    'documentType': documentType,
+    'pageSize': pageSize,
+    'jsonContent': toPrettyJson(),
+    'isDefault': isDefault,
+  };
 
   String toPrettyJson() => const JsonEncoder.withIndent('  ').convert(toJson());
 }

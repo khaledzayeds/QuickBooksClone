@@ -19,15 +19,15 @@ class CreatePurchaseBillDto {
   final String? memo;
   final List<CreatePurchaseBillLineDto> lines;
 
-    Map<String, dynamic> toJson() => {
-        'vendorId':           vendorId,
-        'inventoryReceiptId': inventoryReceiptId,
-        'billDate':           billDate.toIso8601String().split('T')[0],
-        'dueDate':            dueDate.toIso8601String().split('T')[0],
-        'saveMode':           saveMode,
-        'memo':               memo,
-        'lines':              lines.map((l) => l.toJson()).toList(),
-      };
+  Map<String, dynamic> toJson() => {
+    'vendorId': vendorId,
+    'inventoryReceiptId': inventoryReceiptId,
+    'billDate': billDate.toIso8601String().split('T')[0],
+    'dueDate': dueDate.toIso8601String().split('T')[0],
+    'saveMode': saveMode,
+    'memo': memo,
+    'lines': lines.map((l) => l.toJson()).toList(),
+  };
 }
 
 class CreatePurchaseBillLineDto {
@@ -46,10 +46,10 @@ class CreatePurchaseBillLineDto {
   final double unitCost;
 
   Map<String, dynamic> toJson() => {
-        'itemId':                 itemId,
-        'inventoryReceiptLineId': inventoryReceiptLineId,
-        'description':            description,
-        'quantity':               quantity,
-        'unitCost':               unitCost,
-      };
+    'itemId': itemId,
+    'inventoryReceiptLineId': inventoryReceiptLineId,
+    'description': description,
+    'quantity': quantity,
+    'unitCost': unitCost,
+  };
 }

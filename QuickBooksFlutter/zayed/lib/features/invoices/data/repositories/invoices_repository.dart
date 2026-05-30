@@ -15,20 +15,23 @@ class InvoicesRepository {
     bool includeVoid = false,
     int page = 1,
     int pageSize = 25,
-  }) =>
-      _datasource.getInvoices(
-        search: search,
-        customerId: customerId,
-        includeVoid: includeVoid,
-        page: page,
-        pageSize: pageSize,
-      );
+  }) => _datasource.getInvoices(
+    search: search,
+    customerId: customerId,
+    includeVoid: includeVoid,
+    page: page,
+    pageSize: pageSize,
+  );
 
-  Future<ApiResult<InvoiceModel>> getInvoice(String id) => _datasource.getInvoice(id);
+  Future<ApiResult<InvoiceModel>> getInvoice(String id) =>
+      _datasource.getInvoice(id);
 
-  Future<ApiResult<InvoiceModel>> createInvoice(Map<String, dynamic> body) => _datasource.createInvoice(body);
+  Future<ApiResult<InvoiceModel>> createInvoice(Map<String, dynamic> body) =>
+      _datasource.createInvoice(body);
 
-  Future<ApiResult<InvoiceModel>> postInvoice(String id) => _datasource.postInvoice(id);
+  Future<ApiResult<InvoiceModel>> postInvoice(String id) =>
+      _datasource.postInvoice(id);
 
-  Future<ApiResult<InvoiceModel>> voidInvoice(String id) => _datasource.voidInvoice(id);
+  Future<ApiResult<InvoiceModel>> voidInvoice(String id) =>
+      _datasource.voidInvoice(id);
 }

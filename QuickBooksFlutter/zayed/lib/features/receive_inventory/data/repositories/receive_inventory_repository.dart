@@ -10,14 +10,17 @@ class ReceiveInventoryRepository {
   ReceiveInventoryRepository(this._remote);
   final ReceiveInventoryRemoteDatasource _remote;
 
-  Future<ApiResult<List<ReceiveInventoryModel>>> getAll({String? purchaseOrderId, String? vendorId}) =>
-      _remote.getAll(purchaseOrderId: purchaseOrderId, vendorId: vendorId);
+  Future<ApiResult<List<ReceiveInventoryModel>>> getAll({
+    String? purchaseOrderId,
+    String? vendorId,
+  }) => _remote.getAll(purchaseOrderId: purchaseOrderId, vendorId: vendorId);
 
   Future<ApiResult<ReceiveInventoryModel>> getById(String id) =>
       _remote.getById(id);
 
-  Future<ApiResult<ReceiveInventoryModel>> create(CreateReceiveInventoryDto dto) =>
-      _remote.create(dto);
+  Future<ApiResult<ReceiveInventoryModel>> create(
+    CreateReceiveInventoryDto dto,
+  ) => _remote.create(dto);
 
   Future<ApiResult<ReceivingPlanModel>> getReceivingPlan(String poId) =>
       _remote.getReceivingPlan(poId);

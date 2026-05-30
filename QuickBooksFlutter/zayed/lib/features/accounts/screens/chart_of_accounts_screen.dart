@@ -78,7 +78,9 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                     onTap: () => ref.read(accountsProvider.notifier).refresh(),
                   ),
                   _Tool(
-                    icon: setupState.submitting ? Icons.hourglass_empty : Icons.account_tree_outlined,
+                    icon: setupState.submitting
+                        ? Icons.hourglass_empty
+                        : Icons.account_tree_outlined,
                     label: l10n.seedDefaults,
                     onTap: setupState.submitting
                         ? null
@@ -105,7 +107,7 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= 900;
-                  
+
                   final title = SizedBox(
                     width: wide ? 200 : double.infinity,
                     child: Text(
@@ -119,7 +121,8 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
 
                   final search = TextField(
                     controller: _searchCtrl,
-                    onChanged: (v) => ref.read(accountsProvider.notifier).setSearch(v),
+                    onChanged: (v) =>
+                        ref.read(accountsProvider.notifier).setSearch(v),
                     decoration: InputDecoration(
                       isDense: true,
                       filled: true,
@@ -138,17 +141,27 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                       decoration: InputDecoration(
                         labelText: l10n.typeFilter,
                         border: const OutlineInputBorder(),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
                       ),
                       items: [
-                        DropdownMenuItem<int?>(value: null, child: Text(l10n.allTypes)),
+                        DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text(l10n.allTypes),
+                        ),
                         ...AccountType.values.map(
                           (t) => DropdownMenuItem<int?>(
                             value: t.value,
                             child: Text(
                               AccountModel(
-                                id: '', code: '', name: '',
-                                accountType: t, balance: 0, isActive: true,
+                                id: '',
+                                code: '',
+                                name: '',
+                                accountType: t,
+                                balance: 0,
+                                isActive: true,
                               ).accountTypeName,
                             ),
                           ),
@@ -166,10 +179,15 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                     child: SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       value: _includeInactive,
-                      title: Text(l10n.includeInactive, style: theme.textTheme.labelSmall),
+                      title: Text(
+                        l10n.includeInactive,
+                        style: theme.textTheme.labelSmall,
+                      ),
                       onChanged: (v) {
                         setState(() => _includeInactive = v);
-                        ref.read(accountsProvider.notifier).setIncludeInactive(v);
+                        ref
+                            .read(accountsProvider.notifier)
+                            .setIncludeInactive(v);
                       },
                     ),
                   );
@@ -214,32 +232,56 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
               error: (_, _) => const SizedBox.shrink(),
               data: (list) {
                 final active = list.where((a) => a.isActive).length;
-                final debitBalance = list.where((a) => a.isDebitNormal).fold<double>(0, (sum, a) => sum + a.balance);
-                final creditBalance = list.where((a) => !a.isDebitNormal).fold<double>(0, (sum, a) => sum + a.balance);
+                final debitBalance = list
+                    .where((a) => a.isDebitNormal)
+                    .fold<double>(0, (sum, a) => sum + a.balance);
+                final creditBalance = list
+                    .where((a) => !a.isDebitNormal)
+                    .fold<double>(0, (sum, a) => sum + a.balance);
 
                 return Container(
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: const BoxDecoration(
                     color: Color(0xFFF3F6F7),
-                    border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFB7C3CB)),
+                    ),
                   ),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _SmallMetric(label: l10n.accounts, value: list.length.toString()),
+                        _SmallMetric(
+                          label: l10n.accounts,
+                          value: list.length.toString(),
+                        ),
                         _vDivider(),
-                        _SmallMetric(label: l10n.active, value: active.toString()),
+                        _SmallMetric(
+                          label: l10n.active,
+                          value: active.toString(),
+                        ),
                         _vDivider(),
-                        _SmallMetric(label: l10n.totalDebit, value: '${debitBalance.toStringAsFixed(2)} ${l10n.egp}'),
+                        _SmallMetric(
+                          label: l10n.totalDebit,
+                          value:
+                              '${debitBalance.toStringAsFixed(2)} ${l10n.egp}',
+                        ),
                         _vDivider(),
-                        _SmallMetric(label: l10n.totalCredit, value: '${creditBalance.toStringAsFixed(2)} ${l10n.egp}'),
+                        _SmallMetric(
+                          label: l10n.totalCredit,
+                          value:
+                              '${creditBalance.toStringAsFixed(2)} ${l10n.egp}',
+                        ),
                         if (setupState.defaultAccountsSeed != null) ...[
                           _vDivider(),
                           Text(
-                            l10n.seedCreated(setupState.defaultAccountsSeed!.createdCount),
-                            style: theme.textTheme.labelSmall?.copyWith(color: cs.primary),
+                            l10n.seedCreated(
+                              setupState.defaultAccountsSeed!.createdCount,
+                            ),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: cs.primary,
+                            ),
                           ),
                         ],
                       ],
@@ -294,14 +336,18 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                 ),
               ),
             ),
-
           ],
         ),
       ),
     );
   }
 
-  Widget _vDivider() => const VerticalDivider(width: 24, indent: 12, endIndent: 12, color: Color(0xFFB7C3CB));
+  Widget _vDivider() => const VerticalDivider(
+    width: 24,
+    indent: 12,
+    endIndent: 12,
+    color: Color(0xFFB7C3CB),
+  );
 
   Future<void> _toggleActive(AccountModel account) async {
     final confirmed = await showConfirmDialog(

@@ -21,12 +21,18 @@ class VendorDetailsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Vendor Details'),
         actions: [
-          vendorAsync.whenData((v) => AppButton(
-                label: 'Edit',
-                icon: Icons.edit_outlined,
-                variant: AppButtonVariant.secondary,
-                onPressed: () => context.go(AppRoutes.vendorEdit.replaceFirst(':id', id)),
-              )).value ??
+          vendorAsync
+                  .whenData(
+                    (v) => AppButton(
+                      label: 'Edit',
+                      icon: Icons.edit_outlined,
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () => context.go(
+                        AppRoutes.vendorEdit.replaceFirst(':id', id),
+                      ),
+                    ),
+                  )
+                  .value ??
               const SizedBox.shrink(),
           const SizedBox(width: 12),
         ],
@@ -57,8 +63,18 @@ class VendorDetailsScreen extends ConsumerWidget {
                   ],
                 );
 
-                if (!wide) return Column(children: [left, const SizedBox(height: 16), right]);
-                return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: left), const SizedBox(width: 16), Expanded(child: right)]);
+                if (!wide)
+                  return Column(
+                    children: [left, const SizedBox(height: 16), right],
+                  );
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: left),
+                    const SizedBox(width: 16),
+                    Expanded(child: right),
+                  ],
+                );
               },
             ),
           ],
@@ -85,31 +101,74 @@ class _HeaderCard extends StatelessWidget {
             CircleAvatar(
               radius: 36,
               backgroundColor: cs.primaryContainer,
-              child: Text(vendor.initials, style: theme.textTheme.headlineSmall?.copyWith(color: cs.onPrimaryContainer, fontWeight: FontWeight.w900)),
+              child: Text(
+                vendor.initials,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: cs.onPrimaryContainer,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(vendor.displayName, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  Text(
+                    vendor.displayName,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   if (vendor.companyName?.isNotEmpty == true) ...[
                     const SizedBox(height: 4),
-                    Text(vendor.companyName!, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                    Text(
+                      vendor.companyName!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      Chip(label: Text(vendor.isActive ? 'Active' : 'Inactive'), avatar: Icon(vendor.isActive ? Icons.check_circle_outline : Icons.block_outlined, size: 18)),
-                      Chip(label: Text(vendor.currency), avatar: const Icon(Icons.attach_money_outlined, size: 18)),
-                      if (vendor.hasBalance) const Chip(label: Text('Open payable'), avatar: Icon(Icons.receipt_long_outlined, size: 18)),
-                      if (vendor.hasCreditBalance) const Chip(label: Text('Vendor credits'), avatar: Icon(Icons.credit_score_outlined, size: 18)),
+                      Chip(
+                        label: Text(vendor.isActive ? 'Active' : 'Inactive'),
+                        avatar: Icon(
+                          vendor.isActive
+                              ? Icons.check_circle_outline
+                              : Icons.block_outlined,
+                          size: 18,
+                        ),
+                      ),
+                      Chip(
+                        label: Text(vendor.currency),
+                        avatar: const Icon(
+                          Icons.attach_money_outlined,
+                          size: 18,
+                        ),
+                      ),
+                      if (vendor.hasBalance)
+                        const Chip(
+                          label: Text('Open payable'),
+                          avatar: Icon(Icons.receipt_long_outlined, size: 18),
+                        ),
+                      if (vendor.hasCreditBalance)
+                        const Chip(
+                          label: Text('Vendor credits'),
+                          avatar: Icon(Icons.credit_score_outlined, size: 18),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text('Vendor record for purchase orders, bills, receive inventory, vendor credits, and vendor payments.', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                  Text(
+                    'Vendor record for purchase orders, bills, receive inventory, vendor credits, and vendor payments.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -130,14 +189,32 @@ class _BalancesCard extends StatelessWidget {
       icon: Icons.payments_outlined,
       title: 'Payables',
       children: [
-        _MetricGrid(metrics: [
-          _MetricData('Open payable', '${vendor.balance.toStringAsFixed(2)} ${vendor.currency}', Icons.receipt_long_outlined),
-          _MetricData('Vendor credits', '${vendor.creditBalance.toStringAsFixed(2)} ${vendor.currency}', Icons.credit_score_outlined),
-          _MetricData('Net payable', '${vendor.netPayable.toStringAsFixed(2)} ${vendor.currency}', Icons.account_balance_outlined),
-        ]),
+        _MetricGrid(
+          metrics: [
+            _MetricData(
+              'Open payable',
+              '${vendor.balance.toStringAsFixed(2)} ${vendor.currency}',
+              Icons.receipt_long_outlined,
+            ),
+            _MetricData(
+              'Vendor credits',
+              '${vendor.creditBalance.toStringAsFixed(2)} ${vendor.currency}',
+              Icons.credit_score_outlined,
+            ),
+            _MetricData(
+              'Net payable',
+              '${vendor.netPayable.toStringAsFixed(2)} ${vendor.currency}',
+              Icons.account_balance_outlined,
+            ),
+          ],
+        ),
         if (vendor.balance > 0) ...[
           const SizedBox(height: 12),
-          const _InfoBox(icon: Icons.info_outline, text: 'Vendor has an open payable balance. Pay Bills and Vendor Statement actions will use this balance later.'),
+          const _InfoBox(
+            icon: Icons.info_outline,
+            text:
+                'Vendor has an open payable balance. Pay Bills and Vendor Statement actions will use this balance later.',
+          ),
         ],
       ],
     );
@@ -161,7 +238,11 @@ class _ContactCard extends StatelessWidget {
         _InfoRow(label: 'Vendor ID', value: vendor.id),
         if (!vendor.hasContactInfo) ...[
           const SizedBox(height: 12),
-          const _InfoBox(icon: Icons.warning_amber_outlined, text: 'No phone or email is saved for this vendor. Add contact information before using statement or notification workflows.'),
+          const _InfoBox(
+            icon: Icons.warning_amber_outlined,
+            text:
+                'No phone or email is saved for this vendor. Add contact information before using statement or notification workflows.',
+          ),
         ],
       ],
     );
@@ -186,25 +267,33 @@ class _QuickActionsCard extends StatelessWidget {
               label: 'Purchase order',
               icon: Icons.shopping_cart_outlined,
               variant: AppButtonVariant.secondary,
-              onPressed: () => context.go('${AppRoutes.purchaseOrderNew}?vendorId=${vendor.id}'),
+              onPressed: () => context.go(
+                '${AppRoutes.purchaseOrderNew}?vendorId=${vendor.id}',
+              ),
             ),
             AppButton(
               label: 'Purchase bill',
               icon: Icons.receipt_outlined,
               variant: AppButtonVariant.secondary,
-              onPressed: () => context.go('${AppRoutes.purchaseBillNew}?vendorId=${vendor.id}'),
+              onPressed: () => context.go(
+                '${AppRoutes.purchaseBillNew}?vendorId=${vendor.id}',
+              ),
             ),
             AppButton(
               label: 'Vendor payment',
               icon: Icons.payments_outlined,
               variant: AppButtonVariant.secondary,
-              onPressed: () => context.go('${AppRoutes.vendorPaymentNew}?vendorId=${vendor.id}'),
+              onPressed: () => context.go(
+                '${AppRoutes.vendorPaymentNew}?vendorId=${vendor.id}',
+              ),
             ),
             AppButton(
               label: 'Edit vendor',
               icon: Icons.edit_outlined,
               variant: AppButtonVariant.secondary,
-              onPressed: () => context.go(AppRoutes.vendorEdit.replaceFirst(':id', vendor.id)),
+              onPressed: () => context.go(
+                AppRoutes.vendorEdit.replaceFirst(':id', vendor.id),
+              ),
             ),
           ],
         ),
@@ -225,7 +314,8 @@ class _FutureActivityCard extends StatelessWidget {
       children: const [
         _InfoBox(
           icon: Icons.pending_actions_outlined,
-          text: 'Vendor activity will later show purchase orders, bills, receive inventory documents, vendor payments, vendor credits, and purchase returns after transaction screens are polished.',
+          text:
+              'Vendor activity will later show purchase orders, bills, receive inventory documents, vendor payments, vendor credits, and purchase returns after transaction screens are polished.',
         ),
       ],
     );
@@ -233,7 +323,11 @@ class _FutureActivityCard extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.icon, required this.title, required this.children});
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.children,
+  });
   final IconData icon;
   final String title;
   final List<Widget> children;
@@ -248,7 +342,23 @@ class _SectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [CircleAvatar(backgroundColor: cs.primaryContainer, child: Icon(icon, color: cs.onPrimaryContainer)), const SizedBox(width: 12), Expanded(child: Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)))]),
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: cs.primaryContainer,
+                  child: Icon(icon, color: cs.onPrimaryContainer),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             ...children,
           ],
@@ -264,7 +374,11 @@ class _MetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(spacing: 12, runSpacing: 12, children: metrics.map((metric) => _MetricCard(metric: metric)).toList());
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: metrics.map((metric) => _MetricCard(metric: metric)).toList(),
+    );
   }
 }
 
@@ -278,12 +392,34 @@ class _MetricCard extends StatelessWidget {
     return Container(
       width: 190,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
-      child: Row(children: [
-        Icon(metric.icon, color: cs.primary),
-        const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(metric.label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)), const SizedBox(height: 4), Text(metric.value, style: const TextStyle(fontWeight: FontWeight.w900))])),
-      ]),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(metric.icon, color: cs.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  metric.label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  metric.value,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -305,7 +441,21 @@ class _InfoRow extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [SizedBox(width: 150, child: Text(label, style: TextStyle(color: cs.onSurfaceVariant))), Expanded(child: SelectableText(value.isEmpty ? '-' : value, style: const TextStyle(fontWeight: FontWeight.w700)))]),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(label, style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          Expanded(
+            child: SelectableText(
+              value.isEmpty ? '-' : value,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -321,8 +471,20 @@ class _InfoBox extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: cs.secondaryContainer, borderRadius: BorderRadius.circular(12)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: cs.onSecondaryContainer), const SizedBox(width: 10), Expanded(child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)))]),
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: cs.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: TextStyle(color: cs.onSecondaryContainer)),
+          ),
+        ],
+      ),
     );
   }
 }

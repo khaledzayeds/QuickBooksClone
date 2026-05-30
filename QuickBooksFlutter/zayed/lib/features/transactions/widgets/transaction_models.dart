@@ -107,7 +107,11 @@ class TransactionTotalsUiModel {
 }
 
 class TransactionContextMetric {
-  const TransactionContextMetric({required this.label, required this.value, required this.icon});
+  const TransactionContextMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   final String label;
   final String value;
@@ -115,7 +119,12 @@ class TransactionContextMetric {
 }
 
 class TransactionContextActivity {
-  const TransactionContextActivity({required this.title, required this.subtitle, this.amount, this.status});
+  const TransactionContextActivity({
+    required this.title,
+    required this.subtitle,
+    this.amount,
+    this.status,
+  });
 
   final String title;
   final String subtitle;
@@ -125,32 +134,32 @@ class TransactionContextActivity {
 
 extension TransactionDocumentStatusLabel on TransactionDocumentStatus {
   String get label => switch (this) {
-        TransactionDocumentStatus.draft => 'Draft',
-        TransactionDocumentStatus.saved => 'Saved',
-        TransactionDocumentStatus.posted => 'Posted',
-        TransactionDocumentStatus.voided => 'Voided',
-      };
+    TransactionDocumentStatus.draft => 'Draft',
+    TransactionDocumentStatus.saved => 'Saved',
+    TransactionDocumentStatus.posted => 'Posted',
+    TransactionDocumentStatus.voided => 'Voided',
+  };
 
   IconData get icon => switch (this) {
-        TransactionDocumentStatus.draft => Icons.edit_note_outlined,
-        TransactionDocumentStatus.saved => Icons.save_outlined,
-        TransactionDocumentStatus.posted => Icons.verified_outlined,
-        TransactionDocumentStatus.voided => Icons.block_outlined,
-      };
+    TransactionDocumentStatus.draft => Icons.edit_note_outlined,
+    TransactionDocumentStatus.saved => Icons.save_outlined,
+    TransactionDocumentStatus.posted => Icons.verified_outlined,
+    TransactionDocumentStatus.voided => Icons.block_outlined,
+  };
 }
 
 extension TransactionScreenKindLabel on TransactionScreenKind {
   String get label => switch (this) {
-        TransactionScreenKind.invoice => 'Invoice',
-        TransactionScreenKind.salesReceipt => 'Sales Receipt',
-        TransactionScreenKind.purchaseOrder => 'Purchase Order',
-        TransactionScreenKind.receiveInventory => 'Receive Inventory',
-        TransactionScreenKind.purchaseBill => 'Purchase Bill',
-        TransactionScreenKind.payment => 'Payment',
-        TransactionScreenKind.vendorPayment => 'Vendor Payment',
-        TransactionScreenKind.returnDocument => 'Return',
-        TransactionScreenKind.credit => 'Credit',
-        TransactionScreenKind.inventoryAdjustment => 'Inventory Adjustment',
-        TransactionScreenKind.journalEntry => 'Journal Entry',
-      };
+    TransactionScreenKind.invoice => 'Invoice',
+    TransactionScreenKind.salesReceipt => 'Sales Receipt',
+    TransactionScreenKind.purchaseOrder => 'Purchase Order',
+    TransactionScreenKind.receiveInventory => 'Receive Inventory',
+    TransactionScreenKind.purchaseBill => 'Purchase Bill',
+    TransactionScreenKind.payment => 'Payment',
+    TransactionScreenKind.vendorPayment => 'Vendor Payment',
+    TransactionScreenKind.returnDocument => 'Return',
+    TransactionScreenKind.credit => 'Credit',
+    TransactionScreenKind.inventoryAdjustment => 'Inventory Adjustment',
+    TransactionScreenKind.journalEntry => 'Journal Entry',
+  };
 }

@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/connection_settings_repository.dart';
 import '../data/models/connection_settings_model.dart';
 
-final connectionSettingsRepositoryProvider = Provider<ConnectionSettingsRepository>(
-  (ref) => ConnectionSettingsRepository(),
-);
+final connectionSettingsRepositoryProvider =
+    Provider<ConnectionSettingsRepository>(
+      (ref) => ConnectionSettingsRepository(),
+    );
 
 class ConnectionSettingsState {
   const ConnectionSettingsState({
@@ -52,14 +53,21 @@ class ConnectionSettingsNotifier extends Notifier<ConnectionSettingsState> {
   ConnectionSettingsState build() {
     _repository = ref.watch(connectionSettingsRepositoryProvider);
     Future.microtask(load);
-    return ConnectionSettingsState(settings: ConnectionSettingsModel.defaults(), loading: true);
+    return ConnectionSettingsState(
+      settings: ConnectionSettingsModel.defaults(),
+      loading: true,
+    );
   }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, clearError: true);
     try {
       final settings = await _repository.load();
-      state = state.copyWith(settings: settings, loading: false, clearError: true);
+      state = state.copyWith(
+        settings: settings,
+        loading: false,
+        clearError: true,
+      );
     } catch (error) {
       state = state.copyWith(loading: false, errorMessage: error.toString());
     }
@@ -67,7 +75,9 @@ class ConnectionSettingsNotifier extends Notifier<ConnectionSettingsState> {
 
   void setProfileType(ConnectionProfileType profileType) {
     state = state.copyWith(
-      settings: state.settings.copyWith(profileType: profileType).resolveBaseUrl(),
+      settings: state.settings
+          .copyWith(profileType: profileType)
+          .resolveBaseUrl(),
       clearTestResult: true,
       clearError: true,
     );
@@ -101,14 +111,22 @@ class ConnectionSettingsNotifier extends Notifier<ConnectionSettingsState> {
     state = state.copyWith(saving: true, clearError: true);
     try {
       final settings = await _repository.save(state.settings);
-      state = state.copyWith(settings: settings, saving: false, clearError: true);
+      state = state.copyWith(
+        settings: settings,
+        saving: false,
+        clearError: true,
+      );
     } catch (error) {
       state = state.copyWith(saving: false, errorMessage: error.toString());
     }
   }
 
   Future<void> test() async {
-    state = state.copyWith(testing: true, clearTestResult: true, clearError: true);
+    state = state.copyWith(
+      testing: true,
+      clearTestResult: true,
+      clearError: true,
+    );
     try {
       final result = await _repository.test(state.settings);
       state = state.copyWith(testing: false, testResult: result);
@@ -118,6 +136,7 @@ class ConnectionSettingsNotifier extends Notifier<ConnectionSettingsState> {
   }
 }
 
-final connectionSettingsProvider = NotifierProvider<ConnectionSettingsNotifier, ConnectionSettingsState>(
-  ConnectionSettingsNotifier.new,
-);
+final connectionSettingsProvider =
+    NotifierProvider<ConnectionSettingsNotifier, ConnectionSettingsState>(
+      ConnectionSettingsNotifier.new,
+    );
