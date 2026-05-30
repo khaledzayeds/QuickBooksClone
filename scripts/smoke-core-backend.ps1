@@ -30,6 +30,7 @@ $tests = @(
     @{ Name = "Non-posting Tax Preview"; Script = "smoke-nonposting-tax-preview.ps1" },
     @{ Name = "API Contract"; Script = "smoke-api-contract.ps1" },
     @{ Name = "Settings"; Script = "smoke-settings.ps1" },
+    @{ Name = "Time Tracking"; Script = "smoke-time-tracking.ps1" },
     @{ Name = "Backup Policy"; Script = "smoke-backup-policy.ps1" }
 )
 
