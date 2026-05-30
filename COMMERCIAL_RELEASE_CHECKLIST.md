@@ -1,6 +1,6 @@
 # Commercial Release Checklist - Zayed Offline ERP v1
 
-Last updated: 2026-05-30 10:36 Africa/Cairo
+Last updated: 2026-05-30 19:32 Africa/Cairo
 Branch: `release/v1-zayed-offline`
 
 ## Automated Checks
@@ -27,6 +27,9 @@ Branch: `release/v1-zayed-offline`
 - Runtime settings from artifact: `GET http://127.0.0.1:5014/api/settings/runtime` returned SQLite runtime and backup support.
 - Final launch screenshot: `artifacts/release-final-launch.png`.
 - RC1 gate launch screenshot after the latest full release check: `artifacts/rc1-release-check-launch.png`.
+- Fresh profile launch screenshot after clearing saved local state: `artifacts/rc1-fresh-launch.png`.
+- Fresh setup retry/login screenshot: `artifacts/rc1-after-setup-retry.png`.
+- Fresh dashboard screenshot after UI login: `artifacts/rc1-after-login.png`.
 
 ## Commands Run
 
@@ -45,6 +48,14 @@ powershell -ExecutionPolicy Bypass -File scripts\release-check.ps1
 artifacts\ZayedOfflineERP-v1-win-x64\Zayed.exe
 ```
 
+Fresh UI RC1 attempt:
+
+```powershell
+# Backed up and cleared local Flutter shared preferences:
+# C:\Users\khale\AppData\Roaming\com.example\zayed\shared_preferences.json
+artifacts\ZayedOfflineERP-v1-win-x64\Zayed.exe
+```
+
 ## Actual Results
 
 - Latest `scripts/release-check.ps1`: PASS, exit code 0, printed `Release check completed.` after Time Tracking was added to the core backend gate.
@@ -60,6 +71,11 @@ artifacts\ZayedOfflineERP-v1-win-x64\Zayed.exe
 - Artifact launch: PASS for process startup and bundled API auto-start.
 - Startup screen: PASS for no service-unavailable screen. Latest artifact launch opened directly to `Company Home` because an authenticated local session was already present.
 - Dashboard visual: PASS, latest artifact screenshot shows `Company Home` loaded from `artifacts/ZayedOfflineERP-v1-win-x64/Zayed.exe`.
+- Fresh local state clear: PASS. `shared_preferences.json` was backed up under `artifacts/rc1-fresh-profile-backup/` and removed before launch.
+- Fresh artifact launch: PASS. App started from `artifacts/ZayedOfflineERP-v1-win-x64/Zayed.exe`, bundled `api/Zayed.Api.exe` started automatically, and `/api/health` returned `status = ok`.
+- Fresh company launcher: PASS. With no saved registry/session, the app opened the company launcher instead of reusing the old dashboard session.
+- Fresh setup flow: PARTIAL PASS. Create company and setup wizard worked from the UI, but the first `Finish Setup` attempt showed the Arabic timeout message `انتهت مهلة الاتصال، حاول مجدداً`; clicking `Finish Setup` again completed setup and opened the login screen.
+- Fresh UI login: PASS. Login as `admin` with the setup password succeeded from the desktop UI and opened `Company Home`.
 - `ActiveCompanyRequiredMiddleware`: PASS for startup/runtime paths; `/api/health`, `/api/settings/runtime`, `/api/companies/*`, `/api/setup/*`, `/api/auth/*`, and `/api/licenses/*` are not blocked before a company is open.
 
 ## Artifact QA
@@ -88,10 +104,18 @@ artifacts\ZayedOfflineERP-v1-win-x64\Zayed.exe
 - [x] Restore backup.
 - [x] Verify restore removes post-backup data and creates safety backup.
 - [x] Fetch invoice print data for preview/PDF pipeline.
-- [ ] Fresh visual login screen and login action still need a human pass from the release folder; latest launch reused an existing authenticated session and opened the dashboard directly.
-- [ ] Visual create/open company flow still needs a human pass from the release folder.
-- [ ] Visual desktop workflow still needs a human pass: create customer, create item, create invoice, save/post invoice, receive payment if supported by the UI.
-- [ ] Invoice preview/PDF from the desktop UI still needs a human pass, including Arabic rendering, totals, and company info.
+- [x] Fresh visual login screen appears from the release folder.
+- [x] Fresh UI login action succeeds from the release folder.
+- [x] Dashboard / Company Home opens after fresh UI login.
+- [x] Visual create company flow works from a fresh state.
+- [ ] Visual open existing company from launcher was not tested in this fresh RC1 attempt.
+- [x] Visual setup flow completes after retry.
+- [x] Visual create customer succeeds.
+- [x] Visual create item succeeds.
+- [ ] Visual create invoice/save-post failed in this RC1 attempt; customer text was entered in the invoice typeahead, but the invoice screen did not bind the selected customer and remained on `Select a customer`.
+- [ ] Receive payment from UI was not tested because invoice creation did not complete.
+- [ ] Invoice preview/PDF from the desktop UI was not tested because invoice creation did not complete.
+- [ ] Arabic print rendering, totals, and company info in PDF/preview were not tested from the UI because invoice creation did not complete.
 - [ ] Physical printer output was not tested; only invoice print-data/preview pipeline was verified by API.
 
 Artifact QA evidence:
@@ -109,6 +133,18 @@ Artifact QA evidence:
   - `Zayed.Api.exe` path: `artifacts/ZayedOfflineERP-v1-win-x64/api/Zayed.Api.exe`
   - `GET http://127.0.0.1:5014/api/health`: `status = ok`
   - Screenshot: `artifacts/rc1-release-check-launch.png`
+- Fresh UI evidence:
+  - Cleared saved local state: `C:\Users\khale\AppData\Roaming\com.example\zayed\shared_preferences.json`
+  - Backup folder: `artifacts/rc1-fresh-profile-backup/`
+  - Fresh launcher screenshot: `artifacts/rc1-fresh-launch.png`
+  - Company setup finish screen: `artifacts/rc1-setup-after-admin.png`
+  - Setup timeout screenshot: `artifacts/rc1-after-setup-finish.png`
+  - Login after setup retry screenshot: `artifacts/rc1-after-setup-retry.png`
+  - Dashboard after UI login screenshot: `artifacts/rc1-after-login.png`
+  - Customer created screenshot: `artifacts/rc1-customer-created.png`
+  - Item created screenshot: `artifacts/rc1-item-submit-result.png`
+  - Invoice blocked screenshot: `artifacts/rc1-invoice-save-result.png`
+  - API confirmation after UI workflow: 1 customer, 1 item, 0 invoices.
 
 ## Backup/Restore Test
 
@@ -123,9 +159,11 @@ Artifact QA evidence:
 
 ## Remaining Blockers Before Calling It Commercial-Ready
 
-- Fresh visual login screen and login action must be manually confirmed from `artifacts/ZayedOfflineERP-v1-win-x64/Zayed.exe`; the latest launch reused an existing session and opened the dashboard directly.
-- Visual create/open company, customer/item/invoice/payment workflow must be manually confirmed from the desktop UI.
-- Invoice preview/PDF and Arabic print rendering must be manually confirmed from the desktop UI.
+- Fresh setup first attempt shows a timeout and requires retry before login appears.
+- Visual open existing company from launcher still needs a fresh manual pass.
+- Invoice customer typeahead/binding must be fixed or verified with a reliable UI selection path; this blocked invoice save/post.
+- Receive payment from UI is blocked until invoice creation passes from UI.
+- Invoice preview/PDF and Arabic print rendering are blocked until a UI-created invoice can be saved/opened for printing.
 - Physical print output was not tested; invoice print-data path passed, but a real preview/PDF/printer pass is still required.
 - Flutter analyzer warnings/info remain at 138. They are not release-gating in this run, but they should be scheduled immediately after v1.
 
@@ -136,6 +174,8 @@ Artifact QA evidence:
 - Latest explicit core smoke and full release check both exited 0, but the console still printed late orphaned messages after success: `Inventory receipt did not get a sync-ready document number.`, `Security roles should require an authentication token.`, `138 issues found.`, and `Nuget.exe not found...`. These appeared after successful completion and remain an output-cleanup issue to investigate after RC1 gating is stable.
 - `release-check.ps1` now closes `Zayed.exe` before packaging; leaving the released app open can otherwise lock plugin DLLs and break release folder recreation.
 - Desktop UI automation with `SendKeys` was not reliable enough to count as a real dashboard pass.
+- Setup can complete from the desktop UI, but the first `Finish Setup` click timed out during the fresh RC1 attempt and only succeeded on retry.
+- Invoice form typeahead allowed text entry but did not bind the customer during the fresh RC1 attempt; the invoice remained unsaved.
 
 ## Deferred From Offline v1
 
@@ -147,4 +187,4 @@ Artifact QA evidence:
 
 ## Release Decision
 
-Do not mark this build commercial-ready yet. The latest automated release check and artifact API QA passed, the Windows artifact exists and starts its bundled API, and the dashboard opens visually from the artifact folder without the service-unavailable screen. This is still not `Zayed Offline ERP v1 RC1` until fresh visual login, create/open company, the customer/item/invoice/payment UI workflow, and invoice preview/PDF or printer output are manually passed from the artifact folder.
+Do not mark this build commercial-ready yet and do not mark it `Zayed Offline ERP v1 RC1` yet. The automated release gate passed and fresh artifact launch/login/dashboard/customer/item UI checks passed, but RC1 is blocked by the setup first-attempt timeout, the invoice customer binding/save failure, and the untested UI payment and invoice PDF/print flow.
