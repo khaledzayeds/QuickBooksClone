@@ -7,7 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../app/router.dart';
+import '../../../core/constants/api_enums.dart' as api;
 import '../../../core/navigation/safe_navigation.dart';
+import '../../accounts/data/models/account_model.dart';
+import '../../accounts/providers/accounts_provider.dart';
 import '../data/models/item_model.dart';
 import '../providers/items_provider.dart';
 import '../utils/item_excel_workbooks.dart';
@@ -18,6 +21,10 @@ class _ImportRow {
   String barcode;
   String sku;
   String unit;
+  String incomeAccountName;
+  String inventoryAssetAccountName;
+  String cogsAccountName;
+  String expenseAccountName;
   double salesPrice;
   double purchasePrice;
   double quantityOnHand;
@@ -30,6 +37,10 @@ class _ImportRow {
     required this.barcode,
     required this.sku,
     required this.unit,
+    required this.incomeAccountName,
+    required this.inventoryAssetAccountName,
+    required this.cogsAccountName,
+    required this.expenseAccountName,
     required this.salesPrice,
     required this.purchasePrice,
     required this.quantityOnHand,
@@ -51,6 +62,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
   int _imported = 0;
   int _failed = 0;
   bool _done = false;
+  final List<String> _failureMessages = [];
 
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -99,6 +111,13 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     final quantityIdx = headers.indexWhere(
       (h) => h.contains('qty') || h.contains('quantity') || h.contains('hand'),
     );
+    final incomeAccountIdx = _headerIndex(headers, ['income account']);
+    final inventoryAssetAccountIdx = _headerIndex(headers, [
+      'inventory asset account',
+      'asset account',
+    ]);
+    final cogsAccountIdx = _headerIndex(headers, ['cogs account', 'cogs']);
+    final expenseAccountIdx = _headerIndex(headers, ['expense account']);
     for (var i = 1; i < lines.length; i++) {
       final cols = _splitCsv(lines[i]);
       if (cols.length < 2) continue;
@@ -113,6 +132,18 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         quantityStr: quantityIdx >= 0
             ? (cols.elementAtOrNull(quantityIdx) ?? '0')
             : '0',
+        incomeAccountName: incomeAccountIdx >= 0
+            ? (cols.elementAtOrNull(incomeAccountIdx) ?? '')
+            : '',
+        inventoryAssetAccountName: inventoryAssetAccountIdx >= 0
+            ? (cols.elementAtOrNull(inventoryAssetAccountIdx) ?? '')
+            : '',
+        cogsAccountName: cogsAccountIdx >= 0
+            ? (cols.elementAtOrNull(cogsAccountIdx) ?? '')
+            : '',
+        expenseAccountName: expenseAccountIdx >= 0
+            ? (cols.elementAtOrNull(expenseAccountIdx) ?? '')
+            : '',
       );
       rows.add(row);
     }
@@ -122,7 +153,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
   Future<void> _parseExcel(String path) async {
     final bytes = await File(path).readAsBytes();
     final excel = Excel.decodeBytes(bytes);
-    final sheet = excel.tables.values.firstOrNull;
+    final sheet = excel.tables['Items'] ?? excel.tables.values.firstOrNull;
     if (sheet == null) return;
     final rows = <_ImportRow>[];
     final headers = sheet.rows.first
@@ -145,6 +176,13 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     final quantityIdx = headers.indexWhere(
       (h) => h.contains('qty') || h.contains('quantity') || h.contains('hand'),
     );
+    final incomeAccountIdx = _headerIndex(headers, ['income account']);
+    final inventoryAssetAccountIdx = _headerIndex(headers, [
+      'inventory asset account',
+      'asset account',
+    ]);
+    final cogsAccountIdx = _headerIndex(headers, ['cogs account', 'cogs']);
+    final expenseAccountIdx = _headerIndex(headers, ['expense account']);
     for (var i = 1; i < sheet.rows.length; i++) {
       final r = sheet.rows[i];
       String cell(int idx) => r.elementAtOrNull(idx)?.value?.toString() ?? '';
@@ -157,10 +195,24 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         salesStr: cell(salesIdx),
         purchaseStr: cell(purchaseIdx),
         quantityStr: quantityIdx >= 0 ? cell(quantityIdx) : '0',
+        incomeAccountName: incomeAccountIdx >= 0 ? cell(incomeAccountIdx) : '',
+        inventoryAssetAccountName: inventoryAssetAccountIdx >= 0
+            ? cell(inventoryAssetAccountIdx)
+            : '',
+        cogsAccountName: cogsAccountIdx >= 0 ? cell(cogsAccountIdx) : '',
+        expenseAccountName: expenseAccountIdx >= 0
+            ? cell(expenseAccountIdx)
+            : '',
       );
       rows.add(row);
     }
     setState(() => _rows = rows);
+  }
+
+  int _headerIndex(List<String> headers, List<String> keys) {
+    return headers.indexWhere(
+      (header) => keys.any((key) => header.contains(key)),
+    );
   }
 
   _ImportRow _validateRow({
@@ -172,6 +224,10 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     required String salesStr,
     required String purchaseStr,
     required String quantityStr,
+    required String incomeAccountName,
+    required String inventoryAssetAccountName,
+    required String cogsAccountName,
+    required String expenseAccountName,
   }) {
     if (name.trim().isEmpty) {
       return _ImportRow(
@@ -180,6 +236,10 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         barcode: barcode,
         sku: sku,
         unit: unit,
+        incomeAccountName: incomeAccountName,
+        inventoryAssetAccountName: inventoryAssetAccountName,
+        cogsAccountName: cogsAccountName,
+        expenseAccountName: expenseAccountName,
         salesPrice: 0,
         purchasePrice: 0,
         quantityOnHand: 0,
@@ -196,6 +256,10 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
       barcode: barcode.trim(),
       sku: sku.trim(),
       unit: unit.trim(),
+      incomeAccountName: incomeAccountName.trim(),
+      inventoryAssetAccountName: inventoryAssetAccountName.trim(),
+      cogsAccountName: cogsAccountName.trim(),
+      expenseAccountName: expenseAccountName.trim(),
       salesPrice: sales,
       purchasePrice: purchase,
       quantityOnHand: quantity,
@@ -228,10 +292,18 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
       _importing = true;
       _imported = 0;
       _failed = 0;
+      _failureMessages.clear();
     });
 
+    final accounts = await _loadAccountsForImport();
     for (final row in valid) {
       final itemType = _parseType(row.type);
+      final accountIds = _resolvePostingAccounts(row, itemType, accounts);
+      final accountError = _validatePostingAccounts(row, itemType, accountIds);
+      if (accountError != null) {
+        _markRowFailed(row, accountError);
+        continue;
+      }
       final body = <String, dynamic>{
         'name': row.name,
         'itemType': itemType.value,
@@ -243,11 +315,19 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         if (row.barcode.isNotEmpty) 'barcode': row.barcode,
         if (row.sku.isNotEmpty) 'sku': row.sku,
         if (row.unit.isNotEmpty) 'unit': row.unit,
+        if (accountIds.incomeAccountId != null)
+          'incomeAccountId': accountIds.incomeAccountId,
+        if (accountIds.inventoryAssetAccountId != null)
+          'inventoryAssetAccountId': accountIds.inventoryAssetAccountId,
+        if (accountIds.cogsAccountId != null)
+          'cogsAccountId': accountIds.cogsAccountId,
+        if (accountIds.expenseAccountId != null)
+          'expenseAccountId': accountIds.expenseAccountId,
       };
       final result = await ref.read(itemsProvider.notifier).createItem(body);
       result.when(
         success: (_) => setState(() => _imported++),
-        failure: (_) => setState(() => _failed++),
+        failure: (error) => _markRowFailed(row, error.message),
       );
     }
 
@@ -256,6 +336,173 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
       _done = true;
     });
     ref.read(itemsProvider.notifier).refresh();
+  }
+
+  Future<List<AccountModel>> _loadAccountsForImport() async {
+    try {
+      final result = await ref
+          .read(accountsDatasourceProvider)
+          .getAccounts(includeInactive: false, pageSize: 10000);
+      return result.when(
+        success: (accounts) => accounts,
+        failure: (_) => const <AccountModel>[],
+      );
+    } catch (_) {
+      return const <AccountModel>[];
+    }
+  }
+
+  _ResolvedItemAccounts _resolvePostingAccounts(
+    _ImportRow row,
+    ItemType itemType,
+    List<AccountModel> accounts,
+  ) {
+    String? findByName(String value, List<api.AccountType> types) {
+      final text = _normalizeAccount(value);
+      if (text.isEmpty) return null;
+      final pool = accounts
+          .where(
+            (account) =>
+                account.isActive && types.contains(account.accountType),
+          )
+          .toList();
+      final exact = pool.cast<AccountModel?>().firstWhere(
+        (account) => _normalizeAccount(account!.name) == text,
+        orElse: () => null,
+      );
+      if (exact != null) return exact.id;
+      final contains = pool.cast<AccountModel?>().firstWhere(
+        (account) =>
+            _normalizeAccount(account!.name).contains(text) ||
+            text.contains(_normalizeAccount(account.name)),
+        orElse: () => null,
+      );
+      return contains?.id;
+    }
+
+    String? fallback(List<api.AccountType> types, List<String> keywords) {
+      final pool = accounts
+          .where(
+            (account) =>
+                account.isActive && types.contains(account.accountType),
+          )
+          .toList();
+      for (final keyword in keywords) {
+        final match = pool.cast<AccountModel?>().firstWhere(
+          (account) => _normalizeAccount(account!.name).contains(keyword),
+          orElse: () => null,
+        );
+        if (match != null) return match.id;
+      }
+      return pool.isEmpty ? null : pool.first.id;
+    }
+
+    final incomeTypes = [api.AccountType.income, api.AccountType.otherIncome];
+    final assetTypes = [
+      api.AccountType.inventoryAsset,
+      api.AccountType.otherCurrentAsset,
+    ];
+    final cogsTypes = [api.AccountType.costOfGoodsSold];
+    final expenseTypes = [
+      api.AccountType.expense,
+      api.AccountType.otherExpense,
+      api.AccountType.costOfGoodsSold,
+    ];
+
+    var incomeId = findByName(row.incomeAccountName, incomeTypes);
+    var assetId = findByName(row.inventoryAssetAccountName, assetTypes);
+    var cogsId = findByName(row.cogsAccountName, cogsTypes);
+    var expenseId = findByName(row.expenseAccountName, expenseTypes);
+
+    if (itemType == ItemType.inventory ||
+        itemType == ItemType.inventoryAssembly) {
+      incomeId ??= fallback(incomeTypes, ['sales income', 'income']);
+      assetId ??= fallback(assetTypes, ['inventory asset', 'inventory']);
+      cogsId ??= fallback(cogsTypes, ['cost of goods', 'cogs']);
+    } else if (itemType == ItemType.service) {
+      incomeId ??= fallback(incomeTypes, [
+        'service income',
+        'sales income',
+        'income',
+      ]);
+      expenseId ??= row.expenseAccountName.isEmpty
+          ? null
+          : fallback(expenseTypes, ['expense', 'cost']);
+    } else if (itemType == ItemType.nonInventory ||
+        itemType == ItemType.otherCharge ||
+        itemType == ItemType.discount) {
+      incomeId ??= fallback(incomeTypes, ['sales income', 'income']);
+      expenseId ??=
+          findByName(row.expenseAccountName, expenseTypes) ??
+          (incomeId == null
+              ? fallback(expenseTypes, ['expense', 'cost'])
+              : null);
+    } else if (itemType == ItemType.fixedAsset) {
+      assetId ??= fallback(
+        [api.AccountType.fixedAsset, ...assetTypes],
+        ['fixed asset', 'asset'],
+      );
+      expenseId ??= row.expenseAccountName.isEmpty
+          ? null
+          : fallback(expenseTypes, ['expense', 'cost']);
+    } else if (itemType == ItemType.payment) {
+      incomeId ??= fallback(incomeTypes, ['income']);
+    }
+
+    return _ResolvedItemAccounts(
+      incomeAccountId: incomeId,
+      inventoryAssetAccountId: assetId,
+      cogsAccountId: cogsId,
+      expenseAccountId: expenseId,
+    );
+  }
+
+  String? _validatePostingAccounts(
+    _ImportRow row,
+    ItemType itemType,
+    _ResolvedItemAccounts accounts,
+  ) {
+    if (itemType == ItemType.inventory ||
+        itemType == ItemType.inventoryAssembly) {
+      if (row.quantityOnHand > 0 && row.purchasePrice <= 0) {
+        return 'Inventory opening quantity requires a purchase price.';
+      }
+      if (accounts.incomeAccountId == null) return 'Income account not found.';
+      if (accounts.inventoryAssetAccountId == null) {
+        return 'Inventory asset account not found.';
+      }
+      if (accounts.cogsAccountId == null) return 'COGS account not found.';
+    }
+    if ((itemType == ItemType.service ||
+            itemType == ItemType.nonInventory ||
+            itemType == ItemType.otherCharge ||
+            itemType == ItemType.discount) &&
+        accounts.incomeAccountId == null &&
+        accounts.expenseAccountId == null) {
+      return 'Income or expense account not found.';
+    }
+    if (itemType == ItemType.fixedAsset &&
+        accounts.inventoryAssetAccountId == null &&
+        accounts.expenseAccountId == null) {
+      return 'Asset or expense account not found.';
+    }
+    if (itemType == ItemType.payment && accounts.incomeAccountId == null) {
+      return 'Deposit or income account not found.';
+    }
+    return null;
+  }
+
+  String _normalizeAccount(String value) =>
+      value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+  void _markRowFailed(_ImportRow row, String message) {
+    setState(() {
+      row.error = message;
+      _failed++;
+      if (_failureMessages.length < 5) {
+        _failureMessages.add('${row.name}: $message');
+      }
+    });
   }
 
   Future<void> _downloadTemplate() async {
@@ -706,6 +953,26 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
           '$_imported items imported successfully${_failed > 0 ? ' · $_failed failed' : ''}.',
           style: TextStyle(color: cs.onSurfaceVariant),
         ),
+        if (_failureMessages.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: Column(
+              children: _failureMessages
+                  .map(
+                    (message) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: cs.error),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => context.popOrGo(AppRoutes.items),
@@ -714,6 +981,20 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
       ],
     ),
   );
+}
+
+class _ResolvedItemAccounts {
+  const _ResolvedItemAccounts({
+    this.incomeAccountId,
+    this.inventoryAssetAccountId,
+    this.cogsAccountId,
+    this.expenseAccountId,
+  });
+
+  final String? incomeAccountId;
+  final String? inventoryAssetAccountId;
+  final String? cogsAccountId;
+  final String? expenseAccountId;
 }
 
 class _Chip extends StatelessWidget {
