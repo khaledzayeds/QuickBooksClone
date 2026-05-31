@@ -15,8 +15,9 @@ import '../providers/items_provider.dart';
 import '../widgets/item_unit_selector.dart';
 
 class ItemFormScreen extends ConsumerStatefulWidget {
-  const ItemFormScreen({super.key, this.id});
+  const ItemFormScreen({super.key, this.id, this.initialType});
   final String? id;
+  final ItemType? initialType;
   bool get isEdit => id != null;
   @override
   ConsumerState<ItemFormScreen> createState() => _ItemFormScreenState();
@@ -48,6 +49,10 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
   @override
   void initState() {
     super.initState();
+    if (!widget.isEdit && widget.initialType != null) {
+      _itemType = widget.initialType!;
+      _unitCtrl.text = _tracksInventory(_itemType) ? 'pcs' : 'hr';
+    }
     _loadAccounts();
     if (widget.isEdit) _loadItem();
   }

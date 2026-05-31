@@ -36,6 +36,7 @@ import '../features/inventory_adjustments/screens/inventory_adjustment_list_scre
 import '../features/invoices/screens/invoice_form_page_shell.dart';
 import '../features/invoices/screens/invoices_list_page.dart';
 import '../features/items/screens/item_bulk_edit_screen.dart';
+import '../features/items/data/models/item_model.dart';
 import '../features/items/screens/item_details_screen.dart';
 import '../features/items/screens/item_form_screen.dart';
 import '../features/items/screens/item_import_screen.dart';
@@ -63,7 +64,6 @@ import '../features/sales_orders/screens/sales_order_list_screen.dart';
 import '../features/sales_receipts/screens/sales_receipt_form_page_shell.dart';
 import '../features/sales_receipts/screens/sales_receipts_list_page.dart';
 import '../features/sales_returns/screens/sales_return_form_screen.dart';
-import '../features/sales_returns/screens/sales_return_list_screen.dart';
 import '../features/settings/screens/backup_settings_screen.dart';
 import '../features/settings/screens/company_settings_screen.dart';
 import '../features/settings/screens/connection_settings_screen.dart';
@@ -291,7 +291,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.itemNew,
             builder: (context, state) {
               final typeVal = state.uri.queryParameters['type'];
-              return ItemFormScreen();
+              final itemType = typeVal == null
+                  ? null
+                  : ItemType.fromValue(int.tryParse(typeVal) ?? 1);
+              return ItemFormScreen(initialType: itemType);
             },
           ),
           GoRoute(
