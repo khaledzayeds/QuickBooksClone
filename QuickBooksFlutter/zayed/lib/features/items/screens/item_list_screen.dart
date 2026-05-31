@@ -1,6 +1,5 @@
 // item_list_screen.dart
 import 'dart:io';
-import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +12,7 @@ import '../../../core/widgets/loading_widget.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/models/item_model.dart';
 import '../providers/items_provider.dart';
+import '../utils/item_excel_workbooks.dart';
 import '../widgets/item_search_bar.dart';
 
 class ItemListScreen extends ConsumerStatefulWidget {
@@ -233,76 +233,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
     result.when(
       success: (rows) async {
         try {
-          // Build Excel workbook
-          final excel = Excel.createExcel();
-          final sheet = excel['Items'];
-          excel.delete('Sheet1'); // remove default empty sheet
-
-          // Header row
-          final headers = [
-            'Name',
-            'Type',
-            'Barcode',
-            'Unit',
-            'Sales Price',
-            'Purchase Cost',
-            'Qty on Hand',
-            'Active',
-            'Part No. (optional)',
-            'Income Account',
-            'Inventory Asset Account',
-            'COGS Account',
-            'Expense Account',
-          ];
-          for (var i = 0; i < headers.length; i++) {
-            final cell = sheet.cell(
-              CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0),
-            );
-            cell.value = TextCellValue(headers[i]);
-            cell.cellStyle = CellStyle(
-              bold: true,
-              backgroundColorHex: ExcelColor.fromHexString('#1565C0'),
-              fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
-            );
-          }
-
-          // Data rows
-          for (var r = 0; r < rows.length; r++) {
-            final row = rows[r];
-            final vals = [
-              row['name']?.toString() ?? '',
-              row['itemType']?.toString() ?? '',
-              row['barcode']?.toString() ?? '',
-              row['unit']?.toString() ?? '',
-              row['salesPrice']?.toString() ?? '0',
-              row['purchasePrice']?.toString() ?? '0',
-              row['quantityOnHand']?.toString() ?? '0',
-              row['isActive'] == true ? 'Yes' : 'No',
-              row['sku']?.toString() ?? '',
-              row['incomeAccountName']?.toString() ?? '',
-              row['inventoryAssetAccountName']?.toString() ?? '',
-              row['cogsAccountName']?.toString() ?? '',
-              row['expenseAccountName']?.toString() ?? '',
-            ];
-            for (var c = 0; c < vals.length; c++) {
-              sheet
-                  .cell(
-                    CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r + 1),
-                  )
-                  .value = TextCellValue(
-                vals[c],
-              );
-            }
-          }
-
-          // Auto column widths (approximate)
-          for (var i = 0; i < headers.length; i++) {
-            sheet.setColumnWidth(i, 22);
-          }
-
-          final bytes = excel.encode();
-          if (bytes == null) throw Exception('Failed to encode Excel file');
-
+          final bytes = buildItemExportWorkbookBytes(rows);
           final dir =
               await getDownloadsDirectory() ??
               await getApplicationDocumentsDirectory();
@@ -336,20 +267,15 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
 
   Future<void> _downloadTemplate() async {
     try {
-      const template =
-          'Name,Type,Barcode,Unit,Sales Price,Purchase Cost,Part No. (optional)\n'
-          'Thermal Printer,Inventory,6221000000001,pcs,1500.00,1200.00,INV-001\n'
-          'Maintenance Service,Service,,hr,250.00,0,\n'
-          'Office Supplies,Non-inventory,,pcs,50.00,35.00,\n';
       final dir =
           await getDownloadsDirectory() ??
           await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/items-import-template.csv');
-      await file.writeAsString(template);
+      final file = File('${dir.path}/zayed-items-import-template.xlsx');
+      await file.writeAsBytes(buildItemImportTemplateBytes());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Template saved: ${file.path}'),
+          content: Text('Excel template saved: ${file.path}'),
           duration: const Duration(seconds: 6),
           action: SnackBarAction(label: 'OK', onPressed: () {}),
         ),

@@ -4,11 +4,13 @@ import 'package:excel/excel.dart' hide Border, TextSpan, BorderStyle;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../app/router.dart';
 import '../../../core/navigation/safe_navigation.dart';
 import '../data/models/item_model.dart';
 import '../providers/items_provider.dart';
+import '../utils/item_excel_workbooks.dart';
 
 class _ImportRow {
   String name;
@@ -18,6 +20,7 @@ class _ImportRow {
   String unit;
   double salesPrice;
   double purchasePrice;
+  double quantityOnHand;
   bool valid;
   String? error;
 
@@ -29,6 +32,7 @@ class _ImportRow {
     required this.unit,
     required this.salesPrice,
     required this.purchasePrice,
+    required this.quantityOnHand,
     required this.valid,
     this.error,
   });
@@ -92,6 +96,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     final unitIdx = idx('unit', 3);
     final salesIdx = idx('sales', 4);
     final purchaseIdx = idx('purchase', 5);
+    final quantityIdx = headers.indexWhere(
+      (h) => h.contains('qty') || h.contains('quantity') || h.contains('hand'),
+    );
     for (var i = 1; i < lines.length; i++) {
       final cols = _splitCsv(lines[i]);
       if (cols.length < 2) continue;
@@ -103,6 +110,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         unit: cols.elementAtOrNull(unitIdx) ?? '',
         salesStr: cols.elementAtOrNull(salesIdx) ?? '0',
         purchaseStr: cols.elementAtOrNull(purchaseIdx) ?? '0',
+        quantityStr: quantityIdx >= 0
+            ? (cols.elementAtOrNull(quantityIdx) ?? '0')
+            : '0',
       );
       rows.add(row);
     }
@@ -132,6 +142,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     final unitIdx = idx('unit', 3);
     final salesIdx = idx('sales', 4);
     final purchaseIdx = idx('purchase', 5);
+    final quantityIdx = headers.indexWhere(
+      (h) => h.contains('qty') || h.contains('quantity') || h.contains('hand'),
+    );
     for (var i = 1; i < sheet.rows.length; i++) {
       final r = sheet.rows[i];
       String cell(int idx) => r.elementAtOrNull(idx)?.value?.toString() ?? '';
@@ -143,6 +156,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         unit: cell(unitIdx),
         salesStr: cell(salesIdx),
         purchaseStr: cell(purchaseIdx),
+        quantityStr: quantityIdx >= 0 ? cell(quantityIdx) : '0',
       );
       rows.add(row);
     }
@@ -157,6 +171,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     required String unit,
     required String salesStr,
     required String purchaseStr,
+    required String quantityStr,
   }) {
     if (name.trim().isEmpty) {
       return _ImportRow(
@@ -167,12 +182,14 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         unit: unit,
         salesPrice: 0,
         purchasePrice: 0,
+        quantityOnHand: 0,
         valid: false,
         error: 'Name required',
       );
     }
     final sales = double.tryParse(salesStr.replaceAll(',', '')) ?? 0;
     final purchase = double.tryParse(purchaseStr.replaceAll(',', '')) ?? 0;
+    final quantity = double.tryParse(quantityStr.replaceAll(',', '')) ?? 0;
     return _ImportRow(
       name: name.trim(),
       type: type.trim(),
@@ -181,6 +198,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
       unit: unit.trim(),
       salesPrice: sales,
       purchasePrice: purchase,
+      quantityOnHand: quantity,
       valid: true,
     );
   }
@@ -219,6 +237,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         'itemType': itemType.value,
         'salesPrice': row.salesPrice,
         'purchasePrice': row.purchasePrice,
+        if (itemType == ItemType.inventory ||
+            itemType == ItemType.inventoryAssembly)
+          'quantityOnHand': row.quantityOnHand,
         if (row.barcode.isNotEmpty) 'barcode': row.barcode,
         if (row.sku.isNotEmpty) 'sku': row.sku,
         if (row.unit.isNotEmpty) 'unit': row.unit,
@@ -235,6 +256,41 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
       _done = true;
     });
     ref.read(itemsProvider.notifier).refresh();
+  }
+
+  Future<void> _downloadTemplate() async {
+    try {
+      final dir =
+          await getDownloadsDirectory() ??
+          await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/zayed-items-import-template.xlsx');
+      await file.writeAsBytes(buildItemImportTemplateBytes());
+      _snack('Excel template saved: ${file.path}');
+    } catch (e) {
+      _snack('Could not save Excel template: $e', isError: true);
+    }
+  }
+
+  Future<void> _exportItems() async {
+    final result = await ref.read(itemsProvider.notifier).exportItemsJson();
+    if (!mounted) return;
+    result.when(
+      success: (rows) async {
+        try {
+          final dir =
+              await getDownloadsDirectory() ??
+              await getApplicationDocumentsDirectory();
+          final file = File(
+            '${dir.path}/items-export-${DateTime.now().millisecondsSinceEpoch}.xlsx',
+          );
+          await file.writeAsBytes(buildItemExportWorkbookBytes(rows));
+          _snack('Excel export saved: ${file.path}');
+        } catch (e) {
+          _snack('Excel export failed: $e', isError: true);
+        }
+      },
+      failure: (e) => _snack(e.message, isError: true),
+    );
   }
 
   void _snack(String msg, {bool isError = false}) {
@@ -326,6 +382,34 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                   ),
                 ),
                 const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _downloadTemplate,
+                  icon: const Icon(Icons.description_outlined, size: 15),
+                  label: const Text(
+                    'Download Excel Template',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _exportItems,
+                  icon: const Icon(Icons.grid_on_outlined, size: 15),
+                  label: const Text(
+                    'Export Excel',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 if (_rows.isNotEmpty && !_done && !_importing)
                   FilledButton.icon(
                     onPressed: validCount == 0 ? null : _doImport,
@@ -397,9 +481,27 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                 label: const Text('Browse File'),
                 style: FilledButton.styleFrom(minimumSize: const Size(180, 44)),
               ),
+              const SizedBox(height: 10),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _downloadTemplate,
+                    icon: const Icon(Icons.description_outlined, size: 18),
+                    label: const Text('Download Excel Template'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _exportItems,
+                    icon: const Icon(Icons.grid_on_outlined, size: 18),
+                    label: const Text('Export Current Items'),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               Text(
-                'Expected columns: Name · Type · Barcode · Unit · Sales Price · Purchase Cost · Part No. (optional)',
+                'Expected workbook: Items sheet with Name, Type, Barcode, Unit, Sales Price, Purchase Cost, Qty on Hand, and Part No.',
                 style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
@@ -480,6 +582,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
             const _PH('Unit', 1),
             const _PH('Sales Price', 2),
             const _PH('Purchase Cost', 2),
+            const _PH('Qty', 1),
           ],
         ),
       ),
@@ -566,6 +669,13 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                           ),
                         ],
                       ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      row.quantityOnHand.toStringAsFixed(2),
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
