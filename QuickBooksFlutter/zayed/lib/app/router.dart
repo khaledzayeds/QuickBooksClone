@@ -36,6 +36,7 @@ import '../features/inventory_adjustments/screens/inventory_adjustment_list_scre
 import '../features/invoices/screens/invoice_form_page_shell.dart';
 import '../features/invoices/screens/invoices_list_page.dart';
 import '../features/items/screens/item_bulk_edit_screen.dart';
+import '../features/items/screens/item_barcode_center_screen.dart';
 import '../features/items/data/models/item_model.dart';
 import '../features/items/screens/item_details_screen.dart';
 import '../features/items/screens/item_form_screen.dart';
@@ -149,6 +150,7 @@ class AppRoutes {
   static const itemEdit = '/master/items/edit/:id';
   static const itemBulkEdit = '/master/items/bulk-edit';
   static const itemImport = '/master/items/import';
+  static const itemBarcodeCenter = '/master/items/barcodes';
   static const vendors = '/master/vendors';
   static const vendorNew = '/master/vendors/new';
   static const vendorEdit = '/master/vendors/edit/:id';
@@ -300,6 +302,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.itemBulkEdit,
             builder: (context, state) => const ItemBulkEditScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.itemBarcodeCenter,
+            builder: (context, state) => const ItemBarcodeCenterScreen(),
           ),
           GoRoute(
             path: AppRoutes.itemImport,

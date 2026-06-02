@@ -9,12 +9,19 @@ import 'package:zayed/l10n/app_localizations.dart';
 import '../../../app/router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_result.dart';
+import '../../../core/constants/api_enums.dart' as api;
+import '../../accounts/data/models/account_model.dart';
+import '../../accounts/providers/accounts_provider.dart';
 import '../../companies/providers/company_registry_provider.dart';
 import '../../customers/data/models/customer_model.dart';
 import '../../customers/providers/customers_provider.dart';
+import '../../items/data/models/item_model.dart';
+import '../../items/providers/items_provider.dart';
+import '../../items/utils/item_barcode_utils.dart';
 import '../../purchase_orders/data/models/order_line_entry.dart';
 import '../../transactions/widgets/transaction_models.dart';
 import '../../printing/widgets/document_print_preview_dialog.dart';
+import '../../transactions/widgets/quick_sales_create_dialogs.dart';
 import '../data/models/invoice_contracts.dart';
 import '../data/models/sales_preview_contracts.dart';
 import '../providers/invoices_provider.dart' as invoice_list;
@@ -23,6 +30,7 @@ import '../widgets/invoice_form_fields.dart';
 import '../widgets/invoice_context_panel.dart';
 import '../widgets/invoice_header_panel.dart';
 import '../widgets/invoice_lines_panel.dart';
+import '../widgets/invoice_quick_scan_template.dart';
 import '../../transactions/widgets/transaction_workspace_shell.dart';
 import '../widgets/notes_edit_dialog.dart';
 
@@ -58,6 +66,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   bool _posting = false;
   bool _loadingActivity = false;
   bool _loadingExisting = false;
+  InvoiceTemplateMode _templateMode = InvoiceTemplateMode.standard;
   Timer? _previewDebounce;
   String? _companyScopeKey;
 
@@ -675,6 +684,230 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
     _schedulePreview();
   }
 
+  void _setCustomer(CustomerModel customer) {
+    setState(() {
+      _customer = customer;
+      _customerCtrl.text = customer.displayName;
+      _activity = null;
+      _preview = null;
+      _editingInvoice = null;
+      _savedInvoice = null;
+    });
+    _loadCustomerActivity(customer.id);
+    _schedulePreview();
+  }
+
+  void _clearCustomer() {
+    setState(() {
+      _customer = null;
+      _customerCtrl.clear();
+      _activity = null;
+      _preview = null;
+      _editingInvoice = null;
+      _savedInvoice = null;
+    });
+  }
+
+  void _applyQuickItem(ItemModel item) {
+    if (_financialReadOnly) return;
+    if (item.isInventory && item.quantityOnHand <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${item.name} has no stock on hand.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+    setState(() {
+      final existing = _lines.where((line) => line.itemId == item.id).toList();
+      if (existing.isNotEmpty) {
+        final line = existing.first;
+        line.qty += 1;
+        line.qtyCtrl.text = line.qty.toString();
+      } else {
+        final empty = _lines.where((line) => line.itemId == null).toList();
+        final line = empty.isNotEmpty ? empty.first : TransactionLineEntry();
+        if (empty.isEmpty) _lines.add(line);
+        line.itemId = item.id;
+        line.itemName = item.name;
+        line.qty = 1;
+        line.rate = item.salesPrice;
+        line.descCtrl.text = item.name;
+        line.qtyCtrl.text = '1';
+        line.rateCtrl.text = item.salesPrice.toString();
+      }
+      _preview = null;
+      _editingInvoice = null;
+      _savedInvoice = null;
+    });
+    _schedulePreview();
+  }
+
+  void _setQuickLineQty(TransactionLineEntry line, double qty) {
+    if (_financialReadOnly) return;
+    if (qty <= 0) {
+      _removeQuickLine(line);
+      return;
+    }
+    setState(() {
+      line.qty = qty;
+      line.qtyCtrl.text = qty.toString();
+      _preview = null;
+      _editingInvoice = null;
+      _savedInvoice = null;
+    });
+    _schedulePreview();
+  }
+
+  void _setQuickLineRate(TransactionLineEntry line, double rate) {
+    if (_financialReadOnly) return;
+    setState(() {
+      line.rate = rate < 0 ? 0 : rate;
+      _preview = null;
+      _editingInvoice = null;
+      _savedInvoice = null;
+    });
+    _schedulePreview();
+  }
+
+  void _removeQuickLine(TransactionLineEntry line) {
+    if (_financialReadOnly) return;
+    setState(() {
+      if (_lines.length <= 1) {
+        _clearQuickLine(line);
+      } else {
+        _lines.remove(line);
+        line.dispose();
+      }
+      if (_lines.isEmpty) _lines.add(TransactionLineEntry());
+      _preview = null;
+      _editingInvoice = null;
+      _savedInvoice = null;
+    });
+    _schedulePreview();
+  }
+
+  void _clearQuickLine(TransactionLineEntry line) {
+    line.itemId = null;
+    line.itemName = '';
+    line.qty = 1;
+    line.rate = 0;
+    line.descCtrl.clear();
+    line.qtyCtrl.text = '1';
+    line.rateCtrl.text = '0';
+  }
+
+  String? _defaultAccountId(
+    List<AccountModel> accounts,
+    List<api.AccountType> types,
+    List<String> keywords,
+  ) {
+    final pool = accounts
+        .where(
+          (account) => account.isActive && types.contains(account.accountType),
+        )
+        .toList();
+    for (final keyword in keywords) {
+      final match = pool.cast<AccountModel?>().firstWhere(
+        (account) => account!.name.toLowerCase().contains(keyword),
+        orElse: () => null,
+      );
+      if (match != null) return match.id;
+    }
+    return pool.isEmpty ? null : pool.first.id;
+  }
+
+  Future<void> _openQuickCustomerDialog() async {
+    if (_financialReadOnly) return;
+    final draft = await showDialog<QuickCustomerDraft>(
+      context: context,
+      builder: (_) => const QuickCustomerDialog(),
+    );
+    if (draft == null || !mounted) return;
+    setState(() => _saving = true);
+    final result = await ref.read(customersProvider.notifier).createCustomer({
+      'displayName': draft.displayName,
+      if (draft.companyName.isNotEmpty) 'companyName': draft.companyName,
+      if (draft.phone.isNotEmpty) 'phone': draft.phone,
+      if (draft.email.isNotEmpty) 'email': draft.email,
+      'currency': draft.currency,
+      'openingBalance': 0,
+    });
+    if (!mounted) return;
+    setState(() => _saving = false);
+    result.when(
+      success: (customer) {
+        _setCustomer(customer);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${customer.displayName} created.')),
+        );
+      },
+      failure: (error) => _showError(error.message),
+    );
+  }
+
+  Future<void> _openQuickItemDialog(List<AccountModel> allAccounts) async {
+    if (_financialReadOnly) return;
+    final existingItems = ref.read(itemsProvider).value ?? const <ItemModel>[];
+    final defaults = QuickItemAccountDefaults(
+      incomeAccountId: _defaultAccountId(
+        allAccounts,
+        [api.AccountType.income, api.AccountType.otherIncome],
+        ['sales income', 'income', 'sales'],
+      ),
+      inventoryAssetAccountId: _defaultAccountId(
+        allAccounts,
+        [api.AccountType.inventoryAsset, api.AccountType.otherCurrentAsset],
+        ['inventory asset', 'inventory'],
+      ),
+      cogsAccountId: _defaultAccountId(
+        allAccounts,
+        [api.AccountType.costOfGoodsSold],
+        ['cost of goods', 'cogs'],
+      ),
+      expenseAccountId: _defaultAccountId(
+        allAccounts,
+        [
+          api.AccountType.expense,
+          api.AccountType.otherExpense,
+          api.AccountType.costOfGoodsSold,
+        ],
+        ['expense', 'cost'],
+      ),
+    );
+    final draft = await showDialog<QuickItemDraft>(
+      context: context,
+      builder: (_) => QuickItemDialog(
+        accounts: allAccounts.where((account) => account.isActive).toList(),
+        defaults: defaults,
+        suggestedBarcode: ItemBarcodeUtils.generateInStoreBarcode(
+          existingItems,
+        ),
+      ),
+    );
+    if (draft == null || !mounted) return;
+    final accountError = draft.validateAccounts();
+    if (accountError != null) {
+      _showError(accountError);
+      return;
+    }
+    setState(() => _saving = true);
+    final result = await ref
+        .read(itemsProvider.notifier)
+        .createItem(draft.toBody());
+    if (!mounted) return;
+    setState(() => _saving = false);
+    result.when(
+      success: (item) {
+        _applyQuickItem(item);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${item.name} created and added.')),
+        );
+      },
+      failure: (error) => _showError(error.message),
+    );
+  }
+
   Future<void> _handlePrint() async {
     final invoice = await _ensurePostedInvoice();
     if (invoice == null || !mounted) return;
@@ -867,122 +1100,166 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
               items.where((customer) => customer.isActive).toList(),
           orElse: () => const <CustomerModel>[],
         );
+    final sellableItems = ref
+        .watch(itemsProvider)
+        .maybeWhen(
+          data: (items) => items
+              .where(
+                (item) => item.isActive && !item.isBundle && !item.isSubtotal,
+              )
+              .toList(),
+          orElse: () => const <ItemModel>[],
+        );
+    final allAccounts = ref
+        .watch(accountsProvider)
+        .maybeWhen(
+          data: (items) => items,
+          orElse: () => const <AccountModel>[],
+        );
+
+    final customerField = InvoiceFormField(
+      label: l10n.customer,
+      required: true,
+      child: InvoiceCustomerField(
+        controller: _customerCtrl,
+        customers: customers,
+        selected: _customer,
+        enabled: !financialReadOnly,
+        onSelected: _setCustomer,
+        onCleared: _clearCustomer,
+      ),
+    );
+    final invoiceNumberField = InvoiceFormField(
+      label: 'Invoice #',
+      child: InvoiceReadonlyTextField(controller: _numberCtrl, hint: 'AUTO'),
+    );
+    final invoiceDateField = InvoiceFormField(
+      label: 'Invoice Date',
+      child: InvoiceReadonlyTextField(
+        controller: _dateCtrl,
+        hint: 'dd/mm/yyyy',
+        suffixIcon: Icons.calendar_today_outlined,
+        enabled: !financialReadOnly,
+        onTap: _pickInvoiceDate,
+      ),
+    );
+    final dueDateField = InvoiceFormField(
+      label: l10n.dueDate,
+      child: InvoiceReadonlyTextField(
+        controller: _dueDateCtrl,
+        hint: 'dd/mm/yyyy',
+        suffixIcon: Icons.event_available_outlined,
+        enabled: !financialReadOnly,
+        onTap: _pickDueDate,
+      ),
+    );
+    final billingTermsField = InvoiceFormField(
+      label: 'Terms',
+      child: InvoiceTermsField(
+        value: _terms,
+        terms: _kInvoiceTerms,
+        enabled: !financialReadOnly,
+        onChanged: (terms) => setState(() => _terms = terms),
+      ),
+    );
+    final memoField = InvoiceFormField(
+      label: 'Memo / Reference',
+      child: InvoiceMemoField(
+        controller: _memoCtrl,
+        onChanged: (_) => setState(() {}),
+      ),
+    );
+    final templateStrip = InvoiceTemplateStrip(
+      mode: _templateMode,
+      enabled: !financialReadOnly,
+      onChanged: (mode) => setState(() => _templateMode = mode),
+      trailing: Text(
+        _templateMode == InvoiceTemplateMode.quickScan
+            ? 'Quick Scan Invoice'
+            : 'Standard Invoice',
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: const Color(0xFF203C49),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+    final standardContent = Column(
+      children: [
+        templateStrip,
+        InvoiceHeaderPanel(
+          customerField: customerField,
+          invoiceNumberField: invoiceNumberField,
+          invoiceDateField: invoiceDateField,
+          dueDateField: dueDateField,
+          billingTermsField: billingTermsField,
+          memoField: memoField,
+          customer: _customer,
+        ),
+        Expanded(
+          child: InvoiceLinesPanel(
+            lines: _lines,
+            totals: _totals,
+            onAddLine: _addLine,
+            onLinesChanged: () {
+              if (financialReadOnly) return;
+              setState(() {
+                _preview = null;
+                _editingInvoice = null;
+                _savedInvoice = null;
+              });
+              _schedulePreview();
+            },
+            memoField: memoField,
+            saving: _saving,
+            posting: _posting,
+            readOnly: financialReadOnly,
+            onSaveAndClose: financialReadOnly
+                ? null
+                : () => _saveWithMode(_saveModeForPost()),
+            onSaveAndNew: financialReadOnly ? null : _saveAndNew,
+            onClear: _handleClearOrNew,
+          ),
+        ),
+      ],
+    );
+    final quickContent = Column(
+      children: [
+        templateStrip,
+        Expanded(
+          child: InvoiceQuickScanTemplate(
+            customerField: customerField,
+            invoiceDateField: invoiceDateField,
+            dueDateField: dueDateField,
+            billingTermsField: billingTermsField,
+            memoField: memoField,
+            items: sellableItems,
+            lines: _lines,
+            totals: _totals,
+            saving: _saving,
+            posting: _posting,
+            readOnly: financialReadOnly,
+            warning: _warning,
+            onItemSelected: _applyQuickItem,
+            onLineQtyChanged: _setQuickLineQty,
+            onLineRateChanged: _setQuickLineRate,
+            onRemoveLine: _removeQuickLine,
+            onSave: financialReadOnly
+                ? null
+                : () => _saveWithMode(_saveModeForPost()),
+            onSaveAndNew: financialReadOnly ? null : _saveAndNew,
+            onPrint: _handlePrint,
+            onQuickAddCustomer: _openQuickCustomerDialog,
+            onQuickAddItem: () => _openQuickItemDialog(allAccounts),
+          ),
+        ),
+      ],
+    );
 
     return TransactionWorkspaceShell(
       workspaceName: 'Invoice workspace',
-      formContent: Column(
-        children: [
-          InvoiceHeaderPanel(
-            customerField: InvoiceFormField(
-              label: l10n.customer,
-              required: true,
-              child: InvoiceCustomerField(
-                controller: _customerCtrl,
-                customers: customers,
-                selected: _customer,
-                enabled: !financialReadOnly,
-                onSelected: (customer) {
-                  setState(() {
-                    _customer = customer;
-                    _customerCtrl.text = customer.displayName;
-                    _activity = null;
-                    _preview = null;
-                    _editingInvoice = null;
-                    _savedInvoice = null;
-                  });
-                  _loadCustomerActivity(customer.id);
-                  _schedulePreview();
-                },
-                onCleared: () => setState(() {
-                  _customer = null;
-                  _customerCtrl.clear();
-                  _activity = null;
-                  _preview = null;
-                  _editingInvoice = null;
-                  _savedInvoice = null;
-                }),
-              ),
-            ),
-            invoiceNumberField: InvoiceFormField(
-              label: 'Invoice #',
-              child: InvoiceReadonlyTextField(
-                controller: _numberCtrl,
-                hint: 'AUTO',
-              ),
-            ),
-            invoiceDateField: InvoiceFormField(
-              label: 'Invoice Date',
-              child: InvoiceReadonlyTextField(
-                controller: _dateCtrl,
-                hint: 'dd/mm/yyyy',
-                suffixIcon: Icons.calendar_today_outlined,
-                enabled: !financialReadOnly,
-                onTap: _pickInvoiceDate,
-              ),
-            ),
-            dueDateField: InvoiceFormField(
-              label: l10n.dueDate,
-              child: InvoiceReadonlyTextField(
-                controller: _dueDateCtrl,
-                hint: 'dd/mm/yyyy',
-                suffixIcon: Icons.event_available_outlined,
-                enabled: !financialReadOnly,
-                onTap: _pickDueDate,
-              ),
-            ),
-            billingTermsField: InvoiceFormField(
-              label: 'Terms',
-              child: InvoiceTermsField(
-                value: _terms,
-                terms: _kInvoiceTerms,
-                enabled: !financialReadOnly,
-                onChanged: (terms) {
-                  setState(() => _terms = terms);
-                },
-              ),
-            ),
-            memoField: InvoiceFormField(
-              label: 'Memo / Reference',
-              child: InvoiceMemoField(
-                controller: _memoCtrl,
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-            customer: _customer,
-          ),
-          Expanded(
-            child: InvoiceLinesPanel(
-              lines: _lines,
-              totals: _totals,
-              onAddLine: _addLine,
-              onLinesChanged: () {
-                if (financialReadOnly) return;
-                setState(() {
-                  _preview = null;
-                  _editingInvoice = null;
-                  _savedInvoice = null;
-                });
-                _schedulePreview();
-              },
-              memoField: InvoiceFormField(
-                label: 'Memo / Reference',
-                child: InvoiceMemoField(
-                  controller: _memoCtrl,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              saving: _saving,
-              posting: _posting,
-              readOnly: financialReadOnly,
-              onSaveAndClose: financialReadOnly
-                  ? null
-                  : () => _saveWithMode(_saveModeForPost()),
-              onSaveAndNew: financialReadOnly ? null : _saveAndNew,
-              onClear: _handleClearOrNew,
-            ),
-          ),
-        ],
-      ),
+      formContent: _templateMode == InvoiceTemplateMode.quickScan
+          ? quickContent
+          : standardContent,
       contextPanel: buildInvoiceContextPanel(
         customer: _customer,
         metrics: _metrics,

@@ -46,8 +46,8 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
             onExportCsv: _exportCsv,
             onExportExcel: _exportExcel,
             onDownloadTemplate: _downloadTemplate,
-            onChangePrices: () =>
-                _showPriceChangeDialog(items.asData?.value ?? []),
+            onChangePrices: () => _showPriceChangeDialog(items.value ?? []),
+            onBarcodeCenter: () => context.go(AppRoutes.itemBarcodeCenter),
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
@@ -349,6 +349,7 @@ class _ToolStrip extends StatelessWidget {
     required this.onExportExcel,
     required this.onDownloadTemplate,
     required this.onChangePrices,
+    required this.onBarcodeCenter,
   });
   final VoidCallback onRefresh;
   final VoidCallback onClose;
@@ -359,6 +360,7 @@ class _ToolStrip extends StatelessWidget {
   final VoidCallback onExportExcel;
   final VoidCallback onDownloadTemplate;
   final VoidCallback onChangePrices;
+  final VoidCallback onBarcodeCenter;
 
   @override
   Widget build(BuildContext context) {
@@ -394,6 +396,7 @@ class _ToolStrip extends StatelessWidget {
               if (v == 'export_excel') onExportExcel();
               if (v == 'template') onDownloadTemplate();
               if (v == 'prices') onChangePrices();
+              if (v == 'barcodes') onBarcodeCenter();
             },
             child: _Btn(
               icon: Icons.more_vert,
@@ -443,6 +446,14 @@ class _ToolStrip extends StatelessWidget {
                 child: _MRow(
                   icon: Icons.price_change_outlined,
                   label: 'Change Item Prices',
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'barcodes',
+                child: _MRow(
+                  icon: Icons.qr_code_2_outlined,
+                  label: 'Barcode Center / Print Labels',
                 ),
               ),
             ],

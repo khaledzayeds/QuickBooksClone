@@ -42,6 +42,7 @@ class SalesReceiptShell extends StatelessWidget {
     required this.onClose,
     this.onViewAll,
     this.onEditNotes,
+    this.templateSwitcher,
   });
 
   final Widget numberField;
@@ -77,6 +78,7 @@ class SalesReceiptShell extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback? onViewAll;
   final VoidCallback? onEditNotes;
+  final Widget? templateSwitcher;
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +109,17 @@ class SalesReceiptShell extends StatelessWidget {
                 badgeText: statusBadgeText!,
                 message: statusMessage!,
                 color: statusColor ?? const Color(0xFF546E7A),
+              ),
+            if (templateSwitcher != null)
+              Container(
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.centerRight,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF7FAFB),
+                  border: Border(bottom: BorderSide(color: Color(0xFFB7C3CB))),
+                ),
+                child: templateSwitcher,
               ),
             Expanded(
               child: Row(
@@ -192,8 +205,10 @@ class _SalesReceiptStatusStrip extends StatelessWidget {
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
-        border: Border(bottom: BorderSide(color: color.withOpacity(0.35))),
+        color: color.withValues(alpha: 0.10),
+        border: Border(
+          bottom: BorderSide(color: color.withValues(alpha: 0.35)),
+        ),
       ),
       child: Row(
         children: [
