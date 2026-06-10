@@ -352,6 +352,8 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
     );
     final path = result?.files.single.path;
     if (!mounted || path == null || path.trim().isEmpty) return;
+    final businessType = await _askBusinessType();
+    if (!mounted || businessType == null) return;
 
     setState(() {
       _openingExisting = true;
@@ -366,6 +368,7 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
           .registerCompany(
             name: companyName,
             databasePath: path,
+            businessType: businessType,
             displayPath: path,
             makeActive: true,
           );
@@ -451,6 +454,50 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
     );
     controller.dispose();
     return result;
+  }
+
+  Future<CompanyBusinessType?> _askBusinessType() async {
+    var selectedType = CompanyBusinessType.hotelTourism;
+    return showDialog<CompanyBusinessType>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Business Type / نوع النشاط'),
+          content: SizedBox(
+            width: 420,
+            child: DropdownButtonFormField<CompanyBusinessType>(
+              initialValue: selectedType,
+              decoration: const InputDecoration(
+                labelText: 'Business Type / نوع النشاط',
+                border: OutlineInputBorder(),
+              ),
+              items: CompanyBusinessType.values
+                  .map(
+                    (type) => DropdownMenuItem(
+                      value: type,
+                      child: Text('${type.labelEn} / ${type.labelAr}'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setDialogState(() => selectedType = value);
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(_companyTexts(context).cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(selectedType),
+              child: Text(_companyTexts(context).continueText),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   String _ensureCompanyExtension(String path) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../navigation/providers/navigation_provider.dart';
 import '../data/hotel_master_data_models.dart';
 import '../providers/hotel_master_data_provider.dart';
 
@@ -42,20 +41,6 @@ class _HotelManagementScreenState extends ConsumerState<HotelManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    final modules = ref.watch(currentCompanyModulesProvider);
-    return modules.when(
-      data: (value) {
-        if (!value.hasModule('hotels')) {
-          return const _DisabledHotelModule();
-        }
-        return _buildContent(context);
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => const _DisabledHotelModule(),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     return Scaffold(
@@ -348,15 +333,6 @@ class _RecordsPane<T extends HotelMasterDataRecord> extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _DisabledHotelModule extends StatelessWidget {
-  const _DisabledHotelModule();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('هذا الموديول غير مفعل لهذه الشركة'));
   }
 }
 

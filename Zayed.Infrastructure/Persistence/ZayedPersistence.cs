@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Zayed.Core.Accounting;
@@ -44,7 +45,9 @@ public static class ZayedPersistence
                 ? BuildSqliteConnectionString(runtime.DatabasePath)
                 : connectionString;
 
-            options.UseSqlite(sqliteConnectionString);
+            options
+                .UseSqlite(sqliteConnectionString)
+                .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
 
         return services;
@@ -145,6 +148,7 @@ public static class ZayedPersistence
     {
         var options = new DbContextOptionsBuilder<ZayedDbContext>()
             .UseSqlite(CreateOpenSqliteConnection(BuildSqliteConnectionString(databasePath)), contextOwnsConnection: true)
+            .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning))
             .Options;
         return new ZayedDbContext(options);
     }
