@@ -5,6 +5,7 @@ using Zayed.Core.CustomerCredits;
 using Zayed.Core.Customers;
 using Zayed.Core.Documents;
 using Zayed.Core.Estimates;
+using Zayed.Core.Hotels;
 using Zayed.Core.InventoryAdjustments;
 using Zayed.Core.Invoices;
 using Zayed.Core.Items;
@@ -70,6 +71,14 @@ public sealed class ZayedDbContext : DbContext
     public DbSet<CompanyModule> CompanyModules => Set<CompanyModule>();
     public DbSet<BusinessTypeModuleDefault> BusinessTypeModuleDefaults => Set<BusinessTypeModuleDefault>();
     public DbSet<MenuItemDefinition> MenuItems => Set<MenuItemDefinition>();
+    public DbSet<HotelProperty> HotelProperties => Set<HotelProperty>();
+    public DbSet<HotelRoomType> HotelRoomTypes => Set<HotelRoomType>();
+    public DbSet<HotelMealPlan> HotelMealPlans => Set<HotelMealPlan>();
+    public DbSet<HotelAgent> HotelAgents => Set<HotelAgent>();
+    public DbSet<HotelContract> HotelContracts => Set<HotelContract>();
+    public DbSet<HotelContractRate> HotelContractRates => Set<HotelContractRate>();
+    public DbSet<HotelAllotment> HotelAllotments => Set<HotelAllotment>();
+    public DbSet<HotelReservation> HotelReservations => Set<HotelReservation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +109,7 @@ public sealed class ZayedDbContext : DbContext
         ConfigureVendorCredits(modelBuilder);
         ConfigureVendorPayments(modelBuilder);
         ConfigureModules(modelBuilder);
+        ConfigureHotels(modelBuilder);
     }
 
     private static void ConfigureAccounts(ModelBuilder modelBuilder)
@@ -944,6 +954,143 @@ public sealed class ZayedDbContext : DbContext
             entity.HasIndex(menuItem => menuItem.ModuleCode);
             entity.HasIndex(menuItem => menuItem.ParentId);
             entity.HasIndex(menuItem => menuItem.Route);
+        });
+    }
+
+    private static void ConfigureHotels(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<HotelProperty>(entity =>
+        {
+            entity.ToTable("hotel_properties");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(hotel => hotel.Name).HasMaxLength(180).IsRequired();
+            entity.Property(hotel => hotel.Country).HasMaxLength(80).IsRequired();
+            entity.Property(hotel => hotel.City).HasMaxLength(80).IsRequired();
+            entity.Property(hotel => hotel.Address).HasMaxLength(250);
+            entity.Property(hotel => hotel.Phone).HasMaxLength(60);
+            entity.Property(hotel => hotel.Email).HasMaxLength(150);
+            entity.Property(hotel => hotel.IsActive).IsRequired();
+            entity.HasIndex(hotel => new { hotel.CompanyId, hotel.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<HotelRoomType>(entity =>
+        {
+            entity.ToTable("hotel_room_types");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(roomType => roomType.Code).HasMaxLength(30).IsRequired();
+            entity.Property(roomType => roomType.Name).HasMaxLength(120).IsRequired();
+            entity.Property(roomType => roomType.Capacity).IsRequired();
+            entity.Property(roomType => roomType.Description).HasMaxLength(300);
+            entity.Property(roomType => roomType.IsActive).IsRequired();
+            entity.HasIndex(roomType => new { roomType.CompanyId, roomType.Code }).IsUnique();
+        });
+
+        modelBuilder.Entity<HotelMealPlan>(entity =>
+        {
+            entity.ToTable("hotel_meal_plans");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(mealPlan => mealPlan.Code).HasMaxLength(30).IsRequired();
+            entity.Property(mealPlan => mealPlan.Name).HasMaxLength(120).IsRequired();
+            entity.Property(mealPlan => mealPlan.Description).HasMaxLength(300);
+            entity.Property(mealPlan => mealPlan.IsActive).IsRequired();
+            entity.HasIndex(mealPlan => new { mealPlan.CompanyId, mealPlan.Code }).IsUnique();
+        });
+
+        modelBuilder.Entity<HotelAgent>(entity =>
+        {
+            entity.ToTable("hotel_agents");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(agent => agent.Name).HasMaxLength(180).IsRequired();
+            entity.Property(agent => agent.ContactName).HasMaxLength(120);
+            entity.Property(agent => agent.Email).HasMaxLength(150);
+            entity.Property(agent => agent.Phone).HasMaxLength(60);
+            entity.Property(agent => agent.Currency).HasMaxLength(3).IsRequired();
+            entity.Property(agent => agent.IsActive).IsRequired();
+            entity.HasIndex(agent => new { agent.CompanyId, agent.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<HotelContract>(entity =>
+        {
+            entity.ToTable("hotel_contracts");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(contract => contract.ContractNumber).HasMaxLength(60).IsRequired();
+            entity.Property(contract => contract.HotelId).IsRequired();
+            entity.Property(contract => contract.AgentId);
+            entity.Property(contract => contract.StartDate).IsRequired();
+            entity.Property(contract => contract.EndDate).IsRequired();
+            entity.Property(contract => contract.Currency).HasMaxLength(3).IsRequired();
+            entity.Property(contract => contract.Notes).HasMaxLength(500);
+            entity.Property(contract => contract.IsActive).IsRequired();
+            entity.HasIndex(contract => new { contract.CompanyId, contract.ContractNumber }).IsUnique();
+            entity.HasMany(contract => contract.Rates)
+                .WithOne()
+                .HasForeignKey(rate => rate.ContractId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(contract => contract.Rates).UsePropertyAccessMode(Microsoft.EntityFrameworkCore.PropertyAccessMode.Field);
+        });
+
+        modelBuilder.Entity<HotelContractRate>(entity =>
+        {
+            entity.ToTable("hotel_contract_rates");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(rate => rate.ContractId).IsRequired();
+            entity.Property(rate => rate.RoomTypeId).IsRequired();
+            entity.Property(rate => rate.MealPlanId).IsRequired();
+            ConfigureMoney(entity.Property(rate => rate.Rate));
+            entity.HasIndex(rate => new { rate.CompanyId, rate.ContractId });
+            entity.HasIndex(rate => new { rate.ContractId, rate.RoomTypeId, rate.MealPlanId }).IsUnique();
+        });
+
+        modelBuilder.Entity<HotelAllotment>(entity =>
+        {
+            entity.ToTable("hotel_allotments");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(allotment => allotment.ContractId).IsRequired();
+            entity.Property(allotment => allotment.HotelId).IsRequired();
+            entity.Property(allotment => allotment.AgentId);
+            entity.Property(allotment => allotment.StartDate).IsRequired();
+            entity.Property(allotment => allotment.EndDate).IsRequired();
+            entity.Property(allotment => allotment.Rooms).IsRequired();
+            entity.Property(allotment => allotment.AllotmentType).HasMaxLength(20).IsRequired();
+            entity.Property(allotment => allotment.IsOverAllotment).IsRequired();
+            entity.Property(allotment => allotment.IsActive).IsRequired();
+            entity.HasIndex(allotment => new { allotment.CompanyId, allotment.ContractId });
+            entity.HasIndex(allotment => new { allotment.CompanyId, allotment.StartDate, allotment.EndDate });
+        });
+
+        modelBuilder.Entity<HotelReservation>(entity =>
+        {
+            entity.ToTable("hotel_reservations");
+            ConfigureEntityBase(entity);
+            ConfigureTenant(entity);
+            entity.Property(reservation => reservation.ReservationNumber).HasMaxLength(60).IsRequired();
+            entity.Property(reservation => reservation.ContractId).IsRequired();
+            entity.Property(reservation => reservation.HotelId).IsRequired();
+            entity.Property(reservation => reservation.AgentId);
+            entity.Property(reservation => reservation.RoomTypeId).IsRequired();
+            entity.Property(reservation => reservation.MealPlanId).IsRequired();
+            entity.Property(reservation => reservation.GuestName).HasMaxLength(180).IsRequired();
+            entity.Property(reservation => reservation.GuestPhone).HasMaxLength(60);
+            entity.Property(reservation => reservation.CheckIn).IsRequired();
+            entity.Property(reservation => reservation.CheckOut).IsRequired();
+            entity.Property(reservation => reservation.Rooms).IsRequired();
+            entity.Property(reservation => reservation.Adults).IsRequired();
+            entity.Property(reservation => reservation.Children).IsRequired();
+            ConfigureMoney(entity.Property(reservation => reservation.NightlyRate));
+            ConfigureMoney(entity.Property(reservation => reservation.TotalAmount));
+            entity.Property(reservation => reservation.Status).HasMaxLength(30).IsRequired();
+            entity.Property(reservation => reservation.IsActive).IsRequired();
+            entity.Ignore(reservation => reservation.Nights);
+            entity.HasIndex(reservation => new { reservation.CompanyId, reservation.ReservationNumber }).IsUnique();
+            entity.HasIndex(reservation => new { reservation.CompanyId, reservation.ContractId });
+            entity.HasIndex(reservation => new { reservation.CompanyId, reservation.CheckIn, reservation.CheckOut });
         });
     }
 

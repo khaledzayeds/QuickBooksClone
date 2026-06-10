@@ -144,9 +144,25 @@ public sealed class CompanyModuleAccessService : ICompanyModuleAccessService
 
         foreach (var menuItem in ModuleSeedCatalog.MenuItems)
         {
-            if (!await _db.MenuItems.AnyAsync(current => current.Id == menuItem.Id, cancellationToken))
+            var existing = await _db.MenuItems.FirstOrDefaultAsync(current => current.Id == menuItem.Id, cancellationToken);
+            if (existing is null)
             {
                 _db.MenuItems.Add(menuItem);
+                changed = true;
+                continue;
+            }
+
+            if (MenuItemChanged(existing, menuItem))
+            {
+                existing.UpdateDefinition(
+                    menuItem.ModuleCode,
+                    menuItem.ParentId,
+                    menuItem.TitleAr,
+                    menuItem.TitleEn,
+                    menuItem.Route,
+                    menuItem.Icon,
+                    menuItem.SortOrder,
+                    menuItem.IsActive);
                 changed = true;
             }
         }
@@ -166,6 +182,18 @@ public sealed class CompanyModuleAccessService : ICompanyModuleAccessService
         }
 
         return runtime;
+    }
+
+    private static bool MenuItemChanged(MenuItemDefinition current, MenuItemDefinition seed)
+    {
+        return current.ModuleCode != seed.ModuleCode
+            || current.ParentId != seed.ParentId
+            || current.TitleAr != seed.TitleAr
+            || current.TitleEn != seed.TitleEn
+            || current.Route != seed.Route
+            || current.Icon != seed.Icon
+            || current.SortOrder != seed.SortOrder
+            || current.IsActive != seed.IsActive;
     }
 
     private static CompanyMenuItem ToDto(MenuItemDefinition item, IReadOnlyDictionary<Guid, List<MenuItemDefinition>> childrenByParent)

@@ -354,6 +354,7 @@ IconData _iconFor(String icon) {
     'hotel' => Icons.hotel_outlined,
     'inventory' => Icons.inventory_2_outlined,
     'invoice' || 'receipt' => Icons.receipt_long_outlined,
+    'meal' => Icons.restaurant_menu_outlined,
     'pos' => Icons.point_of_sale_outlined,
     'reports' => Icons.description_outlined,
     'return' => Icons.keyboard_return_outlined,

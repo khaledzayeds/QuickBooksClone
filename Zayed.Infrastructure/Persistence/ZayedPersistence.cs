@@ -469,9 +469,24 @@ public static class ZayedPersistence
 
         foreach (var menuItem in ModuleSeedCatalog.MenuItems)
         {
-            if (!await dbContext.MenuItems.AnyAsync(current => current.Id == menuItem.Id))
+            var existing = await dbContext.MenuItems.FirstOrDefaultAsync(current => current.Id == menuItem.Id);
+            if (existing is null)
             {
                 dbContext.MenuItems.Add(menuItem);
+                continue;
+            }
+
+            if (MenuItemChanged(existing, menuItem))
+            {
+                existing.UpdateDefinition(
+                    menuItem.ModuleCode,
+                    menuItem.ParentId,
+                    menuItem.TitleAr,
+                    menuItem.TitleEn,
+                    menuItem.Route,
+                    menuItem.Icon,
+                    menuItem.SortOrder,
+                    menuItem.IsActive);
             }
         }
 
@@ -494,6 +509,18 @@ public static class ZayedPersistence
         {
             dbContext.CompanyModules.Add(new CompanyModule(activeCompanyId, module.Id, isEnabled: true));
         }
+    }
+
+    private static bool MenuItemChanged(MenuItemDefinition current, MenuItemDefinition seed)
+    {
+        return current.ModuleCode != seed.ModuleCode
+            || current.ParentId != seed.ParentId
+            || current.TitleAr != seed.TitleAr
+            || current.TitleEn != seed.TitleEn
+            || current.Route != seed.Route
+            || current.Icon != seed.Icon
+            || current.SortOrder != seed.SortOrder
+            || current.IsActive != seed.IsActive;
     }
 
     private static async Task SeedSecurityAsync(ZayedDbContext dbContext, bool seedDemoData)
