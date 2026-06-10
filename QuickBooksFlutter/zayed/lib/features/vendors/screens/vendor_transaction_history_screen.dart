@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../reports/printing/vendor_statement_print_service.dart';
 import '../data/models/vendor_model.dart';
 import '../providers/vendors_provider.dart';
@@ -127,9 +128,10 @@ class _VendorTransactionHistoryScreenState
 
   Future<void> _printStatement() async {
     if (_vendorId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a vendor before printing.')),
-      );
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.chooseVendorBeforePrinting)));
       return;
     }
 
@@ -156,8 +158,11 @@ class _VendorTransactionHistoryScreenState
       await const VendorStatementPrintService().printStatement(model);
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not print vendor statement: $e')),
+        SnackBar(
+          content: Text(l10n.couldNotPrintVendorStatement(e.toString())),
+        ),
       );
     }
   }
@@ -167,6 +172,7 @@ class _VendorTransactionHistoryScreenState
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final vendorsAsync = ref.watch(vendorsProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
@@ -181,7 +187,7 @@ class _VendorTransactionHistoryScreenState
               ),
             ),
             Text(
-              'Vendor Statement',
+              l10n.vendorStatement,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -190,7 +196,7 @@ class _VendorTransactionHistoryScreenState
         ),
         actions: [
           IconButton(
-            tooltip: 'Print',
+            tooltip: l10n.print,
             onPressed: _printStatement,
             icon: const Icon(Icons.print_outlined),
           ),
@@ -225,10 +231,10 @@ class _VendorTransactionHistoryScreenState
                         data: (vendors) => DropdownButtonFormField<VendorModel>(
                           value: _selectedVendor,
                           isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Vendor',
+                          decoration: InputDecoration(
+                            labelText: l10n.vendor,
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                           items: vendors
                               .where((vendor) => vendor.isActive)
@@ -244,7 +250,7 @@ class _VendorTransactionHistoryScreenState
                             _fetch();
                           },
                         ),
-                        orElse: () => const Text('Loading vendors...'),
+                        orElse: () => Text(l10n.loadingVendors),
                       ),
                     ),
                     OutlinedButton.icon(
@@ -252,19 +258,19 @@ class _VendorTransactionHistoryScreenState
                       icon: const Icon(Icons.date_range_outlined, size: 18),
                       label: Text(
                         _range == null
-                            ? 'Date range'
+                            ? l10n.dateRange
                             : '${DateFormat('dd/MM/yyyy').format(_range!.start)} - ${DateFormat('dd/MM/yyyy').format(_range!.end)}',
                       ),
                     ),
                     if (_range != null)
                       IconButton(
-                        tooltip: 'Clear date range',
+                        tooltip: l10n.clearDateRange,
                         onPressed: _clearRange,
                         icon: const Icon(Icons.close),
                       ),
                     for (final type in _types)
                       ChoiceChip(
-                        label: Text(type),
+                        label: Text(_typeLabel(type, l10n)),
                         selected: _type == type,
                         onSelected: (_) {
                           setState(() => _type = type);
@@ -286,32 +292,33 @@ class _VendorTransactionHistoryScreenState
   Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     if (_vendorId == null) {
-      return const _EmptyState(
+      return _EmptyState(
         icon: Icons.storefront_outlined,
-        title: 'Choose a vendor',
-        message: 'Select a vendor to view statement transactions.',
+        title: l10n.chooseVendor,
+        message: l10n.selectVendorToViewStatement,
       );
     }
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
       return _EmptyState(
         icon: Icons.error_outline,
-        title: 'Could not load transactions',
+        title: l10n.couldNotLoadTransactions,
         message: _error!,
         action: FilledButton.icon(
           onPressed: _fetch,
           icon: const Icon(Icons.refresh),
-          label: const Text('Retry'),
+          label: Text(l10n.retry),
         ),
       );
     }
     if (_transactions.isEmpty) {
-      return const _EmptyState(
+      return _EmptyState(
         icon: Icons.receipt_long_outlined,
-        title: 'No transactions found',
-        message: 'No transactions match the selected filters.',
+        title: l10n.noTransactionsFound,
+        message: l10n.noTransactionsMatchFilters,
       );
     }
 
@@ -349,7 +356,7 @@ class _VendorTransactionHistoryScreenState
                   side: BorderSide(color: cs.outlineVariant),
                 ),
                 Text(
-                  '${_currencyFmt.format(txn.amount)} EGP',
+                  '${_currencyFmt.format(txn.amount)} ${l10n.egp}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -369,6 +376,17 @@ class _VendorTransactionHistoryScreenState
     if (value.contains('credit')) return Icons.credit_score_outlined;
     if (value.contains('return')) return Icons.assignment_return_outlined;
     return Icons.storefront_outlined;
+  }
+
+  String _typeLabel(String type, AppLocalizations l10n) {
+    return switch (type) {
+      'All' => l10n.all,
+      'Bills' => l10n.purchaseBills,
+      'Payments' => l10n.payments,
+      'Credits' => l10n.vendorCredits,
+      'Returns' => l10n.purchaseReturns,
+      _ => type,
+    };
   }
 }
 

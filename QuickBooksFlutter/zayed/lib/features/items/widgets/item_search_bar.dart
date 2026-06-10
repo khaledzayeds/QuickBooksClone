@@ -1,7 +1,6 @@
-// item_search_bar.dart
-// item_search_bar.dart
-
 import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
 
 class ItemSearchBar extends StatefulWidget {
   const ItemSearchBar({super.key, this.onChanged});
@@ -22,10 +21,11 @@ class _ItemSearchBarState extends State<ItemSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return TextField(
       controller: _ctrl,
       decoration: InputDecoration(
-        hintText: 'بحث بالاسم أو SKU أو الباركود...',
+        hintText: l10n.searchNameSkuBarcode,
         prefixIcon: const Icon(Icons.search, size: 20),
         suffixIcon: _ctrl.text.isNotEmpty
             ? IconButton(

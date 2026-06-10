@@ -21,6 +21,7 @@ class VendorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _VendorCardText.of(context);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -63,7 +64,7 @@ class VendorCard extends StatelessWidget {
                         ),
                         if (vendor.needsAttention)
                           Tooltip(
-                            message: 'Vendor has open payable balance',
+                            message: text.openPayableWarning,
                             child: Icon(
                               Icons.warning_amber_outlined,
                               color: cs.error,
@@ -87,7 +88,7 @@ class VendorCard extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         _MiniChip(
-                          label: vendor.isActive ? 'Active' : 'Inactive',
+                          label: vendor.isActive ? text.active : text.inactive,
                           icon: vendor.isActive
                               ? Icons.check_circle_outline
                               : Icons.block_outlined,
@@ -114,17 +115,17 @@ class VendorCard extends StatelessWidget {
                       runSpacing: 8,
                       children: [
                         _Metric(
-                          label: 'Open payable',
+                          label: text.openPayable,
                           value:
                               '${vendor.balance.toStringAsFixed(2)} ${vendor.currency}',
                         ),
                         _Metric(
-                          label: 'Vendor credits',
+                          label: text.vendorCredits,
                           value:
                               '${vendor.creditBalance.toStringAsFixed(2)} ${vendor.currency}',
                         ),
                         _Metric(
-                          label: 'Net payable',
+                          label: text.netPayable,
                           value:
                               '${vendor.netPayable.toStringAsFixed(2)} ${vendor.currency}',
                         ),
@@ -141,7 +142,7 @@ class VendorCard extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined, size: 19),
                       onPressed: onEdit,
-                      tooltip: 'Edit',
+                      tooltip: text.edit,
                     ),
                   if (onToggleActive != null)
                     IconButton(
@@ -155,8 +156,8 @@ class VendorCard extends StatelessWidget {
                       ),
                       onPressed: onToggleActive,
                       tooltip: vendor.isActive
-                          ? 'Make inactive'
-                          : 'Make active',
+                          ? text.makeInactive
+                          : text.makeActive,
                     ),
                 ],
               ),
@@ -166,6 +167,26 @@ class VendorCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _VendorCardText {
+  const _VendorCardText(this.ar);
+
+  final bool ar;
+
+  static _VendorCardText of(BuildContext context) =>
+      _VendorCardText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get openPayableWarning =>
+      ar ? 'المورد لديه رصيد مستحق مفتوح' : 'Vendor has open payable balance';
+  String get active => ar ? 'نشط' : 'Active';
+  String get inactive => ar ? 'غير نشط' : 'Inactive';
+  String get openPayable => ar ? 'المستحق المفتوح' : 'Open payable';
+  String get vendorCredits => ar ? 'ائتمانات المورد' : 'Vendor credits';
+  String get netPayable => ar ? 'صافي المستحق' : 'Net payable';
+  String get edit => ar ? 'تعديل' : 'Edit';
+  String get makeInactive => ar ? 'تعطيل' : 'Make inactive';
+  String get makeActive => ar ? 'تفعيل' : 'Make active';
 }
 
 class _MiniChip extends StatelessWidget {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class TransactionWorkspaceShell extends StatelessWidget {
   const TransactionWorkspaceShell({
     super.key,
@@ -421,6 +423,7 @@ class TransactionCommandBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final busy = saving || posting;
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 74,
       decoration: const BoxDecoration(
@@ -449,7 +452,7 @@ class TransactionCommandBar extends StatelessWidget {
           ),
           TransactionToolAction(
             icon: Icons.note_add_outlined,
-            label: 'New',
+            label: l10n.newText,
             onTap: busy ? null : onNew,
           ),
           if (onSave != null ||
@@ -467,13 +470,13 @@ class TransactionCommandBar extends StatelessWidget {
           if (onSaveDraft != null)
             TransactionToolAction(
               icon: Icons.drafts_outlined,
-              label: 'Draft',
+              label: l10n.draft,
               onTap: busy ? null : onSaveDraft,
             ),
           if (showVoid || showClear)
             TransactionToolAction(
               icon: Icons.delete_outline,
-              label: isEdit ? 'Void' : 'Clear',
+              label: isEdit ? l10n.voidText : l10n.clear,
               onTap: busy
                   ? null
                   : isEdit
@@ -484,19 +487,19 @@ class TransactionCommandBar extends StatelessWidget {
           if (showPrint)
             TransactionToolAction(
               icon: Icons.print_outlined,
-              label: 'Print',
+              label: l10n.print,
               onTap: busy ? null : onPrint,
             ),
           if (showEmail)
             TransactionToolAction(
               icon: Icons.email_outlined,
-              label: 'Email',
+              label: l10n.email,
               onTap: busy ? null : onEmail,
             ),
           if (showEditNotes)
             TransactionToolAction(
               icon: Icons.sticky_note_2_outlined,
-              label: 'Notes',
+              label: l10n.notes,
               onTap: busy ? null : onEditNotes,
             ),
           if (showPayment || showRefund) ...[
@@ -504,26 +507,26 @@ class TransactionCommandBar extends StatelessWidget {
             if (showPayment)
               TransactionToolAction(
                 icon: Icons.payments_outlined,
-                label: 'Payments',
+                label: l10n.payments,
                 onTap: busy ? null : onPayment,
               ),
             if (showRefund)
               TransactionToolAction(
                 icon: Icons.assignment_return_outlined,
-                label: 'Refund',
+                label: l10n.refund,
                 onTap: busy ? null : onRefund,
               ),
             if (showReceive)
               TransactionToolAction(
                 icon: Icons.inventory_2_outlined,
-                label: 'Receive',
+                label: l10n.receive,
                 onTap: busy ? null : onReceive,
               ),
           ],
           const Spacer(),
           TransactionToolAction(
             icon: Icons.close,
-            label: 'Close',
+            label: l10n.close,
             onTap: busy ? null : onClose,
           ),
           const SizedBox(width: 8),
@@ -554,13 +557,14 @@ class _SaveToolAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final busy = saving || posting;
     final enabled = !busy && onSave != null;
     final label = posting
-        ? 'Posting'
+        ? l10n.posting
         : saving
-        ? 'Saving'
-        : 'Save';
+        ? l10n.saving
+        : l10n.save;
     final enabledColor = enabled
         ? const Color(0xFF234C5D)
         : const Color(0xFF7D8B93);
@@ -593,7 +597,7 @@ class _SaveToolAction extends StatelessWidget {
     }
 
     return PopupMenuButton<_SaveMenuCommand>(
-      tooltip: 'Save options',
+      tooltip: l10n.saveOptions,
       enabled: enabled,
       onSelected: (command) {
         switch (command) {
@@ -612,21 +616,21 @@ class _SaveToolAction extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(value: _SaveMenuCommand.save, child: Text('Save')),
+        PopupMenuItem(value: _SaveMenuCommand.save, child: Text(l10n.save)),
         if (onSaveAndPrint != null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: _SaveMenuCommand.saveAndPrint,
-            child: Text('Save & Print'),
+            child: Text(l10n.saveAndPrint),
           ),
         if (onSaveAndNew != null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: _SaveMenuCommand.saveAndNew,
-            child: Text('Save & New'),
+            child: Text(l10n.saveAndNew),
           ),
         if (onSaveDraft != null)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: _SaveMenuCommand.draft,
-            child: Text('Save as Draft'),
+            child: Text(l10n.saveAsDraft),
           ),
       ],
       child: Material(

@@ -15,23 +15,24 @@ class LicenseSettingsScreen extends ConsumerWidget {
     final notifier = ref.read(licenseSettingsProvider.notifier);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _LicenseText.of(context);
 
     ref.listen(licenseSettingsProvider, (previous, next) {
       if (next.saved && previous?.saved != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('License settings saved.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(text.saved)));
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Online License'),
+        title: Text(text.title),
         actions: [
           TextButton.icon(
             onPressed: state.saving ? null : notifier.reset,
             icon: const Icon(Icons.restore_outlined),
-            label: const Text('Reset'),
+            label: Text(text.reset),
           ),
           TextButton.icon(
             onPressed: state.saving ? null : notifier.save,
@@ -42,7 +43,7 @@ class LicenseSettingsScreen extends ConsumerWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: const Text('Save'),
+            label: Text(text.save),
           ),
           const SizedBox(width: 12),
         ],
@@ -53,14 +54,14 @@ class LicenseSettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               children: [
                 Text(
-                  'Online Services License',
+                  text.heading,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Use this only for hosted subscriptions, remote access, online activation, and subscription-only services. The offline company file keeps working locally.',
+                  text.description,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -133,12 +134,12 @@ class _EditionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.verified_user_outlined,
-      title: 'Edition',
+      title: _LicenseText.of(context).edition,
       children: [
         DropdownButtonFormField<LicenseEdition>(
           initialValue: state.license.edition,
-          decoration: const InputDecoration(
-            labelText: 'Edition',
+          decoration: InputDecoration(
+            labelText: _LicenseText.of(context).edition,
             border: OutlineInputBorder(),
           ),
           items: LicenseEdition.values
@@ -158,8 +159,8 @@ class _EditionCard extends StatelessWidget {
         const SizedBox(height: 12),
         DropdownButtonFormField<LicenseStatus>(
           initialValue: state.license.status,
-          decoration: const InputDecoration(
-            labelText: 'Status',
+          decoration: InputDecoration(
+            labelText: _LicenseText.of(context).status,
             border: OutlineInputBorder(),
           ),
           items: LicenseStatus.values
@@ -190,10 +191,10 @@ class _ActivationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.key_outlined,
-      title: 'Activation',
+      title: _LicenseText.of(context).activation,
       children: [
         _TextField(
-          label: 'License Key / Serial',
+          label: _LicenseText.of(context).licenseKey,
           value: state.license.licenseKey ?? '',
           icon: Icons.password_outlined,
           onChanged: (value) =>
@@ -201,7 +202,7 @@ class _ActivationCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _TextField(
-          label: 'Licensed Company Name',
+          label: _LicenseText.of(context).licensedCompanyName,
           value: state.license.companyName ?? '',
           icon: Icons.business_outlined,
           onChanged: (value) => notifier.update(
@@ -210,7 +211,7 @@ class _ActivationCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _TextField(
-          label: 'Activated Device ID / Fingerprint',
+          label: _LicenseText.of(context).activatedDevice,
           value: state.license.activatedDeviceId ?? '',
           icon: Icons.devices_outlined,
           onChanged: (value) => notifier.update(
@@ -219,7 +220,7 @@ class _ActivationCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _TextField(
-          label: 'Expires At ISO',
+          label: _LicenseText.of(context).expiresAt,
           value: state.license.expiresAtIso ?? '',
           icon: Icons.event_outlined,
           onChanged: (value) => notifier.update(
@@ -234,7 +235,7 @@ class _ActivationCard extends StatelessWidget {
             FilledButton.icon(
               onPressed: state.saving ? null : notifier.save,
               icon: const Icon(Icons.save_outlined),
-              label: const Text('Save Local License'),
+              label: Text(_LicenseText.of(context).saveLocalLicense),
             ),
             FutureBuilder<DeviceFingerprintInfo>(
               future: DeviceFingerprintService().getOrCreate(),
@@ -258,17 +259,14 @@ class _ActivationCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.cloud_sync_outlined),
-                  label: const Text('Activate Online'),
+                  label: Text(_LicenseText.of(context).activateOnline),
                 );
               },
             ),
           ],
         ),
         const SizedBox(height: 10),
-        const _InfoText(
-          text:
-              'Online activation calls POST /api/licenses/activate, receives a signed license package, verifies it locally, then saves it.',
-        ),
+        _InfoText(text: _LicenseText.of(context).activationNote),
       ],
     );
   }
@@ -309,12 +307,9 @@ class _OfflineRequestCardState extends State<_OfflineRequestCard> {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.qr_code_2_outlined,
-      title: 'Offline Activation Request',
+      title: _LicenseText.of(context).offlineRequest,
       children: [
-        const _InfoText(
-          text:
-              'Generate this request code on the customer device, send it to the software owner, then paste the returned signed license package below.',
-        ),
+        _InfoText(text: _LicenseText.of(context).offlineRequestNote),
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: _loading ? null : _generate,
@@ -325,7 +320,7 @@ class _OfflineRequestCardState extends State<_OfflineRequestCard> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.generating_tokens_outlined),
-          label: const Text('Generate Request Code'),
+          label: Text(_LicenseText.of(context).generateRequestCode),
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -333,12 +328,18 @@ class _OfflineRequestCardState extends State<_OfflineRequestCard> {
         ],
         if (_request != null) ...[
           const SizedBox(height: 12),
-          _ReadOnlyValue(label: 'Request Code', value: _request!.requestCode),
-          const SizedBox(height: 12),
-          _ReadOnlyValue(label: 'Created At', value: _request!.createdAtIso),
+          _ReadOnlyValue(
+            label: _LicenseText.of(context).requestCode,
+            value: _request!.requestCode,
+          ),
           const SizedBox(height: 12),
           _ReadOnlyValue(
-            label: 'Payload Preview',
+            label: _LicenseText.of(context).createdAt,
+            value: _request!.createdAtIso,
+          ),
+          const SizedBox(height: 12),
+          _ReadOnlyValue(
+            label: _LicenseText.of(context).payloadPreview,
             value: _request!.payload.entries
                 .map((entry) => '${entry.key}: ${entry.value}')
                 .join('\n'),
@@ -377,18 +378,18 @@ class _PackageActivationCardState extends State<_PackageActivationCard> {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.offline_bolt_outlined,
-      title: 'Signed / Offline License Package',
+      title: _LicenseText.of(context).signedPackage,
       children: [
         TextFormField(
           controller: _packageController,
           minLines: 3,
           maxLines: 6,
-          decoration: const InputDecoration(
-            labelText: 'License Package',
+          decoration: InputDecoration(
+            labelText: _LicenseText.of(context).licensePackage,
             helperText:
                 'Expected format: base64url(payloadJson).base64url(ed25519Signature)',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.code_outlined),
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.code_outlined),
           ),
         ),
         const SizedBox(height: 12),
@@ -410,15 +411,12 @@ class _PackageActivationCardState extends State<_PackageActivationCard> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.verified_outlined),
-              label: const Text('Apply Package'),
+              label: Text(_LicenseText.of(context).applyPackage),
             );
           },
         ),
         const SizedBox(height: 10),
-        const _InfoText(
-          text:
-              'The package is verified with the embedded Ed25519 public key before it is saved locally.',
-        ),
+        _InfoText(text: _LicenseText.of(context).packageNote),
       ],
     );
   }
@@ -434,18 +432,18 @@ class _DeviceFingerprintCard extends StatelessWidget {
       future: DeviceFingerprintService().getOrCreate(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Card(
+          return Card(
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  SizedBox(width: 12),
-                  Text('Preparing device fingerprint...'),
+                  const SizedBox(width: 12),
+                  Text(_LicenseText.of(context).preparingFingerprint),
                 ],
               ),
             ),
@@ -455,19 +453,22 @@ class _DeviceFingerprintCard extends StatelessWidget {
         final info = snapshot.data!;
         return _SectionCard(
           icon: Icons.fingerprint_outlined,
-          title: 'This Device',
+          title: _LicenseText.of(context).thisDevice,
           children: [
             _ReadOnlyValue(
-              label: 'Installation ID',
+              label: _LicenseText.of(context).installationId,
               value: info.installationId,
             ),
             const SizedBox(height: 12),
             _ReadOnlyValue(
-              label: 'Device Fingerprint',
+              label: _LicenseText.of(context).deviceFingerprint,
               value: info.deviceFingerprint,
             ),
             const SizedBox(height: 12),
-            _ReadOnlyValue(label: 'Generated At', value: info.generatedAtIso),
+            _ReadOnlyValue(
+              label: _LicenseText.of(context).generatedAt,
+              value: info.generatedAtIso,
+            ),
             const SizedBox(height: 16),
             Wrap(
               spacing: 12,
@@ -481,20 +482,20 @@ class _DeviceFingerprintCard extends StatelessWidget {
                       ),
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text(
-                          'Device fingerprint copied into license device field.',
+                          _LicenseText.of(context).fingerprintCopied,
                         ),
                       ),
                     );
                   },
                   icon: const Icon(Icons.copy_outlined),
-                  label: const Text('Use This Device'),
+                  label: Text(_LicenseText.of(context).useThisDevice),
                 ),
                 OutlinedButton.icon(
                   onPressed: null,
                   icon: const Icon(Icons.refresh_outlined),
-                  label: const Text('Rotate For Testing'),
+                  label: Text(_LicenseText.of(context).rotateForTesting),
                 ),
               ],
             ),
@@ -514,10 +515,10 @@ class _LimitsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.speed_outlined,
-      title: 'Limits',
+      title: _LicenseText.of(context).limits,
       children: [
         _NumberField(
-          label: 'Max Users',
+          label: _LicenseText.of(context).maxUsers,
           value: state.license.maxUsers,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(
@@ -527,7 +528,7 @@ class _LimitsCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _NumberField(
-          label: 'Max Devices',
+          label: _LicenseText.of(context).maxDevices,
           value: state.license.maxDevices,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(
@@ -537,7 +538,7 @@ class _LimitsCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _NumberField(
-          label: 'Offline Grace Days',
+          label: _LicenseText.of(context).offlineGraceDays,
           value: state.license.offlineGraceDays,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(
@@ -559,52 +560,52 @@ class _FeaturesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.toggle_on_outlined,
-      title: 'Allowed Features',
+      title: _LicenseText.of(context).allowedFeatures,
       children: [
         _SwitchRow(
-          title: 'Local Mode',
+          title: _LicenseText.of(context).localMode,
           value: state.license.allowLocalMode,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(allowLocalMode: value),
           ),
         ),
         _SwitchRow(
-          title: 'LAN / Network Mode',
+          title: _LicenseText.of(context).lanMode,
           value: state.license.allowLanMode,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(allowLanMode: value),
           ),
         ),
         _SwitchRow(
-          title: 'Hosted Mode',
+          title: _LicenseText.of(context).hostedMode,
           value: state.license.allowHostedMode,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(allowHostedMode: value),
           ),
         ),
         _SwitchRow(
-          title: 'Backup / Restore',
+          title: _LicenseText.of(context).backupRestore,
           value: state.license.allowBackupRestore,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(allowBackupRestore: value),
           ),
         ),
         _SwitchRow(
-          title: 'Demo Company',
+          title: _LicenseText.of(context).demoCompany,
           value: state.license.allowDemoCompany,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(allowDemoCompany: value),
           ),
         ),
         _SwitchRow(
-          title: 'Advanced Inventory',
+          title: _LicenseText.of(context).advancedInventory,
           value: state.license.allowAdvancedInventory,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(allowAdvancedInventory: value),
           ),
         ),
         _SwitchRow(
-          title: 'Payroll',
+          title: _LicenseText.of(context).payroll,
           value: state.license.allowPayroll,
           onChanged: (value) => notifier.update(
             (current) => current.copyWith(allowPayroll: value),
@@ -638,14 +639,14 @@ class _ImplementationNoteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Implementation note',
+                    _LicenseText.of(context).implementationNote,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Online activation is for hosted and subscription services. Local offline company work does not depend on this screen.',
+                    _LicenseText.of(context).implementationNoteBody,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
@@ -658,6 +659,88 @@ class _ImplementationNoteCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LicenseText {
+  const _LicenseText(this.ar);
+
+  final bool ar;
+
+  static _LicenseText of(BuildContext context) =>
+      _LicenseText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get saved =>
+      ar ? 'تم حفظ إعدادات الترخيص.' : 'License settings saved.';
+  String get title => ar ? 'ترخيص الخدمات المتصلة' : 'Online License';
+  String get reset => ar ? 'إعادة ضبط' : 'Reset';
+  String get save => ar ? 'حفظ' : 'Save';
+  String get heading =>
+      ar ? 'ترخيص الخدمات المتصلة' : 'Online Services License';
+  String get description => ar
+      ? 'استخدم هذه الشاشة فقط للاشتراكات المستضافة والوصول البعيد والتفعيل المتصل والخدمات المعتمدة على الاشتراك. ملف الشركة غير المتصل يظل يعمل محليا.'
+      : 'Use this only for hosted subscriptions, remote access, online activation, and subscription-only services. The offline company file keeps working locally.';
+  String get edition => ar ? 'الإصدار' : 'Edition';
+  String get status => ar ? 'الحالة' : 'Status';
+  String get activation => ar ? 'التفعيل' : 'Activation';
+  String get licenseKey =>
+      ar ? 'مفتاح الترخيص / السيريال' : 'License Key / Serial';
+  String get licensedCompanyName =>
+      ar ? 'اسم الشركة المرخصة' : 'Licensed Company Name';
+  String get activatedDevice =>
+      ar ? 'معرف الجهاز المفعل / البصمة' : 'Activated Device ID / Fingerprint';
+  String get expiresAt => ar ? 'ينتهي في ISO' : 'Expires At ISO';
+  String get saveLocalLicense =>
+      ar ? 'حفظ الترخيص المحلي' : 'Save Local License';
+  String get activateOnline => ar ? 'تفعيل متصل' : 'Activate Online';
+  String get activationNote => ar
+      ? 'التفعيل المتصل يستدعي POST /api/licenses/activate، ثم يستقبل حزمة ترخيص موقعة، يتحقق منها محليا، ويحفظها.'
+      : 'Online activation calls POST /api/licenses/activate, receives a signed license package, verifies it locally, then saves it.';
+  String get offlineRequest =>
+      ar ? 'طلب تفعيل غير متصل' : 'Offline Activation Request';
+  String get offlineRequestNote => ar
+      ? 'أنشئ كود الطلب على جهاز العميل، أرسله لمالك البرنامج، ثم الصق حزمة الترخيص الموقعة العائدة أدناه.'
+      : 'Generate this request code on the customer device, send it to the software owner, then paste the returned signed license package below.';
+  String get generateRequestCode =>
+      ar ? 'إنشاء كود الطلب' : 'Generate Request Code';
+  String get requestCode => ar ? 'كود الطلب' : 'Request Code';
+  String get createdAt => ar ? 'تم الإنشاء في' : 'Created At';
+  String get payloadPreview => ar ? 'معاينة البيانات' : 'Payload Preview';
+  String get signedPackage => ar
+      ? 'حزمة الترخيص الموقعة / غير المتصلة'
+      : 'Signed / Offline License Package';
+  String get licensePackage => ar ? 'حزمة الترخيص' : 'License Package';
+  String get applyPackage => ar ? 'تطبيق الحزمة' : 'Apply Package';
+  String get packageNote => ar
+      ? 'يتم التحقق من الحزمة باستخدام مفتاح Ed25519 العام المضمن قبل حفظها محليا.'
+      : 'The package is verified with the embedded Ed25519 public key before it is saved locally.';
+  String get preparingFingerprint =>
+      ar ? 'جاري تجهيز بصمة الجهاز...' : 'Preparing device fingerprint...';
+  String get thisDevice => ar ? 'هذا الجهاز' : 'This Device';
+  String get installationId => ar ? 'معرف التثبيت' : 'Installation ID';
+  String get deviceFingerprint => ar ? 'بصمة الجهاز' : 'Device Fingerprint';
+  String get generatedAt => ar ? 'تم الإنشاء في' : 'Generated At';
+  String get fingerprintCopied => ar
+      ? 'تم نسخ بصمة الجهاز إلى حقل جهاز الترخيص.'
+      : 'Device fingerprint copied into license device field.';
+  String get useThisDevice => ar ? 'استخدام هذا الجهاز' : 'Use This Device';
+  String get rotateForTesting => ar ? 'تدوير للاختبار' : 'Rotate For Testing';
+  String get limits => ar ? 'الحدود' : 'Limits';
+  String get maxUsers => ar ? 'أقصى عدد مستخدمين' : 'Max Users';
+  String get maxDevices => ar ? 'أقصى عدد أجهزة' : 'Max Devices';
+  String get offlineGraceDays =>
+      ar ? 'أيام السماح دون اتصال' : 'Offline Grace Days';
+  String get allowedFeatures => ar ? 'الخصائص المسموحة' : 'Allowed Features';
+  String get localMode => ar ? 'الوضع المحلي' : 'Local Mode';
+  String get lanMode => ar ? 'وضع الشبكة المحلية' : 'LAN / Network Mode';
+  String get hostedMode => ar ? 'وضع الاستضافة' : 'Hosted Mode';
+  String get backupRestore => ar ? 'النسخ والاسترجاع' : 'Backup / Restore';
+  String get demoCompany => ar ? 'شركة تجريبية' : 'Demo Company';
+  String get advancedInventory => ar ? 'مخزون متقدم' : 'Advanced Inventory';
+  String get payroll => ar ? 'الرواتب' : 'Payroll';
+  String get implementationNote => ar ? 'ملاحظة تنفيذ' : 'Implementation note';
+  String get implementationNoteBody => ar
+      ? 'التفعيل المتصل مخصص لخدمات الاستضافة والاشتراكات. العمل المحلي غير المتصل على ملف الشركة لا يعتمد على هذه الشاشة.'
+      : 'Online activation is for hosted and subscription services. Local offline company work does not depend on this screen.';
 }
 
 class _SectionCard extends StatelessWidget {

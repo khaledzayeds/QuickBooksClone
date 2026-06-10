@@ -15,7 +15,7 @@ $releaseRoot = Join-Path $artifactsRoot $ArtifactName
 $apiPublish = Join-Path $repoRoot "artifacts\api-publish-$Runtime"
 $flutterRelease = Join-Path $flutterProject "build\windows\x64\runner\Release"
 
-Write-Host "Building Zayed Offline ERP v1 release..." -ForegroundColor Cyan
+Write-Host "Building $ArtifactName release..." -ForegroundColor Cyan
 
 Get-Process -Name Zayed,Zayed.Api -ErrorAction SilentlyContinue | Stop-Process -Force
 dotnet build-server shutdown
@@ -73,7 +73,7 @@ New-Item -ItemType Directory -Path $releaseApiDir | Out-Null
 Copy-Item -Path (Join-Path $apiPublish "*") -Destination $releaseApiDir -Recurse -Force
 
 $releaseReadme = @"
-# Zayed Offline ERP v1
+# $ArtifactName
 
 ## Run
 

@@ -27,14 +27,15 @@ class _VendorListScreenState extends ConsumerState<VendorListScreen> {
   Widget build(BuildContext context) {
     final vendors = ref.watch(vendorsProvider);
     final cs = Theme.of(context).colorScheme;
+    final text = _VendorText.of(context);
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: Column(
         children: [
           _CenterToolbar(
-            title: 'Vendor Center',
-            primaryLabel: 'New Vendor',
+            title: text.vendorCenter,
+            primaryLabel: text.newVendor,
             primaryIcon: Icons.add_business_outlined,
             onRefresh: () => ref.read(vendorsProvider.notifier).refresh(),
             onPrimary: () => context.go(AppRoutes.vendorNew),
@@ -45,9 +46,9 @@ class _VendorListScreenState extends ConsumerState<VendorListScreen> {
               loading: () => const SkeletonList(),
               error: (e, _) => EmptyStateWidget(
                 icon: Icons.error_outline,
-                message: 'Could not load vendors',
+                message: text.couldNotLoadVendors,
                 description: e.toString(),
-                actionLabel: 'Retry',
+                actionLabel: text.retry,
                 onAction: () => ref.read(vendorsProvider.notifier).refresh(),
               ),
               data: (list) => _buildCenter(context, list),
@@ -60,6 +61,7 @@ class _VendorListScreenState extends ConsumerState<VendorListScreen> {
 
   Widget _buildCenter(BuildContext context, List<VendorModel> vendors) {
     final cs = Theme.of(context).colorScheme;
+    final text = _VendorText.of(context);
     final active = vendors.where((v) => v.isActive).length;
     final openPayable = vendors.fold<double>(0, (sum, v) => sum + v.balance);
     final credits = vendors.fold<double>(0, (sum, v) => sum + v.creditBalance);
@@ -83,21 +85,25 @@ class _VendorListScreenState extends ConsumerState<VendorListScreen> {
       children: [
         _MetricStrip(
           chips: [
-            _MetricChip(Icons.store_outlined, 'Vendors', '${vendors.length}'),
-            _MetricChip(Icons.check_circle_outline, 'Active', '$active'),
+            _MetricChip(
+              Icons.store_outlined,
+              text.vendors,
+              '${vendors.length}',
+            ),
+            _MetricChip(Icons.check_circle_outline, text.active, '$active'),
             _MetricChip(
               Icons.receipt_long_outlined,
-              'Open payable',
+              text.openPayable,
               '${openPayable.toStringAsFixed(2)} EGP',
             ),
             _MetricChip(
               Icons.credit_score_outlined,
-              'Credits',
+              text.credits,
               '${credits.toStringAsFixed(2)} EGP',
             ),
             _MetricChip(
               Icons.warning_amber_outlined,
-              'No contact',
+              text.noContact,
               '$missing',
               warn: missing > 0,
             ),
@@ -126,10 +132,9 @@ class _VendorListScreenState extends ConsumerState<VendorListScreen> {
                 child: selected == null
                     ? EmptyStateWidget(
                         icon: Icons.store_outlined,
-                        message: 'No vendors found',
-                        description:
-                            'Create a vendor to start tracking purchases and payables.',
-                        actionLabel: 'New Vendor',
+                        message: text.noVendorsFound,
+                        description: text.createVendorHint,
+                        actionLabel: text.newVendor,
                         onAction: () => context.go(AppRoutes.vendorNew),
                       )
                     : _VendorDetailPane(
@@ -166,10 +171,12 @@ class _VendorListScreenState extends ConsumerState<VendorListScreen> {
   Future<void> _toggleActive(VendorModel vendor) async {
     final confirmed = await showConfirmDialog(
       context: context,
-      title: vendor.isActive ? 'Make vendor inactive' : 'Make vendor active',
+      title: vendor.isActive
+          ? _VendorText.of(context).makeVendorInactive
+          : _VendorText.of(context).makeVendorActive,
       message: vendor.isActive
-          ? 'Make "${vendor.displayName}" inactive?'
-          : 'Make "${vendor.displayName}" active?',
+          ? _VendorText.of(context).confirmVendorInactive(vendor.displayName)
+          : _VendorText.of(context).confirmVendorActive(vendor.displayName),
     );
     if (confirmed != true || !mounted) return;
 
@@ -181,7 +188,9 @@ class _VendorListScreenState extends ConsumerState<VendorListScreen> {
       success: (_) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            vendor.isActive ? 'Vendor made inactive' : 'Vendor made active',
+            vendor.isActive
+                ? _VendorText.of(context).vendorMadeInactive
+                : _VendorText.of(context).vendorMadeActive,
           ),
         ),
       ),
@@ -212,6 +221,7 @@ class _VendorListPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _VendorText.of(context);
     return Column(
       children: [
         Container(
@@ -226,12 +236,12 @@ class _VendorListPane extends StatelessWidget {
                 height: 30,
                 child: TextField(
                   onChanged: onSearch,
-                  decoration: const InputDecoration(
-                    hintText: 'Search name, phone, email...',
-                    prefixIcon: Icon(Icons.search, size: 16),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: text.searchNamePhoneEmail,
+                    prefixIcon: const Icon(Icons.search, size: 16),
+                    border: const OutlineInputBorder(),
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 6,
                     ),
@@ -243,13 +253,13 @@ class _VendorListPane extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Active Vendors',
+                      text.activeVendors,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  const Text('Inactive', style: TextStyle(fontSize: 11)),
+                  Text(text.inactive, style: const TextStyle(fontSize: 11)),
                   Transform.scale(
                     scale: 0.65,
                     child: Switch(
@@ -266,10 +276,10 @@ class _VendorListPane extends StatelessWidget {
           height: 28,
           color: cs.surfaceContainerHighest,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: const Row(
+          child: Row(
             children: [
-              Expanded(flex: 5, child: _Head('Name')),
-              Expanded(flex: 3, child: _Head('Payable', end: true)),
+              Expanded(flex: 5, child: _Head(text.name)),
+              Expanded(flex: 3, child: _Head(text.payable, end: true)),
             ],
           ),
         ),
@@ -369,6 +379,7 @@ class _VendorDetailPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _VendorText.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -381,19 +392,19 @@ class _VendorDetailPane extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Vendor Information',
+                  text.vendorInformation,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               IconButton(
-                tooltip: 'Open',
+                tooltip: text.open,
                 onPressed: onOpen,
                 icon: const Icon(Icons.open_in_new_outlined),
               ),
               IconButton(
-                tooltip: 'Edit',
+                tooltip: text.edit,
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
               ),
@@ -407,32 +418,32 @@ class _VendorDetailPane extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoLine('Vendor Name', vendor.displayName),
-                _InfoLine('Company', vendor.companyName ?? '-'),
-                _InfoLine('Phone', vendor.phone ?? '-'),
-                _InfoLine('Email', vendor.email ?? '-'),
-                _InfoLine('Currency', vendor.currency),
+                _InfoLine(text.vendorName, vendor.displayName),
+                _InfoLine(text.company, vendor.companyName ?? '-'),
+                _InfoLine(text.phone, vendor.phone ?? '-'),
+                _InfoLine(text.email, vendor.email ?? '-'),
+                _InfoLine(text.currency, vendor.currency),
                 const SizedBox(height: 18),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   children: [
                     _ValueBox(
-                      'Open payable',
+                      text.openPayable,
                       '${vendor.balance.toStringAsFixed(2)} ${vendor.currency}',
                     ),
                     _ValueBox(
-                      'Vendor credits',
+                      text.vendorCredits,
                       '${vendor.creditBalance.toStringAsFixed(2)} ${vendor.currency}',
                     ),
                     _ValueBox(
-                      'Net payable',
+                      text.netPayable,
                       '${vendor.netPayable.toStringAsFixed(2)} ${vendor.currency}',
                       highlight: vendor.netPayable > 0,
                     ),
                     _ValueBox(
-                      'Status',
-                      vendor.isActive ? 'Active' : 'Inactive',
+                      text.status,
+                      vendor.isActive ? text.active : text.inactive,
                     ),
                   ],
                 ),
@@ -444,19 +455,25 @@ class _VendorDetailPane extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: onEdit,
                       icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Edit Vendor'),
+                      label: Text(text.editVendor),
                     ),
                     OutlinedButton.icon(
                       onPressed: onToggleActive,
                       icon: const Icon(Icons.toggle_on_outlined, size: 16),
                       label: Text(
-                        vendor.isActive ? 'Make Inactive' : 'Make Active',
+                        vendor.isActive ? text.makeInactive : text.makeActive,
                       ),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.payments_outlined, size: 16),
-                      label: const Text('Pay Bills'),
+                      onPressed: () => context.push(
+                        AppRoutes.vendorTransactionHistory,
+                        extra: {
+                          'vendorId': vendor.id,
+                          'vendorName': vendor.displayName,
+                        },
+                      ),
+                      icon: const Icon(Icons.receipt_long_outlined, size: 16),
+                      label: Text(text.statement),
                     ),
                   ],
                 ),
@@ -468,21 +485,21 @@ class _VendorDetailPane extends StatelessWidget {
         Expanded(
           flex: 2,
           child: _ActivityTable(
-            title: 'Transactions',
+            title: text.transactions,
             rows: [
               _ActivityRow(
-                'Open Payable',
+                text.openPayable,
                 '-',
                 '-',
-                'Accounts Payable',
+                text.accountsPayable,
                 vendor.balance,
               ),
               if (vendor.creditBalance > 0)
                 _ActivityRow(
-                  'Credit',
+                  text.credit,
                   '-',
                   '-',
-                  'Vendor Credits',
+                  text.vendorCredits,
                   -vendor.creditBalance,
                 ),
             ],
@@ -514,6 +531,7 @@ class _CenterToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _VendorText.of(context);
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -529,41 +547,41 @@ class _CenterToolbar extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: text.refresh,
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh),
           ),
           PopupMenuButton<String>(
-            tooltip: 'Actions',
+            tooltip: text.actions,
             icon: const Icon(Icons.more_vert),
             onSelected: onAction,
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem(
-                value: 'Import Vendors from Excel/CSV',
+                value: text.importVendors,
                 child: _MenuRow(
                   icon: Icons.upload_file_outlined,
-                  label: 'Import Vendors from Excel/CSV',
+                  label: text.importVendors,
                 ),
               ),
               PopupMenuItem(
-                value: 'Export Vendors to Excel/CSV',
+                value: text.exportVendors,
                 child: _MenuRow(
                   icon: Icons.download_outlined,
-                  label: 'Export Vendors to Excel/CSV',
+                  label: text.exportVendors,
                 ),
               ),
               PopupMenuItem(
-                value: 'Download Import Template',
+                value: text.downloadImportTemplate,
                 child: _MenuRow(
                   icon: Icons.description_outlined,
-                  label: 'Download Import Template',
+                  label: text.downloadImportTemplate,
                 ),
               ),
               PopupMenuItem(
-                value: 'Vendor Statement Batch',
+                value: text.vendorStatementBatch,
                 child: _MenuRow(
                   icon: Icons.summarize_outlined,
-                  label: 'Vendor Statement Batch',
+                  label: text.vendorStatementBatch,
                 ),
               ),
             ],
@@ -704,6 +722,7 @@ class _ActivityTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _VendorText.of(context);
     return Column(
       children: [
         Container(
@@ -719,13 +738,13 @@ class _ActivityTable extends StatelessWidget {
         Container(
           height: 28,
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: const Row(
+          child: Row(
             children: [
-              Expanded(child: _Head('Type')),
-              Expanded(child: _Head('Num')),
-              Expanded(child: _Head('Date')),
-              Expanded(child: _Head('Account')),
-              Expanded(child: _Head('Amount', end: true)),
+              Expanded(child: _Head(text.type)),
+              Expanded(child: _Head(text.num)),
+              Expanded(child: _Head(text.date)),
+              Expanded(child: _Head(text.account)),
+              Expanded(child: _Head(text.amount, end: true)),
             ],
           ),
         ),
@@ -733,7 +752,7 @@ class _ActivityTable extends StatelessWidget {
           child: rows.isEmpty
               ? Center(
                   child: Text(
-                    'No activity to show',
+                    text.noActivityToShow,
                     style: TextStyle(color: cs.onSurfaceVariant),
                   ),
                 )
@@ -821,4 +840,79 @@ class _MenuRow extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [Icon(icon, size: 18), const SizedBox(width: 10), Text(label)],
   );
+}
+
+class _VendorText {
+  const _VendorText(this.ar);
+  final bool ar;
+
+  static _VendorText of(BuildContext context) =>
+      _VendorText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get vendorCenter => ar ? 'مركز الموردين' : 'Vendor Center';
+  String get newVendor => ar ? 'مورد جديد' : 'New Vendor';
+  String get couldNotLoadVendors =>
+      ar ? 'تعذر تحميل الموردين' : 'Could not load vendors';
+  String get retry => ar ? 'إعادة المحاولة' : 'Retry';
+  String get vendors => ar ? 'الموردون' : 'Vendors';
+  String get active => ar ? 'نشط' : 'Active';
+  String get inactive => ar ? 'غير نشط' : 'Inactive';
+  String get openPayable => ar ? 'المستحق المفتوح' : 'Open payable';
+  String get credits => ar ? 'الأرصدة الدائنة' : 'Credits';
+  String get noContact => ar ? 'بدون بيانات اتصال' : 'No contact';
+  String get noVendorsFound => ar ? 'لا يوجد موردون' : 'No vendors found';
+  String get createVendorHint => ar
+      ? 'أنشئ موردًا لبدء متابعة المشتريات والمستحقات.'
+      : 'Create a vendor to start tracking purchases and payables.';
+  String get makeVendorInactive =>
+      ar ? 'جعل المورد غير نشط' : 'Make vendor inactive';
+  String get makeVendorActive => ar ? 'جعل المورد نشط' : 'Make vendor active';
+  String confirmVendorInactive(String name) =>
+      ar ? 'جعل "$name" غير نشط؟' : 'Make "$name" inactive?';
+  String confirmVendorActive(String name) =>
+      ar ? 'جعل "$name" نشط؟' : 'Make "$name" active?';
+  String get vendorMadeInactive =>
+      ar ? 'تم جعل المورد غير نشط' : 'Vendor made inactive';
+  String get vendorMadeActive =>
+      ar ? 'تم جعل المورد نشط' : 'Vendor made active';
+  String get searchNamePhoneEmail =>
+      ar ? 'بحث بالاسم أو الهاتف أو البريد...' : 'Search name, phone, email...';
+  String get activeVendors => ar ? 'الموردون النشطون' : 'Active Vendors';
+  String get name => ar ? 'الاسم' : 'Name';
+  String get payable => ar ? 'المستحق' : 'Payable';
+  String get vendorInformation => ar ? 'معلومات المورد' : 'Vendor Information';
+  String get open => ar ? 'فتح' : 'Open';
+  String get edit => ar ? 'تعديل' : 'Edit';
+  String get vendorName => ar ? 'اسم المورد' : 'Vendor Name';
+  String get company => ar ? 'الشركة' : 'Company';
+  String get phone => ar ? 'الهاتف' : 'Phone';
+  String get email => ar ? 'البريد' : 'Email';
+  String get currency => ar ? 'العملة' : 'Currency';
+  String get vendorCredits => ar ? 'أرصدة المورد' : 'Vendor credits';
+  String get netPayable => ar ? 'صافي المستحق' : 'Net payable';
+  String get status => ar ? 'الحالة' : 'Status';
+  String get editVendor => ar ? 'تعديل المورد' : 'Edit Vendor';
+  String get makeInactive => ar ? 'جعله غير نشط' : 'Make Inactive';
+  String get makeActive => ar ? 'جعله نشط' : 'Make Active';
+  String get statement => ar ? 'كشف حساب' : 'Statement';
+  String get transactions => ar ? 'المعاملات' : 'Transactions';
+  String get accountsPayable => ar ? 'حسابات دائنة' : 'Accounts Payable';
+  String get credit => ar ? 'رصيد دائن' : 'Credit';
+  String get refresh => ar ? 'تحديث' : 'Refresh';
+  String get actions => ar ? 'إجراءات' : 'Actions';
+  String get importVendors =>
+      ar ? 'استيراد الموردين من Excel/CSV' : 'Import Vendors from Excel/CSV';
+  String get exportVendors =>
+      ar ? 'تصدير الموردين إلى Excel/CSV' : 'Export Vendors to Excel/CSV';
+  String get downloadImportTemplate =>
+      ar ? 'تحميل قالب الاستيراد' : 'Download Import Template';
+  String get vendorStatementBatch =>
+      ar ? 'طباعة كشوف الموردين دفعة واحدة' : 'Vendor Statement Batch';
+  String get type => ar ? 'النوع' : 'Type';
+  String get num => ar ? 'الرقم' : 'Num';
+  String get date => ar ? 'التاريخ' : 'Date';
+  String get account => ar ? 'الحساب' : 'Account';
+  String get amount => ar ? 'المبلغ' : 'Amount';
+  String get noActivityToShow =>
+      ar ? 'لا يوجد نشاط للعرض' : 'No activity to show';
 }

@@ -426,6 +426,7 @@ class _LoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -437,7 +438,7 @@ class _LoadingCard extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: 12),
-            Text('Loading $title...'),
+            Text(ar ? 'جاري تحميل $title...' : 'Loading $title...'),
           ],
         ),
       ),
@@ -459,6 +460,7 @@ class _ErrorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -484,7 +486,7 @@ class _ErrorCard extends StatelessWidget {
             TextButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(ar ? 'إعادة المحاولة' : 'Retry'),
             ),
           ],
         ),
@@ -499,6 +501,7 @@ class _SettingsToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -510,13 +513,13 @@ class _SettingsToolbar extends StatelessWidget {
         children: [
           const Icon(Icons.business_outlined, size: 19),
           const SizedBox(width: 8),
-          const Text(
-            'Company Center',
+          Text(
+            ar ? 'مركز الشركة' : 'Company Center',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: 10),
           Text(
-            'Settings',
+            ar ? 'الإعدادات' : 'Settings',
             style: TextStyle(
               fontSize: 12,
               color: cs.onSurfaceVariant,
@@ -525,7 +528,7 @@ class _SettingsToolbar extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: ar ? 'تحديث' : 'Refresh',
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh),
           ),

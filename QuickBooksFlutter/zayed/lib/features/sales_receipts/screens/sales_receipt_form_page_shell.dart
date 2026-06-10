@@ -328,7 +328,7 @@ class _SalesReceiptFormPageShellState
                   ? line.itemName
                   : line.descCtrl.text.trim(),
               quantity: line.qty,
-              unitPrice: line.rate,
+              unitPrice: line.rate.abs(),
             ),
           )
           .toList(),
@@ -376,7 +376,7 @@ class _SalesReceiptFormPageShellState
                   ? line.itemName
                   : line.descCtrl.text.trim(),
               quantity: line.qty,
-              unitPrice: line.rate,
+              unitPrice: line.rate.abs(),
             ),
           )
           .toList(),
@@ -752,11 +752,13 @@ class _SalesReceiptFormPageShellState
         if (empty.isEmpty) _lines.add(line);
         line.itemId = item.id;
         line.itemName = item.name;
+        line.itemType = item.itemType;
         line.qty = 1;
-        line.rate = item.salesPrice;
+        final rate = item.salesPrice.abs();
+        line.rate = rate;
         line.descCtrl.text = item.name;
         line.qtyCtrl.text = '1';
-        line.rateCtrl.text = item.salesPrice.toString();
+        line.rateCtrl.text = rate.toString();
       }
       _preview = null;
     });
@@ -804,6 +806,7 @@ class _SalesReceiptFormPageShellState
   void _clearLine(TransactionLineEntry line) {
     line.itemId = null;
     line.itemName = '';
+    line.itemType = null;
     line.qty = 1;
     line.rate = 0;
     line.descCtrl.clear();
@@ -1303,18 +1306,14 @@ class _QuickItemDraft {
   final String? expenseAccountId;
 
   String? validateAccounts() {
-    if (itemType == ItemType.inventory ||
-        itemType == ItemType.inventoryAssembly) {
+    if (_tracksInventory(itemType)) {
       if (incomeAccountId == null) return 'Income account required.';
       if (inventoryAssetAccountId == null) {
         return 'Inventory asset account required.';
       }
       if (cogsAccountId == null) return 'COGS account required.';
     }
-    if ((itemType == ItemType.nonInventory ||
-            itemType == ItemType.service ||
-            itemType == ItemType.otherCharge ||
-            itemType == ItemType.discount) &&
+    if (_isSalesOrPurchaseItem(itemType) &&
         incomeAccountId == null &&
         expenseAccountId == null) {
       return 'Income or expense account required.';
@@ -1326,19 +1325,30 @@ class _QuickItemDraft {
     'name': name,
     'itemType': itemType.value,
     'salesPrice': salesPrice,
-    'purchasePrice': purchasePrice,
+    'purchasePrice': _showsPurchaseCost(itemType) ? purchasePrice : 0,
     if (sku.isNotEmpty) 'sku': sku,
     if (barcode.isNotEmpty) 'barcode': barcode,
     if (unit.isNotEmpty) 'unit': unit,
-    if (itemType == ItemType.inventory ||
-        itemType == ItemType.inventoryAssembly)
-      'quantityOnHand': quantityOnHand,
+    if (_tracksInventory(itemType)) 'quantityOnHand': quantityOnHand,
     if (incomeAccountId != null) 'incomeAccountId': incomeAccountId,
-    if (inventoryAssetAccountId != null)
+    if (_tracksInventory(itemType) && inventoryAssetAccountId != null)
       'inventoryAssetAccountId': inventoryAssetAccountId,
-    if (cogsAccountId != null) 'cogsAccountId': cogsAccountId,
-    if (expenseAccountId != null) 'expenseAccountId': expenseAccountId,
+    if (_tracksInventory(itemType) && cogsAccountId != null)
+      'cogsAccountId': cogsAccountId,
+    if (_isSalesOrPurchaseItem(itemType) && expenseAccountId != null)
+      'expenseAccountId': expenseAccountId,
   };
+
+  static bool _tracksInventory(ItemType t) =>
+      t == ItemType.inventory || t == ItemType.inventoryAssembly;
+
+  static bool _isSalesOrPurchaseItem(ItemType t) =>
+      t == ItemType.nonInventory ||
+      t == ItemType.service ||
+      t == ItemType.otherCharge;
+
+  static bool _showsPurchaseCost(ItemType t) =>
+      _tracksInventory(t) || _isSalesOrPurchaseItem(t);
 }
 
 class _QuickItemDialog extends StatefulWidget {
@@ -1464,6 +1474,14 @@ class _QuickItemDialogState extends State<_QuickItemDialog> {
                           setState(() {
                             _itemType = value;
                             _unitCtrl.text = _tracksInventory ? 'pcs' : 'hr';
+                            if (!_tracksInventory) {
+                              _inventoryAssetAccountId = null;
+                              _cogsAccountId = null;
+                            } else {
+                              _inventoryAssetAccountId =
+                                  widget.defaults.inventoryAssetAccountId;
+                              _cogsAccountId = widget.defaults.cogsAccountId;
+                            }
                           });
                         },
                       ),

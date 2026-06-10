@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../reports/printing/customer_statement_print_service.dart';
 import '../data/models/customer_model.dart';
 import '../providers/customers_provider.dart';
@@ -137,8 +138,9 @@ class _CustomerTransactionHistoryScreenState
 
   Future<void> _printStatement() async {
     if (_customerId == null) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a customer before printing.')),
+        SnackBar(content: Text(l10n.chooseCustomerBeforePrinting)),
       );
       return;
     }
@@ -166,8 +168,11 @@ class _CustomerTransactionHistoryScreenState
       await const CustomerStatementPrintService().printStatement(model);
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not print customer statement: $e')),
+        SnackBar(
+          content: Text(l10n.couldNotPrintCustomerStatement(e.toString())),
+        ),
       );
     }
   }
@@ -177,6 +182,7 @@ class _CustomerTransactionHistoryScreenState
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final customersAsync = ref.watch(customersProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
@@ -191,7 +197,7 @@ class _CustomerTransactionHistoryScreenState
               ),
             ),
             Text(
-              'Customer Transaction History',
+              l10n.customerTransactionHistory,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -200,16 +206,8 @@ class _CustomerTransactionHistoryScreenState
         ),
         actions: [
           IconButton(
-            tooltip: 'Print',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Print history will be connected to the report print service.',
-                  ),
-                ),
-              );
-            },
+            tooltip: l10n.print,
+            onPressed: _printStatement,
             icon: const Icon(Icons.print_outlined),
           ),
           const SizedBox(width: 8),
@@ -244,10 +242,10 @@ class _CustomerTransactionHistoryScreenState
                             DropdownButtonFormField<CustomerModel>(
                               value: _selectedCustomer,
                               isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Customer',
+                              decoration: InputDecoration(
+                                labelText: l10n.customer,
                                 isDense: true,
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
                               ),
                               items: customers
                                   .where((customer) => customer.isActive)
@@ -263,7 +261,7 @@ class _CustomerTransactionHistoryScreenState
                                 _fetch();
                               },
                             ),
-                        orElse: () => const Text('Loading customers...'),
+                        orElse: () => Text(l10n.loadingCustomers),
                       ),
                     ),
                     OutlinedButton.icon(
@@ -271,19 +269,19 @@ class _CustomerTransactionHistoryScreenState
                       icon: const Icon(Icons.date_range_outlined, size: 18),
                       label: Text(
                         _range == null
-                            ? 'Date range'
+                            ? l10n.dateRange
                             : '${DateFormat('dd/MM/yyyy').format(_range!.start)} - ${DateFormat('dd/MM/yyyy').format(_range!.end)}',
                       ),
                     ),
                     if (_range != null)
                       IconButton(
-                        tooltip: 'Clear date range',
+                        tooltip: l10n.clearDateRange,
                         onPressed: _clearRange,
                         icon: const Icon(Icons.close),
                       ),
                     for (final type in _types)
                       ChoiceChip(
-                        label: Text(type),
+                        label: Text(_typeLabel(type, l10n)),
                         selected: _type == type,
                         onSelected: (_) {
                           setState(() => _type = type);
@@ -305,32 +303,33 @@ class _CustomerTransactionHistoryScreenState
   Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     if (_customerId == null) {
       return _EmptyState(
         icon: Icons.person_search_outlined,
-        title: 'Choose a customer',
-        message: 'Select a customer to view transaction history.',
+        title: l10n.chooseCustomer,
+        message: l10n.selectCustomerToViewHistory,
       );
     }
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
       return _EmptyState(
         icon: Icons.error_outline,
-        title: 'Could not load transactions',
+        title: l10n.couldNotLoadTransactions,
         message: _error!,
         action: FilledButton.icon(
           onPressed: _fetch,
           icon: const Icon(Icons.refresh),
-          label: const Text('Retry'),
+          label: Text(l10n.retry),
         ),
       );
     }
     if (_transactions.isEmpty) {
-      return const _EmptyState(
+      return _EmptyState(
         icon: Icons.receipt_long_outlined,
-        title: 'No transactions found',
-        message: 'No transactions match the selected filters.',
+        title: l10n.noTransactionsFound,
+        message: l10n.noTransactionsMatchFilters,
       );
     }
 
@@ -368,7 +367,7 @@ class _CustomerTransactionHistoryScreenState
                   side: BorderSide(color: cs.outlineVariant),
                 ),
                 Text(
-                  '${_currencyFmt.format(txn.amount)} EGP',
+                  '${_currencyFmt.format(txn.amount)} ${l10n.egp}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -389,6 +388,18 @@ class _CustomerTransactionHistoryScreenState
     if (value.contains('credit')) return Icons.credit_score_outlined;
     if (value.contains('return')) return Icons.assignment_return_outlined;
     return Icons.receipt_long_outlined;
+  }
+
+  String _typeLabel(String type, AppLocalizations l10n) {
+    return switch (type) {
+      'All' => l10n.all,
+      'Receipts' => l10n.salesReceipt,
+      'Payments' => l10n.payments,
+      'Invoices' => l10n.invoices,
+      'Credits' => l10n.customerCredits,
+      'Returns' => l10n.salesReturns,
+      _ => type,
+    };
   }
 }
 

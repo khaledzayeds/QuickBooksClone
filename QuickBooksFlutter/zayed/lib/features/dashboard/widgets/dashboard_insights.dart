@@ -56,7 +56,7 @@ class DashboardInsights extends ConsumerWidget {
                       tone: _MetricTone.warning,
                     ),
                     _Metric(
-                      label: 'CASH',
+                      label: l10n.cashLabel.toUpperCase(),
                       value: _money(snapshot.cashBalance, snapshot.currency),
                       tone: _tone(snapshot.cashBalance),
                     ),
@@ -89,7 +89,7 @@ class DashboardInsights extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     _ProgressBar(
-                      label: 'OVERDUE',
+                      label: l10n.moneyBarOverdue.toUpperCase(),
                       value: snapshot.overdueIncoming,
                       maxValue: math.max(snapshot.expectedIncoming, 1),
                       currency: snapshot.currency,
@@ -107,7 +107,7 @@ class DashboardInsights extends ConsumerWidget {
                 child: Column(
                   children: [
                     _ProgressBar(
-                      label: 'OPEN BILLS',
+                      label: l10n.openBills.toUpperCase(),
                       value: snapshot.expectedOutgoing,
                       maxValue: math.max(
                         snapshot.expectedIncoming,
@@ -118,7 +118,7 @@ class DashboardInsights extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     _ProgressBar(
-                      label: 'OVERDUE',
+                      label: l10n.moneyBarOverdue.toUpperCase(),
                       value: snapshot.overdueOutgoing,
                       maxValue: math.max(snapshot.expectedOutgoing, 1),
                       currency: snapshot.currency,
@@ -152,8 +152,8 @@ class DashboardInsights extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           _InsightCard(
-            title: 'Cash Flow Alerts',
-            action: 'Open Hub',
+            title: l10n.cashFlowAlerts,
+            action: l10n.openHub,
             onActionTap: () => context.go(AppRoutes.cashFlowHub),
             child: Column(
               children: snapshot.alerts
@@ -329,9 +329,11 @@ class _CashForecastChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (snapshot.forecastPoints.every((point) => point.amount == 0)) {
-      return const SizedBox(
+      return SizedBox(
         height: 180,
-        child: Center(child: Text('No cash-flow activity yet.')),
+        child: Center(
+          child: Text(AppLocalizations.of(context)!.noCashFlowActivity),
+        ),
       );
     }
 

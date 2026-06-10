@@ -11,18 +11,19 @@ class CompanySettingsScreen extends ConsumerWidget {
     final state = ref.watch(companySettingsFormProvider);
     final notifier = ref.read(companySettingsFormProvider.notifier);
     final theme = Theme.of(context);
+    final text = _CompanySettingsText.of(context);
 
     ref.listen(companySettingsFormProvider, (previous, next) {
       if (next.saved && previous?.saved != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Company settings saved successfully.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(text.saved)));
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Company Settings'),
+        title: Text(text.title),
         actions: [
           TextButton.icon(
             onPressed: state.saving ? null : notifier.save,
@@ -33,7 +34,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: const Text('Save'),
+            label: Text(text.save),
           ),
           const SizedBox(width: 12),
         ],
@@ -44,14 +45,14 @@ class CompanySettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               children: [
                 Text(
-                  'Company Profile',
+                  text.profile,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'These details are used on invoices, receipts, reports, taxes, and setup defaults.',
+                  text.profileDescription,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -62,18 +63,18 @@ class CompanySettingsScreen extends ConsumerWidget {
                 ],
                 const SizedBox(height: 24),
                 _SectionCard(
-                  title: 'Basic Information',
+                  title: text.basicInfo,
                   icon: Icons.business_outlined,
                   children: [
                     _AppTextField(
-                      label: 'Company Name *',
+                      label: text.companyName,
                       initialValue: state.form.companyName,
                       onChanged: (value) => notifier.update(
                         (current) => current.copyWith(companyName: value),
                       ),
                     ),
                     _AppTextField(
-                      label: 'Legal Name',
+                      label: text.legalName,
                       initialValue: state.form.legalName ?? '',
                       onChanged: (value) => notifier.update(
                         (current) => current.copyWith(legalName: value),
@@ -81,7 +82,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                     ),
                     _ResponsivePair(
                       first: _AppTextField(
-                        label: 'Currency',
+                        label: text.currency,
                         initialValue: state.form.currency,
                         textCapitalization: TextCapitalization.characters,
                         onChanged: (value) => notifier.update(
@@ -89,7 +90,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                         ),
                       ),
                       second: _AppTextField(
-                        label: 'Country',
+                        label: text.country,
                         initialValue: state.form.country,
                         textCapitalization: TextCapitalization.characters,
                         onChanged: (value) => notifier.update(
@@ -99,7 +100,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                     ),
                     _ResponsivePair(
                       first: _AppTextField(
-                        label: 'Time Zone',
+                        label: text.timeZone,
                         initialValue: state.form.timeZoneId,
                         onChanged: (value) => notifier.update(
                           (current) => current.copyWith(timeZoneId: value),
@@ -107,18 +108,18 @@ class CompanySettingsScreen extends ConsumerWidget {
                       ),
                       second: DropdownButtonFormField<String>(
                         initialValue: state.form.defaultLanguage,
-                        decoration: const InputDecoration(
-                          labelText: 'Default Language',
+                        decoration: InputDecoration(
+                          labelText: text.defaultLanguage,
                           border: OutlineInputBorder(),
                         ),
-                        items: const [
+                        items: [
                           DropdownMenuItem<String>(
                             value: 'ar',
-                            child: Text('Arabic'),
+                            child: Text(text.arabic),
                           ),
                           DropdownMenuItem<String>(
                             value: 'en',
-                            child: Text('English'),
+                            child: Text(text.english),
                           ),
                         ],
                         onChanged: (value) {
@@ -135,12 +136,12 @@ class CompanySettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _SectionCard(
-                  title: 'Contact & Address',
+                  title: text.contactAddress,
                   icon: Icons.contact_phone_outlined,
                   children: [
                     _ResponsivePair(
                       first: _AppTextField(
-                        label: 'Email',
+                        label: text.email,
                         initialValue: state.form.email ?? '',
                         keyboardType: TextInputType.emailAddress,
                         onChanged: (value) => notifier.update(
@@ -148,7 +149,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                         ),
                       ),
                       second: _AppTextField(
-                        label: 'Phone',
+                        label: text.phone,
                         initialValue: state.form.phone ?? '',
                         keyboardType: TextInputType.phone,
                         onChanged: (value) => notifier.update(
@@ -157,14 +158,14 @@ class CompanySettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     _AppTextField(
-                      label: 'Address Line 1',
+                      label: text.addressLine1,
                       initialValue: state.form.addressLine1 ?? '',
                       onChanged: (value) => notifier.update(
                         (current) => current.copyWith(addressLine1: value),
                       ),
                     ),
                     _AppTextField(
-                      label: 'Address Line 2',
+                      label: text.addressLine2,
                       initialValue: state.form.addressLine2 ?? '',
                       onChanged: (value) => notifier.update(
                         (current) => current.copyWith(addressLine2: value),
@@ -172,21 +173,21 @@ class CompanySettingsScreen extends ConsumerWidget {
                     ),
                     _ResponsiveTriple(
                       first: _AppTextField(
-                        label: 'City',
+                        label: text.city,
                         initialValue: state.form.city ?? '',
                         onChanged: (value) => notifier.update(
                           (current) => current.copyWith(city: value),
                         ),
                       ),
                       second: _AppTextField(
-                        label: 'Region',
+                        label: text.region,
                         initialValue: state.form.region ?? '',
                         onChanged: (value) => notifier.update(
                           (current) => current.copyWith(region: value),
                         ),
                       ),
                       third: _AppTextField(
-                        label: 'Postal Code',
+                        label: text.postalCode,
                         initialValue: state.form.postalCode ?? '',
                         onChanged: (value) => notifier.update(
                           (current) => current.copyWith(postalCode: value),
@@ -197,12 +198,12 @@ class CompanySettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _SectionCard(
-                  title: 'Fiscal Year & Taxes',
+                  title: text.fiscalTaxes,
                   icon: Icons.calculate_outlined,
                   children: [
                     _ResponsivePair(
                       first: _AppTextField(
-                        label: 'Fiscal Year Start Month',
+                        label: text.fiscalMonth,
                         initialValue: state.form.fiscalYearStartMonth
                             .toString(),
                         keyboardType: TextInputType.number,
@@ -213,7 +214,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                         ),
                       ),
                       second: _AppTextField(
-                        label: 'Fiscal Year Start Day',
+                        label: text.fiscalDay,
                         initialValue: state.form.fiscalYearStartDay.toString(),
                         keyboardType: TextInputType.number,
                         onChanged: (value) => notifier.update(
@@ -225,10 +226,8 @@ class CompanySettingsScreen extends ConsumerWidget {
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Taxes Enabled'),
-                      subtitle: const Text(
-                        'Enable sales/purchase tax defaults for transactions.',
-                      ),
+                      title: Text(text.taxesEnabled),
+                      subtitle: Text(text.taxesEnabledDescription),
                       value: state.form.taxesEnabled,
                       onChanged: (value) => notifier.update(
                         (current) => current.copyWith(taxesEnabled: value),
@@ -236,10 +235,8 @@ class CompanySettingsScreen extends ConsumerWidget {
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Prices Include Tax'),
-                      subtitle: const Text(
-                        'Use tax-inclusive prices by default.',
-                      ),
+                      title: Text(text.pricesIncludeTax),
+                      subtitle: Text(text.pricesIncludeTaxDescription),
                       value: state.form.pricesIncludeTax,
                       onChanged: (value) => notifier.update(
                         (current) => current.copyWith(pricesIncludeTax: value),
@@ -247,7 +244,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                     ),
                     _ResponsivePair(
                       first: _AppTextField(
-                        label: 'Default Sales Tax Rate %',
+                        label: text.defaultSalesTax,
                         initialValue: state.form.defaultSalesTaxRate.toString(),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -259,7 +256,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                         ),
                       ),
                       second: _AppTextField(
-                        label: 'Default Purchase Tax Rate %',
+                        label: text.defaultPurchaseTax,
                         initialValue: state.form.defaultPurchaseTaxRate
                             .toString(),
                         keyboardType: const TextInputType.numberWithOptions(
@@ -273,7 +270,7 @@ class CompanySettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     _AppTextField(
-                      label: 'Tax Registration Number',
+                      label: text.taxRegistration,
                       initialValue: state.form.taxRegistrationNumber ?? '',
                       onChanged: (value) => notifier.update(
                         (current) =>
@@ -294,13 +291,74 @@ class CompanySettingsScreen extends ConsumerWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.save_outlined),
-                    label: const Text('Save Company Settings'),
+                    label: Text(text.saveCompanySettings),
                   ),
                 ),
               ],
             ),
     );
   }
+}
+
+class _CompanySettingsText {
+  const _CompanySettingsText(this.ar);
+
+  final bool ar;
+
+  static _CompanySettingsText of(BuildContext context) => _CompanySettingsText(
+    Localizations.localeOf(context).languageCode == 'ar',
+  );
+
+  String get saved => ar
+      ? 'تم حفظ إعدادات الشركة بنجاح.'
+      : 'Company settings saved successfully.';
+  String get title => ar ? 'إعدادات الشركة' : 'Company Settings';
+  String get save => ar ? 'حفظ' : 'Save';
+  String get profile => ar ? 'ملف الشركة' : 'Company Profile';
+  String get profileDescription => ar
+      ? 'تستخدم هذه البيانات في الفواتير والإيصالات والتقارير والضرائب وإعدادات البداية.'
+      : 'These details are used on invoices, receipts, reports, taxes, and setup defaults.';
+  String get basicInfo => ar ? 'البيانات الأساسية' : 'Basic Information';
+  String get companyName => ar ? 'اسم الشركة *' : 'Company Name *';
+  String get legalName => ar ? 'الاسم القانوني' : 'Legal Name';
+  String get currency => ar ? 'العملة' : 'Currency';
+  String get country => ar ? 'الدولة' : 'Country';
+  String get timeZone => ar ? 'المنطقة الزمنية' : 'Time Zone';
+  String get defaultLanguage => ar ? 'اللغة الافتراضية' : 'Default Language';
+  String get arabic => ar ? 'العربية' : 'Arabic';
+  String get english => ar ? 'الإنجليزية' : 'English';
+  String get contactAddress =>
+      ar ? 'بيانات التواصل والعنوان' : 'Contact & Address';
+  String get email => ar ? 'البريد الإلكتروني' : 'Email';
+  String get phone => ar ? 'الهاتف' : 'Phone';
+  String get addressLine1 => ar ? 'العنوان 1' : 'Address Line 1';
+  String get addressLine2 => ar ? 'العنوان 2' : 'Address Line 2';
+  String get city => ar ? 'المدينة' : 'City';
+  String get region => ar ? 'المنطقة' : 'Region';
+  String get postalCode => ar ? 'الرمز البريدي' : 'Postal Code';
+  String get fiscalTaxes =>
+      ar ? 'السنة المالية والضرائب' : 'Fiscal Year & Taxes';
+  String get fiscalMonth =>
+      ar ? 'شهر بداية السنة المالية' : 'Fiscal Year Start Month';
+  String get fiscalDay =>
+      ar ? 'يوم بداية السنة المالية' : 'Fiscal Year Start Day';
+  String get taxesEnabled => ar ? 'تفعيل الضرائب' : 'Taxes Enabled';
+  String get taxesEnabledDescription => ar
+      ? 'تفعيل افتراضات ضريبة البيع والشراء في المعاملات.'
+      : 'Enable sales/purchase tax defaults for transactions.';
+  String get pricesIncludeTax =>
+      ar ? 'الأسعار تشمل الضريبة' : 'Prices Include Tax';
+  String get pricesIncludeTaxDescription => ar
+      ? 'استخدام الأسعار الشاملة للضريبة كإعداد افتراضي.'
+      : 'Use tax-inclusive prices by default.';
+  String get defaultSalesTax =>
+      ar ? 'نسبة ضريبة المبيعات الافتراضية %' : 'Default Sales Tax Rate %';
+  String get defaultPurchaseTax =>
+      ar ? 'نسبة ضريبة المشتريات الافتراضية %' : 'Default Purchase Tax Rate %';
+  String get taxRegistration =>
+      ar ? 'رقم التسجيل الضريبي' : 'Tax Registration Number';
+  String get saveCompanySettings =>
+      ar ? 'حفظ إعدادات الشركة' : 'Save Company Settings';
 }
 
 class _SectionCard extends StatelessWidget {

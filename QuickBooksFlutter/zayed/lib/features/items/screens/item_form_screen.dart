@@ -143,37 +143,46 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
         _incomeAccountId = _inventoryAssetAccountId = _cogsAccountId =
             _expenseAccountId = null;
       }
-      _incomeAccountId ??= find(
-        [api.AccountType.income, api.AccountType.otherIncome],
-        ['sales income', 'income'],
-      );
-      _inventoryAssetAccountId ??= find(
-        [api.AccountType.inventoryAsset, api.AccountType.otherCurrentAsset],
-        ['inventory asset', 'inventory'],
-      );
-      _cogsAccountId ??= find(
-        [api.AccountType.costOfGoodsSold],
-        ['cost of goods', 'cogs'],
-      );
-      _expenseAccountId ??= find(
-        [
-          api.AccountType.expense,
-          api.AccountType.otherExpense,
-          api.AccountType.costOfGoodsSold,
-        ],
-        ['expense', 'cost'],
-      );
+      if (_needsIncomeAccount(_itemType)) {
+        _incomeAccountId ??= find(
+          [api.AccountType.income, api.AccountType.otherIncome],
+          _itemType == ItemType.discount
+              ? ['discount', 'sales discount', 'income']
+              : ['sales income', 'income'],
+        );
+      }
+      if (_tracksInventory(_itemType)) {
+        _inventoryAssetAccountId ??= find(
+          [api.AccountType.inventoryAsset, api.AccountType.otherCurrentAsset],
+          ['inventory asset', 'inventory'],
+        );
+        _cogsAccountId ??= find(
+          [api.AccountType.costOfGoodsSold],
+          ['cost of goods', 'cogs'],
+        );
+      }
+      if (_needsExpenseAccount(_itemType)) {
+        _expenseAccountId ??= find(
+          [
+            api.AccountType.expense,
+            api.AccountType.otherExpense,
+            api.AccountType.costOfGoodsSold,
+          ],
+          ['expense', 'cost'],
+        );
+      }
+      _normalizeAccountsForType();
     });
   }
 
-  String? _numVal(String? v) {
+  String? _numVal(String? v, AppLocalizations l10n) {
     final n = double.tryParse(v ?? '');
-    if (n == null) return 'Invalid number';
-    if (n < 0) return 'Cannot be negative';
+    if (n == null) return l10n.invalidNumber;
+    if (n < 0) return l10n.cannotBeNegative;
     return null;
   }
 
-  String? _barcodeVal(String? value) {
+  String? _barcodeVal(String? value, AppLocalizations l10n) {
     final barcode = value?.trim() ?? '';
     if (barcode.isEmpty) return null;
     final items = ref.read(itemsProvider).value ?? const <ItemModel>[];
@@ -182,7 +191,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
       barcode,
       excludingItemId: widget.id,
     )) {
-      return 'Barcode already exists on another item.';
+      return l10n.barcodeExists;
     }
     return null;
   }
@@ -205,58 +214,90 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
     });
   }
 
-  String? _validateAccounts() {
+  String? _validateAccounts(AppLocalizations l10n) {
     if (_tracksInventory(_itemType)) {
-      if (_incomeAccountId == null) return 'Income account required.';
+      if (_incomeAccountId == null) return l10n.incomeAccountRequiredMsg;
       if (_inventoryAssetAccountId == null) {
-        return 'Inventory asset account required.';
+        return l10n.inventoryAssetAccountRequiredMsg;
       }
-      if (_cogsAccountId == null) return 'COGS account required.';
+      if (_cogsAccountId == null) return l10n.cogsAccountRequiredMsg;
     }
-    if ((_isSalesOrPurchaseOnly(_itemType)) &&
+    if (_itemType == ItemType.discount) {
+      if (_incomeAccountId == null) return l10n.discountAccountRequiredMsg;
+    }
+    if ((_isSalesOrPurchaseItem(_itemType)) &&
         _incomeAccountId == null &&
         _expenseAccountId == null) {
-      return 'Income or expense account required.';
+      return l10n.incomeOrExpenseAccountRequired;
     }
     if (_itemType == ItemType.fixedAsset &&
         _inventoryAssetAccountId == null &&
         _expenseAccountId == null) {
-      return 'Asset or expense account required.';
+      return l10n.assetOrExpenseAccountRequired;
     }
     if (_itemType == ItemType.payment && _incomeAccountId == null) {
-      return 'Deposit or income account required.';
+      return l10n.depositOrIncomeAccountRequired;
     }
     if (_postsThroughComponents(_itemType) && _incomeAccountId != null) {
-      return 'Group and subtotal items should not have an income account.';
+      return l10n.componentItemsNoIncomeAccount;
     }
     return null;
   }
 
+  void _normalizeAccountsForType() {
+    if (!_needsIncomeAccount(_itemType)) _incomeAccountId = null;
+    if (!_tracksInventory(_itemType)) {
+      _inventoryAssetAccountId = null;
+      _cogsAccountId = null;
+    }
+    if (!_needsExpenseAccount(_itemType)) _expenseAccountId = null;
+  }
+
+  Map<String, String?> _accountPayloadForType() {
+    _normalizeAccountsForType();
+    return {
+      'incomeAccountId': _incomeAccountId,
+      'inventoryAssetAccountId': _inventoryAssetAccountId,
+      'cogsAccountId': _cogsAccountId,
+      'expenseAccountId': _expenseAccountId,
+    };
+  }
+
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
-    final acErr = _validateAccounts();
+    final acErr = _validateAccounts(l10n);
     if (acErr != null) {
       _snack(acErr, isError: true);
       return;
     }
     setState(() => _loading = true);
 
+    final accounts = _accountPayloadForType();
     final body = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
       'itemType': _itemType.value,
-      'salesPrice': double.tryParse(_salesPriceCtrl.text) ?? 0,
-      'purchasePrice': double.tryParse(_purchasePriceCtrl.text) ?? 0,
+      'salesPrice': _showsSalesPrice(_itemType)
+          ? double.tryParse(_salesPriceCtrl.text) ?? 0
+          : 0,
+      'purchasePrice': _showsPurchaseCost(_itemType)
+          ? double.tryParse(_purchasePriceCtrl.text) ?? 0
+          : 0,
       if (_skuCtrl.text.trim().isNotEmpty) 'sku': _skuCtrl.text.trim(),
       if (_barcodeCtrl.text.trim().isNotEmpty)
         'barcode': _barcodeCtrl.text.trim(),
-      if (_unitCtrl.text.trim().isNotEmpty) 'unit': _unitCtrl.text.trim(),
+      if (_showsUnit(_itemType) && _unitCtrl.text.trim().isNotEmpty)
+        'unit': _unitCtrl.text.trim(),
       if (!widget.isEdit && _tracksInventory(_itemType))
         'quantityOnHand': double.tryParse(_qtyCtrl.text) ?? 0,
-      if (_incomeAccountId != null) 'incomeAccountId': _incomeAccountId,
-      if (_inventoryAssetAccountId != null)
-        'inventoryAssetAccountId': _inventoryAssetAccountId,
-      if (_cogsAccountId != null) 'cogsAccountId': _cogsAccountId,
-      if (_expenseAccountId != null) 'expenseAccountId': _expenseAccountId,
+      if (accounts['incomeAccountId'] != null)
+        'incomeAccountId': accounts['incomeAccountId'],
+      if (accounts['inventoryAssetAccountId'] != null)
+        'inventoryAssetAccountId': accounts['inventoryAssetAccountId'],
+      if (accounts['cogsAccountId'] != null)
+        'cogsAccountId': accounts['cogsAccountId'],
+      if (accounts['expenseAccountId'] != null)
+        'expenseAccountId': accounts['expenseAccountId'],
     };
 
     final ApiResult<ItemModel> result = widget.isEdit
@@ -267,7 +308,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
     setState(() => _loading = false);
     result.when(
       success: (_) {
-        _snack(widget.isEdit ? 'Item updated.' : 'Item created.');
+        _snack(widget.isEdit ? l10n.itemUpdated : l10n.itemCreated);
         context.popOrGo(AppRoutes.items);
       },
       failure: (e) => _snack(e.message, isError: true),
@@ -295,7 +336,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
       backgroundColor: cs.surface,
       body: Column(
         children: [
-          // ── Tool Strip ──────────────────────────────────────────────────────
+          // â”€â”€ Tool Strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             height: 42,
             decoration: BoxDecoration(
@@ -318,7 +359,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  widget.isEdit ? 'Edit Item' : 'New Item',
+                  widget.isEdit ? l10n.editItem : l10n.newItem,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -329,7 +370,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                       ? null
                       : () => context.go(AppRoutes.itemBarcodeCenter),
                   icon: const Icon(Icons.qr_code_2_outlined, size: 16),
-                  label: const Text('Barcode Center'),
+                  label: Text(l10n.barcodeCenter),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 28),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -345,7 +386,9 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                     ),
-                    child: Text(widget.isEdit ? 'Save Changes' : 'Create Item'),
+                    child: Text(
+                      widget.isEdit ? l10n.saveChanges : l10n.createItem,
+                    ),
                   )
                 else
                   const SizedBox(
@@ -358,7 +401,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
             ),
           ),
 
-          // ── Body ────────────────────────────────────────────────────────────
+          // â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Expanded(
             child: busy && _loadingAccounts && !widget.isEdit
                 ? const Center(child: CircularProgressIndicator())
@@ -368,7 +411,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                       children: [
                         _ItemFormHero(
                           isEdit: widget.isEdit,
-                          itemType: _typeLabel(_itemType),
+                          itemType: _typeLabel(_itemType, l10n),
                           name: _nameCtrl.text,
                           barcode: _barcodeCtrl.text,
                           unit: _unitCtrl.text,
@@ -376,17 +419,22 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                               double.tryParse(_salesPriceCtrl.text) ?? 0,
                           purchasePrice:
                               double.tryParse(_purchasePriceCtrl.text) ?? 0,
+                          showSalesPrice: _showsSalesPrice(_itemType),
+                          showPurchaseCost: _showsPurchaseCost(_itemType),
+                          showUnit: _showsUnit(_itemType),
+                          isDiscount: _itemType == ItemType.discount,
                           quantityOnHand: _tracksInventory(_itemType)
                               ? double.tryParse(_qtyCtrl.text) ?? 0
                               : null,
                           currency: 'EGP',
+                          l10n: l10n,
                           onGenerateBarcode: _generateBarcode,
                         ),
                         Expanded(
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Left panel — Basic info
+                              // Left panel â€” Basic info
                               Expanded(
                                 flex: 5,
                                 child: SingleChildScrollView(
@@ -396,22 +444,25 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       _Section(
-                                        title: 'Item Details',
+                                        title: l10n.itemDetails,
                                         icon: Icons.inventory_2_outlined,
                                         children: [
                                           // Item type
                                           DropdownButtonFormField<ItemType>(
                                             initialValue: _itemType,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Item Type *',
-                                              border: OutlineInputBorder(),
+                                            decoration: InputDecoration(
+                                              labelText: l10n.itemTypeRequired,
+                                              border:
+                                                  const OutlineInputBorder(),
                                               isDense: true,
                                             ),
                                             items: ItemType.values
                                                 .map(
                                                   (t) => DropdownMenuItem(
                                                     value: t,
-                                                    child: Text(_typeLabel(t)),
+                                                    child: Text(
+                                                      _typeLabel(t, l10n),
+                                                    ),
                                                   ),
                                                 )
                                                 .toList(),
@@ -423,46 +474,57 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                                 ? null
                                                 : (v) {
                                                     if (v == null) return;
-                                                    setState(
-                                                      () => _itemType = v,
-                                                    );
+                                                    setState(() {
+                                                      _itemType = v;
+                                                      if (!_showsUnit(v)) {
+                                                        _unitCtrl.clear();
+                                                      } else if (_unitCtrl.text
+                                                          .trim()
+                                                          .isEmpty) {
+                                                        _unitCtrl.text =
+                                                            _tracksInventory(v)
+                                                            ? 'pcs'
+                                                            : 'hr';
+                                                      }
+                                                    });
                                                     _applyDefaults(force: true);
                                                   },
                                           ),
                                           const SizedBox(height: 8),
-                                          _hint(_typeHint(_itemType), cs),
+                                          _hint(_typeHint(_itemType, l10n), cs),
                                           if (_loadedItem != null) ...[
                                             const SizedBox(height: 8),
-                                            _banner(_loadedItem!, cs),
+                                            _banner(_loadedItem!, cs, l10n),
                                           ],
                                         ],
                                       ),
                                       const SizedBox(height: 16),
                                       _Section(
-                                        title: 'Name & Barcode',
+                                        title: l10n.nameAndBarcode,
                                         icon: Icons.qr_code_2_outlined,
                                         children: [
                                           AppTextField(
-                                            label: 'Item Name / Number *',
+                                            label: l10n.itemNameNumber,
                                             controller: _nameCtrl,
-                                            hint: 'e.g. Thermal Printer',
+                                            hint: l10n.itemNameExample,
                                             onChanged: (_) => setState(() {}),
                                             validator: (v) =>
                                                 (v ?? '').trim().isEmpty
-                                                ? 'Required'
+                                                ? l10n.required
                                                 : null,
                                           ),
                                           const SizedBox(height: 10),
                                           AppTextField(
-                                            label: 'Barcode',
+                                            label: l10n.barcode,
                                             controller: _barcodeCtrl,
-                                            hint: 'Scan or type barcode',
+                                            hint: l10n.barcodeHint,
                                             keyboardType: TextInputType.text,
                                             onChanged: (_) => setState(() {}),
-                                            validator: _barcodeVal,
+                                            validator: (v) =>
+                                                _barcodeVal(v, l10n),
                                             suffixIcon: Tooltip(
                                               message:
-                                                  'Generate internal barcode',
+                                                  l10n.generateInternalBarcode,
                                               child: IconButton(
                                                 icon: const Icon(
                                                   Icons.auto_awesome_outlined,
@@ -487,114 +549,162 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                                   setState(
                                                     () => _showAdvancedIds = v,
                                                   ),
-                                              title: const Text(
-                                                'Advanced identifiers',
-                                                style: TextStyle(
+                                              title: Text(
+                                                l10n.advancedIdentifiers,
+                                                style: const TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w700,
                                                 ),
                                               ),
-                                              subtitle: const Text(
-                                                'Part No. / manufacturer code is optional.',
-                                                style: TextStyle(fontSize: 11),
+                                              subtitle: Text(
+                                                l10n.advancedIdentifiersHint,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                ),
                                               ),
                                               children: [
                                                 AppTextField(
-                                                  label:
-                                                      'Part No. / SKU (optional)',
+                                                  label: l10n.partNoSkuOptional,
                                                   controller: _skuCtrl,
                                                   hint: 'INV-001',
                                                 ),
                                               ],
                                             ),
                                           ),
-                                          const SizedBox(height: 10),
-                                          ItemUnitSelector(
-                                            initialValue: _unitCtrl.text.isEmpty
-                                                ? null
-                                                : _unitCtrl.text,
-                                            onChanged: (v) => setState(
-                                              () => _unitCtrl.text = v ?? '',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      _Section(
-                                        title: 'Pricing',
-                                        icon: Icons.price_change_outlined,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: AppTextField(
-                                                  label: 'Sales Price',
-                                                  controller: _salesPriceCtrl,
-                                                  hint: '0.00',
-                                                  keyboardType:
-                                                      const TextInputType.numberWithOptions(
-                                                        decimal: true,
-                                                      ),
-                                                  validator: _numVal,
-                                                  onChanged: (_) =>
-                                                      setState(() {}),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: AppTextField(
-                                                  label: 'Purchase Cost',
-                                                  controller:
-                                                      _purchasePriceCtrl,
-                                                  hint: '0.00',
-                                                  keyboardType:
-                                                      const TextInputType.numberWithOptions(
-                                                        decimal: true,
-                                                      ),
-                                                  validator: _numVal,
-                                                  onChanged: (_) =>
-                                                      setState(() {}),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (!widget.isEdit &&
-                                              _tracksInventory(_itemType)) ...[
+                                          if (_showsUnit(_itemType)) ...[
                                             const SizedBox(height: 10),
-                                            AppTextField(
-                                              label: 'Opening Qty on Hand',
-                                              controller: _qtyCtrl,
-                                              hint: '0',
-                                              keyboardType:
-                                                  const TextInputType.numberWithOptions(
-                                                    decimal: true,
-                                                  ),
-                                              validator: (v) {
-                                                final base = _numVal(v);
-                                                if (base != null) return base;
-                                                final qty =
-                                                    double.tryParse(v ?? '') ??
-                                                    0;
-                                                final cost =
-                                                    double.tryParse(
-                                                      _purchasePriceCtrl.text,
-                                                    ) ??
-                                                    0;
-                                                if (qty > 0 && cost <= 0) {
-                                                  return 'Purchase cost required for opening qty';
-                                                }
-                                                return null;
-                                              },
-                                              onChanged: (_) => setState(() {}),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            _hint(
-                                              'Opening qty > 0 posts an opening inventory value via the purchase cost.',
-                                              cs,
+                                            ItemUnitSelector(
+                                              initialValue:
+                                                  _unitCtrl.text.isEmpty
+                                                  ? null
+                                                  : _unitCtrl.text,
+                                              onChanged: (v) => setState(
+                                                () => _unitCtrl.text = v ?? '',
+                                              ),
                                             ),
                                           ],
                                         ],
                                       ),
+                                      if (_showsSalesPrice(_itemType) ||
+                                          _showsPurchaseCost(_itemType) ||
+                                          (!widget.isEdit &&
+                                              _tracksInventory(_itemType))) ...[
+                                        const SizedBox(height: 16),
+                                        _Section(
+                                          title: _itemType == ItemType.discount
+                                              ? l10n.discount
+                                              : l10n.pricing,
+                                          icon: Icons.price_change_outlined,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                if (_showsSalesPrice(_itemType))
+                                                  Expanded(
+                                                    child: AppTextField(
+                                                      label:
+                                                          _itemType ==
+                                                              ItemType.discount
+                                                          ? l10n.discountAmountPercent
+                                                          : l10n.salesPrice,
+                                                      controller:
+                                                          _salesPriceCtrl,
+                                                      hint: '0.00',
+                                                      keyboardType:
+                                                          const TextInputType.numberWithOptions(
+                                                            decimal: true,
+                                                          ),
+                                                      validator: (v) =>
+                                                          _numVal(v, l10n),
+                                                      onChanged: (_) =>
+                                                          setState(() {}),
+                                                    ),
+                                                  ),
+                                                if (_showsSalesPrice(
+                                                      _itemType,
+                                                    ) &&
+                                                    _showsPurchaseCost(
+                                                      _itemType,
+                                                    ))
+                                                  const SizedBox(width: 10),
+                                                if (_showsPurchaseCost(
+                                                  _itemType,
+                                                ))
+                                                  Expanded(
+                                                    child: AppTextField(
+                                                      label:
+                                                          _tracksInventory(
+                                                            _itemType,
+                                                          )
+                                                          ? l10n.purchaseCost
+                                                          : l10n.purchaseExpenseCost,
+                                                      controller:
+                                                          _purchasePriceCtrl,
+                                                      hint: '0.00',
+                                                      keyboardType:
+                                                          const TextInputType.numberWithOptions(
+                                                            decimal: true,
+                                                          ),
+                                                      validator: (v) =>
+                                                          _numVal(v, l10n),
+                                                      onChanged: (_) =>
+                                                          setState(() {}),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            if (_itemType == ItemType.discount)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 6,
+                                                ),
+                                                child: _hint(
+                                                  l10n.discountItemHint,
+                                                  cs,
+                                                ),
+                                              ),
+                                            if (!widget.isEdit &&
+                                                _tracksInventory(
+                                                  _itemType,
+                                                )) ...[
+                                              const SizedBox(height: 10),
+                                              AppTextField(
+                                                label: l10n.openingQtyOnHand,
+                                                controller: _qtyCtrl,
+                                                hint: '0',
+                                                keyboardType:
+                                                    const TextInputType.numberWithOptions(
+                                                      decimal: true,
+                                                    ),
+                                                validator: (v) {
+                                                  final base = _numVal(v, l10n);
+                                                  if (base != null) {
+                                                    return base;
+                                                  }
+                                                  final qty =
+                                                      double.tryParse(
+                                                        v ?? '',
+                                                      ) ??
+                                                      0;
+                                                  final cost =
+                                                      double.tryParse(
+                                                        _purchasePriceCtrl.text,
+                                                      ) ??
+                                                      0;
+                                                  if (qty > 0 && cost <= 0) {
+                                                    return l10n
+                                                        .purchaseCostRequiredForOpeningQty;
+                                                  }
+                                                  return null;
+                                                },
+                                                onChanged: (_) =>
+                                                    setState(() {}),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              _hint(l10n.openingQtyHint, cs),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -604,31 +714,26 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                 width: 1,
                                 color: cs.outlineVariant.withValues(alpha: 0.4),
                               ),
-                              // Right panel — Accounts
+                              // Right panel â€” Accounts
                               Expanded(
                                 flex: 5,
                                 child: SingleChildScrollView(
                                   padding: const EdgeInsets.all(20),
                                   child: _Section(
-                                    title: 'Posting Accounts',
+                                    title: l10n.postingAccounts,
                                     icon: Icons.account_tree_outlined,
                                     children: [
-                                      _hint(_accountsHint(_itemType), cs),
+                                      _hint(_accountsHint(_itemType, l10n), cs),
                                       const SizedBox(height: 12),
-                                      if (!_postsThroughComponents(
-                                        _itemType,
-                                      )) ...[
+                                      if (_needsIncomeAccount(_itemType)) ...[
                                         _AccountPicker(
-                                          label:
-                                              _tracksInventory(_itemType) ||
-                                                  _itemType == ItemType.payment
-                                              ? 'Income / Deposit Account *'
-                                              : 'Income Account',
+                                          label: _incomeAccountLabel(
+                                            _itemType,
+                                            l10n,
+                                          ),
                                           value: _incomeAccountId,
-                                          accounts: _filter([
-                                            api.AccountType.income,
-                                            api.AccountType.otherIncome,
-                                          ]),
+                                          accounts: _incomeAccounts(_itemType),
+                                          notSelectedLabel: l10n.notSelected,
                                           onChanged: (v) => setState(
                                             () => _incomeAccountId = v,
                                           ),
@@ -637,36 +742,39 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                       ],
                                       if (_tracksInventory(_itemType)) ...[
                                         _AccountPicker(
-                                          label: 'Inventory Asset Account *',
+                                          label: l10n
+                                              .inventoryAssetAccountRequired,
                                           value: _inventoryAssetAccountId,
                                           accounts: _filter([
                                             api.AccountType.inventoryAsset,
                                             api.AccountType.otherCurrentAsset,
                                           ]),
+                                          notSelectedLabel: l10n.notSelected,
                                           onChanged: (v) => setState(
                                             () => _inventoryAssetAccountId = v,
                                           ),
                                         ),
                                         const SizedBox(height: 10),
                                         _AccountPicker(
-                                          label: 'COGS Account *',
+                                          label: l10n.cogsAccountRequired,
                                           value: _cogsAccountId,
                                           accounts: _filter([
                                             api.AccountType.costOfGoodsSold,
                                           ]),
+                                          notSelectedLabel: l10n.notSelected,
                                           onChanged: (v) => setState(
                                             () => _cogsAccountId = v,
                                           ),
                                         ),
                                         const SizedBox(height: 10),
                                       ],
-                                      if (_isSalesOrPurchaseOnly(_itemType) ||
+                                      if (_needsExpenseAccount(_itemType) ||
                                           _itemType == ItemType.fixedAsset) ...[
                                         _AccountPicker(
                                           label:
                                               _itemType == ItemType.fixedAsset
-                                              ? 'Asset / Expense Account'
-                                              : 'Expense / Purchase Account',
+                                              ? l10n.assetExpenseAccount
+                                              : l10n.expensePurchaseAccount,
                                           value: _expenseAccountId,
                                           accounts:
                                               _itemType == ItemType.fixedAsset
@@ -685,6 +793,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                                       .AccountType
                                                       .costOfGoodsSold,
                                                 ]),
+                                          notSelectedLabel: l10n.notSelected,
                                           onChanged: (v) => setState(
                                             () => _expenseAccountId = v,
                                           ),
@@ -692,10 +801,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                                         const SizedBox(height: 10),
                                       ],
                                       if (_postsThroughComponents(_itemType))
-                                        _hint(
-                                          'Group and subtotal items do not post directly. Accounting flows through their component lines.',
-                                          cs,
-                                        ),
+                                        _hint(l10n.componentPostingHint, cs),
                                     ],
                                   ),
                                 ),
@@ -718,66 +824,99 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
           .toList()
         ..sort((a, b) => a.code.compareTo(b.code));
 
-  static String _typeLabel(ItemType t) => switch (t) {
-    ItemType.inventory => 'Inventory Part',
-    ItemType.nonInventory => 'Non-inventory Part',
-    ItemType.service => 'Service',
-    ItemType.bundle => 'Bundle',
-    ItemType.inventoryAssembly => 'Inventory Assembly',
-    ItemType.fixedAsset => 'Fixed Asset',
-    ItemType.otherCharge => 'Other Charge',
-    ItemType.subtotal => 'Subtotal',
-    ItemType.group => 'Group',
-    ItemType.discount => 'Discount',
-    ItemType.payment => 'Payment',
+  List<AccountModel> _incomeAccounts(ItemType t) => _filter(
+    t == ItemType.payment
+        ? [
+            api.AccountType.bank,
+            api.AccountType.income,
+            api.AccountType.otherIncome,
+          ]
+        : [api.AccountType.income, api.AccountType.otherIncome],
+  );
+
+  static String _typeLabel(ItemType t, AppLocalizations l10n) => switch (t) {
+    ItemType.inventory => l10n.typeInventoryPart,
+    ItemType.nonInventory => l10n.typeNonInventoryPart,
+    ItemType.service => l10n.typeService,
+    ItemType.bundle => l10n.typeBundle,
+    ItemType.inventoryAssembly => l10n.typeInventoryAssembly,
+    ItemType.fixedAsset => l10n.typeFixedAsset,
+    ItemType.otherCharge => l10n.typeOtherCharge,
+    ItemType.subtotal => l10n.typeSubtotal,
+    ItemType.group => l10n.typeGroup,
+    ItemType.discount => l10n.typeDiscount,
+    ItemType.payment => l10n.typePayment,
   };
 
-  static String _typeHint(ItemType t) => switch (t) {
-    ItemType.inventory =>
-      'Tracks quantity on hand and posts to Inventory Asset + COGS.',
-    ItemType.nonInventory =>
-      'Does not track stock. Can be bought, sold, or both.',
-    ItemType.service => 'Labor or non-stock work. Can be sold or purchased.',
-    ItemType.bundle =>
-      'Groups items on sales forms. Accounting flows through components.',
-    ItemType.inventoryAssembly =>
-      'Built from inventory components and tracks quantity on hand.',
-    ItemType.fixedAsset =>
-      'Tracks property or equipment you buy and may sell later.',
-    ItemType.otherCharge =>
-      'Miscellaneous charges such as delivery, setup, or service fees.',
-    ItemType.subtotal => 'Adds a subtotal line on sales or purchase forms.',
-    ItemType.group => 'Groups several items together without direct posting.',
-    ItemType.discount =>
-      'Subtracts a fixed amount or percentage from a subtotal.',
-    ItemType.payment =>
-      'Records a payment item linked to a deposit or income account.',
+  static String _typeHint(ItemType t, AppLocalizations l10n) => switch (t) {
+    ItemType.inventory => l10n.typeHintInventory,
+    ItemType.nonInventory => l10n.typeHintNonInventory,
+    ItemType.service => l10n.typeHintService,
+    ItemType.bundle => l10n.typeHintBundle,
+    ItemType.inventoryAssembly => l10n.typeHintInventoryAssembly,
+    ItemType.fixedAsset => l10n.typeHintFixedAsset,
+    ItemType.otherCharge => l10n.typeHintOtherCharge,
+    ItemType.subtotal => l10n.typeHintSubtotal,
+    ItemType.group => l10n.typeHintGroup,
+    ItemType.discount => l10n.typeHintDiscount,
+    ItemType.payment => l10n.typeHintPayment,
   };
 
-  static String _accountsHint(ItemType t) => switch (t) {
-    ItemType.inventory =>
-      'Inventory items require Income, Inventory Asset, and COGS accounts.',
-    ItemType.nonInventory => 'Use Income and/or Expense account.',
-    ItemType.service => 'Use Income and/or Expense account.',
-    ItemType.bundle => 'Bundle items post through their component items.',
-    ItemType.inventoryAssembly =>
-      'Assemblies require Income, Inventory Asset, and COGS accounts.',
-    ItemType.fixedAsset => 'Use an asset account or expense account.',
-    ItemType.otherCharge => 'Use Income and/or Expense account.',
-    ItemType.subtotal => 'Subtotal lines do not post directly.',
-    ItemType.group => 'Group items post through their component items.',
-    ItemType.discount => 'Use Income and/or Expense account.',
-    ItemType.payment => 'Use a deposit or income account.',
+  static String _accountsHint(ItemType t, AppLocalizations l10n) => switch (t) {
+    ItemType.inventory => l10n.accountsHintInventory,
+    ItemType.nonInventory => l10n.accountsHintNonInventory,
+    ItemType.service => l10n.accountsHintService,
+    ItemType.bundle => l10n.accountsHintBundle,
+    ItemType.inventoryAssembly => l10n.accountsHintInventoryAssembly,
+    ItemType.fixedAsset => l10n.accountsHintFixedAsset,
+    ItemType.otherCharge => l10n.accountsHintOtherCharge,
+    ItemType.subtotal => l10n.accountsHintSubtotal,
+    ItemType.group => l10n.accountsHintGroup,
+    ItemType.discount => l10n.accountsHintDiscount,
+    ItemType.payment => l10n.accountsHintPayment,
   };
 
   static bool _tracksInventory(ItemType t) =>
       t == ItemType.inventory || t == ItemType.inventoryAssembly;
 
-  static bool _isSalesOrPurchaseOnly(ItemType t) =>
+  static bool _isSalesOrPurchaseItem(ItemType t) =>
       t == ItemType.service ||
       t == ItemType.nonInventory ||
-      t == ItemType.otherCharge ||
-      t == ItemType.discount;
+      t == ItemType.otherCharge;
+
+  static bool _needsIncomeAccount(ItemType t) =>
+      _tracksInventory(t) ||
+      _isSalesOrPurchaseItem(t) ||
+      t == ItemType.discount ||
+      t == ItemType.payment;
+
+  static bool _needsExpenseAccount(ItemType t) =>
+      _isSalesOrPurchaseItem(t) || t == ItemType.fixedAsset;
+
+  static bool _showsSalesPrice(ItemType t) =>
+      _tracksInventory(t) ||
+      _isSalesOrPurchaseItem(t) ||
+      t == ItemType.discount ||
+      t == ItemType.fixedAsset;
+
+  static bool _showsPurchaseCost(ItemType t) =>
+      _tracksInventory(t) ||
+      _isSalesOrPurchaseItem(t) ||
+      t == ItemType.fixedAsset;
+
+  static bool _showsUnit(ItemType t) =>
+      _tracksInventory(t) ||
+      _isSalesOrPurchaseItem(t) ||
+      t == ItemType.fixedAsset;
+
+  static String _incomeAccountLabel(ItemType t, AppLocalizations l10n) =>
+      switch (t) {
+        ItemType.inventory ||
+        ItemType.inventoryAssembly => l10n.incomeAccountRequired,
+        ItemType.discount => l10n.discountAccountRequired,
+        ItemType.payment => l10n.depositPaymentAccountRequired,
+        _ => l10n.incomeAccount,
+      };
 
   static bool _postsThroughComponents(ItemType t) =>
       t == ItemType.bundle || t == ItemType.group || t == ItemType.subtotal;
@@ -803,7 +942,11 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
     ),
   );
 
-  static Widget _banner(ItemModel item, ColorScheme cs) => Container(
+  static Widget _banner(
+    ItemModel item,
+    ColorScheme cs,
+    AppLocalizations l10n,
+  ) => Container(
     padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(
       color: cs.surfaceContainerHighest,
@@ -818,7 +961,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
         ),
         const SizedBox(width: 8),
         Text(
-          'Qty on hand: ${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''} · ${item.isActive ? 'Active' : 'Inactive'}',
+          '${l10n.qtyOnHand}: ${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''} - ${item.isActive ? l10n.active : l10n.inactive}',
           style: const TextStyle(fontSize: 12),
         ),
       ],
@@ -826,7 +969,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
   );
 }
 
-// ── Section ───────────────────────────────────────────────────────────────────
+// â”€â”€ Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _ItemFormHero extends StatelessWidget {
   const _ItemFormHero({
     required this.isEdit,
@@ -836,8 +979,13 @@ class _ItemFormHero extends StatelessWidget {
     required this.unit,
     required this.salesPrice,
     required this.purchasePrice,
+    required this.showSalesPrice,
+    required this.showPurchaseCost,
+    required this.showUnit,
+    required this.isDiscount,
     required this.quantityOnHand,
     required this.currency,
+    required this.l10n,
     required this.onGenerateBarcode,
   });
 
@@ -848,15 +996,20 @@ class _ItemFormHero extends StatelessWidget {
   final String unit;
   final double salesPrice;
   final double purchasePrice;
+  final bool showSalesPrice;
+  final bool showPurchaseCost;
+  final bool showUnit;
+  final bool isDiscount;
   final double? quantityOnHand;
   final String currency;
+  final AppLocalizations l10n;
   final VoidCallback onGenerateBarcode;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final title = name.trim().isEmpty ? 'New item' : name.trim();
-    final code = barcode.trim().isEmpty ? 'No barcode yet' : barcode.trim();
+    final title = name.trim().isEmpty ? l10n.newItemHero : name.trim();
+    final code = barcode.trim().isEmpty ? l10n.noBarcodeYet : barcode.trim();
     return Container(
       height: 118,
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
@@ -914,7 +1067,9 @@ class _ItemFormHero extends StatelessWidget {
                         border: Border.all(color: const Color(0xFFB7C3CB)),
                       ),
                       child: Text(
-                        isEdit ? 'EDIT' : 'NEW',
+                        isEdit
+                            ? l10n.edit.toUpperCase()
+                            : l10n.newText.toUpperCase(),
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
@@ -930,11 +1085,13 @@ class _ItemFormHero extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     _HeroChip(icon: Icons.category_outlined, text: itemType),
-                    _HeroChip(icon: Icons.straighten_outlined, text: unit),
+                    if (showUnit)
+                      _HeroChip(icon: Icons.straighten_outlined, text: unit),
                     if (quantityOnHand != null)
                       _HeroChip(
                         icon: Icons.warehouse_outlined,
-                        text: 'On hand ${quantityOnHand!.toStringAsFixed(2)}',
+                        text:
+                            '${l10n.onHand} ${quantityOnHand!.toStringAsFixed(2)}',
                       ),
                   ],
                 ),
@@ -947,24 +1104,30 @@ class _ItemFormHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MetricBox(
-                        label: 'Sales',
-                        value: '${salesPrice.toStringAsFixed(2)} $currency',
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _MetricBox(
-                        label: 'Cost',
-                        value: '${purchasePrice.toStringAsFixed(2)} $currency',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                if (showSalesPrice || showPurchaseCost) ...[
+                  Row(
+                    children: [
+                      if (showSalesPrice)
+                        Expanded(
+                          child: _MetricBox(
+                            label: isDiscount ? l10n.discount : l10n.sales,
+                            value: '${salesPrice.toStringAsFixed(2)} $currency',
+                          ),
+                        ),
+                      if (showSalesPrice && showPurchaseCost)
+                        const SizedBox(width: 8),
+                      if (showPurchaseCost)
+                        Expanded(
+                          child: _MetricBox(
+                            label: l10n.cost,
+                            value:
+                                '${purchasePrice.toStringAsFixed(2)} $currency',
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Container(
                   height: 36,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -988,7 +1151,7 @@ class _ItemFormHero extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Generate barcode',
+                        tooltip: l10n.generateBarcode,
                         visualDensity: VisualDensity.compact,
                         onPressed: onGenerateBarcode,
                         icon: const Icon(Icons.auto_awesome_outlined, size: 18),
@@ -1103,7 +1266,7 @@ class _Section extends StatelessWidget {
   }
 }
 
-// ── Tool Button ───────────────────────────────────────────────────────────────
+// â”€â”€ Tool Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _TBtn extends StatelessWidget {
   const _TBtn({required this.icon, required this.label, required this.onTap});
   final IconData icon;
@@ -1137,17 +1300,19 @@ class _TBtn extends StatelessWidget {
   }
 }
 
-// ── Account Picker ────────────────────────────────────────────────────────────
+// â”€â”€ Account Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _AccountPicker extends StatelessWidget {
   const _AccountPicker({
     required this.label,
     required this.value,
     required this.accounts,
+    required this.notSelectedLabel,
     required this.onChanged,
   });
   final String label;
   final String? value;
   final List<AccountModel> accounts;
+  final String notSelectedLabel;
   final ValueChanged<String?> onChanged;
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<String?>(
@@ -1158,11 +1323,14 @@ class _AccountPicker extends StatelessWidget {
       isDense: true,
     ),
     items: [
-      const DropdownMenuItem<String?>(value: null, child: Text('Not selected')),
+      DropdownMenuItem<String?>(value: null, child: Text(notSelectedLabel)),
       ...accounts.map(
         (a) => DropdownMenuItem<String?>(
           value: a.id,
-          child: Text('${a.code} — ${a.name}', overflow: TextOverflow.ellipsis),
+          child: Text(
+            '${a.code} â€” ${a.name}',
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
     ],

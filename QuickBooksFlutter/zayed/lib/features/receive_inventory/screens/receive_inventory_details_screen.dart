@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:zayed/l10n/app_localizations.dart';
 
 import '../../../../app/router.dart';
+import '../../purchase_bills/providers/purchase_bills_provider.dart';
 import '../providers/receive_inventory_provider.dart';
 
 class ReceiveInventoryDetailsScreen extends ConsumerWidget {
@@ -29,13 +30,7 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
         actions: [
           receiptAsync.maybeWhen(
             data: (receipt) => !_isVoidStatus(receipt.status)
-                ? TextButton.icon(
-                    onPressed: () => context.push(
-                      '${AppRoutes.purchaseBillNew}?receiptId=${receipt.id}',
-                    ),
-                    icon: const Icon(Icons.request_quote_outlined),
-                    label: const Text('Create Bill'),
-                  )
+                ? _CreateBillAction(receiptId: receipt.id)
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
           ),
@@ -231,6 +226,40 @@ class ReceiveInventoryDetailsScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _CreateBillAction extends ConsumerWidget {
+  const _CreateBillAction({required this.receiptId});
+
+  final String receiptId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(inventoryReceiptBillingPlanProvider(receiptId));
+
+    return planAsync.maybeWhen(
+      data: (plan) => plan.canBill
+          ? TextButton.icon(
+              onPressed: () => context.push(
+                '${AppRoutes.purchaseBillNew}?receiptId=$receiptId',
+              ),
+              icon: const Icon(Icons.request_quote_outlined),
+              label: const Text('Create Bill'),
+            )
+          : const SizedBox.shrink(),
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+      orElse: () => const SizedBox.shrink(),
     );
   }
 }

@@ -30,9 +30,12 @@ class LicenseGate extends ConsumerWidget {
 
     final license = state.license;
     if (license.allows(feature)) return child;
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
 
     return LicenseBlockedScreen(
-      title: blockedTitle ?? '${feature.label} is locked',
+      title:
+          blockedTitle ??
+          (ar ? '${feature.label} مقفلة' : '${feature.label} is locked'),
       description: blockedDescription ?? license.denialReason(feature),
       editionLabel: license.edition.label,
       statusLabel: license.status.label,
@@ -58,9 +61,10 @@ class LicenseBlockedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _LicenseGateText.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('License Required')),
+      appBar: AppBar(title: Text(text.title)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 680),
@@ -95,8 +99,8 @@ class LicenseBlockedScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _InfoRow(label: 'Current Edition', value: editionLabel),
-                  _InfoRow(label: 'License Status', value: statusLabel),
+                  _InfoRow(label: text.currentEdition, value: editionLabel),
+                  _InfoRow(label: text.licenseStatus, value: statusLabel),
                   const SizedBox(height: 24),
                   Wrap(
                     spacing: 12,
@@ -105,12 +109,12 @@ class LicenseBlockedScreen extends StatelessWidget {
                       FilledButton.icon(
                         onPressed: () => context.go(AppRoutes.licenseSettings),
                         icon: const Icon(Icons.verified_user_outlined),
-                        label: const Text('Open License Settings'),
+                        label: Text(text.openLicenseSettings),
                       ),
                       OutlinedButton.icon(
                         onPressed: () => context.go(AppRoutes.settings),
                         icon: const Icon(Icons.settings_outlined),
-                        label: const Text('Back to Settings'),
+                        label: Text(text.backToSettings),
                       ),
                     ],
                   ),
@@ -122,6 +126,22 @@ class LicenseBlockedScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LicenseGateText {
+  const _LicenseGateText(this.ar);
+
+  final bool ar;
+
+  static _LicenseGateText of(BuildContext context) =>
+      _LicenseGateText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get title => ar ? 'الترخيص مطلوب' : 'License Required';
+  String get currentEdition => ar ? 'الإصدار الحالي' : 'Current Edition';
+  String get licenseStatus => ar ? 'حالة الترخيص' : 'License Status';
+  String get openLicenseSettings =>
+      ar ? 'فتح إعدادات الترخيص' : 'Open License Settings';
+  String get backToSettings => ar ? 'العودة للإعدادات' : 'Back to Settings';
 }
 
 class _InfoRow extends StatelessWidget {

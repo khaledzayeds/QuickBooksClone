@@ -125,16 +125,19 @@ public sealed class SalesPostingPreviewService
                 return (null, $"Cannot use inactive item on sales transaction: {item.Name}");
             }
 
-            if (item.ItemType == ItemType.Bundle)
+            if (ItemTypeBehavior.PostsThroughComponents(item.ItemType))
             {
-                return (null, $"Bundle item '{item.Name}' cannot be used until component posting is implemented.");
+                return (null, $"Group or bundle item '{item.Name}' cannot be used until component posting is implemented.");
             }
 
-            var unitPrice = requestLine.UnitPrice > 0 ? requestLine.UnitPrice : item.SalesPrice;
+            var unitPrice = ItemTypeBehavior.ResolveSalesUnitPrice(item, requestLine.UnitPrice);
+            var discountPercent = ItemTypeBehavior.ResolveSalesDiscountPercent(item.ItemType, requestLine.DiscountPercent);
             var description = string.IsNullOrWhiteSpace(requestLine.Description) ? item.Name : requestLine.Description.Trim();
             var grossLine = unitPrice * requestLine.Quantity;
-            var discountAmount = grossLine * requestLine.DiscountPercent / 100;
-            var tax = await ResolveTaxAsync(requestLine.TaxCodeId, settings, unitPrice, requestLine.Quantity, requestLine.DiscountPercent, cancellationToken);
+            var discountAmount = grossLine > 0 ? grossLine * discountPercent / 100 : 0;
+            var tax = ItemTypeBehavior.CanApplySalesTax(item.ItemType)
+                ? await ResolveTaxAsync(requestLine.TaxCodeId, settings, unitPrice, requestLine.Quantity, discountPercent, cancellationToken)
+                : new TaxLineCalculation(null, 0, 0, unitPrice);
             var lineTotal = grossLine - discountAmount + tax.TaxAmount;
 
             subtotal += grossLine;
@@ -144,7 +147,7 @@ public sealed class SalesPostingPreviewService
             decimal? projectedStock = null;
             decimal? unitCost = null;
             decimal? grossMargin = null;
-            if (item.ItemType == ItemType.Inventory)
+            if (ItemTypeBehavior.TracksInventory(item.ItemType))
             {
                 projectedStock = item.QuantityOnHand - requestLine.Quantity;
                 unitCost = item.PurchasePrice;
@@ -178,12 +181,12 @@ public sealed class SalesPostingPreviewService
                     "Inventory relief on sales posting."));
             }
 
-            if (item.IncomeAccountId is null)
+            if (!ItemTypeBehavior.IsSubtotal(item.ItemType) && item.IncomeAccountId is null)
             {
                 lineWarnings.Add("Income account is missing.");
             }
 
-            if (unitPrice < item.PurchasePrice && item.PurchasePrice > 0)
+            if (unitPrice > 0 && unitPrice < item.PurchasePrice && item.PurchasePrice > 0)
             {
                 lineWarnings.Add("Sales price is below purchase cost.");
             }
@@ -196,12 +199,12 @@ public sealed class SalesPostingPreviewService
                 description,
                 requestLine.Quantity,
                 tax.NetUnitPrice,
-                requestLine.DiscountPercent,
+                discountPercent,
                 discountAmount,
                 tax.RatePercent,
                 tax.TaxAmount,
                 lineTotal,
-                item.ItemType == ItemType.Inventory ? item.QuantityOnHand : null,
+                ItemTypeBehavior.TracksInventory(item.ItemType) ? item.QuantityOnHand : null,
                 projectedStock,
                 unitCost,
                 grossMargin,

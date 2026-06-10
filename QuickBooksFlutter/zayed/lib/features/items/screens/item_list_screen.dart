@@ -37,6 +37,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
       body: Column(
         children: [
           _ToolStrip(
+            l10n: l10n,
             onRefresh: () => ref.read(itemsProvider.notifier).refresh(),
             onClose: () => context.go(AppRoutes.dashboard),
             onNewItem: (type) =>
@@ -74,27 +75,30 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                   child: DropdownButtonFormField<int?>(
                     value: _selectedType,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Type',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.type,
+                      border: const OutlineInputBorder(),
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 6,
                       ),
                     ),
                     items: [
-                      const DropdownMenuItem<int?>(
+                      DropdownMenuItem<int?>(
                         value: null,
                         child: Text(
-                          'All item types',
+                          l10n.allItemTypes,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       ...ItemType.values.map(
                         (t) => DropdownMenuItem<int?>(
                           value: t.value,
-                          child: Text(t.label, overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            _itemTypeLabel(t, l10n),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ],
@@ -105,7 +109,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('Include inactive', style: theme.textTheme.bodySmall),
+                Text(l10n.includeInactive, style: theme.textTheme.bodySmall),
                 Transform.scale(
                   scale: 0.75,
                   child: Switch(
@@ -147,15 +151,19 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                 ),
                 child: Row(
                   children: [
-                    _M('Items', '${list.length}', cs),
+                    _M(l10n.items, '${list.length}', cs),
                     _D(cs),
-                    _M('Active', '$active', cs),
+                    _M(l10n.active, '$active', cs),
                     _D(cs),
-                    _M('Stock value', '${stockVal.toStringAsFixed(0)} EGP', cs),
+                    _M(
+                      l10n.stockValue,
+                      '${stockVal.toStringAsFixed(0)} ${l10n.egp}',
+                      cs,
+                    ),
                     _D(cs),
-                    _M('Missing accounts', '$missing', cs, warn: missing > 0),
+                    _M(l10n.missingAccounts, '$missing', cs, warn: missing > 0),
                     _D(cs),
-                    _M('Zero/low stock', '$lowStock', cs, warn: lowStock > 0),
+                    _M(l10n.zeroLowStock, '$lowStock', cs, warn: lowStock > 0),
                   ],
                 ),
               );
@@ -166,7 +174,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
               loading: () => const SkeletonList(),
               error: (e, _) => EmptyStateWidget(
                 icon: Icons.error_outline,
-                message: 'Could not load items',
+                message: l10n.couldNotLoadItems,
                 description: e.toString(),
                 actionLabel: l10n.retry,
                 onAction: () => ref.read(itemsProvider.notifier).refresh(),
@@ -174,13 +182,14 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
               data: (list) => list.isEmpty
                   ? EmptyStateWidget(
                       icon: Icons.inventory_2_outlined,
-                      message: 'No items found',
-                      description: 'Create a new item or import a list.',
-                      actionLabel: 'New Item',
+                      message: l10n.noItemsFound,
+                      description: l10n.createNewItemOrImport,
+                      actionLabel: l10n.newItem,
                       onAction: () => context.go(AppRoutes.itemNew),
                     )
                   : _DenseItemCenter(
                       items: list,
+                      l10n: l10n,
                       onToggleActive: _toggleActive,
                     ),
             ),
@@ -191,6 +200,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
   }
 
   Future<void> _exportCsv() async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await ref.read(itemsProvider.notifier).exportCsv();
     if (!mounted) return;
     result.when(
@@ -206,16 +216,16 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('CSV saved: ${file.path}'),
+              content: Text(l10n.csvSaved(file.path)),
               duration: const Duration(seconds: 6),
-              action: SnackBarAction(label: 'OK', onPressed: () {}),
+              action: SnackBarAction(label: l10n.ok, onPressed: () {}),
             ),
           );
         } catch (e) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Export failed: $e'),
+              content: Text(l10n.exportFailed(e.toString())),
               backgroundColor: Colors.red,
             ),
           );
@@ -228,6 +238,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
   }
 
   Future<void> _exportExcel() async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await ref.read(itemsProvider.notifier).exportItemsJson();
     if (!mounted) return;
     result.when(
@@ -245,7 +256,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Excel saved: ${file.path}'),
+              content: Text(l10n.excelSaved(file.path)),
               duration: const Duration(seconds: 5),
             ),
           );
@@ -253,7 +264,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Excel export failed: $e'),
+              content: Text(l10n.excelExportFailed(e.toString())),
               backgroundColor: Colors.red,
             ),
           );
@@ -266,6 +277,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
   }
 
   Future<void> _downloadTemplate() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final dir =
           await getDownloadsDirectory() ??
@@ -275,24 +287,29 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Excel template saved: ${file.path}'),
+          content: Text(l10n.excelTemplateSaved(file.path)),
           duration: const Duration(seconds: 6),
-          action: SnackBarAction(label: 'OK', onPressed: () {}),
+          action: SnackBarAction(label: l10n.ok, onPressed: () {}),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(l10n.failedWithError(e.toString())),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
 
   Future<void> _showPriceChangeDialog(List<ItemModel> items) async {
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
       builder: (ctx) => _PriceChangeDialog(
         items: items,
+        l10n: l10n,
         onConfirm: (ids, target, mode, value) async {
           Navigator.of(ctx).pop();
           final result = await ref
@@ -306,7 +323,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
           if (!mounted) return;
           result.when(
             success: (count) => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Updated $count item(s) successfully.')),
+              SnackBar(content: Text(l10n.itemsUpdatedSuccessfully(count))),
             ),
             failure: (e) => ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(e.message), backgroundColor: Colors.red),
@@ -318,10 +335,13 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
   }
 
   Future<void> _toggleActive(ItemModel item) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showConfirmDialog(
       context: context,
-      title: item.isActive ? 'Make inactive' : 'Make active',
-      message: '${item.isActive ? 'Deactivate' : 'Activate'} "${item.name}"?',
+      title: item.isActive ? l10n.makeInactive : l10n.makeActive,
+      message: item.isActive
+          ? l10n.deactivateItemConfirm(item.name)
+          : l10n.activateItemConfirm(item.name),
     );
     if (confirmed != true || !mounted) return;
     final ApiResult<ItemModel> result = await ref
@@ -340,6 +360,7 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
 // ── Tool Strip ───────────────────────────────────────────────────────────────
 class _ToolStrip extends StatelessWidget {
   const _ToolStrip({
+    required this.l10n,
     required this.onRefresh,
     required this.onClose,
     required this.onNewItem,
@@ -351,6 +372,7 @@ class _ToolStrip extends StatelessWidget {
     required this.onChangePrices,
     required this.onBarcodeCenter,
   });
+  final AppLocalizations l10n;
   final VoidCallback onRefresh;
   final VoidCallback onClose;
   final ValueChanged<ItemType> onNewItem;
@@ -384,7 +406,7 @@ class _ToolStrip extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 6),
-          _Btn(icon: Icons.refresh, label: 'Refresh', onTap: onRefresh),
+          _Btn(icon: Icons.refresh, label: l10n.refresh, onTap: onRefresh),
           vd(),
           // Actions menu
           PopupMenuButton<String>(
@@ -400,60 +422,60 @@ class _ToolStrip extends StatelessWidget {
             },
             child: _Btn(
               icon: Icons.more_vert,
-              label: 'Item actions',
+              label: l10n.itemActions,
               onTap: null,
             ),
             itemBuilder: (_) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'multi',
                 child: _MRow(
                   icon: Icons.table_chart_outlined,
-                  label: 'Add/Edit Multiple Items',
+                  label: l10n.addEditMultipleItems,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'import',
                 child: _MRow(
                   icon: Icons.upload_file_outlined,
-                  label: 'Import Items from Excel/CSV',
+                  label: l10n.importItemsExcelCsv,
                 ),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'export_csv',
                 child: _MRow(
                   icon: Icons.table_rows_outlined,
-                  label: 'Export to CSV',
+                  label: l10n.exportToCsv,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'export_excel',
                 child: _MRow(
                   icon: Icons.grid_on_outlined,
-                  label: 'Export to Excel (.xlsx)',
+                  label: l10n.exportToExcel,
                 ),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'template',
                 child: _MRow(
                   icon: Icons.description_outlined,
-                  label: 'Download Import Template',
+                  label: l10n.downloadImportTemplate,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'prices',
                 child: _MRow(
                   icon: Icons.price_change_outlined,
-                  label: 'Change Item Prices',
+                  label: l10n.changeItemPrices,
                 ),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'barcodes',
                 child: _MRow(
                   icon: Icons.qr_code_2_outlined,
-                  label: 'Barcode Center / Print Labels',
+                  label: l10n.barcodeCenterPrintLabels,
                 ),
               ),
             ],
@@ -476,7 +498,7 @@ class _ToolStrip extends StatelessWidget {
                   Icon(Icons.add, size: 15, color: cs.onPrimary),
                   const SizedBox(width: 5),
                   Text(
-                    'New',
+                    l10n.newText,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -492,13 +514,16 @@ class _ToolStrip extends StatelessWidget {
                 .map(
                   (t) => PopupMenuItem(
                     value: t,
-                    child: _MRow(icon: _icon(t), label: t.label),
+                    child: _MRow(
+                      icon: _icon(t),
+                      label: _itemTypeLabel(t, l10n),
+                    ),
                   ),
                 )
                 .toList(),
           ),
           const Spacer(),
-          _Btn(icon: Icons.close, label: 'Close', onTap: onClose),
+          _Btn(icon: Icons.close, label: l10n.close, onTap: onClose),
           const SizedBox(width: 6),
         ],
       ),
@@ -606,8 +631,13 @@ class _D extends StatelessWidget {
 
 // ── Dense Item Center ────────────────────────────────────────────────────────
 class _DenseItemCenter extends StatefulWidget {
-  const _DenseItemCenter({required this.items, required this.onToggleActive});
+  const _DenseItemCenter({
+    required this.items,
+    required this.l10n,
+    required this.onToggleActive,
+  });
   final List<ItemModel> items;
+  final AppLocalizations l10n;
   final Future<void> Function(ItemModel) onToggleActive;
 
   @override
@@ -645,10 +675,13 @@ class _DenseItemCenterState extends State<_DenseItemCenter> {
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 color: cs.surfaceContainerHighest,
-                child: const Row(
+                child: Row(
                   children: [
-                    Expanded(flex: 5, child: _MiniHead('Name')),
-                    Expanded(flex: 3, child: _MiniHead('Price', end: true)),
+                    Expanded(flex: 5, child: _MiniHead(widget.l10n.name)),
+                    Expanded(
+                      flex: 3,
+                      child: _MiniHead(widget.l10n.price, end: true),
+                    ),
                   ],
                 ),
               ),
@@ -673,12 +706,13 @@ class _DenseItemCenterState extends State<_DenseItemCenter> {
           child: selected == null
               ? Center(
                   child: Text(
-                    'No items found',
+                    widget.l10n.noItemsFound,
                     style: TextStyle(color: cs.onSurfaceVariant),
                   ),
                 )
               : _ItemInfoPane(
                   item: selected,
+                  l10n: widget.l10n,
                   onOpen: () => context.go(
                     AppRoutes.itemDetails.replaceFirst(':id', selected.id),
                   ),
@@ -767,11 +801,13 @@ class _MiniHead extends StatelessWidget {
 class _ItemInfoPane extends StatelessWidget {
   const _ItemInfoPane({
     required this.item,
+    required this.l10n,
     required this.onOpen,
     required this.onEdit,
     required this.onToggleActive,
   });
   final ItemModel item;
+  final AppLocalizations l10n;
   final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onToggleActive;
@@ -792,19 +828,19 @@ class _ItemInfoPane extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Item Information',
+                  l10n.itemInformation,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               IconButton(
-                tooltip: 'Open',
+                tooltip: l10n.open,
                 onPressed: onOpen,
                 icon: const Icon(Icons.open_in_new_outlined),
               ),
               IconButton(
-                tooltip: 'Edit',
+                tooltip: l10n.edit,
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
               ),
@@ -822,33 +858,33 @@ class _ItemInfoPane extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _InfoLine('Name', item.name),
-                      _InfoLine('Type', item.itemType.label),
-                      _InfoLine('Barcode', item.barcode ?? '-'),
-                      _InfoLine('Part No.', item.sku ?? '-'),
-                      _InfoLine('Unit', item.unit ?? '-'),
+                      _InfoLine(l10n.name, item.name),
+                      _InfoLine(l10n.type, _itemTypeLabel(item.itemType, l10n)),
+                      _InfoLine(l10n.barcode, item.barcode ?? '-'),
+                      _InfoLine(l10n.partNo, item.sku ?? '-'),
+                      _InfoLine(l10n.unit, item.unit ?? '-'),
                       const SizedBox(height: 14),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
                         children: [
                           _ValueBox(
-                            'Sales price',
-                            '${item.salesPrice.toStringAsFixed(2)} EGP',
+                            l10n.salesPrice,
+                            '${item.salesPrice.toStringAsFixed(2)} ${l10n.egp}',
                           ),
                           _ValueBox(
-                            'Purchase cost',
-                            '${item.purchasePrice.toStringAsFixed(2)} EGP',
+                            l10n.purchaseCost,
+                            '${item.purchasePrice.toStringAsFixed(2)} ${l10n.egp}',
                           ),
                           _ValueBox(
-                            'On hand',
+                            l10n.onHand,
                             item.isInventory
                                 ? '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}'
                                 : '-',
                           ),
                           _ValueBox(
-                            'Inventory value',
-                            '${item.inventoryValue.toStringAsFixed(2)} EGP',
+                            l10n.inventoryValue,
+                            '${item.inventoryValue.toStringAsFixed(2)} ${l10n.egp}',
                             highlight: item.inventoryValue > 0,
                           ),
                         ],
@@ -867,7 +903,7 @@ class _ItemInfoPane extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: onEdit,
                       icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Edit Item'),
+                      label: Text(l10n.editItem),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 34),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -878,7 +914,9 @@ class _ItemInfoPane extends StatelessWidget {
                       onPressed: onToggleActive,
                       icon: const Icon(Icons.toggle_on_outlined, size: 16),
                       label: Text(
-                        item.isActive ? 'Make Inactive' : 'Make Active',
+                        item.isActive
+                            ? l10n.makeInactiveTitle
+                            : l10n.makeActiveTitle,
                       ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(0, 34),
@@ -892,7 +930,7 @@ class _ItemInfoPane extends StatelessWidget {
                           '${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}',
                         ),
                         icon: const Icon(Icons.tune_outlined, size: 16),
-                        label: const Text('Adjust Stock'),
+                        label: Text(l10n.adjustStock),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 34),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -906,7 +944,10 @@ class _ItemInfoPane extends StatelessWidget {
           ),
         ),
         const Divider(height: 1),
-        Expanded(flex: 2, child: _MiniActivityTable(item: item)),
+        Expanded(
+          flex: 2,
+          child: _MiniActivityTable(item: item, l10n: l10n),
+        ),
       ],
     );
   }
@@ -975,8 +1016,9 @@ class _ValueBox extends StatelessWidget {
 }
 
 class _MiniActivityTable extends StatelessWidget {
-  const _MiniActivityTable({required this.item});
+  const _MiniActivityTable({required this.item, required this.l10n});
   final ItemModel item;
+  final AppLocalizations l10n;
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -987,20 +1029,20 @@ class _MiniActivityTable extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           alignment: Alignment.centerLeft,
           color: cs.surfaceContainerHighest,
-          child: const Text(
-            'Transactions',
-            style: TextStyle(fontWeight: FontWeight.w900),
+          child: Text(
+            l10n.transactions,
+            style: const TextStyle(fontWeight: FontWeight.w900),
           ),
         ),
         Container(
           height: 28,
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: const Row(
+          child: Row(
             children: [
-              Expanded(child: _MiniHead('Type')),
-              Expanded(child: _MiniHead('Date')),
-              Expanded(child: _MiniHead('Account')),
-              Expanded(child: _MiniHead('Amount', end: true)),
+              Expanded(child: _MiniHead(l10n.type)),
+              Expanded(child: _MiniHead(l10n.date)),
+              Expanded(child: _MiniHead(l10n.account)),
+              Expanded(child: _MiniHead(l10n.amount, end: true)),
             ],
           ),
         ),
@@ -1008,8 +1050,8 @@ class _MiniActivityTable extends StatelessWidget {
           child: Center(
             child: Text(
               item.isInventory
-                  ? 'Stock activity appears from sales, purchases, and adjustments.'
-                  : 'Sales and purchase activity appears here.',
+                  ? l10n.stockActivityHint
+                  : l10n.salesPurchaseActivityHint,
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
           ),
@@ -1033,10 +1075,29 @@ IconData _rowIcon(ItemType type) => switch (type) {
   ItemType.payment => Icons.payments_outlined,
 };
 
+String _itemTypeLabel(ItemType type, AppLocalizations l10n) => switch (type) {
+  ItemType.inventory => l10n.typeInventoryPart,
+  ItemType.nonInventory => l10n.typeNonInventoryPart,
+  ItemType.service => l10n.typeService,
+  ItemType.bundle => l10n.typeBundle,
+  ItemType.inventoryAssembly => l10n.typeInventoryAssembly,
+  ItemType.fixedAsset => l10n.typeFixedAsset,
+  ItemType.otherCharge => l10n.typeOtherCharge,
+  ItemType.subtotal => l10n.typeSubtotal,
+  ItemType.group => l10n.typeGroup,
+  ItemType.discount => l10n.typeDiscount,
+  ItemType.payment => l10n.typePayment,
+};
+
 // ── Price Change Dialog ───────────────────────────────────────────────────────
 class _PriceChangeDialog extends StatefulWidget {
-  const _PriceChangeDialog({required this.items, required this.onConfirm});
+  const _PriceChangeDialog({
+    required this.items,
+    required this.l10n,
+    required this.onConfirm,
+  });
   final List<ItemModel> items;
+  final AppLocalizations l10n;
   final void Function(List<String> ids, int target, int mode, double value)
   onConfirm;
 
@@ -1065,13 +1126,14 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = widget.l10n;
     final value = double.tryParse(_valueCtrl.text) ?? 0;
     final modeLabel = switch (_mode) {
-      1 => 'Set fixed price to',
-      2 => 'Increase by amount',
-      3 => 'Increase by %',
-      4 => 'Decrease by amount',
-      5 => 'Decrease by %',
+      1 => l10n.setFixedPriceTo,
+      2 => l10n.increaseByAmount,
+      3 => l10n.increaseByPercent,
+      4 => l10n.decreaseByAmount,
+      5 => l10n.decreaseByPercent,
       _ => '',
     };
 
@@ -1099,7 +1161,7 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Change Item Prices',
+                    l10n.changeItemPrices,
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
@@ -1125,21 +1187,21 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                       Expanded(
                         child: DropdownButtonFormField<int>(
                           value: _target,
-                          decoration: const InputDecoration(
-                            labelText: 'Apply to',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.applyTo,
+                            border: const OutlineInputBorder(),
                             isDense: true,
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: 1,
-                              child: Text('Sales price'),
+                              child: Text(l10n.salesPrice),
                             ),
                             DropdownMenuItem(
                               value: 2,
-                              child: Text('Purchase cost'),
+                              child: Text(l10n.purchaseCost),
                             ),
-                            DropdownMenuItem(value: 3, child: Text('Both')),
+                            DropdownMenuItem(value: 3, child: Text(l10n.both)),
                           ],
                           onChanged: (v) => setState(() => _target = v!),
                         ),
@@ -1148,31 +1210,31 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                       Expanded(
                         child: DropdownButtonFormField<int>(
                           value: _mode,
-                          decoration: const InputDecoration(
-                            labelText: 'Method',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.method,
+                            border: const OutlineInputBorder(),
                             isDense: true,
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: 1,
-                              child: Text('Set fixed price'),
+                              child: Text(l10n.setFixedPrice),
                             ),
                             DropdownMenuItem(
                               value: 2,
-                              child: Text('Increase by amount'),
+                              child: Text(l10n.increaseByAmount),
                             ),
                             DropdownMenuItem(
                               value: 3,
-                              child: Text('Increase by %'),
+                              child: Text(l10n.increaseByPercent),
                             ),
                             DropdownMenuItem(
                               value: 4,
-                              child: Text('Decrease by amount'),
+                              child: Text(l10n.decreaseByAmount),
                             ),
                             DropdownMenuItem(
                               value: 5,
-                              child: Text('Decrease by %'),
+                              child: Text(l10n.decreaseByPercent),
                             ),
                           ],
                           onChanged: (v) => setState(() => _mode = v!),
@@ -1188,8 +1250,8 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                           ),
                           decoration: InputDecoration(
                             labelText: _mode == 3 || _mode == 5
-                                ? 'Percent %'
-                                : 'Amount EGP',
+                                ? l10n.percent
+                                : l10n.amountEgp,
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
@@ -1200,7 +1262,7 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '$modeLabel ${value.toStringAsFixed(2)}${_mode == 3 || _mode == 5 ? '%' : ' EGP'}',
+                    '$modeLabel ${value.toStringAsFixed(2)}${_mode == 3 || _mode == 5 ? '%' : ' ${l10n.egp}'}',
                     style: TextStyle(
                       fontSize: 12,
                       color: cs.primary,
@@ -1212,7 +1274,7 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                   Row(
                     children: [
                       Text(
-                        'Select items (${_selected.length}/${widget.items.length})',
+                        l10n.selectItems(_selected.length, widget.items.length),
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
@@ -1223,11 +1285,11 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                         onPressed: () => setState(
                           () => _selected.addAll(widget.items.map((i) => i.id)),
                         ),
-                        child: const Text('All'),
+                        child: Text(l10n.all),
                       ),
                       TextButton(
                         onPressed: () => setState(() => _selected.clear()),
-                        child: const Text('None'),
+                        child: Text(l10n.none),
                       ),
                     ],
                   ),
@@ -1251,11 +1313,14 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                             style: const TextStyle(fontSize: 13),
                           ),
                           subtitle: Text(
-                            'Sales: ${item.salesPrice.toStringAsFixed(2)}  Cost: ${item.purchasePrice.toStringAsFixed(2)}',
+                            l10n.salesCostLine(
+                              item.salesPrice.toStringAsFixed(2),
+                              item.purchasePrice.toStringAsFixed(2),
+                            ),
                             style: const TextStyle(fontSize: 11),
                           ),
                           secondary: Text(
-                            item.itemType.label,
+                            _itemTypeLabel(item.itemType, l10n),
                             style: TextStyle(fontSize: 11, color: cs.primary),
                           ),
                         );
@@ -1273,7 +1338,7 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                 children: [
                   OutlinedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                    child: Text(l10n.cancel),
                   ),
                   const SizedBox(width: 10),
                   FilledButton.icon(
@@ -1286,7 +1351,7 @@ class _PriceChangeDialogState extends State<_PriceChangeDialog> {
                             value,
                           ),
                     icon: const Icon(Icons.price_change_outlined, size: 16),
-                    label: Text('Apply to ${_selected.length} item(s)'),
+                    label: Text(l10n.applyToItemCount(_selected.length)),
                   ),
                 ],
               ),

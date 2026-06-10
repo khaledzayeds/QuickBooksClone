@@ -80,12 +80,12 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
                 return InvoicePostingResult.Failure($"Item does not exist: {line.ItemId}");
             }
 
-            if (item.IncomeAccountId is null)
+            if (!ItemTypeBehavior.IsSubtotal(item.ItemType) && item.IncomeAccountId is null)
             {
                 return InvoicePostingResult.Failure($"Item '{item.Name}' is missing an income account.");
             }
 
-            if (item.ItemType == ItemType.Inventory)
+            if (ItemTypeBehavior.TracksInventory(item.ItemType))
             {
                 if (item.CogsAccountId is null || item.InventoryAssetAccountId is null)
                 {
@@ -120,13 +120,16 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
         var transaction = BuildAccountingTransaction(invoice, arAccount.Id, lineItems, taxCodesById);
         var savedTransaction = await _transactions.AddAsync(transaction, cancellationToken);
 
-        foreach (var (line, item) in lineItems.Where(current => current.Item.ItemType == ItemType.Inventory))
+        foreach (var (line, item) in lineItems.Where(current => ItemTypeBehavior.TracksInventory(current.Item.ItemType)))
         {
             await _items.DecreaseQuantityAsync(item.Id, line.Quantity, cancellationToken);
         }
 
         await _invoices.MarkPostedAsync(invoice.Id, savedTransaction.Id, cancellationToken);
-        await _customers.ApplyInvoiceAsync(invoice.CustomerId, invoice.TotalAmount, cancellationToken);
+        if (invoice.TotalAmount > 0)
+        {
+            await _customers.ApplyInvoiceAsync(invoice.CustomerId, invoice.TotalAmount, cancellationToken);
+        }
         return InvoicePostingResult.Success(savedTransaction.Id);
     }
 
@@ -176,7 +179,7 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
                 return InvoicePostingResult.Failure($"Item does not exist: {line.ItemId}");
             }
 
-            if (item.ItemType == ItemType.Inventory)
+            if (ItemTypeBehavior.TracksInventory(item.ItemType))
             {
                 inventoryItems.Add((line, item));
             }
@@ -190,7 +193,10 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
             await _items.IncreaseQuantityAsync(item.Id, line.Quantity, cancellationToken);
         }
 
-        await _customers.ReverseInvoiceAsync(invoice.CustomerId, invoice.TotalAmount, cancellationToken);
+        if (invoice.TotalAmount > 0)
+        {
+            await _customers.ReverseInvoiceAsync(invoice.CustomerId, invoice.TotalAmount, cancellationToken);
+        }
         await _invoices.VoidAsync(invoice.Id, savedReversal.Id, cancellationToken);
         return InvoicePostingResult.Success(savedReversal.Id);
     }
@@ -208,21 +214,39 @@ public sealed class SalesInvoicePostingService : ISalesInvoicePostingService
             InvoiceSourceEntityType,
             invoice.Id);
 
-        transaction.AddLine(new AccountingTransactionLine(
-            accountsReceivableAccountId,
-            $"Invoice {invoice.InvoiceNumber}",
-            invoice.TotalAmount,
-            0));
+        if (invoice.TotalAmount > 0)
+        {
+            transaction.AddLine(new AccountingTransactionLine(
+                accountsReceivableAccountId,
+                $"Invoice {invoice.InvoiceNumber}",
+                invoice.TotalAmount,
+                0));
+        }
 
         foreach (var (line, item) in lineItems)
         {
+            if (ItemTypeBehavior.IsSubtotal(item.ItemType) || line.LineTotal == 0)
+            {
+                continue;
+            }
+
+            if (line.LineTotal < 0)
+            {
+                transaction.AddLine(new AccountingTransactionLine(
+                    item.IncomeAccountId!.Value,
+                    line.Description,
+                    Math.Abs(line.LineTotal),
+                    0));
+                continue;
+            }
+
             transaction.AddLine(new AccountingTransactionLine(
                 item.IncomeAccountId!.Value,
                 line.Description,
                 0,
                 line.LineTotal));
 
-            if (item.ItemType != ItemType.Inventory)
+            if (!ItemTypeBehavior.TracksInventory(item.ItemType))
             {
                 continue;
             }

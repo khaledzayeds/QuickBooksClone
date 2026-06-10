@@ -84,6 +84,7 @@ class ItemModel {
 
   Map<String, dynamic> toUpdateJson() => {
     'name': name,
+    'itemType': itemType.value,
     'salesPrice': salesPrice,
     'purchasePrice': purchasePrice,
     if (sku != null) 'sku': sku,
@@ -156,4 +157,29 @@ enum ItemType {
     (e) => e.value == v,
     orElse: () => ItemType.inventory,
   );
+}
+
+extension ItemTypeBehavior on ItemType {
+  bool get tracksInventory =>
+      this == ItemType.inventory || this == ItemType.inventoryAssembly;
+
+  bool get postsThroughComponents =>
+      this == ItemType.bundle || this == ItemType.group;
+
+  bool get isSubtotalLine => this == ItemType.subtotal;
+
+  bool get isDiscountLine => this == ItemType.discount;
+
+  bool get isPaymentLine => this == ItemType.payment;
+
+  bool get isAmountReducingLine => isDiscountLine || isPaymentLine;
+
+  bool get canApplySalesTax =>
+      !isAmountReducingLine && !isSubtotalLine && !postsThroughComponents;
+
+  double resolveSalesRate(double requestedRate, double defaultRate) {
+    if (isSubtotalLine || postsThroughComponents) return 0;
+    final amount = requestedRate > 0 ? requestedRate : defaultRate;
+    return isAmountReducingLine ? -amount.abs() : amount;
+  }
 }

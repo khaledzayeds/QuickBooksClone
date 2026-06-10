@@ -315,7 +315,7 @@ class _PurchaseOrderWorkspaceScreenState
   Future<void> _handlePrint() async {
     final id = _editingOrder?.id ?? widget.id;
     if (id == null || id.isEmpty) {
-      _showError('Save the purchase order before printing.');
+      _showError(AppLocalizations.of(context)!.savePurchaseOrderBeforePrinting);
       return;
     }
     await printDocumentUsingSettings(
@@ -439,6 +439,7 @@ class _PurchaseOrderWorkspaceScreenState
                             onExpectedDateTap: () => _pickDate(expected: true),
                           ),
                           _LinesHeader(
+                            l10n: l10n,
                             readOnly: _readOnly,
                             onAddLine: () => setState(
                               () => _lines.add(TransactionLineEntry()),
@@ -659,12 +660,18 @@ class _PoHeader extends StatelessWidget {
 }
 
 class _LinesHeader extends StatelessWidget {
-  const _LinesHeader({required this.readOnly, required this.onAddLine});
+  const _LinesHeader({
+    required this.l10n,
+    required this.readOnly,
+    required this.onAddLine,
+  });
+  final AppLocalizations l10n;
   final bool readOnly;
   final VoidCallback onAddLine;
 
   @override
   Widget build(BuildContext context) {
+    final text = _PoText.of(context);
     return Container(
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -678,7 +685,7 @@ class _LinesHeader extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Products and Services',
+            text.productsAndServices,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: const Color(0xFF233F4C),
               fontWeight: FontWeight.w900,
@@ -686,7 +693,7 @@ class _LinesHeader extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            'Tab moves across cells • Enter commits row',
+            _PoText.of(context).lineEntryHint,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: const Color(0xFF596B74),
               fontWeight: FontWeight.w600,
@@ -696,7 +703,7 @@ class _LinesHeader extends StatelessWidget {
           TextButton.icon(
             onPressed: readOnly ? null : onAddLine,
             icon: const Icon(Icons.add, size: 15),
-            label: const Text('Add Line'),
+            label: Text(l10n.addLine),
             style: TextButton.styleFrom(
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -728,6 +735,7 @@ class _PoFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = _PoText.of(context);
     return Container(
       height: 132,
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -743,7 +751,7 @@ class _PoFooter extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'VENDOR MESSAGE',
+                  text.vendorMessage,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: const Color(0xFF53646D),
                     fontWeight: FontWeight.w900,
@@ -759,13 +767,13 @@ class _PoFooter extends StatelessWidget {
                     border: Border.all(color: const Color(0xFFB7C3CB)),
                   ),
                   child: Text(
-                    'Please supply the following items.',
+                    text.vendorMessageDefault,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'MEMO',
+                  l10n.memo.toUpperCase(),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: const Color(0xFF53646D),
                     fontWeight: FontWeight.w900,
@@ -781,7 +789,7 @@ class _PoFooter extends StatelessWidget {
                     border: Border.all(color: const Color(0xFFB7C3CB)),
                   ),
                   child: Text(
-                    'Optional',
+                    text.optional,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: const Color(0xFF7B8B93),
                     ),
@@ -795,7 +803,11 @@ class _PoFooter extends StatelessWidget {
             width: 310,
             child: Column(
               children: [
-                _TotalRow(label: 'TOTAL', value: total, currency: l10n.egp),
+                _TotalRow(
+                  label: l10n.total.toUpperCase(),
+                  value: total,
+                  currency: l10n.egp,
+                ),
                 Container(
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(
@@ -807,7 +819,7 @@ class _PoFooter extends StatelessWidget {
                     border: Border.all(color: const Color(0xFF9DB2BC)),
                   ),
                   child: _TotalRow(
-                    label: 'OPEN AMOUNT',
+                    label: text.openAmount,
                     value: total,
                     currency: l10n.egp,
                     strong: true,
@@ -823,17 +835,17 @@ class _PoFooter extends StatelessWidget {
                     OutlinedButton(
                       onPressed: saving || readOnly ? null : onSaveDraft,
                       style: _smallButton(),
-                      child: Text(saving ? 'Saving...' : 'Save Draft'),
+                      child: Text(saving ? l10n.saving : l10n.saveDraft),
                     ),
                     OutlinedButton(
                       onPressed: saving || readOnly ? null : onSaveOpen,
                       style: _smallButton(),
-                      child: const Text('Save & Open'),
+                      child: Text(l10n.saveAndOpen),
                     ),
                     OutlinedButton(
                       onPressed: saving ? null : onClear,
                       style: _smallButton(),
-                      child: const Text('Clear'),
+                      child: Text(l10n.clear),
                     ),
                   ],
                 ),
@@ -1045,9 +1057,10 @@ class _SaveTool extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = !saving && (onSaveDraft != null || onSaveOpen != null);
+    final l10n = AppLocalizations.of(context)!;
     return PopupMenuButton<String>(
       enabled: enabled,
-      tooltip: 'Save options',
+      tooltip: l10n.saveOptions,
       onSelected: (value) {
         if (value == 'draft') onSaveDraft?.call();
         if (value == 'open') onSaveOpen?.call();
@@ -1056,17 +1069,17 @@ class _SaveTool extends StatelessWidget {
         PopupMenuItem(
           value: 'draft',
           enabled: onSaveDraft != null,
-          child: const Text('Save Draft'),
+          child: Text(l10n.saveDraft),
         ),
         PopupMenuItem(
           value: 'open',
           enabled: onSaveOpen != null,
-          child: const Text('Save & Open'),
+          child: Text(l10n.saveAndOpen),
         ),
       ],
       child: _ToolVisual(
         icon: saving ? Icons.hourglass_top : Icons.save_outlined,
-        label: saving ? 'Saving' : 'Save',
+        label: saving ? l10n.saving : l10n.save,
         enabled: enabled,
         showDropDown: true,
       ),
@@ -1536,32 +1549,59 @@ class _MutedText extends StatelessWidget {
 class _EmptySidePanel extends StatelessWidget {
   const _EmptySidePanel();
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(
-          Icons.storefront_outlined,
-          size: 38,
-          color: Color(0xFF8CA0AA),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Select a vendor',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: const Color(0xFF2D4854),
-            fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final text = _PoText.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.storefront_outlined,
+            size: 38,
+            color: Color(0xFF8CA0AA),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Choose a vendor to see open purchase orders and receiving status.',
-          textAlign: TextAlign.center,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: const Color(0xFF667A84)),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 12),
+          Text(
+            text.selectVendor,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: const Color(0xFF2D4854),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            text.selectVendorHint,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: const Color(0xFF667A84)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PoText {
+  const _PoText(this.ar);
+
+  final bool ar;
+
+  static _PoText of(BuildContext context) =>
+      _PoText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get productsAndServices =>
+      ar ? 'المنتجات والخدمات' : 'Products and Services';
+  String get lineEntryHint => ar
+      ? 'Tab للتنقل بين الخلايا · Enter لاعتماد الصف'
+      : 'Tab moves across cells · Enter commits row';
+  String get vendorMessage => ar ? 'رسالة المورد' : 'VENDOR MESSAGE';
+  String get vendorMessageDefault =>
+      ar ? 'يرجى توريد الأصناف التالية.' : 'Please supply the following items.';
+  String get optional => ar ? 'اختياري' : 'Optional';
+  String get openAmount => ar ? 'المبلغ المفتوح' : 'OPEN AMOUNT';
+  String get selectVendor => ar ? 'اختر موردًا' : 'Select a vendor';
+  String get selectVendorHint => ar
+      ? 'اختر موردًا لعرض أوامر الشراء المفتوحة وحالة الاستلام.'
+      : 'Choose a vendor to see open purchase orders and receiving status.';
 }

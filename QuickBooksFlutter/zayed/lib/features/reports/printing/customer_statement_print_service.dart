@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -67,7 +66,8 @@ class CustomerStatementPrintService {
 
     final dateFmt = DateFormat('dd/MM/yyyy');
     final moneyFmt = NumberFormat('#,##0.00');
-    final rtl = _containsArabic(model.customerName);
+    final rtl = _isArabicStatement(model);
+    final labels = _StatementLabels.forDirection(rtl);
     final total = model.lines.fold<double>(0, (sum, line) => sum + line.amount);
 
     doc.addPage(
@@ -76,13 +76,13 @@ class CustomerStatementPrintService {
         margin: const pw.EdgeInsets.all(28),
         textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
         build: (_) => [
-          _header(model, dateFmt, rtl),
+          _header(model, dateFmt, rtl, labels),
           pw.SizedBox(height: 14),
-          _filters(model, dateFmt),
+          _filters(model, dateFmt, labels),
           pw.SizedBox(height: 14),
-          _summary(model, moneyFmt, total),
+          _summary(model, moneyFmt, total, labels),
           pw.SizedBox(height: 14),
-          _table(model, dateFmt, moneyFmt, rtl),
+          _table(model, dateFmt, moneyFmt, rtl, labels),
         ],
       ),
     );
@@ -94,6 +94,7 @@ class CustomerStatementPrintService {
     CustomerStatementPrintModel model,
     DateFormat dateFmt,
     bool rtl,
+    _StatementLabels labels,
   ) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -109,10 +110,7 @@ class CustomerStatementPrintService {
               style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 4),
-            pw.Text(
-              'Customer Statement',
-              style: const pw.TextStyle(fontSize: 10),
-            ),
+            pw.Text(labels.title, style: const pw.TextStyle(fontSize: 10)),
           ],
         ),
         pw.Column(
@@ -121,7 +119,7 @@ class CustomerStatementPrintService {
               : pw.CrossAxisAlignment.end,
           children: [
             pw.Text(
-              'Customer Statement',
+              labels.title,
               style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 4),
@@ -139,9 +137,13 @@ class CustomerStatementPrintService {
     );
   }
 
-  pw.Widget _filters(CustomerStatementPrintModel model, DateFormat dateFmt) {
+  pw.Widget _filters(
+    CustomerStatementPrintModel model,
+    DateFormat dateFmt,
+    _StatementLabels labels,
+  ) {
     final range = model.fromDate == null || model.toDate == null
-        ? 'All dates'
+        ? labels.allDates
         : '${dateFmt.format(model.fromDate!)} - ${dateFmt.format(model.toDate!)}';
 
     return pw.Container(
@@ -153,9 +155,9 @@ class CustomerStatementPrintService {
       ),
       child: pw.Row(
         children: [
-          pw.Expanded(child: _kv('Customer', model.customerName)),
-          pw.Expanded(child: _kv('Date range', range)),
-          pw.Expanded(child: _kv('Type', model.type)),
+          pw.Expanded(child: _kv(labels.customer, model.customerName)),
+          pw.Expanded(child: _kv(labels.dateRange, range)),
+          pw.Expanded(child: _kv(labels.type, model.type)),
         ],
       ),
     );
@@ -165,6 +167,7 @@ class CustomerStatementPrintService {
     CustomerStatementPrintModel model,
     NumberFormat moneyFmt,
     double total,
+    _StatementLabels labels,
   ) {
     return pw.Container(
       width: double.infinity,
@@ -177,11 +180,11 @@ class CustomerStatementPrintService {
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text(
-            'Transactions: ${model.lines.length}',
+            '${labels.transactions}: ${model.lines.length}',
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           ),
           pw.Text(
-            'Net amount: ${moneyFmt.format(total)} ${model.currency}',
+            '${labels.netAmount}: ${moneyFmt.format(total)} ${model.currency}',
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           ),
         ],
@@ -194,6 +197,7 @@ class CustomerStatementPrintService {
     DateFormat dateFmt,
     NumberFormat moneyFmt,
     bool rtl,
+    _StatementLabels labels,
   ) {
     final data = model.lines
         .map(
@@ -210,7 +214,13 @@ class CustomerStatementPrintService {
     return pw.Directionality(
       textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
       child: pw.TableHelper.fromTextArray(
-        headers: const ['Date', 'Type', 'Number', 'Status', 'Amount'],
+        headers: [
+          labels.date,
+          labels.type,
+          labels.number,
+          labels.status,
+          labels.amount,
+        ],
         data: data,
         border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
         headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
@@ -291,8 +301,9 @@ class CustomerStatementPrintService {
         if (lower.contains('tajawal')) value += 35;
         if (lower.contains('noto')) value += 30;
         if (bold && lower.contains('bold')) value += 20;
-        if (!bold && (lower.contains('regular') || lower.contains('medium')))
+        if (!bold && (lower.contains('regular') || lower.contains('medium'))) {
           value += 15;
+        }
         return value;
       }
 
@@ -304,6 +315,74 @@ class CustomerStatementPrintService {
     }
   }
 
+  bool _isArabicStatement(CustomerStatementPrintModel model) {
+    if (_containsArabic(model.customerName) || _containsArabic(model.type)) {
+      return true;
+    }
+    return model.lines.any(
+      (line) => _containsArabic(line.type) || _containsArabic(line.status),
+    );
+  }
+
   bool _containsArabic(String text) =>
       RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+}
+
+class _StatementLabels {
+  const _StatementLabels({
+    required this.title,
+    required this.customer,
+    required this.dateRange,
+    required this.allDates,
+    required this.type,
+    required this.transactions,
+    required this.netAmount,
+    required this.date,
+    required this.number,
+    required this.status,
+    required this.amount,
+  });
+
+  final String title;
+  final String customer;
+  final String dateRange;
+  final String allDates;
+  final String type;
+  final String transactions;
+  final String netAmount;
+  final String date;
+  final String number;
+  final String status;
+  final String amount;
+
+  static _StatementLabels forDirection(bool rtl) {
+    if (rtl) {
+      return const _StatementLabels(
+        title: 'كشف حساب عميل',
+        customer: 'العميل',
+        dateRange: 'الفترة',
+        allDates: 'كل التواريخ',
+        type: 'النوع',
+        transactions: 'الحركات',
+        netAmount: 'صافي المبلغ',
+        date: 'التاريخ',
+        number: 'الرقم',
+        status: 'الحالة',
+        amount: 'المبلغ',
+      );
+    }
+    return const _StatementLabels(
+      title: 'Customer Statement',
+      customer: 'Customer',
+      dateRange: 'Date range',
+      allDates: 'All dates',
+      type: 'Type',
+      transactions: 'Transactions',
+      netAmount: 'Net amount',
+      date: 'Date',
+      number: 'Number',
+      status: 'Status',
+      amount: 'Amount',
+    );
+  }
 }

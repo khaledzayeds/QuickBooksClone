@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' as api;
 import '../../../core/navigation/safe_navigation.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../data/models/item_model.dart';
@@ -230,6 +231,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     required String expenseAccountName,
   }) {
     if (name.trim().isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       return _ImportRow(
         name: name,
         type: type,
@@ -244,7 +246,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         purchasePrice: 0,
         quantityOnHand: 0,
         valid: false,
-        error: 'Name required',
+        error: l10n.nameRequired,
       );
     }
     final sales = double.tryParse(salesStr.replaceAll(',', '')) ?? 0;
@@ -283,9 +285,10 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
   }
 
   Future<void> _doImport() async {
+    final l10n = AppLocalizations.of(context)!;
     final valid = _rows.where((r) => r.valid).toList();
     if (valid.isEmpty) {
-      _snack('No valid rows to import.', isError: true);
+      _snack(l10n.noValidRowsToImport, isError: true);
       return;
     }
     setState(() {
@@ -465,13 +468,19 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     if (itemType == ItemType.inventory ||
         itemType == ItemType.inventoryAssembly) {
       if (row.quantityOnHand > 0 && row.purchasePrice <= 0) {
-        return 'Inventory opening quantity requires a purchase price.';
+        return AppLocalizations.of(
+          context,
+        )!.inventoryOpeningQtyRequiresPurchasePrice;
       }
-      if (accounts.incomeAccountId == null) return 'Income account not found.';
+      if (accounts.incomeAccountId == null) {
+        return AppLocalizations.of(context)!.incomeAccountNotFound;
+      }
       if (accounts.inventoryAssetAccountId == null) {
-        return 'Inventory asset account not found.';
+        return AppLocalizations.of(context)!.inventoryAssetAccountNotFound;
       }
-      if (accounts.cogsAccountId == null) return 'COGS account not found.';
+      if (accounts.cogsAccountId == null) {
+        return AppLocalizations.of(context)!.cogsAccountNotFound;
+      }
     }
     if ((itemType == ItemType.service ||
             itemType == ItemType.nonInventory ||
@@ -479,15 +488,15 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
             itemType == ItemType.discount) &&
         accounts.incomeAccountId == null &&
         accounts.expenseAccountId == null) {
-      return 'Income or expense account not found.';
+      return AppLocalizations.of(context)!.incomeOrExpenseAccountNotFound;
     }
     if (itemType == ItemType.fixedAsset &&
         accounts.inventoryAssetAccountId == null &&
         accounts.expenseAccountId == null) {
-      return 'Asset or expense account not found.';
+      return AppLocalizations.of(context)!.assetOrExpenseAccountNotFound;
     }
     if (itemType == ItemType.payment && accounts.incomeAccountId == null) {
-      return 'Deposit or income account not found.';
+      return AppLocalizations.of(context)!.depositOrIncomeAccountNotFound;
     }
     return null;
   }
@@ -506,19 +515,21 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
   }
 
   Future<void> _downloadTemplate() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final dir =
           await getDownloadsDirectory() ??
           await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/zayed-items-import-template.xlsx');
       await file.writeAsBytes(buildItemImportTemplateBytes());
-      _snack('Excel template saved: ${file.path}');
+      _snack(l10n.excelTemplateSaved(file.path));
     } catch (e) {
-      _snack('Could not save Excel template: $e', isError: true);
+      _snack(l10n.couldNotSaveExcelTemplate(e.toString()), isError: true);
     }
   }
 
   Future<void> _exportItems() async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await ref.read(itemsProvider.notifier).exportItemsJson();
     if (!mounted) return;
     result.when(
@@ -531,9 +542,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
             '${dir.path}/items-export-${DateTime.now().millisecondsSinceEpoch}.xlsx',
           );
           await file.writeAsBytes(buildItemExportWorkbookBytes(rows));
-          _snack('Excel export saved: ${file.path}');
+          _snack(l10n.excelExportSaved(file.path));
         } catch (e) {
-          _snack('Excel export failed: $e', isError: true);
+          _snack(l10n.excelExportFailed(e.toString()), isError: true);
         }
       },
       failure: (e) => _snack(e.message, isError: true),
@@ -575,6 +586,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final validCount = _rows.where((r) => r.valid).length;
     final invalidCount = _rows.where((r) => !r.valid).length;
 
@@ -582,7 +594,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
       backgroundColor: cs.surface,
       body: Column(
         children: [
-          // ── Tool Strip
+          // â”€â”€ Tool Strip
           Container(
             height: 44,
             decoration: BoxDecoration(
@@ -610,7 +622,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                         Icon(Icons.arrow_back, size: 15, color: cs.primary),
                         const SizedBox(width: 5),
                         Text(
-                          'Items',
+                          l10n.items,
                           style: TextStyle(
                             fontSize: 12,
                             color: cs.onSurface,
@@ -623,7 +635,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Import Items',
+                  l10n.importItems,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -632,9 +644,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                 OutlinedButton.icon(
                   onPressed: _downloadTemplate,
                   icon: const Icon(Icons.description_outlined, size: 15),
-                  label: const Text(
-                    'Download Excel Template',
-                    style: TextStyle(fontSize: 12),
+                  label: Text(
+                    l10n.downloadImportTemplate,
+                    style: const TextStyle(fontSize: 12),
                   ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 30),
@@ -646,9 +658,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                 OutlinedButton.icon(
                   onPressed: _exportItems,
                   icon: const Icon(Icons.grid_on_outlined, size: 15),
-                  label: const Text(
-                    'Export Excel',
-                    style: TextStyle(fontSize: 12),
+                  label: Text(
+                    l10n.exportExcel,
+                    style: const TextStyle(fontSize: 12),
                   ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 30),
@@ -662,7 +674,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                     onPressed: validCount == 0 ? null : _doImport,
                     icon: const Icon(Icons.upload, size: 15),
                     label: Text(
-                      'Import $validCount Items',
+                      l10n.importItemCount(validCount),
                       style: const TextStyle(fontSize: 12),
                     ),
                     style: FilledButton.styleFrom(
@@ -678,17 +690,21 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
 
           Expanded(
             child: _done
-                ? _buildDone(cs)
+                ? _buildDone(cs, l10n)
                 : _rows.isEmpty
-                ? _buildDropZone(cs, theme)
-                : _buildPreview(cs, validCount, invalidCount),
+                ? _buildDropZone(cs, theme, l10n)
+                : _buildPreview(cs, validCount, invalidCount, l10n),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDropZone(ColorScheme cs, ThemeData theme) => Center(
+  Widget _buildDropZone(
+    ColorScheme cs,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -710,14 +726,14 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
               Icon(Icons.upload_file_outlined, size: 56, color: cs.primary),
               const SizedBox(height: 16),
               Text(
-                'Import Items from CSV or Excel',
+                l10n.importItemsCsvExcel,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Select a .csv or .xlsx file to preview and import items.',
+                l10n.selectCsvXlsxFileHint,
                 style: TextStyle(color: cs.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
@@ -725,7 +741,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
               FilledButton.icon(
                 onPressed: _pickFile,
                 icon: const Icon(Icons.folder_open, size: 18),
-                label: const Text('Browse File'),
+                label: Text(l10n.browseFile),
                 style: FilledButton.styleFrom(minimumSize: const Size(180, 44)),
               ),
               const SizedBox(height: 10),
@@ -737,18 +753,18 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
                   OutlinedButton.icon(
                     onPressed: _downloadTemplate,
                     icon: const Icon(Icons.description_outlined, size: 18),
-                    label: const Text('Download Excel Template'),
+                    label: Text(l10n.downloadImportTemplate),
                   ),
                   OutlinedButton.icon(
                     onPressed: _exportItems,
                     icon: const Icon(Icons.grid_on_outlined, size: 18),
-                    label: const Text('Export Current Items'),
+                    label: Text(l10n.exportCurrentItems),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
-                'Expected workbook: Items sheet with Name, Type, Barcode, Unit, Sales Price, Purchase Cost, Qty on Hand, and Part No.',
+                l10n.expectedItemsWorkbookHint,
                 style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
@@ -759,7 +775,12 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     ),
   );
 
-  Widget _buildPreview(ColorScheme cs, int valid, int invalid) => Column(
+  Widget _buildPreview(
+    ColorScheme cs,
+    int valid,
+    int invalid,
+    AppLocalizations l10n,
+  ) => Column(
     children: [
       // Summary bar
       Container(
@@ -781,26 +802,40 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
             ),
             const SizedBox(width: 16),
             _Chip(
-              '${_rows.length} rows',
+              l10n.rowCount(_rows.length),
               cs.secondaryContainer,
               cs.onSecondaryContainer,
             ),
             const SizedBox(width: 8),
-            _Chip('$valid valid', cs.primaryContainer, cs.onPrimaryContainer),
+            _Chip(
+              l10n.validCount(valid),
+              cs.primaryContainer,
+              cs.onPrimaryContainer,
+            ),
             if (invalid > 0) ...[
               const SizedBox(width: 8),
-              _Chip('$invalid errors', cs.errorContainer, cs.onErrorContainer),
+              _Chip(
+                l10n.errorCount(invalid),
+                cs.errorContainer,
+                cs.onErrorContainer,
+              ),
             ],
             const Spacer(),
             TextButton.icon(
               onPressed: _pickFile,
               icon: const Icon(Icons.refresh, size: 14),
-              label: const Text('Change file', style: TextStyle(fontSize: 12)),
+              label: Text(
+                l10n.changeFile,
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
             if (_importing) ...[
               const SizedBox(width: 12),
               Text(
-                'Importing $_imported / ${_rows.where((r) => r.valid).length}…',
+                l10n.importingProgress(
+                  _imported,
+                  _rows.where((r) => r.valid).length,
+                ),
                 style: const TextStyle(fontSize: 12),
               ),
               const SizedBox(width: 8),
@@ -821,15 +856,15 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            const _PH('Status', 1),
-            const _PH('Name', 3),
-            const _PH('Type', 2),
-            const _PH('Barcode', 2),
-            const _PH('Part No.', 2),
-            const _PH('Unit', 1),
-            const _PH('Sales Price', 2),
-            const _PH('Purchase Cost', 2),
-            const _PH('Qty', 1),
+            _PH(l10n.status, 1),
+            _PH(l10n.name, 3),
+            _PH(l10n.type, 2),
+            _PH(l10n.barcode, 2),
+            _PH(l10n.partNo, 2),
+            _PH(l10n.unit, 1),
+            _PH(l10n.salesPrice, 2),
+            _PH(l10n.purchaseCost, 2),
+            _PH(l10n.qty, 1),
           ],
         ),
       ),
@@ -934,14 +969,14 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
     ],
   );
 
-  Widget _buildDone(ColorScheme cs) => Center(
+  Widget _buildDone(ColorScheme cs, AppLocalizations l10n) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(Icons.check_circle, size: 64, color: Colors.green.shade600),
         const SizedBox(height: 16),
         Text(
-          'Import Complete!',
+          l10n.importComplete,
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -950,7 +985,9 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          '$_imported items imported successfully${_failed > 0 ? ' · $_failed failed' : ''}.',
+          _failed > 0
+              ? l10n.itemsImportedWithFailures(_imported, _failed)
+              : l10n.itemsImportedSuccess(_imported),
           style: TextStyle(color: cs.onSurfaceVariant),
         ),
         if (_failureMessages.isNotEmpty) ...[
@@ -976,7 +1013,7 @@ class _ItemImportScreenState extends ConsumerState<ItemImportScreen> {
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => context.popOrGo(AppRoutes.items),
-          child: const Text('Back to Items'),
+          child: Text(l10n.backToItems),
         ),
       ],
     ),

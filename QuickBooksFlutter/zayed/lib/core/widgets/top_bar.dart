@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../localization/locale_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class TopBar extends ConsumerWidget implements PreferredSizeWidget {
   const TopBar({super.key});
@@ -14,6 +15,7 @@ class TopBar extends ConsumerWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final locale = ref.watch(localeProvider);
     final isArabic = locale.languageCode == 'ar';
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authProvider).value;
     final initials = (user?.displayName.isNotEmpty == true)
         ? user!.displayName.substring(0, 1).toUpperCase()
@@ -44,7 +46,7 @@ class TopBar extends ConsumerWidget implements PreferredSizeWidget {
           TextButton.icon(
             onPressed: () => ref.read(localeProvider.notifier).toggleLocale(),
             icon: const Icon(Icons.language, size: 16),
-            label: Text(isArabic ? 'English' : 'عربي'),
+            label: Text(isArabic ? l10n.switchToEnglish : l10n.switchToArabic),
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.onSurface,
               visualDensity: VisualDensity.compact,
@@ -97,11 +99,14 @@ class TopBar extends ConsumerWidget implements PreferredSizeWidget {
                 ),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'logout',
                 child: ListTile(
-                  leading: Icon(Icons.logout, color: Colors.red),
-                  title: Text('Logout', style: TextStyle(color: Colors.red)),
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: Text(
+                    l10n.logout,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),

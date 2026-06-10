@@ -28,16 +28,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _ReportMenuItem(l10n.profitAndLoss, Icons.trending_up),
       _ReportMenuItem(l10n.bankAccounts, Icons.account_balance),
       _ReportMenuItem(l10n.chartOfAccounts, Icons.balance),
-      const _ReportMenuItem('Sales Summary', Icons.point_of_sale_outlined),
-      const _ReportMenuItem('Purchases Summary', Icons.shopping_cart_outlined),
-      const _ReportMenuItem('Customer Statement', Icons.person_search_outlined),
-      const _ReportMenuItem('Vendor Statement', Icons.storefront_outlined),
+      _ReportMenuItem(l10n.salesSummary, Icons.point_of_sale_outlined),
+      _ReportMenuItem(l10n.purchasesSummary, Icons.shopping_cart_outlined),
+      _ReportMenuItem(l10n.customerStatement, Icons.person_search_outlined),
+      _ReportMenuItem(l10n.vendorStatement, Icons.storefront_outlined),
       _ReportMenuItem(l10n.incomeTracker, Icons.groups_outlined),
       _ReportMenuItem(l10n.billTracker, Icons.storefront_outlined),
       _ReportMenuItem(l10n.stock, Icons.inventory_2_outlined),
       _ReportMenuItem(l10n.tax, Icons.receipt_long_outlined),
-      const _ReportMenuItem('Payroll Summary', Icons.payments_outlined),
-      const _ReportMenuItem('Time Tracking Summary', Icons.timer_outlined),
+      _ReportMenuItem(l10n.payrollSummary, Icons.payments_outlined),
+      _ReportMenuItem(l10n.timeTrackingSummary, Icons.timer_outlined),
     ];
 
     return Scaffold(
@@ -121,33 +121,33 @@ class _ReportBody extends ConsumerWidget {
           report: ref.watch(purchasesSummaryReportProvider),
         );
       case 5:
-        return const _StatementLauncher(
-          title: 'Customer Statement',
-          subtitle:
-              'Detailed customer statement with customer, date range, type filters, and A4 PDF printing.',
+        final l10n = AppLocalizations.of(context)!;
+        return _StatementLauncher(
+          title: l10n.customerStatement,
+          subtitle: l10n.customerStatementSubtitle,
           icon: Icons.person_search_outlined,
           route: AppRoutes.customerTransactionHistory,
-          buttonText: 'Open Customer Statement',
+          buttonText: l10n.openCustomerStatement,
           chips: [
-            'Customer dropdown',
-            'Date range',
-            'Receipts / Payments / Invoices',
-            'A4 PDF print',
+            l10n.customerDropdown,
+            l10n.dateRange,
+            l10n.receiptsPaymentsInvoices,
+            l10n.a4PdfPrint,
           ],
         );
       case 6:
-        return const _StatementLauncher(
-          title: 'Vendor Statement',
-          subtitle:
-              'Detailed vendor statement with vendor, date range, type filters, and A4 PDF printing.',
+        final l10n = AppLocalizations.of(context)!;
+        return _StatementLauncher(
+          title: l10n.vendorStatement,
+          subtitle: l10n.vendorStatementSubtitle,
           icon: Icons.storefront_outlined,
           route: AppRoutes.vendorTransactionHistory,
-          buttonText: 'Open Vendor Statement',
+          buttonText: l10n.openVendorStatement,
           chips: [
-            'Vendor dropdown',
-            'Date range',
-            'Bills / Payments',
-            'A4 PDF print',
+            l10n.vendorDropdown,
+            l10n.dateRange,
+            l10n.billsPayments,
+            l10n.a4PdfPrint,
           ],
         );
       case 7:
@@ -282,32 +282,33 @@ class _SalesSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _AsyncReportFrame<SalesSummaryReportModel>(
-      title: 'Sales Summary',
+      title: l10n.salesSummary,
       report: report,
       builder: (data) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SummaryGrid(
             items: [
-              _SummaryItem('Invoices', data.invoiceCount.toDouble()),
-              _SummaryItem('Customers', data.customerCount.toDouble()),
-              _SummaryItem('Total Sales', data.totalAmount),
-              _SummaryItem('Balance Due', data.balanceDue),
+              _SummaryItem(l10n.invoices, data.invoiceCount.toDouble()),
+              _SummaryItem(l10n.customers, data.customerCount.toDouble()),
+              _SummaryItem(l10n.totalSales, data.totalAmount),
+              _SummaryItem(l10n.balanceDue, data.balanceDue),
             ],
           ),
           const SizedBox(height: 16),
           Expanded(
             child: _ReportTable(
-              columns: const [
-                'Invoice',
-                'Date',
-                'Due',
-                'Customer',
-                'Status',
-                'Total',
-                'Paid',
-                'Balance',
+              columns: [
+                l10n.invoice,
+                l10n.date,
+                l10n.due,
+                l10n.customer,
+                l10n.status,
+                l10n.total,
+                l10n.paid,
+                l10n.balance,
               ],
               rows: data.invoices
                   .map(
@@ -316,7 +317,7 @@ class _SalesSummaryView extends StatelessWidget {
                       _date(row.invoiceDate),
                       _date(row.dueDate),
                       row.customerName,
-                      _invoiceStatusLabel(row.status),
+                      _invoiceStatusLabel(context, row.status),
                       row.totalAmount.toStringAsFixed(2),
                       row.paidAmount.toStringAsFixed(2),
                       row.balanceDue.toStringAsFixed(2),
@@ -337,32 +338,33 @@ class _PurchasesSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _AsyncReportFrame<PurchasesSummaryReportModel>(
-      title: 'Purchases Summary',
+      title: l10n.purchasesSummary,
       report: report,
       builder: (data) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SummaryGrid(
             items: [
-              _SummaryItem('Bills', data.billCount.toDouble()),
-              _SummaryItem('Vendors', data.vendorCount.toDouble()),
-              _SummaryItem('Total Purchases', data.totalAmount),
-              _SummaryItem('Balance Due', data.balanceDue),
+              _SummaryItem(l10n.purchaseBills, data.billCount.toDouble()),
+              _SummaryItem(l10n.vendors, data.vendorCount.toDouble()),
+              _SummaryItem(l10n.totalPurchases, data.totalAmount),
+              _SummaryItem(l10n.balanceDue, data.balanceDue),
             ],
           ),
           const SizedBox(height: 16),
           Expanded(
             child: _ReportTable(
-              columns: const [
-                'Bill',
-                'Date',
-                'Due',
-                'Vendor',
-                'Status',
-                'Total',
-                'Paid',
-                'Balance',
+              columns: [
+                l10n.bill,
+                l10n.date,
+                l10n.due,
+                l10n.vendor,
+                l10n.status,
+                l10n.total,
+                l10n.paid,
+                l10n.balance,
               ],
               rows: data.bills
                   .map(
@@ -371,7 +373,7 @@ class _PurchasesSummaryView extends StatelessWidget {
                       _date(row.billDate),
                       _date(row.dueDate),
                       row.vendorName,
-                      _purchaseBillStatusLabel(row.status),
+                      _purchaseBillStatusLabel(context, row.status),
                       row.totalAmount.toStringAsFixed(2),
                       row.paidAmount.toStringAsFixed(2),
                       row.balanceDue.toStringAsFixed(2),
@@ -479,7 +481,7 @@ class _StatementLauncher extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    'This report opens a live statement screen with filters and printing. The same screen can be opened later from related documents and party pages.',
+                    AppLocalizations.of(context)!.statementLauncherHint,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
@@ -615,31 +617,32 @@ class _PayrollSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _AsyncReportFrame<PayrollSummaryReport>(
-      title: 'Payroll Summary',
+      title: l10n.payrollSummary,
       report: report,
       builder: (data) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SummaryGrid(
             items: [
-              _SummaryItem('Runs', data.runCount.toDouble()),
-              _SummaryItem('Employees', data.employeeCount.toDouble()),
-              _SummaryItem('Gross Pay', data.totalGrossPay),
-              _SummaryItem('Net Pay', data.totalNetPay),
+              _SummaryItem(l10n.runs, data.runCount.toDouble()),
+              _SummaryItem(l10n.employees, data.employeeCount.toDouble()),
+              _SummaryItem(l10n.grossPay, data.totalGrossPay),
+              _SummaryItem(l10n.netPay, data.totalNetPay),
             ],
           ),
           const SizedBox(height: 16),
           Expanded(
             child: _ReportTable(
-              columns: const [
-                'Run',
-                'Pay Date',
-                'Status',
-                'Employees',
-                'Gross',
-                'Deductions',
-                'Net',
+              columns: [
+                l10n.run,
+                l10n.payDate,
+                l10n.status,
+                l10n.employees,
+                l10n.gross,
+                l10n.deductions,
+                l10n.net,
               ],
               rows: data.runs
                   .map(
@@ -668,19 +671,20 @@ class _TimeTrackingSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _AsyncReportFrame<TimeEntrySummaryReport>(
-      title: 'Time Tracking Summary',
+      title: l10n.timeTrackingSummary,
       report: report,
       builder: (data) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SummaryGrid(
             items: [
-              _SummaryItem('Entries', data.entryCount.toDouble()),
-              _SummaryItem('Total Hours', data.totalHours),
-              _SummaryItem('Billable Hours', data.billableHours),
+              _SummaryItem(l10n.entries, data.entryCount.toDouble()),
+              _SummaryItem(l10n.totalHours, data.totalHours),
+              _SummaryItem(l10n.billableHours, data.billableHours),
               _SummaryItem(
-                'Billable Not Invoiced',
+                l10n.billableNotInvoiced,
                 data.billableNotInvoicedHours,
               ),
             ],
@@ -688,14 +692,14 @@ class _TimeTrackingSummaryView extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: _ReportTable(
-              columns: const [
-                'Date',
-                'Person',
-                'Customer',
-                'Service',
-                'Activity',
-                'Hours',
-                'Status',
+              columns: [
+                l10n.date,
+                l10n.person,
+                l10n.customer,
+                l10n.service,
+                l10n.activity,
+                l10n.hours,
+                l10n.status,
               ],
               rows: data.billableQueue
                   .map(
@@ -888,6 +892,7 @@ Future<void> _showDateRangeSheet(
   WidgetRef ref,
   ReportDateRange current,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   var fromDate = current.fromDate;
   var toDate = current.toDate;
 
@@ -901,7 +906,7 @@ Future<void> _showDateRangeSheet(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Report Date Range',
+              l10n.reportDateRange,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
@@ -911,7 +916,7 @@ Future<void> _showDateRangeSheet(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.event_outlined),
               title: Text(_date(fromDate)),
-              subtitle: const Text('From date'),
+              subtitle: Text(l10n.fromDate),
               trailing: TextButton(
                 onPressed: () async {
                   final selected = await showDatePicker(
@@ -922,14 +927,14 @@ Future<void> _showDateRangeSheet(
                   );
                   if (selected != null) setState(() => fromDate = selected);
                 },
-                child: const Text('Change'),
+                child: Text(l10n.change),
               ),
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.event_available_outlined),
               title: Text(_date(toDate)),
-              subtitle: const Text('To date'),
+              subtitle: Text(l10n.toDate),
               trailing: TextButton(
                 onPressed: () async {
                   final selected = await showDatePicker(
@@ -940,7 +945,7 @@ Future<void> _showDateRangeSheet(
                   );
                   if (selected != null) setState(() => toDate = selected);
                 },
-                child: const Text('Change'),
+                child: Text(l10n.change),
               ),
             ),
             const SizedBox(height: 16),
@@ -949,7 +954,7 @@ Future<void> _showDateRangeSheet(
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
@@ -959,7 +964,7 @@ Future<void> _showDateRangeSheet(
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.check_outlined),
-                  label: const Text('Apply'),
+                  label: Text(l10n.apply),
                 ),
               ],
             ),
@@ -970,26 +975,32 @@ Future<void> _showDateRangeSheet(
   );
 }
 
-String _invoiceStatusLabel(int status) => switch (status) {
-  1 => 'Draft',
-  2 => 'Sent',
-  3 => 'Partially Paid',
-  4 => 'Paid',
-  5 => 'Void',
-  6 => 'Posted',
-  7 => 'Returned',
-  _ => status.toString(),
-};
+String _invoiceStatusLabel(BuildContext context, int status) {
+  final l10n = AppLocalizations.of(context)!;
+  return switch (status) {
+    1 => l10n.statusDraft,
+    2 => l10n.statusSent,
+    3 => l10n.statusPartiallyPaid,
+    4 => l10n.statusPaid,
+    5 => l10n.statusVoid,
+    6 => l10n.statusPosted,
+    7 => l10n.statusReturned,
+    _ => status.toString(),
+  };
+}
 
-String _purchaseBillStatusLabel(int status) => switch (status) {
-  1 => 'Draft',
-  2 => 'Posted',
-  3 => 'Void',
-  4 => 'Partially Paid',
-  5 => 'Paid',
-  6 => 'Returned',
-  _ => status.toString(),
-};
+String _purchaseBillStatusLabel(BuildContext context, int status) {
+  final l10n = AppLocalizations.of(context)!;
+  return switch (status) {
+    1 => l10n.statusDraft,
+    2 => l10n.statusPosted,
+    3 => l10n.statusVoid,
+    4 => l10n.statusPartiallyPaid,
+    5 => l10n.statusPaid,
+    6 => l10n.statusReturned,
+    _ => status.toString(),
+  };
+}
 
 String _date(DateTime date) =>
     '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

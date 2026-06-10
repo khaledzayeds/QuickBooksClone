@@ -54,8 +54,12 @@ class PrintTemplatePdfService {
     }
 
     final showQr = settings?.showQrCode ?? true;
+    final showLogo = settings?.showLogo ?? true;
     final elementsToRender = template.elements.where((element) {
       if (!showQr && (element.type == 'qr' || element.type == 'barcode')) {
+        return false;
+      }
+      if (!showLogo && element.type == 'image' && _isLogoElement(element)) {
         return false;
       }
       return true;
@@ -126,6 +130,15 @@ class PrintTemplatePdfService {
     } catch (_) {
       return null;
     }
+  }
+
+  bool _isLogoElement(PrintElementModel element) {
+    final id = element.id.toLowerCase();
+    final value = element.value.toLowerCase();
+    final binding = (element.binding ?? '').toLowerCase();
+    return id.contains('logo') ||
+        value.contains('logo') ||
+        binding.contains('logo');
   }
 
   pw.Widget _element(

@@ -153,27 +153,17 @@ class ThermalDocumentPdfService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: arabic
                   ? [
-                      if (logo != null) ...[
-                        pw.Image(
-                          logo,
-                          width: logoSize,
-                          height: logoSize,
-                          fit: pw.BoxFit.contain,
-                        ),
+                      if (settings.showLogo) ...[
+                        _logoBox(logo, logoSize),
                         pw.SizedBox(width: 6),
                       ],
                       pw.Expanded(child: infoColumn),
                     ]
                   : [
                       pw.Expanded(child: infoColumn),
-                      if (logo != null) ...[
+                      if (settings.showLogo) ...[
                         pw.SizedBox(width: 6),
-                        pw.Image(
-                          logo,
-                          width: logoSize,
-                          height: logoSize,
-                          fit: pw.BoxFit.contain,
-                        ),
+                        _logoBox(logo, logoSize),
                       ],
                     ],
             ),
@@ -193,6 +183,30 @@ class ThermalDocumentPdfService {
           ),
         ],
       ),
+    );
+  }
+
+  pw.Widget _logoBox(pw.ImageProvider? logo, double size) {
+    return pw.Container(
+      width: size,
+      height: size,
+      alignment: pw.Alignment.center,
+      decoration: logo == null
+          ? pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.grey500, width: .5),
+              borderRadius: pw.BorderRadius.circular(3),
+            )
+          : null,
+      child: logo == null
+          ? pw.Text(
+              'LOGO',
+              style: pw.TextStyle(
+                fontSize: size <= 30 ? 6 : 7,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.grey600,
+              ),
+            )
+          : pw.Image(logo, fit: pw.BoxFit.contain),
     );
   }
 

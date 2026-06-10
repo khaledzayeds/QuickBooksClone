@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/navigation/safe_navigation.dart';
 import '../../../app/router.dart';
 import '../../../core/constants/api_enums.dart' as api;
+import '../../../l10n/app_localizations.dart';
 import '../../accounts/data/models/account_model.dart';
 import '../../accounts/providers/accounts_provider.dart';
 import '../data/models/item_model.dart';
@@ -152,11 +153,13 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
   }
 
   Future<void> _saveAll() async {
+    final l10n = AppLocalizations.of(context)!;
+    final text = _BulkEditText.of(context);
     final dirty = _rows
         .where((r) => r.dirty && r.nameCtrl.text.trim().isNotEmpty)
         .toList();
     if (dirty.isEmpty) {
-      _snack('No changes to save.');
+      _snack(text.noChangesToSave);
       return;
     }
     setState(() => _saving = true);
@@ -207,7 +210,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
     }
     setState(() => _saving = false);
     if (!mounted) return;
-    _snack('Saved $saved of ${dirty.length} items.');
+    _snack(l10n.itemsUpdatedSuccessfully(saved));
     ref.read(itemsProvider.notifier).refresh();
   }
 
@@ -301,24 +304,26 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
     });
     _snack(
       allRows
-          ? 'Accounts applied to all rows.'
-          : 'Accounts applied to new rows.',
+          ? _BulkEditText.of(context).accountsAppliedAllRows
+          : _BulkEditText.of(context).accountsAppliedNewRows,
     );
   }
 
   Future<void> _importRows() async {
+    final text = _BulkEditText.of(context);
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx', 'csv'],
     );
     final path = picked?.files.single.path;
+    if (!mounted) return;
     if (path == null) return;
 
     final imported = path.toLowerCase().endsWith('.csv')
         ? await _readCsvRows(path)
         : await _readExcelRows(path);
     if (imported.isEmpty) {
-      _snack('No valid rows found.', isError: true);
+      _snack(text.noValidRowsFound, isError: true);
       return;
     }
     setState(() {
@@ -327,7 +332,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
         _rows.insert(0, row);
       }
     });
-    _snack('Imported ${imported.length} row(s). Review then Save All Changes.');
+    _snack(text.importedRows(imported.length));
   }
 
   Future<List<_Row>> _readCsvRows(String path) async {
@@ -417,6 +422,8 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
   }
 
   Future<void> _exportExcel() async {
+    final l10n = AppLocalizations.of(context)!;
+    final text = _BulkEditText.of(context);
     final excel = Excel.createExcel();
     final sheet = excel['Items'];
     excel.delete('Sheet1');
@@ -466,7 +473,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
     }
     final bytes = excel.encode();
     if (bytes == null) {
-      _snack('Excel export failed.', isError: true);
+      _snack(text.excelExportFailed, isError: true);
       return;
     }
     final dir =
@@ -476,10 +483,12 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
       '${dir.path}/items-bulk-${DateTime.now().millisecondsSinceEpoch}.xlsx',
     );
     await file.writeAsBytes(bytes);
-    _snack('Excel saved: ${file.path}');
+    _snack(l10n.excelSaved(file.path));
   }
 
   Future<void> _showBulkAccountsDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final text = _BulkEditText.of(context);
     String? income = _rows
         .map((r) => r.incomeAccountId)
         .firstWhere((id) => id != null, orElse: () => null);
@@ -498,16 +507,16 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Product Accounts'),
+          title: Text(l10n.postingAccounts),
           content: SizedBox(
             width: 520,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'new', label: Text('New rows')),
-                    ButtonSegment(value: 'all', label: Text('All rows')),
+                  segments: [
+                    ButtonSegment(value: 'new', label: Text(text.newRows)),
+                    ButtonSegment(value: 'all', label: Text(text.allRows)),
                   ],
                   selected: {target},
                   onSelectionChanged: (v) =>
@@ -515,7 +524,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 ),
                 const SizedBox(height: 14),
                 _AccountDrop(
-                  label: 'Income / Deposit Account',
+                  label: l10n.depositPaymentAccountRequired,
                   value: income,
                   accounts: _filterAccounts([
                     api.AccountType.income,
@@ -525,7 +534,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 ),
                 const SizedBox(height: 10),
                 _AccountDrop(
-                  label: 'Inventory Asset Account',
+                  label: l10n.inventoryAssetAccount,
                   value: asset,
                   accounts: _filterAccounts([
                     api.AccountType.inventoryAsset,
@@ -535,14 +544,14 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 ),
                 const SizedBox(height: 10),
                 _AccountDrop(
-                  label: 'COGS Account',
+                  label: l10n.cogsAccount,
                   value: cogs,
                   accounts: _filterAccounts([api.AccountType.costOfGoodsSold]),
                   onChanged: (v) => setDialogState(() => cogs = v),
                 ),
                 const SizedBox(height: 10),
                 _AccountDrop(
-                  label: 'Expense / Purchase Account',
+                  label: l10n.expensePurchaseAccount,
                   value: expense,
                   accounts: _filterAccounts([
                     api.AccountType.expense,
@@ -557,7 +566,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -575,11 +584,11 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 Navigator.of(ctx).pop();
                 _snack(
                   target == 'all'
-                      ? 'Accounts applied to all rows.'
-                      : 'Accounts applied to new rows.',
+                      ? text.accountsAppliedAllRows
+                      : text.accountsAppliedNewRows,
                 );
               },
-              child: const Text('Apply'),
+              child: Text(l10n.apply),
             ),
           ],
         ),
@@ -597,6 +606,8 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final text = _BulkEditText.of(context);
     final dirtyCount = _rows.where((r) => r.dirty).length;
     final rows = _filtered;
 
@@ -632,7 +643,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                         Icon(Icons.arrow_back, size: 15, color: cs.primary),
                         const SizedBox(width: 5),
                         Text(
-                          'Items',
+                          l10n.itemsAndServices,
                           style: TextStyle(
                             fontSize: 12,
                             color: cs.onSurface,
@@ -645,7 +656,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Add / Edit Multiple Items',
+                  l10n.addEditMultipleItems,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -659,7 +670,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                     controller: _searchCtrl,
                     onChanged: (v) => setState(() => _search = v),
                     decoration: InputDecoration(
-                      hintText: 'Search name, barcode, part no…',
+                      hintText: l10n.searchNameSkuBarcode,
                       prefixIcon: const Icon(Icons.search, size: 15),
                       border: const OutlineInputBorder(),
                       isDense: true,
@@ -674,7 +685,10 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 OutlinedButton.icon(
                   onPressed: () => _addRows(1),
                   icon: const Icon(Icons.add, size: 15),
-                  label: const Text('Add Row', style: TextStyle(fontSize: 12)),
+                  label: Text(
+                    text.addRow,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 30),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -685,7 +699,10 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 OutlinedButton.icon(
                   onPressed: _importRows,
                   icon: const Icon(Icons.upload_file_outlined, size: 15),
-                  label: const Text('Import', style: TextStyle(fontSize: 12)),
+                  label: Text(
+                    l10n.importItems,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 30),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -696,7 +713,10 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 OutlinedButton.icon(
                   onPressed: _exportExcel,
                   icon: const Icon(Icons.grid_on_outlined, size: 15),
-                  label: const Text('Export', style: TextStyle(fontSize: 12)),
+                  label: Text(
+                    l10n.exportExcel,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 30),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -704,7 +724,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  tooltip: 'Bulk accounts and tools',
+                  tooltip: text.bulkAccountsAndTools,
                   icon: const Icon(Icons.more_vert, size: 19),
                   onSelected: (value) {
                     if (value == 'defaults_new') {
@@ -717,35 +737,35 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                     if (value == 'add5') _addRows(5);
                   },
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'add5',
                       child: _MenuRow(
                         icon: Icons.add_box_outlined,
-                        label: 'Add 5 blank rows',
+                        label: text.addFiveBlankRows,
                       ),
                     ),
                     PopupMenuItem(
                       value: 'accounts',
                       enabled: _accountsLoaded && _accounts.isNotEmpty,
-                      child: const _MenuRow(
+                      child: _MenuRow(
                         icon: Icons.tune_outlined,
-                        label: 'Choose accounts...',
+                        label: text.chooseAccounts,
                       ),
                     ),
                     PopupMenuItem(
                       value: 'defaults_new',
                       enabled: _accountsLoaded && _accounts.isNotEmpty,
-                      child: const _MenuRow(
+                      child: _MenuRow(
                         icon: Icons.auto_fix_high_outlined,
-                        label: 'Apply default accounts to new rows',
+                        label: text.applyDefaultsNewRows,
                       ),
                     ),
                     PopupMenuItem(
                       value: 'defaults_all',
                       enabled: _accountsLoaded && _accounts.isNotEmpty,
-                      child: const _MenuRow(
+                      child: _MenuRow(
                         icon: Icons.account_tree_outlined,
-                        label: 'Apply default accounts to all rows',
+                        label: text.applyDefaultsAllRows,
                       ),
                     ),
                   ],
@@ -755,7 +775,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: Text(
-                      '$dirtyCount unsaved changes',
+                      text.unsavedChanges(dirtyCount),
                       style: TextStyle(
                         fontSize: 12,
                         color: cs.error,
@@ -787,9 +807,9 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                     ),
-                    child: const Text(
-                      'Discard',
-                      style: TextStyle(fontSize: 12),
+                    child: Text(
+                      text.discard,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -800,9 +820,9 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
-                    child: const Text(
-                      'Save All Changes',
-                      style: TextStyle(fontSize: 12),
+                    child: Text(
+                      text.saveAllChanges,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
@@ -818,14 +838,14 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                _H('Item Name', flex: 4),
-                _H('Barcode', flex: 3),
-                _H('Part No.', flex: 2),
-                _H('Unit', flex: 1),
-                _H('Sales Price', flex: 2),
-                _H('Purchase Cost', flex: 2),
-                _H('Type', flex: 2),
-                _H('Active', flex: 1),
+                _H(l10n.name, flex: 4),
+                _H(l10n.barcode, flex: 3),
+                _H(l10n.partNo, flex: 2),
+                _H(l10n.unit, flex: 1),
+                _H(l10n.salesPrice, flex: 2),
+                _H(l10n.purchaseCost, flex: 2),
+                _H(l10n.type, flex: 2),
+                _H(l10n.active, flex: 1),
               ],
             ),
           ),
@@ -837,13 +857,14 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                 : rows.isEmpty
                 ? Center(
                     child: Text(
-                      'No items found.',
+                      l10n.noItemsFound,
                       style: TextStyle(color: cs.onSurfaceVariant),
                     ),
                   )
                 : ListView.builder(
                     itemCount: rows.length,
-                    itemBuilder: (context, i) => _buildRow(rows[i], i, cs),
+                    itemBuilder: (context, i) =>
+                        _buildRow(rows[i], i, cs, l10n),
                   ),
           ),
 
@@ -862,7 +883,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
             child: Row(
               children: [
                 Text(
-                  '${rows.length} items shown · ${_rows.length} total',
+                  text.itemsShown(rows.length, _rows.length),
                   style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                 ),
               ],
@@ -873,7 +894,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
     );
   }
 
-  Widget _buildRow(_Row row, int index, ColorScheme cs) {
+  Widget _buildRow(_Row row, int index, ColorScheme cs, AppLocalizations l10n) {
     final bg = index.isEven ? cs.surface : cs.surfaceContainerLowest;
     return Container(
       height: 38,
@@ -947,7 +968,7 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
                         (type) => DropdownMenuItem(
                           value: type,
                           child: Text(
-                            type.label,
+                            _itemTypeLabel(type, l10n),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -1001,6 +1022,67 @@ class _ItemBulkEditScreenState extends ConsumerState<ItemBulkEditScreen> {
 
   static bool _tracksInventory(ItemType type) =>
       type == ItemType.inventory || type == ItemType.inventoryAssembly;
+
+  String _itemTypeLabel(ItemType type, AppLocalizations l10n) => switch (type) {
+    ItemType.inventory => l10n.typeInventoryPart,
+    ItemType.nonInventory => l10n.typeNonInventoryPart,
+    ItemType.service => l10n.typeService,
+    ItemType.bundle => l10n.typeBundle,
+    ItemType.inventoryAssembly => l10n.typeInventoryAssembly,
+    ItemType.fixedAsset => l10n.typeFixedAsset,
+    ItemType.otherCharge => l10n.typeOtherCharge,
+    ItemType.subtotal => l10n.typeSubtotal,
+    ItemType.group => l10n.typeGroup,
+    ItemType.discount => l10n.typeDiscount,
+    ItemType.payment => l10n.typePayment,
+  };
+}
+
+class _BulkEditText {
+  const _BulkEditText(this.ar);
+
+  final bool ar;
+
+  static _BulkEditText of(BuildContext context) =>
+      _BulkEditText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get addRow => ar ? 'إضافة صف' : 'Add Row';
+  String get bulkAccountsAndTools =>
+      ar ? 'الحسابات والأدوات الجماعية' : 'Bulk accounts and tools';
+  String get addFiveBlankRows => ar ? 'إضافة 5 صفوف فارغة' : 'Add 5 blank rows';
+  String get chooseAccounts => ar ? 'اختيار الحسابات...' : 'Choose accounts...';
+  String get applyDefaultsNewRows => ar
+      ? 'تطبيق الحسابات الافتراضية على الصفوف الجديدة'
+      : 'Apply default accounts to new rows';
+  String get applyDefaultsAllRows => ar
+      ? 'تطبيق الحسابات الافتراضية على كل الصفوف'
+      : 'Apply default accounts to all rows';
+  String get discard => ar ? 'تجاهل' : 'Discard';
+  String get saveAllChanges => ar ? 'حفظ كل التعديلات' : 'Save All Changes';
+  String get noChangesToSave =>
+      ar ? 'لا توجد تعديلات للحفظ.' : 'No changes to save.';
+  String get noValidRowsFound =>
+      ar ? 'لم يتم العثور على صفوف صالحة.' : 'No valid rows found.';
+  String get excelExportFailed =>
+      ar ? 'فشل تصدير Excel.' : 'Excel export failed.';
+  String get newRows => ar ? 'الصفوف الجديدة' : 'New rows';
+  String get allRows => ar ? 'كل الصفوف' : 'All rows';
+  String get accountsAppliedAllRows =>
+      ar ? 'تم تطبيق الحسابات على كل الصفوف.' : 'Accounts applied to all rows.';
+  String get accountsAppliedNewRows => ar
+      ? 'تم تطبيق الحسابات على الصفوف الجديدة.'
+      : 'Accounts applied to new rows.';
+
+  String unsavedChanges(int count) =>
+      ar ? '$count تعديل غير محفوظ' : '$count unsaved changes';
+
+  String itemsShown(int shown, int total) => ar
+      ? '$shown صنف ظاهر · $total إجمالي'
+      : '$shown items shown · $total total';
+
+  String importedRows(int count) => ar
+      ? 'تم استيراد $count صف. راجع البيانات ثم احفظ كل التعديلات.'
+      : 'Imported $count row(s). Review then Save All Changes.';
 }
 
 class _MenuRow extends StatelessWidget {
@@ -1038,7 +1120,10 @@ class _AccountDrop extends StatelessWidget {
       isDense: true,
     ),
     items: [
-      const DropdownMenuItem<String?>(value: null, child: Text('Not selected')),
+      DropdownMenuItem<String?>(
+        value: null,
+        child: Text(AppLocalizations.of(context)!.notSelected),
+      ),
       ...accounts.map(
         (account) => DropdownMenuItem<String?>(
           value: account.id,

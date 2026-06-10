@@ -13,6 +13,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
     final notifier = ref.read(securityProvider.notifier);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _SecurityText.of(context);
 
     ref.listen(securityProvider, (previous, next) {
       if (next.successMessage != null &&
@@ -25,10 +26,10 @@ class UsersPermissionsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Users & Permissions'),
+        title: Text(text.title),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: text.refresh,
             onPressed: notifier.load,
             icon: const Icon(Icons.refresh),
           ),
@@ -39,7 +40,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
                   ? null
                   : () => _showCreateUserDialog(context, notifier, state.roles),
               icon: const Icon(Icons.person_add_outlined),
-              label: const Text('Add User'),
+              label: Text(text.addUser),
             ),
           ),
         ],
@@ -50,14 +51,14 @@ class UsersPermissionsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               children: [
                 Text(
-                  'Security & Access Control',
+                  text.heading,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Manage company users, roles, and permission groups from one place.',
+                  text.description,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -156,7 +157,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Add User'),
+          title: Text(_SecurityText.of(context).addUser),
           content: SizedBox(
             width: 520,
             child: SingleChildScrollView(
@@ -165,24 +166,24 @@ class UsersPermissionsScreen extends ConsumerWidget {
                 children: [
                   TextField(
                     controller: userName,
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
+                    decoration: InputDecoration(
+                      labelText: _SecurityText.of(context).username,
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: displayName,
-                    decoration: const InputDecoration(
-                      labelText: 'Display Name',
+                    decoration: InputDecoration(
+                      labelText: _SecurityText.of(context).displayName,
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: email,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
+                    decoration: InputDecoration(
+                      labelText: _SecurityText.of(context).email,
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -190,8 +191,8 @@ class UsersPermissionsScreen extends ConsumerWidget {
                   TextField(
                     controller: password,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Initial Password',
+                    decoration: InputDecoration(
+                      labelText: _SecurityText.of(context).initialPassword,
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -199,7 +200,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(
-                      'Roles',
+                      _SecurityText.of(context).roles,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
@@ -225,11 +226,11 @@ class UsersPermissionsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(_SecurityText.of(context).cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Create'),
+              child: Text(_SecurityText.of(context).create),
             ),
           ],
         ),
@@ -264,7 +265,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Set Password: ${user.userName}'),
+          title: Text(_SecurityText.of(context).setPasswordFor(user.userName)),
           content: SizedBox(
             width: 420,
             child: Column(
@@ -273,8 +274,8 @@ class UsersPermissionsScreen extends ConsumerWidget {
                 TextField(
                   controller: password,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'New Password',
+                  decoration: InputDecoration(
+                    labelText: _SecurityText.of(context).newPassword,
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -282,8 +283,8 @@ class UsersPermissionsScreen extends ConsumerWidget {
                 TextField(
                   controller: confirm,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
+                  decoration: InputDecoration(
+                    labelText: _SecurityText.of(context).confirmPassword,
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -305,24 +306,24 @@ class UsersPermissionsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(_SecurityText.of(context).cancel),
             ),
             FilledButton(
               onPressed: () {
                 final value = password.text.trim();
                 if (value.length < 4) {
-                  setState(
-                    () => error = 'Password must be at least 4 characters.',
-                  );
+                  setState(() => error = _SecurityText.of(context).passwordMin);
                   return;
                 }
                 if (value != confirm.text.trim()) {
-                  setState(() => error = 'Passwords do not match.');
+                  setState(
+                    () => error = _SecurityText.of(context).passwordMismatch,
+                  );
                   return;
                 }
                 Navigator.pop(context, true);
               },
-              child: const Text('Save Password'),
+              child: Text(_SecurityText.of(context).savePassword),
             ),
           ],
         ),
@@ -347,7 +348,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Roles: ${user.userName}'),
+          title: Text(_SecurityText.of(context).rolesFor(user.userName)),
           content: SizedBox(
             width: 520,
             child: SingleChildScrollView(
@@ -376,11 +377,11 @@ class UsersPermissionsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(_SecurityText.of(context).cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Save'),
+              child: Text(_SecurityText.of(context).save),
             ),
           ],
         ),
@@ -405,7 +406,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Create Role'),
+          title: Text(_SecurityText.of(context).createRole),
           content: SizedBox(
             width: 620,
             child: SingleChildScrollView(
@@ -414,24 +415,24 @@ class UsersPermissionsScreen extends ConsumerWidget {
                 children: [
                   TextField(
                     controller: roleKey,
-                    decoration: const InputDecoration(
-                      labelText: 'Role Key',
+                    decoration: InputDecoration(
+                      labelText: _SecurityText.of(context).roleKey,
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: name,
-                    decoration: const InputDecoration(
-                      labelText: 'Name',
+                    decoration: InputDecoration(
+                      labelText: _SecurityText.of(context).name,
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: description,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
+                    decoration: InputDecoration(
+                      labelText: _SecurityText.of(context).roleDescription,
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -439,7 +440,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(
-                      'Permissions',
+                      _SecurityText.of(context).permissions,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
@@ -465,11 +466,11 @@ class UsersPermissionsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(_SecurityText.of(context).cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Create'),
+              child: Text(_SecurityText.of(context).create),
             ),
           ],
         ),
@@ -497,7 +498,7 @@ class UsersPermissionsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Permissions: ${role.name}'),
+          title: Text(_SecurityText.of(context).permissionsFor(role.name)),
           content: SizedBox(
             width: 620,
             child: SingleChildScrollView(
@@ -530,13 +531,13 @@ class UsersPermissionsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(_SecurityText.of(context).cancel),
             ),
             FilledButton(
               onPressed: role.isSystem
                   ? null
                   : () => Navigator.pop(context, true),
-              child: const Text('Save'),
+              child: Text(_SecurityText.of(context).save),
             ),
           ],
         ),
@@ -547,6 +548,84 @@ class UsersPermissionsScreen extends ConsumerWidget {
       await notifier.replaceRolePermissions(role, selected.toList());
     }
   }
+}
+
+class _SecurityText {
+  const _SecurityText(this.ar);
+
+  final bool ar;
+
+  static _SecurityText of(BuildContext context) =>
+      _SecurityText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get title => ar ? 'المستخدمون والصلاحيات' : 'Users & Permissions';
+  String get refresh => ar ? 'تحديث' : 'Refresh';
+  String get addUser => ar ? 'إضافة مستخدم' : 'Add User';
+  String get heading =>
+      ar ? 'الأمان والتحكم في الوصول' : 'Security & Access Control';
+  String get description => ar
+      ? 'إدارة مستخدمي الشركة والأدوار ومجموعات الصلاحيات من مكان واحد.'
+      : 'Manage company users, roles, and permission groups from one place.';
+  String get username => ar ? 'اسم المستخدم' : 'Username';
+  String get displayName => ar ? 'الاسم الظاهر' : 'Display Name';
+  String get email => ar ? 'البريد الإلكتروني' : 'Email';
+  String get initialPassword => ar ? 'كلمة السر الأولية' : 'Initial Password';
+  String get roles => ar ? 'الأدوار' : 'Roles';
+  String get cancel => ar ? 'إلغاء' : 'Cancel';
+  String get create => ar ? 'إنشاء' : 'Create';
+  String setPasswordFor(String userName) =>
+      ar ? 'تعيين كلمة السر: $userName' : 'Set Password: $userName';
+  String get newPassword => ar ? 'كلمة السر الجديدة' : 'New Password';
+  String get confirmPassword => ar ? 'تأكيد كلمة السر' : 'Confirm Password';
+  String get passwordMin => ar
+      ? 'كلمة السر يجب ألا تقل عن 4 أحرف.'
+      : 'Password must be at least 4 characters.';
+  String get passwordMismatch =>
+      ar ? 'كلمتا السر غير متطابقتين.' : 'Passwords do not match.';
+  String get savePassword => ar ? 'حفظ كلمة السر' : 'Save Password';
+  String rolesFor(String userName) =>
+      ar ? 'أدوار: $userName' : 'Roles: $userName';
+  String get save => ar ? 'حفظ' : 'Save';
+  String get createRole => ar ? 'إنشاء دور' : 'Create Role';
+  String get roleKey => ar ? 'مفتاح الدور' : 'Role Key';
+  String get name => ar ? 'الاسم' : 'Name';
+  String get roleDescription => ar ? 'الوصف' : 'Description';
+  String get permissions => ar ? 'الصلاحيات' : 'Permissions';
+  String permissionsFor(String roleName) =>
+      ar ? 'صلاحيات: $roleName' : 'Permissions: $roleName';
+  String loaded(int users, int roles, int permissions) => ar
+      ? 'تم تحميل $users مستخدم، و$roles دور، و$permissions صلاحية.'
+      : 'Loaded $users users, $roles roles, and $permissions permissions.';
+  String get users => ar ? 'المستخدمون' : 'Users';
+  String get noUsers => ar ? 'لا يوجد مستخدمون' : 'No users found';
+  String get noUsersDescription => ar
+      ? 'أنشئ أول مدير من معالج الإعداد، ثم أضف مستخدمين آخرين هنا.'
+      : 'Create the first admin from Setup Wizard, then add more users here.';
+  String get noRoles => ar ? 'لا توجد أدوار' : 'No roles';
+  String get editRoles => ar ? 'تعديل الأدوار' : 'Edit Roles';
+  String get setPassword => ar ? 'تعيين كلمة السر' : 'Set Password';
+  String get role => ar ? 'دور' : 'Role';
+  String get noRolesFound => ar ? 'لا توجد أدوار' : 'No roles found';
+  String get noRolesDescription => ar
+      ? 'أنشئ أدوارا واربط بها الصلاحيات.'
+      : 'Create roles and assign permissions.';
+  String get active => ar ? 'نشط' : 'Active';
+  String get inactive => ar ? 'غير نشط' : 'Inactive';
+  String permissionCount(int count) =>
+      ar ? '$count صلاحية' : '$count permissions';
+  String get viewPermissions => ar ? 'عرض الصلاحيات' : 'View Permissions';
+  String get editPermissions => ar ? 'تعديل الصلاحيات' : 'Edit Permissions';
+  String get permissionCatalog =>
+      ar ? 'كتالوج الصلاحيات' : 'Permission Catalog';
+  String get noPermissionsLoaded =>
+      ar ? 'لم يتم تحميل صلاحيات' : 'No permissions loaded';
+  String get noPermissionsDescription => ar
+      ? 'نقطة كتالوج الصلاحيات لم ترجع أي بيانات.'
+      : 'Permission catalog endpoint returned no entries.';
+  String get securityCoverage => ar ? 'تغطية الأمان' : 'Security coverage';
+  String get securityCoverageDescription => ar
+      ? 'المستخدمون والأدوار وحالة التفعيل وصلاحيات الأدوار مربوطة. تغيير كلمات السر يظل تحت تحكم المدير.'
+      : 'Users, roles, active status, and role permissions are connected. Password changes remain under administrator control.';
 }
 
 class _StatusBanner extends StatelessWidget {
@@ -574,7 +653,7 @@ class _StatusBanner extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Loaded $users users, $roles roles, and $permissions permissions.',
+              _SecurityText.of(context).loaded(users, roles, permissions),
               style: TextStyle(color: cs.onPrimaryContainer),
             ),
           ),
@@ -606,15 +685,14 @@ class _UsersCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.people_alt_outlined,
-      title: 'Users',
+      title: _SecurityText.of(context).users,
       trailing: Text('${users.length}'),
       children: [
         if (users.isEmpty)
-          const _EmptyTile(
+          _EmptyTile(
             icon: Icons.person_outline,
-            title: 'No users found',
-            subtitle:
-                'Create the first admin from Setup Wizard, then add more users here.',
+            title: _SecurityText.of(context).noUsers,
+            subtitle: _SecurityText.of(context).noUsersDescription,
           )
         else
           ...users.map(
@@ -698,7 +776,7 @@ class _UserTile extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: user.roles.isEmpty
-                ? [const Chip(label: Text('No roles'))]
+                ? [Chip(label: Text(_SecurityText.of(context).noRoles))]
                 : user.roles
                       .map((role) => Chip(label: Text(role.roleKey)))
                       .toList(),
@@ -711,12 +789,12 @@ class _UserTile extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: working ? null : () => onEditRoles(user),
                 icon: const Icon(Icons.assignment_ind_outlined),
-                label: const Text('Edit Roles'),
+                label: Text(_SecurityText.of(context).editRoles),
               ),
               OutlinedButton.icon(
                 onPressed: working ? null : () => onSetPassword(user),
                 icon: const Icon(Icons.password_outlined),
-                label: const Text('Set Password'),
+                label: Text(_SecurityText.of(context).setPassword),
               ),
             ],
           ),
@@ -745,18 +823,18 @@ class _RolesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.assignment_ind_outlined,
-      title: 'Roles',
+      title: _SecurityText.of(context).roles,
       trailing: FilledButton.icon(
         onPressed: working ? null : onCreateRole,
         icon: const Icon(Icons.add),
-        label: const Text('Role'),
+        label: Text(_SecurityText.of(context).role),
       ),
       children: [
         if (roles.isEmpty)
-          const _EmptyTile(
+          _EmptyTile(
             icon: Icons.badge_outlined,
-            title: 'No roles found',
-            subtitle: 'Create roles and assign permissions.',
+            title: _SecurityText.of(context).noRolesFound,
+            subtitle: _SecurityText.of(context).noRolesDescription,
           )
         else
           ...roles.map(
@@ -807,7 +885,13 @@ class _RoleTile extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
-              Chip(label: Text(role.isActive ? 'Active' : 'Inactive')),
+              Chip(
+                label: Text(
+                  role.isActive
+                      ? _SecurityText.of(context).active
+                      : _SecurityText.of(context).inactive,
+                ),
+              ),
             ],
           ),
           if (role.description?.isNotEmpty == true) ...[
@@ -818,13 +902,17 @@ class _RoleTile extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 8),
-          Text('${role.permissions.length} permissions'),
+          Text(
+            _SecurityText.of(context).permissionCount(role.permissions.length),
+          ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: working ? null : () => onEditPermissions(role),
             icon: const Icon(Icons.rule_outlined),
             label: Text(
-              role.isSystem ? 'View Permissions' : 'Edit Permissions',
+              role.isSystem
+                  ? _SecurityText.of(context).viewPermissions
+                  : _SecurityText.of(context).editPermissions,
             ),
           ),
         ],
@@ -846,14 +934,14 @@ class _PermissionsCard extends StatelessWidget {
 
     return _SectionCard(
       icon: Icons.rule_outlined,
-      title: 'Permission Catalog',
+      title: _SecurityText.of(context).permissionCatalog,
       trailing: Text('${permissions.length}'),
       children: [
         if (permissions.isEmpty)
-          const _EmptyTile(
+          _EmptyTile(
             icon: Icons.lock_open_outlined,
-            title: 'No permissions loaded',
-            subtitle: 'Permission catalog endpoint returned no entries.',
+            title: _SecurityText.of(context).noPermissionsLoaded,
+            subtitle: _SecurityText.of(context).noPermissionsDescription,
           )
         else
           ...grouped.entries.map(
@@ -863,7 +951,9 @@ class _PermissionsCard extends StatelessWidget {
                 entry.key,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              subtitle: Text('${entry.value.length} permissions'),
+              subtitle: Text(
+                _SecurityText.of(context).permissionCount(entry.value.length),
+              ),
               children: entry.value
                   .map(
                     (permission) => ListTile(
@@ -904,15 +994,13 @@ class _SecurityNotesCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Security coverage',
+                    _SecurityText.of(context).securityCoverage,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Users, roles, active status, and role permissions are connected. Password changes remain under administrator control.',
-                  ),
+                  Text(_SecurityText.of(context).securityCoverageDescription),
                 ],
               ),
             ),

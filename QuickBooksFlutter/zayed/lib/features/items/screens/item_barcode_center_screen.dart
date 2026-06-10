@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 
 import '../../../app/router.dart';
 import '../../../core/navigation/safe_navigation.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../settings/providers/printing_settings_provider.dart';
 import '../data/models/item_model.dart';
 import '../providers/items_provider.dart';
@@ -44,12 +45,13 @@ class _ItemBarcodeCenterScreenState
   Widget build(BuildContext context) {
     final itemsState = ref.watch(itemsProvider);
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: Column(
         children: [
-          _toolStrip(context),
+          _toolStrip(context, l10n),
           Expanded(
             child: itemsState.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -62,16 +64,16 @@ class _ItemBarcodeCenterScreenState
                     Expanded(
                       child: Column(
                         children: [
-                          _filtersBar(),
-                          _metrics(filtered, totalLabels),
-                          Expanded(child: _itemsList(filtered)),
+                          _filtersBar(l10n),
+                          _metrics(filtered, totalLabels, l10n),
+                          Expanded(child: _itemsList(filtered, l10n)),
                         ],
                       ),
                     ),
                     const VerticalDivider(width: 1),
                     SizedBox(
                       width: 330,
-                      child: _settingsPanel(filtered, totalLabels),
+                      child: _settingsPanel(filtered, totalLabels, l10n),
                     ),
                   ],
                 );
@@ -83,7 +85,7 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  Widget _toolStrip(BuildContext context) {
+  Widget _toolStrip(BuildContext context, AppLocalizations l10n) {
     final cs = Theme.of(context).colorScheme;
     return Container(
       height: 42,
@@ -98,12 +100,12 @@ class _ItemBarcodeCenterScreenState
           const SizedBox(width: 8),
           _ToolButton(
             icon: Icons.arrow_back,
-            label: 'Items',
+            label: l10n.items,
             onTap: () => context.popOrGo(AppRoutes.items),
           ),
           const SizedBox(width: 12),
           Text(
-            'Barcode Center',
+            l10n.barcodeCenter,
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
@@ -111,7 +113,7 @@ class _ItemBarcodeCenterScreenState
           const Spacer(),
           _ToolButton(
             icon: Icons.refresh,
-            label: 'Refresh',
+            label: l10n.refresh,
             onTap: () => ref.read(itemsProvider.notifier).refresh(),
           ),
           const SizedBox(width: 8),
@@ -120,17 +122,17 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  Widget _filtersBar() {
+  Widget _filtersBar(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
           TextField(
             controller: _searchCtrl,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Search name, SKU, or barcode...',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: l10n.searchNameSkuBarcode,
+              border: const OutlineInputBorder(),
               isDense: true,
             ),
             onChanged: (_) => setState(() {}),
@@ -141,11 +143,11 @@ class _ItemBarcodeCenterScreenState
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _chip(_BarcodeFilter.all, 'All'),
-                _chip(_BarcodeFilter.missing, 'Missing barcode'),
-                _chip(_BarcodeFilter.internal, 'Internal 200'),
-                _chip(_BarcodeFilter.external, 'External'),
-                _chip(_BarcodeFilter.inStock, 'In stock'),
+                _chip(_BarcodeFilter.all, l10n.all),
+                _chip(_BarcodeFilter.missing, l10n.missingBarcode),
+                _chip(_BarcodeFilter.internal, l10n.internal200),
+                _chip(_BarcodeFilter.external, l10n.external),
+                _chip(_BarcodeFilter.inStock, l10n.inStock),
               ],
             ),
           ),
@@ -165,7 +167,11 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  Widget _metrics(List<ItemModel> filtered, int totalLabels) {
+  Widget _metrics(
+    List<ItemModel> filtered,
+    int totalLabels,
+    AppLocalizations l10n,
+  ) {
     final withBarcode = filtered
         .where((item) => (item.barcode ?? '').trim().isNotEmpty)
         .length;
@@ -180,9 +186,9 @@ class _ItemBarcodeCenterScreenState
       ),
       child: Row(
         children: [
-          _metric('Items', '${filtered.length}'),
-          _metric('With barcode', '$withBarcode'),
-          _metric('Labels', '$totalLabels'),
+          _metric(l10n.items, '${filtered.length}'),
+          _metric(l10n.withBarcode, '$withBarcode'),
+          _metric(l10n.labels, '$totalLabels'),
         ],
       ),
     );
@@ -208,9 +214,9 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  Widget _itemsList(List<ItemModel> items) {
+  Widget _itemsList(List<ItemModel> items, AppLocalizations l10n) {
     if (items.isEmpty) {
-      return const Center(child: Text('No items match the current filters.'));
+      return Center(child: Text(l10n.noItemsMatchFilters));
     }
     return ListView.separated(
       padding: const EdgeInsets.all(12),
@@ -248,16 +254,19 @@ class _ItemBarcodeCenterScreenState
                       const SizedBox(height: 2),
                       Text(
                         hasBarcode
-                            ? '${item.barcode}  |  Stock: ${item.quantityOnHand.toStringAsFixed(2)}'
-                            : 'No barcode',
+                            ? l10n.barcodeStockLine(
+                                item.barcode!,
+                                item.quantityOnHand.toStringAsFixed(2),
+                              )
+                            : l10n.noBarcode,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
-                Text('${item.salesPrice.toStringAsFixed(2)} EGP'),
+                Text('${item.salesPrice.toStringAsFixed(2)} ${l10n.egp}'),
                 const SizedBox(width: 14),
-                _qtyControl(item, qty, hasBarcode),
+                _qtyControl(item, qty, hasBarcode, l10n),
               ],
             ),
           ),
@@ -266,11 +275,16 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  Widget _qtyControl(ItemModel item, int qty, bool enabled) {
+  Widget _qtyControl(
+    ItemModel item,
+    int qty,
+    bool enabled,
+    AppLocalizations l10n,
+  ) {
     return Row(
       children: [
         IconButton(
-          tooltip: 'Decrease',
+          tooltip: l10n.decrease,
           onPressed: !enabled ? null : () => _setQuantity(item, qty - 1),
           icon: const Icon(Icons.remove_circle_outline),
         ),
@@ -283,7 +297,7 @@ class _ItemBarcodeCenterScreenState
           ),
         ),
         IconButton(
-          tooltip: 'Increase',
+          tooltip: l10n.increase,
           onPressed: !enabled ? null : () => _setQuantity(item, qty + 1),
           icon: const Icon(Icons.add_circle_outline),
         ),
@@ -291,7 +305,11 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  Widget _settingsPanel(List<ItemModel> visibleItems, int totalLabels) {
+  Widget _settingsPanel(
+    List<ItemModel> visibleItems,
+    int totalLabels,
+    AppLocalizations l10n,
+  ) {
     final settings = ref.watch(printingSettingsProvider).settings;
     final printerName = _paper == ItemBarcodePaper.a4
         ? settings.a4PrinterName
@@ -302,9 +320,9 @@ class _ItemBarcodeCenterScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Print Settings',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+          Text(
+            l10n.printSettings,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
           ),
           const SizedBox(height: 12),
           SegmentedButton<ItemBarcodePaper>(
@@ -338,14 +356,14 @@ class _ItemBarcodeCenterScreenState
           const SizedBox(height: 10),
           if (_paper == ItemBarcodePaper.thermal80)
             SegmentedButton<ItemBarcodeLayout>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: ItemBarcodeLayout.single,
-                  label: Text('Single'),
+                  label: Text(l10n.single),
                 ),
                 ButtonSegment(
                   value: ItemBarcodeLayout.triple,
-                  label: Text('Triple'),
+                  label: Text(l10n.triple),
                 ),
               ],
               selected: {_layout},
@@ -354,7 +372,7 @@ class _ItemBarcodeCenterScreenState
           const SizedBox(height: 12),
           SwitchListTile(
             value: _useStockQty,
-            title: const Text('Use stock qty'),
+            title: Text(l10n.useStockQty),
             dense: true,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) {
@@ -366,24 +384,26 @@ class _ItemBarcodeCenterScreenState
           ),
           SwitchListTile(
             value: _showPrice,
-            title: const Text('Show sales price'),
+            title: Text(l10n.showSalesPrice),
             dense: true,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() => _showPrice = v),
           ),
           SwitchListTile(
             value: _showCompanyName,
-            title: const Text('Show company name'),
+            title: Text(l10n.showCompanyName),
             dense: true,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() => _showCompanyName = v),
           ),
           const Divider(height: 24),
-          _settingsLine('Selected labels', '$totalLabels'),
-          _settingsLine('Label size', _labelSizeText()),
+          _settingsLine(l10n.selectedLabels, '$totalLabels'),
+          _settingsLine(l10n.labelSize, _labelSizeText(l10n)),
           _settingsLine(
-            'Printer',
-            (printerName ?? '').isEmpty ? 'Preview/PDF' : printerName!,
+            l10n.printer,
+            (printerName ?? '').isEmpty
+                ? l10n.previewPdfFallback
+                : printerName!,
           ),
           const Spacer(),
           OutlinedButton.icon(
@@ -391,7 +411,7 @@ class _ItemBarcodeCenterScreenState
                 ? null
                 : () => _preview(visibleItems),
             icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: const Text('Preview PDF'),
+            label: Text(l10n.previewPdf),
           ),
           const SizedBox(height: 8),
           FilledButton.icon(
@@ -405,7 +425,7 @@ class _ItemBarcodeCenterScreenState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.print),
-            label: Text(_printing ? 'Printing...' : 'Print Labels'),
+            label: Text(_printing ? l10n.printing : l10n.printLabels),
           ),
         ],
       ),
@@ -432,17 +452,18 @@ class _ItemBarcodeCenterScreenState
   }
 
   Widget _error(Object error) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.error_outline, color: Colors.red),
           const SizedBox(height: 8),
-          Text('Could not load items: $error'),
+          Text(l10n.couldNotLoadItemsWithError(error.toString())),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: () => ref.read(itemsProvider.notifier).refresh(),
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -518,6 +539,7 @@ class _ItemBarcodeCenterScreenState
   }
 
   Future<void> _preview(List<ItemModel> visibleItems) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final bytes = await _buildPdf(visibleItems);
       await Printing.layoutPdf(
@@ -525,11 +547,12 @@ class _ItemBarcodeCenterScreenState
         onLayout: (_) async => bytes,
       );
     } catch (e) {
-      _snack('Could not build barcode labels: $e', isError: true);
+      _snack(l10n.couldNotBuildBarcodeLabels(e.toString()), isError: true);
     }
   }
 
   Future<void> _print(List<ItemModel> visibleItems) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _printing = true);
     try {
       final bytes = await _buildPdf(visibleItems);
@@ -549,7 +572,7 @@ class _ItemBarcodeCenterScreenState
         );
       }
     } catch (e) {
-      _snack('Print failed: $e', isError: true);
+      _snack(l10n.printFailed(e.toString()), isError: true);
     } finally {
       if (mounted) setState(() => _printing = false);
     }
@@ -565,13 +588,13 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  String _labelSizeText() => switch (_paper) {
+  String _labelSizeText(AppLocalizations l10n) => switch (_paper) {
     ItemBarcodePaper.thermal80 =>
       _layout == ItemBarcodeLayout.triple
-          ? '80mm roll - 3 across'
-          : '80mm roll - single labels',
-    ItemBarcodePaper.label50x40 => '50mm x 40mm label roll',
-    ItemBarcodePaper.a4 => 'A4 sheet labels',
+          ? l10n.roll80Triple
+          : l10n.roll80Single,
+    ItemBarcodePaper.label50x40 => l10n.label50x40Roll,
+    ItemBarcodePaper.a4 => l10n.a4SheetLabels,
   };
 }
 

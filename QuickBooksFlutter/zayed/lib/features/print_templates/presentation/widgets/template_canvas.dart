@@ -180,6 +180,7 @@ class _CanvasToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _CanvasText.of(context);
     return Container(
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -192,14 +193,14 @@ class _CanvasToolbar extends StatelessWidget {
           const Icon(Icons.grid_4x4_outlined, size: 18),
           const SizedBox(width: 8),
           Text(
-            'Grid on',
+            text.gridOn,
             style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const Spacer(),
           _ToolIcon(
-            tooltip: 'Zoom out',
+            tooltip: text.zoomOut,
             icon: Icons.zoom_out,
             onPressed: onZoomOut,
           ),
@@ -214,7 +215,7 @@ class _CanvasToolbar extends StatelessWidget {
             ),
           ),
           _ToolIcon(
-            tooltip: 'Zoom in',
+            tooltip: text.zoomIn,
             icon: Icons.zoom_in,
             onPressed: onZoomIn,
           ),
@@ -234,7 +235,7 @@ class _CanvasToolbar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          TextButton(onPressed: onFit, child: const Text('Fit')),
+          TextButton(onPressed: onFit, child: Text(text.fit)),
           TextButton(onPressed: onReset, child: const Text('100%')),
         ],
       ),
@@ -533,4 +534,18 @@ class _RulerPainter extends CustomPainter {
         oldDelegate.mmToPixel != mmToPixel ||
         oldDelegate.axis != axis;
   }
+}
+
+class _CanvasText {
+  const _CanvasText(this.ar);
+
+  final bool ar;
+
+  static _CanvasText of(BuildContext context) =>
+      _CanvasText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get gridOn => ar ? 'الشبكة مفعلة' : 'Grid on';
+  String get zoomOut => ar ? 'تصغير' : 'Zoom out';
+  String get zoomIn => ar ? 'تكبير' : 'Zoom in';
+  String get fit => ar ? 'ملاءمة' : 'Fit';
 }

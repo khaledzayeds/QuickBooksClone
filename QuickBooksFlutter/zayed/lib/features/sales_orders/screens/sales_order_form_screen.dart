@@ -143,7 +143,7 @@ class _SalesOrderFormScreenState extends ConsumerState<SalesOrderFormScreen> {
               itemId: line.itemId!,
               description: line.descCtrl.text,
               quantity: line.qty,
-              unitPrice: line.rate,
+              unitPrice: line.rate.abs(),
             ),
           )
           .toList(),

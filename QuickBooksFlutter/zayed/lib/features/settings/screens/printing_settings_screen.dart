@@ -49,29 +49,30 @@ class _PrintingSettingsScreenState
     final state = ref.watch(printingSettingsProvider);
     final notifier = ref.read(printingSettingsProvider.notifier);
     final theme = Theme.of(context);
+    final text = _PrintSettingsText.of(context);
 
     ref.listen(printingSettingsProvider, (previous, next) {
       if (next.saved && previous?.saved != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Printing settings saved.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(text.settingsSaved)));
       }
     });
 
     return Scaffold(
       backgroundColor: const Color(0xFFEFF3F7),
       appBar: AppBar(
-        title: const Text('Printing Settings'),
+        title: Text(text.printingSettings),
         actions: [
           TextButton.icon(
             onPressed: _reloadTemplates,
             icon: const Icon(Icons.refresh_outlined),
-            label: const Text('Refresh Templates'),
+            label: Text(text.refreshTemplates),
           ),
           TextButton.icon(
             onPressed: state.saving ? null : notifier.reset,
             icon: const Icon(Icons.restore_outlined),
-            label: const Text('Reset'),
+            label: Text(text.reset),
           ),
           FilledButton.icon(
             onPressed: state.saving ? null : notifier.save,
@@ -82,7 +83,7 @@ class _PrintingSettingsScreenState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: const Text('Save'),
+            label: Text(text.save),
           ),
           const SizedBox(width: 12),
         ],
@@ -97,9 +98,8 @@ class _PrintingSettingsScreenState
                   padding: const EdgeInsets.all(18),
                   children: [
                     _Header(
-                      title: 'Printing Settings',
-                      subtitle:
-                          'Set the default printers, receipt width, preview behavior, and branding used by Zayed printing.',
+                      title: text.printingSettings,
+                      subtitle: text.printingSettingsSubtitle,
                       loadingTemplates:
                           snapshot.connectionState == ConnectionState.waiting,
                     ),
@@ -167,7 +167,7 @@ class _PrintingSettingsScreenState
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      'Built-in print layouts are used automatically. Templates and the designer are optional customizations.',
+                      text.builtInPrintLayoutsHint,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -180,6 +180,7 @@ class _PrintingSettingsScreenState
   }
 
   Future<void> _scanPrinters() async {
+    final text = _PrintSettingsText.of(context);
     setState(() => _loadingPrinters = true);
     try {
       final printers = await Printing.listPrinters();
@@ -189,7 +190,7 @@ class _PrintingSettingsScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Printer scan failed: $error')));
+      ).showSnackBar(SnackBar(content: Text(text.printerScanFailed(error))));
     } finally {
       if (mounted) setState(() => _loadingPrinters = false);
     }
@@ -290,6 +291,7 @@ class _DocumentProfilesLauncherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _PrintSettingsText.of(context);
     return Card(
       elevation: 0,
       child: Padding(
@@ -303,15 +305,15 @@ class _DocumentProfilesLauncherCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Document print profiles',
+                    text.documentPrintProfiles,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   Text(
                     settings.enableTemplateDesigner
-                        ? 'Choose templates per document for custom output.'
-                        : 'Disabled. Built-in Zayed layouts print every document.',
+                        ? text.chooseTemplatesPerDocumentHint
+                        : text.templateDesignerDisabledHint,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -339,7 +341,7 @@ class _DocumentProfilesLauncherCard extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        'Document print profiles',
+                                        text.documentPrintProfiles,
                                         style: theme.textTheme.titleLarge
                                             ?.copyWith(
                                               fontWeight: FontWeight.w900,
@@ -347,7 +349,7 @@ class _DocumentProfilesLauncherCard extends StatelessWidget {
                                       ),
                                     ),
                                     IconButton(
-                                      tooltip: 'Close',
+                                      tooltip: text.close,
                                       onPressed: () =>
                                           Navigator.of(dialogContext).pop(),
                                       icon: const Icon(Icons.close),
@@ -372,7 +374,7 @@ class _DocumentProfilesLauncherCard extends StatelessWidget {
                       ),
                     ),
               icon: const Icon(Icons.list_alt_outlined),
-              label: const Text('Choose templates per document'),
+              label: Text(text.chooseTemplatesPerDocument),
             ),
           ],
         ),
@@ -402,6 +404,7 @@ class _DocumentProfilesTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _PrintSettingsText.of(context);
     return Card(
       elevation: 0,
       child: Padding(
@@ -417,7 +420,7 @@ class _DocumentProfilesTable extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Document Profiles',
+                  text.documentProfiles,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -469,6 +472,7 @@ class _DocumentProfileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _PrintSettingsText.of(context);
     final a4Choices = catalog.choicesFor(option.key, 'a4');
     final thermalChoices = catalog.choicesFor(option.key, 'thermal');
     return Container(
@@ -487,15 +491,17 @@ class _DocumentProfileRow extends StatelessWidget {
             key: ValueKey('${option.key}-mode-${effective.printMode.name}'),
             initialValue: effective.printMode,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Mode',
+            decoration: InputDecoration(
+              labelText: text.mode,
               isDense: true,
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
             items: PrintMode.values
                 .map(
-                  (mode) =>
-                      DropdownMenuItem(value: mode, child: Text(mode.label)),
+                  (mode) => DropdownMenuItem(
+                    value: mode,
+                    child: Text(text.printModeLabel(mode)),
+                  ),
                 )
                 .toList(),
             selectedItemBuilder: (context) => PrintMode.values
@@ -503,7 +509,7 @@ class _DocumentProfileRow extends StatelessWidget {
                   (mode) => Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(
-                      mode.shortLabel,
+                      text.printModeShortLabel(mode),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -517,7 +523,7 @@ class _DocumentProfileRow extends StatelessWidget {
             },
           );
           final a4Selector = _TemplateSelector(
-            label: 'A4 Template',
+            label: text.a4Template,
             choices: a4Choices,
             value: profile.a4TemplateBackendId ?? profile.templateBackendId,
             onChanged: (choice) => onChanged(
@@ -529,7 +535,7 @@ class _DocumentProfileRow extends StatelessWidget {
             ),
           );
           final thermalSelector = _TemplateSelector(
-            label: 'Thermal Template',
+            label: text.thermalTemplate,
             choices: thermalChoices,
             value: profile.thermalTemplateBackendId,
             onChanged: (choice) => onChanged(
@@ -552,7 +558,7 @@ class _DocumentProfileRow extends StatelessWidget {
                       profile.a4TemplateBackendId ?? profile.templateBackendId,
                 ),
                 icon: const Icon(Icons.description_outlined, size: 18),
-                label: const Text('Design A4'),
+                label: Text(text.designA4),
               ),
               OutlinedButton.icon(
                 onPressed: () => onOpenDesigner(
@@ -561,13 +567,13 @@ class _DocumentProfileRow extends StatelessWidget {
                   templateId: profile.thermalTemplateBackendId,
                 ),
                 icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                label: const Text('Design Thermal'),
+                label: Text(text.designThermal),
               ),
               TextButton.icon(
                 onPressed: () =>
                     onChanged(DocumentPrintProfile(documentType: option.key)),
                 icon: const Icon(Icons.restart_alt_outlined, size: 18),
-                label: const Text('Reset'),
+                label: Text(text.reset),
               ),
             ],
           );
@@ -615,6 +621,7 @@ class _DocumentName extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _PrintSettingsText.of(context);
     return Row(
       children: [
         CircleAvatar(
@@ -632,13 +639,13 @@ class _DocumentName extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                option.label,
+                text.documentTypeLabel(option.key),
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
-                option.group,
+                text.documentGroupLabel(option.group),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -674,6 +681,7 @@ class _TemplateSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = _PrintSettingsText.of(context);
     final safeValue = choices.any((choice) => choice.id == value) ? value : '';
     return DropdownButtonFormField<String>(
       key: ValueKey('$label-$safeValue-${choices.length}'),
@@ -688,7 +696,10 @@ class _TemplateSelector extends StatelessWidget {
           .map(
             (choice) => DropdownMenuItem<String>(
               value: choice.id,
-              child: Text(choice.displayLabel, overflow: TextOverflow.ellipsis),
+              child: Text(
+                choice.displayLabel(text),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           )
           .toList(),
@@ -733,9 +744,10 @@ class _PrinterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = _PrintSettingsText.of(context);
     return _SectionCard(
       icon: Icons.print_outlined,
-      title: 'Printers',
+      title: text.printers,
       trailing: OutlinedButton.icon(
         onPressed: loadingPrinters ? null : onScan,
         icon: loadingPrinters
@@ -745,17 +757,17 @@ class _PrinterCard extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.search_outlined),
-        label: const Text('Scan'),
+        label: Text(text.scan),
       ),
       children: [
         if (printers.isEmpty)
           Text(
-            'Scan printers to store a stable printer URL. When Preview before print is off, Zayed sends the job directly to the selected printer.',
+            text.scanPrintersHint,
             style: Theme.of(context).textTheme.bodySmall,
           )
         else ...[
           _PrinterDropdown(
-            label: 'A4 Printer',
+            label: text.a4Printer,
             value: settings.a4PrinterName,
             printers: printers,
             onChanged: (value) =>
@@ -763,7 +775,7 @@ class _PrinterCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _PrinterDropdown(
-            label: 'Thermal Printer',
+            label: text.thermalPrinter,
             value: settings.thermalPrinterName,
             printers: printers,
             onChanged: (value) => onChanged(
@@ -773,7 +785,7 @@ class _PrinterCard extends StatelessWidget {
           const SizedBox(height: 10),
         ],
         _TextField(
-          label: 'A4 printer name / URL',
+          label: text.a4PrinterNameUrl,
           value: settings.a4PrinterName ?? '',
           icon: Icons.description_outlined,
           onChanged: (value) =>
@@ -781,7 +793,7 @@ class _PrinterCard extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         _TextField(
-          label: 'Thermal printer name / URL',
+          label: text.thermalPrinterNameUrl,
           value: settings.thermalPrinterName ?? '',
           icon: Icons.receipt_long_outlined,
           onChanged: (value) => onChanged(
@@ -856,6 +868,7 @@ class _BrandingCard extends StatelessWidget {
   onChanged;
 
   Future<void> _pickLogo(BuildContext context) async {
+    final text = _PrintSettingsText.of(context);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -870,19 +883,20 @@ class _BrandingCard extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Logo picker failed: $error')));
+        ).showSnackBar(SnackBar(content: Text(text.logoPickerFailed(error))));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final text = _PrintSettingsText.of(context);
     return _SectionCard(
       icon: Icons.image_outlined,
-      title: 'Branding',
+      title: text.branding,
       children: [
         _TextField(
-          label: 'Logo Path',
+          label: text.logoPath,
           value: settings.logoPath ?? '',
           icon: Icons.folder_open_outlined,
           onChanged: (value) =>
@@ -896,7 +910,7 @@ class _BrandingCard extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => _pickLogo(context),
               icon: const Icon(Icons.upload_file_outlined),
-              label: const Text('Choose Logo'),
+              label: Text(text.chooseLogo),
             ),
             TextButton.icon(
               onPressed: (settings.logoPath ?? '').isEmpty
@@ -906,29 +920,29 @@ class _BrandingCard extends StatelessWidget {
                           current.copyWith(logoPath: '', showLogo: false),
                     ),
               icon: const Icon(Icons.clear_outlined),
-              label: const Text('Clear'),
+              label: Text(text.clear),
             ),
           ],
         ),
         const SizedBox(height: 10),
         _SwitchRow(
-          title: 'Show logo',
-          subtitle: 'Display company logo when the template has a logo area.',
+          title: text.showLogo,
+          subtitle: text.showLogoSubtitle,
           value: settings.showLogo,
           onChanged: (value) =>
               onChanged((current) => current.copyWith(showLogo: value)),
         ),
         _SwitchRow(
-          title: 'Show company address',
-          subtitle: 'Print company address under the header.',
+          title: text.showCompanyAddress,
+          subtitle: text.showCompanyAddressSubtitle,
           value: settings.showCompanyAddress,
           onChanged: (value) => onChanged(
             (current) => current.copyWith(showCompanyAddress: value),
           ),
         ),
         _SwitchRow(
-          title: 'Use Arabic fonts',
-          subtitle: 'Use bundled RTL-friendly fonts for generated PDFs.',
+          title: text.useArabicFonts,
+          subtitle: text.useArabicFontsSubtitle,
           value: settings.useArabicFonts,
           onChanged: (value) =>
               onChanged((current) => current.copyWith(useArabicFonts: value)),
@@ -947,13 +961,14 @@ class _OptionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = _PrintSettingsText.of(context);
     final hasPrinterUrl =
         (settings.a4PrinterName?.trim().isNotEmpty ?? false) ||
         (settings.thermalPrinterName?.trim().isNotEmpty ?? false);
 
     return _SectionCard(
       icon: Icons.tune_outlined,
-      title: 'Global Print Options',
+      title: text.globalPrintOptions,
       children: [
         // Direct-print toggle — highlight it visually when a printer URL is set.
         _DirectPrintTile(
@@ -965,17 +980,16 @@ class _OptionsCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         _SwitchRow(
-          title: 'Auto print after save',
-          subtitle: 'Send print jobs immediately after saving transactions.',
+          title: text.autoPrintAfterSave,
+          subtitle: text.autoPrintAfterSaveSubtitle,
           value: settings.autoPrintAfterSave,
           onChanged: (value) => onChanged(
             (current) => current.copyWith(autoPrintAfterSave: value),
           ),
         ),
         _SwitchRow(
-          title: 'Enable template designer',
-          subtitle:
-              'Phase two customization. Keep this off for stable built-in printing.',
+          title: text.enableTemplateDesigner,
+          subtitle: text.enableTemplateDesignerSubtitle,
           value: settings.enableTemplateDesigner,
           onChanged: (value) => onChanged(
             (current) => current.copyWith(enableTemplateDesigner: value),
@@ -983,30 +997,30 @@ class _OptionsCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         _SwitchRow(
-          title: 'Show QR code',
-          subtitle: 'Reserve QR areas for invoices and receipts.',
+          title: text.showQrCode,
+          subtitle: text.showQrCodeSubtitle,
           value: settings.showQrCode,
           onChanged: (value) =>
               onChanged((current) => current.copyWith(showQrCode: value)),
         ),
         _SwitchRow(
-          title: 'Show tax summary',
-          subtitle: 'Print tax breakdown when taxes are enabled.',
+          title: text.showTaxSummary,
+          subtitle: text.showTaxSummarySubtitle,
           value: settings.showTaxSummary,
           onChanged: (value) =>
               onChanged((current) => current.copyWith(showTaxSummary: value)),
         ),
         _SwitchRow(
-          title: 'Show customer balance',
-          subtitle: 'Only customer documents display balance and credit lines.',
+          title: text.showCustomerBalance,
+          subtitle: text.showCustomerBalanceSubtitle,
           value: settings.showCustomerBalance,
           onChanged: (value) => onChanged(
             (current) => current.copyWith(showCustomerBalance: value),
           ),
         ),
         _SwitchRow(
-          title: 'Show item SKU',
-          subtitle: 'Optional item code visibility in print lines.',
+          title: text.showItemSku,
+          subtitle: text.showItemSkuSubtitle,
           value: settings.showItemSku,
           onChanged: (value) =>
               onChanged((current) => current.copyWith(showItemSku: value)),
@@ -1034,6 +1048,7 @@ class _DirectPrintTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final text = _PrintSettingsText.of(context);
 
     // Direct-print mode is active when preview is OFF and a URL is configured.
     final directActive = !previewEnabled && hasPrinterUrl;
@@ -1063,13 +1078,13 @@ class _DirectPrintTile extends StatelessWidget {
         : cs.error;
 
     final title = previewEnabled
-        ? 'Preview before print'
-        : 'Direct print (no dialog)';
+        ? text.previewBeforePrint
+        : text.directPrintNoDialog;
     final subtitle = directActive
-        ? 'Cashier / kiosk mode — prints instantly to your configured printer.'
+        ? text.directPrintActiveSubtitle
         : previewEnabled
-        ? 'A preview dialog appears before every print job.'
-        : 'No preview dialog — but no printer URL is set yet. Go to Printers above.';
+        ? text.previewBeforePrintSubtitle
+        : text.directPrintMissingPrinterSubtitle;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -1374,5 +1389,167 @@ class _TemplateChoice {
   final String label;
   final String source;
 
-  String get displayLabel => '$label - $source';
+  String displayLabel(_PrintSettingsText text) {
+    final displayName = id.isEmpty ? text.automaticDefault : label;
+    final displaySource = switch (source) {
+      'System' => text.system,
+      'Built-in' => text.builtIn,
+      'Saved' => text.saved,
+      _ => source,
+    };
+    return '$displayName - $displaySource';
+  }
+}
+
+class _PrintSettingsText {
+  const _PrintSettingsText(this.ar);
+
+  final bool ar;
+
+  static _PrintSettingsText of(BuildContext context) =>
+      _PrintSettingsText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get settingsSaved =>
+      ar ? 'تم حفظ إعدادات الطباعة.' : 'Printing settings saved.';
+  String get printingSettings => ar ? 'إعدادات الطباعة' : 'Printing Settings';
+  String get refreshTemplates => ar ? 'تحديث القوالب' : 'Refresh Templates';
+  String get reset => ar ? 'إعادة ضبط' : 'Reset';
+  String get save => ar ? 'حفظ' : 'Save';
+  String get close => ar ? 'إغلاق' : 'Close';
+  String get clear => ar ? 'مسح' : 'Clear';
+  String get printingSettingsSubtitle => ar
+      ? 'اضبط الطابعات الافتراضية، مقاس الإيصال، سلوك المعاينة، وبيانات العلامة التجارية المستخدمة في الطباعة.'
+      : 'Set the default printers, receipt width, preview behavior, and branding used by Zayed printing.';
+  String get builtInPrintLayoutsHint => ar
+      ? 'تستخدم تنسيقات الطباعة المدمجة تلقائيًا. القوالب والمصمم اختياريان للتخصيص.'
+      : 'Built-in print layouts are used automatically. Templates and the designer are optional customizations.';
+  String printerScanFailed(Object error) =>
+      ar ? 'فشل فحص الطابعات: $error' : 'Printer scan failed: $error';
+
+  String get documentPrintProfiles =>
+      ar ? 'ملفات طباعة المستندات' : 'Document print profiles';
+  String get documentProfiles => ar ? 'ملفات المستندات' : 'Document Profiles';
+  String get chooseTemplatesPerDocumentHint => ar
+      ? 'اختر قالبًا لكل نوع مستند عند الحاجة لمخرجات مخصصة.'
+      : 'Choose templates per document for custom output.';
+  String get templateDesignerDisabledHint => ar
+      ? 'متوقف. تنسيقات زايد المدمجة تطبع كل المستندات.'
+      : 'Disabled. Built-in Zayed layouts print every document.';
+  String get chooseTemplatesPerDocument =>
+      ar ? 'اختيار القوالب حسب المستند' : 'Choose templates per document';
+  String get mode => ar ? 'الوضع' : 'Mode';
+  String get a4Template => ar ? 'قالب A4' : 'A4 Template';
+  String get thermalTemplate => ar ? 'قالب حراري' : 'Thermal Template';
+  String get designA4 => ar ? 'تصميم A4' : 'Design A4';
+  String get designThermal => ar ? 'تصميم حراري' : 'Design Thermal';
+  String get automaticDefault =>
+      ar ? 'الافتراضي التلقائي' : 'Automatic default';
+  String get system => ar ? 'النظام' : 'System';
+  String get builtIn => ar ? 'مدمج' : 'Built-in';
+  String get saved => ar ? 'محفوظ' : 'Saved';
+
+  String get printers => ar ? 'الطابعات' : 'Printers';
+  String get scan => ar ? 'فحص' : 'Scan';
+  String get scanPrintersHint => ar
+      ? 'افحص الطابعات لحفظ رابط ثابت للطابعة. عند إيقاف المعاينة قبل الطباعة، يرسل زايد المهمة مباشرة للطابعة المحددة.'
+      : 'Scan printers to store a stable printer URL. When Preview before print is off, Zayed sends the job directly to the selected printer.';
+  String get a4Printer => ar ? 'طابعة A4' : 'A4 Printer';
+  String get thermalPrinter => ar ? 'الطابعة الحرارية' : 'Thermal Printer';
+  String get a4PrinterNameUrl =>
+      ar ? 'اسم / رابط طابعة A4' : 'A4 printer name / URL';
+  String get thermalPrinterNameUrl =>
+      ar ? 'اسم / رابط الطابعة الحرارية' : 'Thermal printer name / URL';
+
+  String get branding => ar ? 'العلامة التجارية' : 'Branding';
+  String get logoPath => ar ? 'مسار الشعار' : 'Logo Path';
+  String get chooseLogo => ar ? 'اختيار شعار' : 'Choose Logo';
+  String logoPickerFailed(Object error) =>
+      ar ? 'فشل اختيار الشعار: $error' : 'Logo picker failed: $error';
+  String get showLogo => ar ? 'إظهار الشعار' : 'Show logo';
+  String get showLogoSubtitle => ar
+      ? 'يعرض شعار الشركة عندما يحتوي القالب على مساحة للشعار.'
+      : 'Display company logo when the template has a logo area.';
+  String get showCompanyAddress =>
+      ar ? 'إظهار عنوان الشركة' : 'Show company address';
+  String get showCompanyAddressSubtitle => ar
+      ? 'يطبع عنوان الشركة أسفل الترويسة.'
+      : 'Print company address under the header.';
+  String get useArabicFonts => ar ? 'استخدام خطوط عربية' : 'Use Arabic fonts';
+  String get useArabicFontsSubtitle => ar
+      ? 'استخدم الخطوط المدمجة الداعمة لاتجاه اليمين لليسار في ملفات PDF.'
+      : 'Use bundled RTL-friendly fonts for generated PDFs.';
+
+  String get globalPrintOptions =>
+      ar ? 'خيارات الطباعة العامة' : 'Global Print Options';
+  String get autoPrintAfterSave =>
+      ar ? 'الطباعة تلقائيًا بعد الحفظ' : 'Auto print after save';
+  String get autoPrintAfterSaveSubtitle => ar
+      ? 'يرسل مهام الطباعة مباشرة بعد حفظ المعاملات.'
+      : 'Send print jobs immediately after saving transactions.';
+  String get enableTemplateDesigner =>
+      ar ? 'تفعيل مصمم القوالب' : 'Enable template designer';
+  String get enableTemplateDesignerSubtitle => ar
+      ? 'تخصيص المرحلة الثانية. اتركه مغلقًا للطباعة المدمجة المستقرة.'
+      : 'Phase two customization. Keep this off for stable built-in printing.';
+  String get showQrCode => ar ? 'إظهار رمز QR' : 'Show QR code';
+  String get showQrCodeSubtitle => ar
+      ? 'يحجز مساحات QR للفواتير والإيصالات.'
+      : 'Reserve QR areas for invoices and receipts.';
+  String get showTaxSummary => ar ? 'إظهار ملخص الضريبة' : 'Show tax summary';
+  String get showTaxSummarySubtitle => ar
+      ? 'يطبع تفصيل الضريبة عند تفعيل الضرائب.'
+      : 'Print tax breakdown when taxes are enabled.';
+  String get showCustomerBalance =>
+      ar ? 'إظهار رصيد العميل' : 'Show customer balance';
+  String get showCustomerBalanceSubtitle => ar
+      ? 'مستندات العملاء فقط تعرض الرصيد وخطوط الائتمان.'
+      : 'Only customer documents display balance and credit lines.';
+  String get showItemSku => ar ? 'إظهار SKU الصنف' : 'Show item SKU';
+  String get showItemSkuSubtitle => ar
+      ? 'إظهار اختياري لكود الصنف في سطور الطباعة.'
+      : 'Optional item code visibility in print lines.';
+  String get previewBeforePrint =>
+      ar ? 'معاينة قبل الطباعة' : 'Preview before print';
+  String get directPrintNoDialog =>
+      ar ? 'طباعة مباشرة بدون نافذة' : 'Direct print (no dialog)';
+  String get directPrintActiveSubtitle => ar
+      ? 'وضع الكاشير / الكشك، يطبع فورًا على الطابعة المحددة.'
+      : 'Cashier / kiosk mode - prints instantly to your configured printer.';
+  String get previewBeforePrintSubtitle => ar
+      ? 'تظهر نافذة معاينة قبل كل عملية طباعة.'
+      : 'A preview dialog appears before every print job.';
+  String get directPrintMissingPrinterSubtitle => ar
+      ? 'لا توجد نافذة معاينة، لكن لم يتم ضبط رابط طابعة بعد. اذهب إلى الطابعات بالأعلى.'
+      : 'No preview dialog - but no printer URL is set yet. Go to Printers above.';
+
+  String printModeLabel(PrintMode mode) => switch (mode) {
+    PrintMode.a4 => ar ? 'مستندات A4' : 'A4 Documents',
+    PrintMode.thermal => ar ? 'إيصالات حرارية' : 'Thermal Receipts',
+    PrintMode.both => ar ? 'A4 + حراري' : 'A4 + Thermal',
+  };
+
+  String printModeShortLabel(PrintMode mode) => switch (mode) {
+    PrintMode.a4 => 'A4',
+    PrintMode.thermal => ar ? 'حراري' : 'Thermal',
+    PrintMode.both => ar ? 'كلاهما' : 'Both',
+  };
+
+  String documentTypeLabel(String key) =>
+      switch (normalizePrintDocumentType(key)) {
+        'invoice' => ar ? 'فاتورة مبيعات' : 'Invoice',
+        'sales-receipt' => ar ? 'إيصال بيع' : 'Sales Receipt',
+        'estimate' => ar ? 'عرض سعر' : 'Estimate',
+        'sales-return' => ar ? 'مرتجع مبيعات' : 'Sales Return',
+        'purchase-order' => ar ? 'أمر شراء' : 'Purchase Order',
+        'receive-inventory' => ar ? 'استلام مخزون' : 'Receive Inventory',
+        'inventory-adjustment' => ar ? 'تسوية مخزون' : 'Inventory Adjustment',
+        _ => key,
+      };
+
+  String documentGroupLabel(String group) => switch (group) {
+    'Sales' => ar ? 'المبيعات' : 'Sales',
+    'Purchasing' => ar ? 'المشتريات' : 'Purchasing',
+    'Inventory' => ar ? 'المخزون' : 'Inventory',
+    _ => group,
+  };
 }

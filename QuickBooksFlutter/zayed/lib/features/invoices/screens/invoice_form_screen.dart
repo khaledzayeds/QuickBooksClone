@@ -16,11 +16,20 @@ import '../providers/invoices_provider.dart';
 
 class InvoiceLineState {
   String? itemId;
+  ItemType? itemType;
   String description = '';
   double quantity = 1;
   double unitPrice = 0;
 
-  double get total => quantity * unitPrice;
+  double get displayUnitPrice {
+    final type = itemType;
+    if (type == null) return unitPrice;
+    if (type.isSubtotalLine || type.postsThroughComponents) return 0;
+    if (type.isAmountReducingLine) return -unitPrice.abs();
+    return unitPrice;
+  }
+
+  double get total => quantity * displayUnitPrice;
 }
 
 class InvoiceFormState {
@@ -128,7 +137,7 @@ class InvoiceFormScreen extends ConsumerWidget {
               'itemId': line.itemId,
               'description': line.description.isEmpty ? null : line.description,
               'quantity': line.quantity,
-              'unitPrice': line.unitPrice,
+              'unitPrice': line.unitPrice.abs(),
               'discountPercent': 0,
               'taxCodeId': null,
             },
@@ -434,7 +443,9 @@ class _LineRow extends ConsumerWidget {
                         );
                         final state = ref.read(invoiceFormProvider);
                         state.lines[index].itemId = value;
-                        state.lines[index].unitPrice = selectedItem.salesPrice;
+                        state.lines[index].itemType = selectedItem.itemType;
+                        state.lines[index].unitPrice = selectedItem.salesPrice
+                            .abs();
                         state.lines[index].description = selectedItem.name;
                         _forceInvoiceRebuild(ref, state);
                       },

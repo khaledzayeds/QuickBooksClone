@@ -56,6 +56,10 @@ class PurchaseBillDetailsScreen extends ConsumerWidget {
       success: (_) {
         ref.invalidate(purchaseBillDetailsProvider(bill.id));
         ref.read(purchaseBillsProvider.notifier).refresh();
+        final receiptId = bill.inventoryReceiptId;
+        if (receiptId != null && receiptId.isNotEmpty) {
+          ref.invalidate(inventoryReceiptBillingPlanProvider(receiptId));
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Bill ${bill.billNumber} voided.')),
         );

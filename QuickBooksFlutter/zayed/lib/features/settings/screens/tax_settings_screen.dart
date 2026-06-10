@@ -12,18 +12,19 @@ class TaxSettingsScreen extends ConsumerWidget {
     final notifier = ref.read(companySettingsFormProvider.notifier);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _TaxSettingsText.of(context);
 
     ref.listen(companySettingsFormProvider, (previous, next) {
       if (next.saved && previous?.saved != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tax settings saved successfully.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(text.saved)));
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tax Settings'),
+        title: Text(text.title),
         actions: [
           TextButton.icon(
             onPressed: state.saving ? null : notifier.save,
@@ -34,7 +35,7 @@ class TaxSettingsScreen extends ConsumerWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
-            label: const Text('Save'),
+            label: Text(text.save),
           ),
           const SizedBox(width: 12),
         ],
@@ -45,14 +46,14 @@ class TaxSettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               children: [
                 Text(
-                  'Tax Defaults',
+                  text.defaults,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Configure default sales/purchase tax behavior used by transactions. Advanced tax codes and tax accounts can be linked later.',
+                  text.defaultsDescription,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -79,7 +80,7 @@ class TaxSettingsScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'General Tax Behavior',
+                              text.generalBehavior,
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
                               ),
@@ -89,10 +90,8 @@ class TaxSettingsScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Enable Taxes'),
-                          subtitle: const Text(
-                            'Turn on default tax calculation fields in transactions.',
-                          ),
+                          title: Text(text.enableTaxes),
+                          subtitle: Text(text.enableTaxesDescription),
                           value: state.form.taxesEnabled,
                           onChanged: (value) => notifier.update(
                             (current) => current.copyWith(taxesEnabled: value),
@@ -100,10 +99,8 @@ class TaxSettingsScreen extends ConsumerWidget {
                         ),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Prices Include Tax'),
-                          subtitle: const Text(
-                            'Treat entered prices as tax-inclusive by default.',
-                          ),
+                          title: Text(text.pricesIncludeTax),
+                          subtitle: Text(text.pricesIncludeTaxDescription),
                           value: state.form.pricesIncludeTax,
                           onChanged: (value) => notifier.update(
                             (current) =>
@@ -113,23 +110,23 @@ class TaxSettingsScreen extends ConsumerWidget {
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int>(
                           initialValue: state.form.taxRoundingMode,
-                          decoration: const InputDecoration(
-                            labelText: 'Tax Rounding Mode',
+                          decoration: InputDecoration(
+                            labelText: text.roundingMode,
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.rounded_corner_outlined),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem<int>(
                               value: 1,
-                              child: Text('Round normally'),
+                              child: Text(text.roundNormally),
                             ),
                             DropdownMenuItem<int>(
                               value: 2,
-                              child: Text('Round down'),
+                              child: Text(text.roundDown),
                             ),
                             DropdownMenuItem<int>(
                               value: 3,
-                              child: Text('Round up'),
+                              child: Text(text.roundUp),
                             ),
                           ],
                           onChanged: (value) {
@@ -163,7 +160,7 @@ class TaxSettingsScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Default Rates',
+                              text.defaultRates,
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
                               ),
@@ -175,7 +172,7 @@ class TaxSettingsScreen extends ConsumerWidget {
                           builder: (context, constraints) {
                             final fields = [
                               _RateField(
-                                label: 'Default Sales Tax Rate %',
+                                label: text.defaultSalesTax,
                                 value: state.form.defaultSalesTaxRate,
                                 onChanged: (value) => notifier.update(
                                   (current) => current.copyWith(
@@ -185,7 +182,7 @@ class TaxSettingsScreen extends ConsumerWidget {
                                 ),
                               ),
                               _RateField(
-                                label: 'Default Purchase Tax Rate %',
+                                label: text.defaultPurchaseTax,
                                 value: state.form.defaultPurchaseTaxRate,
                                 onChanged: (value) => notifier.update(
                                   (current) => current.copyWith(
@@ -216,8 +213,8 @@ class TaxSettingsScreen extends ConsumerWidget {
                         const SizedBox(height: 16),
                         TextFormField(
                           initialValue: state.form.taxRegistrationNumber ?? '',
-                          decoration: const InputDecoration(
-                            labelText: 'Tax Registration Number',
+                          decoration: InputDecoration(
+                            labelText: text.taxRegistration,
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.badge_outlined),
                           ),
@@ -248,7 +245,7 @@ class TaxSettingsScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Advanced Links',
+                              text.advancedLinks,
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
                               ),
@@ -257,29 +254,29 @@ class TaxSettingsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Tax code and tax account linking is supported by the backend payload. Dedicated selectors will be completed after Tax Codes and Accounts lookup UX is finalized.',
+                          text.advancedDescription,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: cs.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 16),
                         _ReadOnlyLink(
-                          label: 'Default Sales Tax Code',
+                          label: text.defaultSalesTaxCode,
                           value: state.form.defaultSalesTaxCodeId,
                         ),
                         const SizedBox(height: 12),
                         _ReadOnlyLink(
-                          label: 'Default Purchase Tax Code',
+                          label: text.defaultPurchaseTaxCode,
                           value: state.form.defaultPurchaseTaxCodeId,
                         ),
                         const SizedBox(height: 12),
                         _ReadOnlyLink(
-                          label: 'Sales Tax Payable Account',
+                          label: text.salesTaxPayable,
                           value: state.form.defaultSalesTaxPayableAccountId,
                         ),
                         const SizedBox(height: 12),
                         _ReadOnlyLink(
-                          label: 'Purchase Tax Receivable Account',
+                          label: text.purchaseTaxReceivable,
                           value:
                               state.form.defaultPurchaseTaxReceivableAccountId,
                         ),
@@ -299,7 +296,7 @@ class TaxSettingsScreen extends ConsumerWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.save_outlined),
-                    label: const Text('Save Tax Settings'),
+                    label: Text(text.saveTaxSettings),
                   ),
                 ),
               ],
@@ -343,13 +340,70 @@ class _ReadOnlyLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       readOnly: true,
-      initialValue: value?.isNotEmpty == true ? value! : 'Not linked yet',
+      initialValue: value?.isNotEmpty == true
+          ? value!
+          : _TaxSettingsText.of(context).notLinked,
       decoration: const InputDecoration(
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.link_outlined),
       ).copyWith(labelText: label),
     );
   }
+}
+
+class _TaxSettingsText {
+  const _TaxSettingsText(this.ar);
+
+  final bool ar;
+
+  static _TaxSettingsText of(BuildContext context) =>
+      _TaxSettingsText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get saved =>
+      ar ? 'تم حفظ إعدادات الضرائب بنجاح.' : 'Tax settings saved successfully.';
+  String get title => ar ? 'إعدادات الضرائب' : 'Tax Settings';
+  String get save => ar ? 'حفظ' : 'Save';
+  String get defaults => ar ? 'افتراضات الضرائب' : 'Tax Defaults';
+  String get defaultsDescription => ar
+      ? 'اضبط سلوك ضريبة البيع والشراء الافتراضي المستخدم في المعاملات. يمكن ربط أكواد وحسابات الضرائب لاحقا.'
+      : 'Configure default sales/purchase tax behavior used by transactions. Advanced tax codes and tax accounts can be linked later.';
+  String get generalBehavior =>
+      ar ? 'سلوك الضرائب العام' : 'General Tax Behavior';
+  String get enableTaxes => ar ? 'تفعيل الضرائب' : 'Enable Taxes';
+  String get enableTaxesDescription => ar
+      ? 'إظهار حقول احتساب الضريبة الافتراضية داخل المعاملات.'
+      : 'Turn on default tax calculation fields in transactions.';
+  String get pricesIncludeTax =>
+      ar ? 'الأسعار تشمل الضريبة' : 'Prices Include Tax';
+  String get pricesIncludeTaxDescription => ar
+      ? 'اعتبار الأسعار المدخلة شاملة للضريبة افتراضيا.'
+      : 'Treat entered prices as tax-inclusive by default.';
+  String get roundingMode => ar ? 'طريقة تقريب الضريبة' : 'Tax Rounding Mode';
+  String get roundNormally => ar ? 'تقريب عادي' : 'Round normally';
+  String get roundDown => ar ? 'تقريب لأسفل' : 'Round down';
+  String get roundUp => ar ? 'تقريب لأعلى' : 'Round up';
+  String get defaultRates => ar ? 'النسب الافتراضية' : 'Default Rates';
+  String get defaultSalesTax =>
+      ar ? 'نسبة ضريبة المبيعات الافتراضية %' : 'Default Sales Tax Rate %';
+  String get defaultPurchaseTax =>
+      ar ? 'نسبة ضريبة المشتريات الافتراضية %' : 'Default Purchase Tax Rate %';
+  String get taxRegistration =>
+      ar ? 'رقم التسجيل الضريبي' : 'Tax Registration Number';
+  String get advancedLinks => ar ? 'الروابط المتقدمة' : 'Advanced Links';
+  String get advancedDescription => ar
+      ? 'ربط أكواد وحسابات الضرائب مدعوم في بيانات الخادم. سيتم إكمال محددات الاختيار بعد تثبيت تجربة أكواد الضرائب والحسابات.'
+      : 'Tax code and tax account linking is supported by the backend payload. Dedicated selectors will be completed after Tax Codes and Accounts lookup UX is finalized.';
+  String get defaultSalesTaxCode =>
+      ar ? 'كود ضريبة المبيعات الافتراضي' : 'Default Sales Tax Code';
+  String get defaultPurchaseTaxCode =>
+      ar ? 'كود ضريبة المشتريات الافتراضي' : 'Default Purchase Tax Code';
+  String get salesTaxPayable =>
+      ar ? 'حساب ضريبة المبيعات المستحقة' : 'Sales Tax Payable Account';
+  String get purchaseTaxReceivable =>
+      ar ? 'حساب ضريبة المشتريات المستردة' : 'Purchase Tax Receivable Account';
+  String get saveTaxSettings =>
+      ar ? 'حفظ إعدادات الضرائب' : 'Save Tax Settings';
+  String get notLinked => ar ? 'غير مربوط بعد' : 'Not linked yet';
 }
 
 class _ErrorBanner extends StatelessWidget {

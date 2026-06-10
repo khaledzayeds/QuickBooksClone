@@ -19,12 +19,12 @@ class VendorDetailsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vendor Details'),
+        title: Text(_VendorDetailsText.of(context).vendorDetails),
         actions: [
           vendorAsync
                   .whenData(
                     (v) => AppButton(
-                      label: 'Edit',
+                      label: _VendorDetailsText.of(context).edit,
                       icon: Icons.edit_outlined,
                       variant: AppButtonVariant.secondary,
                       onPressed: () => context.go(
@@ -92,6 +92,7 @@ class _HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _VendorDetailsText.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(22),
@@ -135,7 +136,9 @@ class _HeaderCard extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       Chip(
-                        label: Text(vendor.isActive ? 'Active' : 'Inactive'),
+                        label: Text(
+                          vendor.isActive ? text.active : text.inactive,
+                        ),
                         avatar: Icon(
                           vendor.isActive
                               ? Icons.check_circle_outline
@@ -151,20 +154,20 @@ class _HeaderCard extends StatelessWidget {
                         ),
                       ),
                       if (vendor.hasBalance)
-                        const Chip(
-                          label: Text('Open payable'),
+                        Chip(
+                          label: Text(text.openPayable),
                           avatar: Icon(Icons.receipt_long_outlined, size: 18),
                         ),
                       if (vendor.hasCreditBalance)
-                        const Chip(
-                          label: Text('Vendor credits'),
+                        Chip(
+                          label: Text(text.vendorCredits),
                           avatar: Icon(Icons.credit_score_outlined, size: 18),
                         ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Vendor record for purchase orders, bills, receive inventory, vendor credits, and vendor payments.',
+                    text.vendorRecordHint,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
@@ -187,22 +190,22 @@ class _BalancesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.payments_outlined,
-      title: 'Payables',
+      title: _VendorDetailsText.of(context).payables,
       children: [
         _MetricGrid(
           metrics: [
             _MetricData(
-              'Open payable',
+              _VendorDetailsText.of(context).openPayable,
               '${vendor.balance.toStringAsFixed(2)} ${vendor.currency}',
               Icons.receipt_long_outlined,
             ),
             _MetricData(
-              'Vendor credits',
+              _VendorDetailsText.of(context).vendorCredits,
               '${vendor.creditBalance.toStringAsFixed(2)} ${vendor.currency}',
               Icons.credit_score_outlined,
             ),
             _MetricData(
-              'Net payable',
+              _VendorDetailsText.of(context).netPayable,
               '${vendor.netPayable.toStringAsFixed(2)} ${vendor.currency}',
               Icons.account_balance_outlined,
             ),
@@ -210,10 +213,9 @@ class _BalancesCard extends StatelessWidget {
         ),
         if (vendor.balance > 0) ...[
           const SizedBox(height: 12),
-          const _InfoBox(
+          _InfoBox(
             icon: Icons.info_outline,
-            text:
-                'Vendor has an open payable balance. Pay Bills and Vendor Statement actions will use this balance later.',
+            text: _VendorDetailsText.of(context).openPayableHint,
           ),
         ],
       ],
@@ -229,19 +231,33 @@ class _ContactCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.contact_mail_outlined,
-      title: 'Contact information',
+      title: _VendorDetailsText.of(context).contactInformation,
       children: [
-        _InfoRow(label: 'Email', value: vendor.email ?? '-'),
-        _InfoRow(label: 'Phone', value: vendor.phone ?? '-'),
-        _InfoRow(label: 'Company', value: vendor.companyName ?? '-'),
-        _InfoRow(label: 'Currency', value: vendor.currency),
-        _InfoRow(label: 'Vendor ID', value: vendor.id),
+        _InfoRow(
+          label: _VendorDetailsText.of(context).email,
+          value: vendor.email ?? '-',
+        ),
+        _InfoRow(
+          label: _VendorDetailsText.of(context).phone,
+          value: vendor.phone ?? '-',
+        ),
+        _InfoRow(
+          label: _VendorDetailsText.of(context).company,
+          value: vendor.companyName ?? '-',
+        ),
+        _InfoRow(
+          label: _VendorDetailsText.of(context).currency,
+          value: vendor.currency,
+        ),
+        _InfoRow(
+          label: _VendorDetailsText.of(context).vendorId,
+          value: vendor.id,
+        ),
         if (!vendor.hasContactInfo) ...[
           const SizedBox(height: 12),
-          const _InfoBox(
+          _InfoBox(
             icon: Icons.warning_amber_outlined,
-            text:
-                'No phone or email is saved for this vendor. Add contact information before using statement or notification workflows.',
+            text: _VendorDetailsText.of(context).missingContactHint,
           ),
         ],
       ],
@@ -257,14 +273,14 @@ class _QuickActionsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.flash_on_outlined,
-      title: 'Quick actions',
+      title: _VendorDetailsText.of(context).quickActions,
       children: [
         Wrap(
           spacing: 10,
           runSpacing: 10,
           children: [
             AppButton(
-              label: 'Purchase order',
+              label: _VendorDetailsText.of(context).purchaseOrder,
               icon: Icons.shopping_cart_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: () => context.go(
@@ -272,7 +288,7 @@ class _QuickActionsCard extends StatelessWidget {
               ),
             ),
             AppButton(
-              label: 'Purchase bill',
+              label: _VendorDetailsText.of(context).purchaseBill,
               icon: Icons.receipt_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: () => context.go(
@@ -280,7 +296,7 @@ class _QuickActionsCard extends StatelessWidget {
               ),
             ),
             AppButton(
-              label: 'Vendor payment',
+              label: _VendorDetailsText.of(context).vendorPayment,
               icon: Icons.payments_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: () => context.go(
@@ -288,7 +304,7 @@ class _QuickActionsCard extends StatelessWidget {
               ),
             ),
             AppButton(
-              label: 'Edit vendor',
+              label: _VendorDetailsText.of(context).editVendor,
               icon: Icons.edit_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: () => context.go(
@@ -310,12 +326,11 @@ class _FutureActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.history_outlined,
-      title: 'Related activity',
-      children: const [
+      title: _VendorDetailsText.of(context).relatedActivity,
+      children: [
         _InfoBox(
           icon: Icons.pending_actions_outlined,
-          text:
-              'Vendor activity will later show purchase orders, bills, receive inventory documents, vendor payments, vendor credits, and purchase returns after transaction screens are polished.',
+          text: _VendorDetailsText.of(context).futureActivityHint,
         ),
       ],
     );
@@ -487,4 +502,46 @@ class _InfoBox extends StatelessWidget {
       ),
     );
   }
+}
+
+class _VendorDetailsText {
+  const _VendorDetailsText(this.ar);
+  final bool ar;
+
+  static _VendorDetailsText of(BuildContext context) =>
+      _VendorDetailsText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get vendorDetails => ar ? 'تفاصيل المورد' : 'Vendor Details';
+  String get edit => ar ? 'تعديل' : 'Edit';
+  String get active => ar ? 'نشط' : 'Active';
+  String get inactive => ar ? 'غير نشط' : 'Inactive';
+  String get openPayable => ar ? 'المستحق المفتوح' : 'Open payable';
+  String get vendorCredits => ar ? 'أرصدة المورد' : 'Vendor credits';
+  String get vendorRecordHint => ar
+      ? 'سجل المورد لأوامر الشراء والفواتير واستلام المخزون وأرصدة الموردين ومدفوعاتهم.'
+      : 'Vendor record for purchase orders, bills, receive inventory, vendor credits, and vendor payments.';
+  String get payables => ar ? 'المستحقات' : 'Payables';
+  String get netPayable => ar ? 'صافي المستحق' : 'Net payable';
+  String get openPayableHint => ar
+      ? 'لدى المورد رصيد مستحق مفتوح. إجراءات سداد الفواتير وكشف حساب المورد ستستخدم هذا الرصيد لاحقًا.'
+      : 'Vendor has an open payable balance. Pay Bills and Vendor Statement actions will use this balance later.';
+  String get contactInformation =>
+      ar ? 'بيانات الاتصال' : 'Contact information';
+  String get email => ar ? 'البريد' : 'Email';
+  String get phone => ar ? 'الهاتف' : 'Phone';
+  String get company => ar ? 'الشركة' : 'Company';
+  String get currency => ar ? 'العملة' : 'Currency';
+  String get vendorId => ar ? 'معرف المورد' : 'Vendor ID';
+  String get missingContactHint => ar
+      ? 'لا يوجد هاتف أو بريد محفوظ لهذا المورد. أضف بيانات الاتصال قبل استخدام كشوف الحساب أو الإشعارات.'
+      : 'No phone or email is saved for this vendor. Add contact information before using statement or notification workflows.';
+  String get quickActions => ar ? 'إجراءات سريعة' : 'Quick actions';
+  String get purchaseOrder => ar ? 'أمر شراء' : 'Purchase order';
+  String get purchaseBill => ar ? 'فاتورة مشتريات' : 'Purchase bill';
+  String get vendorPayment => ar ? 'دفعة مورد' : 'Vendor payment';
+  String get editVendor => ar ? 'تعديل المورد' : 'Edit vendor';
+  String get relatedActivity => ar ? 'النشاط المرتبط' : 'Related activity';
+  String get futureActivityHint => ar
+      ? 'سيعرض نشاط المورد لاحقًا أوامر الشراء والفواتير ومستندات استلام المخزون ومدفوعات المورد وأرصدته ومرتجعات الشراء بعد اكتمال شاشات المعاملات.'
+      : 'Vendor activity will later show purchase orders, bills, receive inventory documents, vendor payments, vendor credits, and purchase returns after transaction screens are polished.';
 }

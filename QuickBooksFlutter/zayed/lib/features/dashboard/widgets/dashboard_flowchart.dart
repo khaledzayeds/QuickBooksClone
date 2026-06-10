@@ -76,14 +76,14 @@ class DashboardFlowchart extends StatelessWidget {
                             _small(
                               92,
                               98,
-                              'Vendor Credits',
+                              l10n.vendorCredits,
                               AppRoutes.vendorCreditNew,
                               PhosphorIconsRegular.arrowUDownLeft,
                             ),
                             _small(
                               278,
                               98,
-                              'Purchase Returns',
+                              l10n.purchaseReturns,
                               AppRoutes.purchaseReturnNew,
                               PhosphorIconsRegular.arrowCounterClockwise,
                             ),
@@ -155,21 +155,21 @@ class DashboardFlowchart extends StatelessWidget {
                             _small(
                               74,
                               198,
-                              'Customer Credits',
+                              l10n.customerCredits,
                               AppRoutes.customerCreditNew,
                               PhosphorIconsRegular.arrowCounterClockwise,
                             ),
                             _small(
                               258,
                               198,
-                              'Sales Returns',
+                              l10n.salesReturns,
                               AppRoutes.salesReturnNew,
                               PhosphorIconsRegular.arrowBendUpLeft,
                             ),
                             _small(
                               442,
                               198,
-                              'Customer Center',
+                              l10n.customerCenter,
                               AppRoutes.customers,
                               PhosphorIconsRegular.usersThree,
                             ),
@@ -246,16 +246,16 @@ class DashboardFlowchart extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       _SidePanel(
-                        title: 'Banking',
+                        title: l10n.banking,
                         height: 300,
                         items: [
                           _SideAction(
-                            'Bank Register',
+                            l10n.bankRegister,
                             AppRoutes.bankingRegister,
                             PhosphorIconsRegular.bookOpen,
                           ),
                           _SideAction(
-                            'Write Checks',
+                            l10n.writeChecks,
                             AppRoutes.bankingChecks,
                             PhosphorIconsRegular.penNib,
                           ),
@@ -265,17 +265,17 @@ class DashboardFlowchart extends StatelessWidget {
                             PhosphorIconsRegular.arrowDown,
                           ),
                           _SideAction(
-                            'Bank Transfer',
+                            l10n.bankTransfer,
                             AppRoutes.bankingTransfers,
                             PhosphorIconsRegular.arrowsLeftRight,
                           ),
                           _SideAction(
-                            'Reconcile',
+                            l10n.reconcile,
                             AppRoutes.bankingReconcile,
                             PhosphorIconsRegular.checks,
                           ),
                           _SideAction(
-                            'Transactions',
+                            l10n.transactions,
                             AppRoutes.transactions,
                             PhosphorIconsRegular.listMagnifyingGlass,
                           ),

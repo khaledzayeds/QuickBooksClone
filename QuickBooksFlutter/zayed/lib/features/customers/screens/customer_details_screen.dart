@@ -19,12 +19,12 @@ class CustomerDetailsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Customer Details'),
+        title: Text(_CustomerDetailsText.of(context).customerDetails),
         actions: [
           customerAsync
                   .whenData(
                     (c) => AppButton(
-                      label: 'Edit',
+                      label: _CustomerDetailsText.of(context).edit,
                       icon: Icons.edit_outlined,
                       variant: AppButtonVariant.secondary,
                       onPressed: () => context.go(
@@ -92,6 +92,7 @@ class _HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _CustomerDetailsText.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(22),
@@ -135,7 +136,9 @@ class _HeaderCard extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       Chip(
-                        label: Text(customer.isActive ? 'Active' : 'Inactive'),
+                        label: Text(
+                          customer.isActive ? text.active : text.inactive,
+                        ),
                         avatar: Icon(
                           customer.isActive
                               ? Icons.check_circle_outline
@@ -151,20 +154,20 @@ class _HeaderCard extends StatelessWidget {
                         ),
                       ),
                       if (customer.hasBalance)
-                        const Chip(
-                          label: Text('Open balance'),
+                        Chip(
+                          label: Text(text.openBalance),
                           avatar: Icon(Icons.receipt_long_outlined, size: 18),
                         ),
                       if (customer.hasCreditBalance)
-                        const Chip(
-                          label: Text('Has credits'),
+                        Chip(
+                          label: Text(text.hasCredits),
                           avatar: Icon(Icons.credit_score_outlined, size: 18),
                         ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Customer record for invoices, receipts, credits, statements, and sales reports.',
+                    text.customerRecordHint,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
@@ -187,22 +190,22 @@ class _BalancesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.account_balance_wallet_outlined,
-      title: 'Balances',
+      title: _CustomerDetailsText.of(context).balances,
       children: [
         _MetricGrid(
           metrics: [
             _MetricData(
-              'Open balance',
+              _CustomerDetailsText.of(context).openBalance,
               '${customer.balance.toStringAsFixed(2)} ${customer.currency}',
               Icons.receipt_long_outlined,
             ),
             _MetricData(
-              'Credit balance',
+              _CustomerDetailsText.of(context).creditBalance,
               '${customer.creditBalance.toStringAsFixed(2)} ${customer.currency}',
               Icons.credit_score_outlined,
             ),
             _MetricData(
-              'Net receivable',
+              _CustomerDetailsText.of(context).netReceivable,
               '${customer.netReceivable.toStringAsFixed(2)} ${customer.currency}',
               Icons.account_balance_outlined,
             ),
@@ -210,10 +213,9 @@ class _BalancesCard extends StatelessWidget {
         ),
         if (customer.balance > 0) ...[
           const SizedBox(height: 12),
-          const _InfoBox(
+          _InfoBox(
             icon: Icons.info_outline,
-            text:
-                'Customer has an open balance. Receive Payment and Customer Statement actions will use this balance later.',
+            text: _CustomerDetailsText.of(context).openBalanceHint,
           ),
         ],
       ],
@@ -229,19 +231,33 @@ class _ContactCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.contact_mail_outlined,
-      title: 'Contact information',
+      title: _CustomerDetailsText.of(context).contactInformation,
       children: [
-        _InfoRow(label: 'Email', value: customer.email ?? '-'),
-        _InfoRow(label: 'Phone', value: customer.phone ?? '-'),
-        _InfoRow(label: 'Company', value: customer.companyName ?? '-'),
-        _InfoRow(label: 'Currency', value: customer.currency),
-        _InfoRow(label: 'Customer ID', value: customer.id),
+        _InfoRow(
+          label: _CustomerDetailsText.of(context).email,
+          value: customer.email ?? '-',
+        ),
+        _InfoRow(
+          label: _CustomerDetailsText.of(context).phone,
+          value: customer.phone ?? '-',
+        ),
+        _InfoRow(
+          label: _CustomerDetailsText.of(context).company,
+          value: customer.companyName ?? '-',
+        ),
+        _InfoRow(
+          label: _CustomerDetailsText.of(context).currency,
+          value: customer.currency,
+        ),
+        _InfoRow(
+          label: _CustomerDetailsText.of(context).customerId,
+          value: customer.id,
+        ),
         if (!customer.hasContactInfo) ...[
           const SizedBox(height: 12),
-          const _InfoBox(
+          _InfoBox(
             icon: Icons.warning_amber_outlined,
-            text:
-                'No phone or email is saved for this customer. Add contact information before using statement or notification workflows.',
+            text: _CustomerDetailsText.of(context).missingContactHint,
           ),
         ],
       ],
@@ -257,14 +273,14 @@ class _QuickActionsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.flash_on_outlined,
-      title: 'Quick actions',
+      title: _CustomerDetailsText.of(context).quickActions,
       children: [
         Wrap(
           spacing: 10,
           runSpacing: 10,
           children: [
             AppButton(
-              label: 'Create invoice',
+              label: _CustomerDetailsText.of(context).createInvoice,
               icon: Icons.description_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: () => context.go(
@@ -272,7 +288,7 @@ class _QuickActionsCard extends StatelessWidget {
               ),
             ),
             AppButton(
-              label: 'Receive payment',
+              label: _CustomerDetailsText.of(context).receivePayment,
               icon: Icons.account_balance_wallet_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: () => context.go(
@@ -280,7 +296,7 @@ class _QuickActionsCard extends StatelessWidget {
               ),
             ),
             AppButton(
-              label: 'Edit customer',
+              label: _CustomerDetailsText.of(context).editCustomer,
               icon: Icons.edit_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: () => context.go(
@@ -302,12 +318,11 @@ class _FutureActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       icon: Icons.history_outlined,
-      title: 'Related activity',
-      children: const [
+      title: _CustomerDetailsText.of(context).relatedActivity,
+      children: [
         _InfoBox(
           icon: Icons.pending_actions_outlined,
-          text:
-              'Customer activity will later show invoices, sales receipts, payments, customer credits, sales returns, and statement history after transaction screens are polished.',
+          text: _CustomerDetailsText.of(context).futureActivityHint,
         ),
       ],
     );
@@ -479,4 +494,47 @@ class _InfoBox extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CustomerDetailsText {
+  const _CustomerDetailsText(this.ar);
+  final bool ar;
+
+  static _CustomerDetailsText of(BuildContext context) => _CustomerDetailsText(
+    Localizations.localeOf(context).languageCode == 'ar',
+  );
+
+  String get customerDetails => ar ? 'تفاصيل العميل' : 'Customer Details';
+  String get edit => ar ? 'تعديل' : 'Edit';
+  String get active => ar ? 'نشط' : 'Active';
+  String get inactive => ar ? 'غير نشط' : 'Inactive';
+  String get openBalance => ar ? 'الرصيد المفتوح' : 'Open balance';
+  String get hasCredits => ar ? 'له أرصدة دائنة' : 'Has credits';
+  String get customerRecordHint => ar
+      ? 'سجل العميل للفواتير والإيصالات والأرصدة وكشوف الحساب وتقارير المبيعات.'
+      : 'Customer record for invoices, receipts, credits, statements, and sales reports.';
+  String get balances => ar ? 'الأرصدة' : 'Balances';
+  String get creditBalance => ar ? 'الرصيد الدائن' : 'Credit balance';
+  String get netReceivable => ar ? 'صافي المستحقات' : 'Net receivable';
+  String get openBalanceHint => ar
+      ? 'لدى العميل رصيد مفتوح. إجراءات استلام الدفعات وكشف حساب العميل ستستخدم هذا الرصيد لاحقًا.'
+      : 'Customer has an open balance. Receive Payment and Customer Statement actions will use this balance later.';
+  String get contactInformation =>
+      ar ? 'بيانات الاتصال' : 'Contact information';
+  String get email => ar ? 'البريد' : 'Email';
+  String get phone => ar ? 'الهاتف' : 'Phone';
+  String get company => ar ? 'الشركة' : 'Company';
+  String get currency => ar ? 'العملة' : 'Currency';
+  String get customerId => ar ? 'معرف العميل' : 'Customer ID';
+  String get missingContactHint => ar
+      ? 'لا يوجد هاتف أو بريد محفوظ لهذا العميل. أضف بيانات الاتصال قبل استخدام كشوف الحساب أو الإشعارات.'
+      : 'No phone or email is saved for this customer. Add contact information before using statement or notification workflows.';
+  String get quickActions => ar ? 'إجراءات سريعة' : 'Quick actions';
+  String get createInvoice => ar ? 'إنشاء فاتورة' : 'Create invoice';
+  String get receivePayment => ar ? 'استلام دفعة' : 'Receive payment';
+  String get editCustomer => ar ? 'تعديل العميل' : 'Edit customer';
+  String get relatedActivity => ar ? 'النشاط المرتبط' : 'Related activity';
+  String get futureActivityHint => ar
+      ? 'سيعرض نشاط العميل لاحقًا الفواتير وإيصالات البيع والمدفوعات وأرصدة العملاء ومرتجعات المبيعات وسجل كشوف الحساب بعد اكتمال شاشات المعاملات.'
+      : 'Customer activity will later show invoices, sales receipts, payments, customer credits, sales returns, and statement history after transaction screens are polished.';
 }

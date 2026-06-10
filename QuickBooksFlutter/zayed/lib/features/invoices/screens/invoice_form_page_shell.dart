@@ -472,7 +472,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
                   ? line.itemName
                   : line.descCtrl.text.trim(),
               quantity: line.qty,
-              unitPrice: line.rate,
+              unitPrice: line.rate.abs(),
             ),
           )
           .toList(),
@@ -523,7 +523,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
                 ? line.itemName
                 : line.descCtrl.text.trim(),
             quantity: line.qty,
-            unitPrice: line.rate,
+            unitPrice: line.rate.abs(),
           ),
         )
         .toList();
@@ -730,11 +730,13 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
         if (empty.isEmpty) _lines.add(line);
         line.itemId = item.id;
         line.itemName = item.name;
+        line.itemType = item.itemType;
         line.qty = 1;
-        line.rate = item.salesPrice;
+        final rate = item.salesPrice.abs();
+        line.rate = rate;
         line.descCtrl.text = item.name;
         line.qtyCtrl.text = '1';
-        line.rateCtrl.text = item.salesPrice.toString();
+        line.rateCtrl.text = rate.toString();
       }
       _preview = null;
       _editingInvoice = null;
@@ -790,6 +792,7 @@ class _InvoiceFormPageShellState extends ConsumerState<InvoiceFormPageShell> {
   void _clearQuickLine(TransactionLineEntry line) {
     line.itemId = null;
     line.itemName = '';
+    line.itemType = null;
     line.qty = 1;
     line.rate = 0;
     line.descCtrl.clear();

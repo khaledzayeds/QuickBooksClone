@@ -96,6 +96,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
     final theme = Theme.of(context);
     final current = _steps[_currentStep];
     final setupState = ref.watch(setupProvider);
+    final text = _SetupText.of(context);
 
     ref.listen(setupProvider, (previous, next) {
       if (next.successMessage != null &&
@@ -108,17 +109,17 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Setup Wizard'),
+        title: Text(text.title),
         actions: [
           IconButton(
-            tooltip: 'Refresh setup status',
+            tooltip: text.refreshStatus,
             onPressed: () => ref.read(setupProvider.notifier).loadStatus(),
             icon: const Icon(Icons.refresh),
           ),
           TextButton.icon(
             onPressed: () => context.go(AppRoutes.settings),
             icon: const Icon(Icons.close),
-            label: const Text('Exit'),
+            label: Text(text.exit),
           ),
           const SizedBox(width: 12),
         ],
@@ -223,6 +224,7 @@ class _StepRail extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final step = _SetupWizardScreenState._steps[index];
+          final text = _SetupText.of(context);
           final selected = index == currentStep;
           final cs = theme.colorScheme;
 
@@ -253,12 +255,12 @@ class _StepRail extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            step.title,
+                            text.stepTitle(step.title),
                             style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            step.status,
+                            text.status(step.status),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: cs.onSurfaceVariant,
                             ),
@@ -302,6 +304,7 @@ class _StepDetails extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isLast = index == total - 1;
+    final text = _SetupText.of(context);
 
     return ListView(
       padding: const EdgeInsets.all(32),
@@ -319,14 +322,14 @@ class _StepDetails extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    step.title,
+                    text.stepTitle(step.title),
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Step ${index + 1} of $total • ${step.status}',
+                    text.stepProgress(index + 1, total, step.status),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
@@ -360,7 +363,10 @@ class _StepDetails extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(step.subtitle, style: theme.textTheme.titleMedium),
+                  Text(
+                    text.stepSubtitle(step.title, step.subtitle),
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 16),
                   _StatusBanner(status: step.status),
                   const SizedBox(height: 20),
@@ -368,15 +374,13 @@ class _StepDetails extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: () => context.go(step.route!),
                       icon: const Icon(Icons.open_in_new),
-                      label: Text('Open ${step.title}'),
+                      label: Text(text.openStep(step.title)),
                     )
                   else
                     OutlinedButton.icon(
                       onPressed: null,
                       icon: const Icon(Icons.lock_clock_outlined),
-                      label: const Text(
-                        'Available after the required setup is complete',
-                      ),
+                      label: Text(text.availableAfterSetup),
                     ),
                 ],
               ),
@@ -388,7 +392,7 @@ class _StepDetails extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: index == 0 ? null : onBack,
               icon: const Icon(Icons.arrow_back),
-              label: const Text('Back'),
+              label: Text(text.back),
             ),
             const Spacer(),
             FilledButton.icon(
@@ -396,7 +400,7 @@ class _StepDetails extends StatelessWidget {
                   ? () => context.go(AppRoutes.dashboard)
                   : onNext,
               icon: Icon(isLast ? Icons.check : Icons.arrow_forward),
-              label: Text(isLast ? 'Finish' : 'Next'),
+              label: Text(isLast ? text.finish : text.next),
             ),
           ],
         ),
@@ -414,20 +418,21 @@ class _SetupStatusCard extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final status = state.status;
+    final text = _SetupText.of(context);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: state.loading
-            ? const Row(
+            ? Row(
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  SizedBox(width: 12),
-                  Text('Checking setup status...'),
+                  const SizedBox(width: 12),
+                  Text(text.checkingStatus),
                 ],
               )
             : Row(
@@ -444,8 +449,14 @@ class _SetupStatusCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       status?.isInitialized == true
-                          ? 'Initialized: ${status?.companyName ?? '-'} • Admin: ${status?.adminUserName ?? '-'}'
-                          : 'Not fully initialized yet. Company: ${status?.hasCompanySettings == true ? 'yes' : 'no'} • Admin: ${status?.hasAdminUser == true ? 'yes' : 'no'}',
+                          ? text.initializedStatus(
+                              status?.companyName,
+                              status?.adminUserName,
+                            )
+                          : text.notInitializedStatus(
+                              status?.hasCompanySettings == true,
+                              status?.hasAdminUser == true,
+                            ),
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
@@ -501,6 +512,7 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final alreadyInitialized = widget.state.status?.isInitialized == true;
+    final text = _SetupText.of(context);
 
     return Card(
       child: Padding(
@@ -510,20 +522,18 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Company is already initialized',
+                    text.companyAlreadyInitialized,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'You can continue to tax defaults, default accounts, users, backup, and printing.',
-                  ),
+                  Text(text.companyAlreadyInitializedDescription),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: widget.onInitialized,
                     icon: const Icon(Icons.arrow_forward),
-                    label: const Text('Continue'),
+                    label: Text(text.continueLabel),
                   ),
                 ],
               )
@@ -533,15 +543,13 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Create New Company',
+                      text.createNewCompany,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'This creates company settings, the first administrator account, roles, permissions, and the default chart of accounts.',
-                    ),
+                    Text(text.createNewCompanyDescription),
                     const SizedBox(height: 20),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -549,48 +557,51 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
                         final fields = [
                           _Field(
                             controller: _companyName,
-                            label: 'Company Name',
+                            label: text.companyName,
                             required: true,
                           ),
                           _Field(
                             controller: _currency,
-                            label: 'Currency',
+                            label: text.currency,
                             required: true,
                           ),
                           _Field(
                             controller: _country,
-                            label: 'Country',
+                            label: text.country,
                             required: true,
                           ),
                           _Field(
                             controller: _timeZone,
-                            label: 'Time Zone',
+                            label: text.timeZone,
                             required: true,
                           ),
                           _Field(
                             controller: _language,
-                            label: 'Default Language',
+                            label: text.defaultLanguage,
                             required: true,
                           ),
                           _Field(
                             controller: _adminUser,
-                            label: 'Admin Username',
+                            label: text.adminUsername,
                             required: true,
                           ),
                           _Field(
                             controller: _adminName,
-                            label: 'Admin Display Name',
+                            label: text.adminDisplayName,
                             required: true,
                           ),
-                          _Field(controller: _adminEmail, label: 'Admin Email'),
+                          _Field(
+                            controller: _adminEmail,
+                            label: text.adminEmail,
+                          ),
                           _Field(
                             controller: _adminSecret,
-                            label: 'Initial Admin Secret',
+                            label: text.initialAdminSecret,
                             required: true,
                             obscure: true,
                           ),
                         ];
-                        if (!two)
+                        if (!two) {
                           return Column(
                             children: fields
                                 .map(
@@ -601,6 +612,7 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
                                 )
                                 .toList(),
                           );
+                        }
                         return Wrap(
                           spacing: 12,
                           runSpacing: 12,
@@ -625,7 +637,7 @@ class _InitializeCompanyPanelState extends State<_InitializeCompanyPanel> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.add_business_outlined),
-                      label: const Text('Initialize Company'),
+                      label: Text(text.initializeCompany),
                     ),
                   ],
                 ),
@@ -665,6 +677,7 @@ class _DefaultAccountsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final result = state.defaultAccountsSeed;
+    final text = _SetupText.of(context);
 
     return Card(
       child: Padding(
@@ -673,15 +686,13 @@ class _DefaultAccountsPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Default Chart of Accounts',
+              text.defaultChartOfAccounts,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Seed the standard Zayed-style accounts needed for posting sales, purchases, inventory, payments, taxes, and equity.',
-            ),
+            Text(text.defaultAccountsDescription),
             const SizedBox(height: 16),
             Wrap(
               spacing: 12,
@@ -698,28 +709,30 @@ class _DefaultAccountsPanel extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.account_tree_outlined),
-                  label: const Text('Seed Default Accounts'),
+                  label: Text(text.seedDefaultAccounts),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => context.go(AppRoutes.chartOfAccounts),
                   icon: const Icon(Icons.open_in_new),
-                  label: const Text('Open Chart of Accounts'),
+                  label: Text(text.openChartOfAccounts),
                 ),
               ],
             ),
             if (result != null) ...[
               const SizedBox(height: 20),
               _StatusBanner(
-                status:
-                    'Created: ${result.createdCount} • Skipped: ${result.skippedCount}',
+                status: text.createdSkipped(
+                  result.createdCount,
+                  result.skippedCount,
+                ),
               ),
               const SizedBox(height: 12),
               if (result.createdCodes.isNotEmpty)
-                _CodesBox(title: 'Created Codes', codes: result.createdCodes),
+                _CodesBox(title: text.createdCodes, codes: result.createdCodes),
               if (result.skippedCodes.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 _CodesBox(
-                  title: 'Already Existing Codes',
+                  title: text.alreadyExistingCodes,
                   codes: result.skippedCodes,
                 ),
               ],
@@ -781,10 +794,12 @@ class _Field extends StatelessWidget {
       ),
       validator: required
           ? (value) {
-              if (value == null || value.trim().isEmpty)
-                return '$label is required';
-              if (label.contains('Secret') && value.trim().length < 8)
-                return 'Must be at least 8 characters';
+              if (value == null || value.trim().isEmpty) {
+                return _SetupText.of(context).requiredField(label);
+              }
+              if (label.contains('Secret') && value.trim().length < 8) {
+                return _SetupText.of(context).minEightCharacters;
+              }
               return null;
             }
           : null,
@@ -800,6 +815,7 @@ class _StartModePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _SetupText.of(context);
 
     return Card(
       child: Padding(
@@ -808,14 +824,14 @@ class _StartModePanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'How should this company start?',
+              text.startQuestion,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Choose the path that matches the company data. A new company creates the first administrator; restored or connected companies use their existing users.',
+              text.startDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -827,39 +843,35 @@ class _StartModePanel extends StatelessWidget {
                 final cards = [
                   _StartModeCard(
                     icon: Icons.add_business_outlined,
-                    title: 'Create New Company',
-                    subtitle:
-                        'Fresh company file, first administrator, default accounts, taxes, printing, and backup policy.',
-                    badge: 'Recommended',
+                    title: text.createNewCompany,
+                    subtitle: text.createNewCompanyPath,
+                    badge: text.recommended,
                     onPressed: onNext,
                   ),
                   _StartModeCard(
                     icon: Icons.restore_outlined,
-                    title: 'Restore Existing Backup',
-                    subtitle:
-                        'Restore a previous company backup, then sign in using the restored users.',
-                    badge: 'Ready',
+                    title: text.restoreExistingBackup,
+                    subtitle: text.restoreExistingBackupPath,
+                    badge: text.ready,
                     onPressed: () => context.go(AppRoutes.backupSettings),
                   ),
                   _StartModeCard(
                     icon: Icons.dns_outlined,
-                    title: 'Connect To Existing Company',
-                    subtitle:
-                        'Connect this device to a network or hosted company and sign in with company users.',
-                    badge: 'Ready',
+                    title: text.connectExistingCompany,
+                    subtitle: text.connectExistingCompanyPath,
+                    badge: text.ready,
                     onPressed: () => context.go(AppRoutes.connectionSettings),
                   ),
                   _StartModeCard(
                     icon: Icons.school_outlined,
-                    title: 'Open Demo Company',
-                    subtitle:
-                        'Use sample data for training and presentations without affecting real accounts.',
-                    badge: 'Available soon',
+                    title: text.openDemoCompany,
+                    subtitle: text.openDemoCompanyPath,
+                    badge: text.availableSoon,
                     onPressed: null,
                   ),
                 ];
 
-                if (!wide)
+                if (!wide) {
                   return Column(
                     children: cards
                         .map(
@@ -870,6 +882,7 @@ class _StartModePanel extends StatelessWidget {
                         )
                         .toList(),
                   );
+                }
                 return GridView.count(
                   crossAxisCount: 2,
                   childAspectRatio: 2.9,
@@ -956,7 +969,11 @@ class _StartModeCard extends StatelessWidget {
                     size: 18,
                   ),
                   const SizedBox(width: 6),
-                  Text(enabled ? 'Select' : 'Available soon'),
+                  Text(
+                    enabled
+                        ? _SetupText.of(context).select
+                        : _SetupText.of(context).availableSoon,
+                  ),
                 ],
               ),
             ],
@@ -976,6 +993,7 @@ class _StatusBanner extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final ready = status == 'Ready' || status.startsWith('Created:');
     final partial = status == 'Partial';
+    final text = _SetupText.of(context);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1002,7 +1020,7 @@ class _StatusBanner extends StatelessWidget {
                 : cs.onSurfaceVariant,
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text('Status: $status')),
+          Expanded(child: Text(text.statusLine(status))),
         ],
       ),
     );
@@ -1033,6 +1051,152 @@ class _ErrorBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SetupText {
+  const _SetupText(this.ar);
+
+  final bool ar;
+
+  static _SetupText of(BuildContext context) =>
+      _SetupText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get title => ar ? 'معالج الإعداد' : 'Setup Wizard';
+  String get refreshStatus =>
+      ar ? 'تحديث حالة الإعداد' : 'Refresh setup status';
+  String get exit => ar ? 'خروج' : 'Exit';
+  String get ready => ar ? 'جاهز' : 'Ready';
+  String get availableSoon => ar ? 'قريبا' : 'Available soon';
+  String get recommended => ar ? 'موصى به' : 'Recommended';
+  String get back => ar ? 'رجوع' : 'Back';
+  String get next => ar ? 'التالي' : 'Next';
+  String get finish => ar ? 'إنهاء' : 'Finish';
+  String get continueLabel => ar ? 'متابعة' : 'Continue';
+  String get select => ar ? 'اختيار' : 'Select';
+  String get availableAfterSetup => ar
+      ? 'يتاح بعد اكتمال خطوات الإعداد المطلوبة'
+      : 'Available after the required setup is complete';
+  String get checkingStatus =>
+      ar ? 'جاري فحص حالة الإعداد...' : 'Checking setup status...';
+  String stepProgress(int index, int total, String status) => ar
+      ? 'خطوة $index من $total • ${this.status(status)}'
+      : 'Step $index of $total • ${this.status(status)}';
+  String openStep(String title) =>
+      ar ? 'فتح ${stepTitle(title)}' : 'Open ${stepTitle(title)}';
+  String statusLine(String status) =>
+      ar ? 'الحالة: ${this.status(status)}' : 'Status: ${this.status(status)}';
+  String status(String status) {
+    if (!ar) return status;
+    if (status == 'Ready') return 'جاهز';
+    if (status == 'Partial') return 'جزئي';
+    if (status.startsWith('Created:')) {
+      return status.replaceFirst('Created:', 'تم الإنشاء:');
+    }
+    return status.replaceAll('Skipped:', 'تم تخطي:');
+  }
+
+  String stepTitle(String title) => switch (title) {
+    'Start Mode' => ar ? 'طريقة البدء' : title,
+    'Connection' => ar ? 'الاتصال' : title,
+    'Create Company' => ar ? 'إنشاء الشركة' : title,
+    'Tax Defaults' => ar ? 'افتراضات الضرائب' : title,
+    'Default Accounts' => ar ? 'الحسابات الافتراضية' : title,
+    'Users & Permissions' => ar ? 'المستخدمون والصلاحيات' : title,
+    'Backup' => ar ? 'النسخ الاحتياطي' : title,
+    'Printing' => ar ? 'الطباعة' : title,
+    'Finish' => ar ? 'إنهاء' : title,
+    _ => title,
+  };
+
+  String stepSubtitle(String title, String fallback) {
+    if (!ar) return fallback;
+    return switch (title) {
+      'Start Mode' =>
+        'اختر كيف ستبدأ هذه الشركة: إنشاء شركة، استرجاع نسخة، الاتصال بخدمة موجودة، أو فتح بيانات تجريبية.',
+      'Connection' => 'اختر اتصال محلي أو شبكة أو استضافة أو اتصال مخصص.',
+      'Create Company' => 'أنشئ ملف الشركة وأول مستخدم مدير.',
+      'Tax Defaults' =>
+        'اضبط سلوك الضرائب والنسب الافتراضية والتقريب وروابط حسابات الضرائب لاحقا.',
+      'Default Accounts' =>
+        'أنشئ أو راجع شجرة الحسابات المطلوبة لترحيل المعاملات.',
+      'Users & Permissions' =>
+        'راجع المستخدمين والأدوار والصلاحيات بعد إنشاء أول مدير.',
+      'Backup' => 'راجع حالة النسخ الاحتياطي وجهز عمليات النسخ والاسترجاع.',
+      'Printing' =>
+        'اضبط فواتير A4 والإيصالات الحرارية والهوية وQR وملخص الضرائب وسلوك الطباعة.',
+      'Finish' => 'راجع حالة الإعداد وابدأ استخدام Zayed.',
+      _ => fallback,
+    };
+  }
+
+  String initializedStatus(String? companyName, String? adminUserName) => ar
+      ? 'تم التهيئة: ${companyName ?? '-'} • المدير: ${adminUserName ?? '-'}'
+      : 'Initialized: ${companyName ?? '-'} • Admin: ${adminUserName ?? '-'}';
+  String notInitializedStatus(bool hasCompany, bool hasAdmin) => ar
+      ? 'لم تكتمل التهيئة بعد. الشركة: ${hasCompany ? 'نعم' : 'لا'} • المدير: ${hasAdmin ? 'نعم' : 'لا'}'
+      : 'Not fully initialized yet. Company: ${hasCompany ? 'yes' : 'no'} • Admin: ${hasAdmin ? 'yes' : 'no'}';
+  String get companyAlreadyInitialized =>
+      ar ? 'تمت تهيئة الشركة بالفعل' : 'Company is already initialized';
+  String get companyAlreadyInitializedDescription => ar
+      ? 'يمكنك المتابعة إلى افتراضات الضرائب والحسابات الافتراضية والمستخدمين والنسخ الاحتياطي والطباعة.'
+      : 'You can continue to tax defaults, default accounts, users, backup, and printing.';
+  String get createNewCompany => ar ? 'إنشاء شركة جديدة' : 'Create New Company';
+  String get createNewCompanyDescription => ar
+      ? 'ينشئ إعدادات الشركة وأول حساب مدير والأدوار والصلاحيات وشجرة الحسابات الافتراضية.'
+      : 'This creates company settings, the first administrator account, roles, permissions, and the default chart of accounts.';
+  String get companyName => ar ? 'اسم الشركة' : 'Company Name';
+  String get currency => ar ? 'العملة' : 'Currency';
+  String get country => ar ? 'الدولة' : 'Country';
+  String get timeZone => ar ? 'المنطقة الزمنية' : 'Time Zone';
+  String get defaultLanguage => ar ? 'اللغة الافتراضية' : 'Default Language';
+  String get adminUsername => ar ? 'اسم مستخدم المدير' : 'Admin Username';
+  String get adminDisplayName =>
+      ar ? 'اسم المدير الظاهر' : 'Admin Display Name';
+  String get adminEmail => ar ? 'بريد المدير' : 'Admin Email';
+  String get initialAdminSecret =>
+      ar ? 'كلمة سر المدير الأولية' : 'Initial Admin Secret';
+  String get initializeCompany => ar ? 'تهيئة الشركة' : 'Initialize Company';
+  String get defaultChartOfAccounts =>
+      ar ? 'شجرة الحسابات الافتراضية' : 'Default Chart of Accounts';
+  String get defaultAccountsDescription => ar
+      ? 'أنشئ حسابات Zayed القياسية المطلوبة لترحيل المبيعات والمشتريات والمخزون والمدفوعات والضرائب وحقوق الملكية.'
+      : 'Seed the standard Zayed-style accounts needed for posting sales, purchases, inventory, payments, taxes, and equity.';
+  String get seedDefaultAccounts =>
+      ar ? 'إنشاء الحسابات الافتراضية' : 'Seed Default Accounts';
+  String get openChartOfAccounts =>
+      ar ? 'فتح شجرة الحسابات' : 'Open Chart of Accounts';
+  String createdSkipped(int created, int skipped) => ar
+      ? 'تم الإنشاء: $created • تم تخطي: $skipped'
+      : 'Created: $created • Skipped: $skipped';
+  String get createdCodes => ar ? 'الأكواد المنشأة' : 'Created Codes';
+  String get alreadyExistingCodes =>
+      ar ? 'أكواد موجودة بالفعل' : 'Already Existing Codes';
+  String requiredField(String label) =>
+      ar ? '$label مطلوب' : '$label is required';
+  String get minEightCharacters =>
+      ar ? 'يجب ألا يقل عن 8 أحرف' : 'Must be at least 8 characters';
+  String get startQuestion =>
+      ar ? 'كيف تبدأ هذه الشركة؟' : 'How should this company start?';
+  String get startDescription => ar
+      ? 'اختر المسار المناسب لبيانات الشركة. الشركة الجديدة تنشئ أول مدير؛ الشركات المسترجعة أو المتصلة تستخدم مستخدميها الحاليين.'
+      : 'Choose the path that matches the company data. A new company creates the first administrator; restored or connected companies use their existing users.';
+  String get createNewCompanyPath => ar
+      ? 'ملف شركة جديد، أول مدير، حسابات افتراضية، ضرائب، طباعة، وسياسة نسخ احتياطي.'
+      : 'Fresh company file, first administrator, default accounts, taxes, printing, and backup policy.';
+  String get restoreExistingBackup =>
+      ar ? 'استرجاع نسخة احتياطية موجودة' : 'Restore Existing Backup';
+  String get restoreExistingBackupPath => ar
+      ? 'استرجع نسخة شركة سابقة، ثم سجل الدخول بالمستخدمين المسترجعين.'
+      : 'Restore a previous company backup, then sign in using the restored users.';
+  String get connectExistingCompany =>
+      ar ? 'الاتصال بشركة موجودة' : 'Connect To Existing Company';
+  String get connectExistingCompanyPath => ar
+      ? 'صل هذا الجهاز بشركة على الشبكة أو الاستضافة وسجل الدخول بمستخدمي الشركة.'
+      : 'Connect this device to a network or hosted company and sign in with company users.';
+  String get openDemoCompany => ar ? 'فتح شركة تجريبية' : 'Open Demo Company';
+  String get openDemoCompanyPath => ar
+      ? 'استخدم بيانات عينة للتدريب والعروض دون التأثير على الحسابات الحقيقية.'
+      : 'Use sample data for training and presentations without affecting real accounts.';
 }
 
 enum _WizardStepKind { normal, startMode, initializeCompany, defaultAccounts }

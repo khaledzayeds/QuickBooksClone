@@ -142,18 +142,21 @@ public sealed class InvoiceDraftUpdatesController : ControllerBase
             return (null, $"Cannot use inactive item on an invoice: {item.Name}");
         }
 
-        if (item.ItemType == ItemType.Bundle)
+        if (ItemTypeBehavior.PostsThroughComponents(item.ItemType))
         {
-            return (null, $"Bundle item '{item.Name}' cannot be used until component posting is implemented.");
+            return (null, $"Group or bundle item '{item.Name}' cannot be used until component posting is implemented.");
         }
 
-        var unitPrice = line.UnitPrice > 0 ? line.UnitPrice : item.SalesPrice;
+        var unitPrice = ItemTypeBehavior.ResolveSalesUnitPrice(item, line.UnitPrice);
+        var discountPercent = ItemTypeBehavior.ResolveSalesDiscountPercent(item.ItemType, line.DiscountPercent);
         var description = string.IsNullOrWhiteSpace(line.Description) ? item.Name : line.Description.Trim();
 
         try
         {
-            var tax = await ResolveTaxAsync(line.TaxCodeId, settings, unitPrice, line.Quantity, line.DiscountPercent, cancellationToken);
-            return (new InvoiceLine(item.Id, description, line.Quantity, tax.NetUnitPrice, line.DiscountPercent, taxCodeId: tax.TaxCodeId, taxRatePercent: tax.RatePercent, taxAmount: tax.TaxAmount), null);
+            var tax = ItemTypeBehavior.CanApplySalesTax(item.ItemType)
+                ? await ResolveTaxAsync(line.TaxCodeId, settings, unitPrice, line.Quantity, discountPercent, cancellationToken)
+                : new TaxLineCalculation(null, 0, 0, unitPrice);
+            return (new InvoiceLine(item.Id, description, line.Quantity, tax.NetUnitPrice, discountPercent, taxCodeId: tax.TaxCodeId, taxRatePercent: tax.RatePercent, taxAmount: tax.TaxAmount), null);
         }
         catch (InvalidOperationException exception)
         {

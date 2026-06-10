@@ -162,6 +162,7 @@ class _HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(22),
@@ -198,11 +199,13 @@ class _HeaderCard extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       Chip(
-                        label: Text(item.itemType.label),
+                        label: Text(_itemTypeLabel(item.itemType, l10n)),
                         avatar: Icon(_itemIcon(item.itemType), size: 18),
                       ),
                       Chip(
-                        label: Text(item.isActive ? 'Active' : 'Inactive'),
+                        label: Text(
+                          item.isActive ? l10n.active : l10n.inactive,
+                        ),
                         avatar: Icon(
                           item.isActive
                               ? Icons.check_circle_outline
@@ -211,19 +214,22 @@ class _HeaderCard extends StatelessWidget {
                         ),
                       ),
                       if (item.barcode?.isNotEmpty == true)
-                        Chip(label: Text('Barcode: ${item.barcode}')),
+                        Chip(label: Text(l10n.barcodeValue(item.barcode!))),
                       if (item.sku?.isNotEmpty == true)
-                        Chip(label: Text('Part No.: ${item.sku}')),
+                        Chip(label: Text(l10n.partNoValue(item.sku!))),
                       if (!item.hasRequiredPostingAccounts)
-                        const Chip(
-                          label: Text('Needs account setup'),
-                          avatar: Icon(Icons.warning_amber_outlined, size: 18),
+                        Chip(
+                          label: Text(l10n.needsAccountSetup),
+                          avatar: const Icon(
+                            Icons.warning_amber_outlined,
+                            size: 18,
+                          ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    _typeDescription(item.itemType),
+                    _typeDescription(item.itemType, l10n),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
@@ -245,6 +251,7 @@ class _WarningCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -258,7 +265,7 @@ class _WarningCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _missingAccountText(item),
+              _missingAccountText(item, l10n),
               style: TextStyle(
                 color: cs.onErrorContainer,
                 fontWeight: FontWeight.w700,
@@ -277,47 +284,47 @@ class _PriceAndStockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _SectionCard(
       icon: Icons.price_change_outlined,
-      title: 'Sales, purchase, and stock',
+      title: l10n.salesPurchaseAndStock,
       children: [
         _MetricGrid(
           metrics: [
             _MetricData(
-              'Sales price',
-              '${item.salesPrice.toStringAsFixed(2)} EGP',
+              l10n.salesPrice,
+              '${item.salesPrice.toStringAsFixed(2)} ${l10n.egp}',
               Icons.sell_outlined,
             ),
             _MetricData(
-              'Purchase cost',
-              '${item.purchasePrice.toStringAsFixed(2)} EGP',
+              l10n.purchaseCost,
+              '${item.purchasePrice.toStringAsFixed(2)} ${l10n.egp}',
               Icons.shopping_cart_outlined,
             ),
             _MetricData(
-              'Gross margin',
-              '${item.grossMargin.toStringAsFixed(2)} EGP',
+              l10n.grossMargin,
+              '${item.grossMargin.toStringAsFixed(2)} ${l10n.egp}',
               Icons.trending_up_outlined,
             ),
             if (item.isInventory)
               _MetricData(
-                'Quantity on hand',
+                l10n.quantityOnHand,
                 '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}',
                 Icons.inventory_outlined,
               ),
             if (item.isInventory)
               _MetricData(
-                'Inventory value',
-                '${item.inventoryValue.toStringAsFixed(2)} EGP',
+                l10n.inventoryValue,
+                '${item.inventoryValue.toStringAsFixed(2)} ${l10n.egp}',
                 Icons.warehouse_outlined,
               ),
           ],
         ),
         if (item.isInventory && item.quantityOnHand <= 0) ...[
           const SizedBox(height: 12),
-          const _InfoBox(
+          _InfoBox(
             icon: Icons.inventory_outlined,
-            text:
-                'This inventory item has zero or negative quantity on hand. Use Inventory Adjustment, Receive Inventory, or Bills to update stock correctly.',
+            text: l10n.zeroNegativeStockHint,
           ),
         ],
       ],
@@ -331,14 +338,15 @@ class _IdentifiersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _SectionCard(
       icon: Icons.qr_code_2_outlined,
-      title: 'Identifiers',
+      title: l10n.identifiers,
       children: [
-        _InfoRow(label: 'Item ID', value: item.id),
-        _InfoRow(label: 'Barcode', value: item.barcode ?? '-'),
-        _InfoRow(label: 'Part No. / SKU', value: item.sku ?? '-'),
-        _InfoRow(label: 'Unit', value: item.unit ?? '-'),
+        _InfoRow(label: l10n.itemId, value: item.id),
+        _InfoRow(label: l10n.barcode, value: item.barcode ?? '-'),
+        _InfoRow(label: l10n.partNoSku, value: item.sku ?? '-'),
+        _InfoRow(label: l10n.unit, value: item.unit ?? '-'),
       ],
     );
   }
@@ -350,17 +358,18 @@ class _PostingAccountsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _SectionCard(
       icon: Icons.account_tree_outlined,
-      title: 'Posting accounts',
+      title: l10n.postingAccountsLower,
       children: [
         _InfoRow(
-          label: 'Income account',
+          label: l10n.incomeAccountLower,
           value: _accountValue(item.incomeAccountName, item.incomeAccountId),
         ),
         if (item.isInventory)
           _InfoRow(
-            label: 'Inventory asset account',
+            label: l10n.inventoryAssetAccount,
             value: _accountValue(
               item.inventoryAssetAccountName,
               item.inventoryAssetAccountId,
@@ -368,22 +377,21 @@ class _PostingAccountsCard extends StatelessWidget {
           ),
         if (item.isInventory)
           _InfoRow(
-            label: 'COGS account',
+            label: l10n.cogsAccount,
             value: _accountValue(item.cogsAccountName, item.cogsAccountId),
           ),
         if (item.isService || item.isNonInventory)
           _InfoRow(
-            label: 'Expense / purchase account',
+            label: l10n.expensePurchaseAccountLower,
             value: _accountValue(
               item.expenseAccountName,
               item.expenseAccountId,
             ),
           ),
         if (item.isBundle)
-          const _InfoBox(
+          _InfoBox(
             icon: Icons.widgets_outlined,
-            text:
-                'Bundle/group items should not post directly. Component items will control income, COGS, and inventory behavior later.',
+            text: l10n.bundleDirectPostingHint,
           ),
       ],
     );
@@ -402,9 +410,10 @@ class _QuickActionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _SectionCard(
       icon: Icons.flash_on_outlined,
-      title: 'Quick actions',
+      title: l10n.quickActions,
       children: [
         Wrap(
           spacing: 10,
@@ -414,7 +423,7 @@ class _QuickActionsCard extends StatelessWidget {
               onPressed: () =>
                   context.go('${AppRoutes.invoiceNew}?itemId=${item.id}'),
               icon: const Icon(Icons.description_outlined, size: 16),
-              label: const Text('Create invoice'),
+              label: Text(l10n.createInvoice),
             ),
             if (item.isInventory)
               OutlinedButton.icon(
@@ -422,13 +431,13 @@ class _QuickActionsCard extends StatelessWidget {
                   '${AppRoutes.inventoryAdjustmentNew}?itemId=${item.id}',
                 ),
                 icon: const Icon(Icons.tune_outlined, size: 16),
-                label: const Text('Inventory adjustment'),
+                label: Text(l10n.inventoryAdjustment),
               ),
             OutlinedButton.icon(
               onPressed: () =>
                   context.go(AppRoutes.itemEdit.replaceFirst(':id', item.id)),
               icon: const Icon(Icons.edit_outlined, size: 16),
-              label: const Text('Edit item'),
+              label: Text(l10n.editItemLower),
             ),
           ],
         ),
@@ -443,15 +452,16 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _SectionCard(
       icon: Icons.history_outlined,
-      title: 'Related activity',
+      title: l10n.relatedActivity,
       children: [
         _InfoBox(
           icon: Icons.receipt_long_outlined,
           text: item.isInventory
-              ? 'Use sales, purchase, receive inventory, and adjustment screens to build this item activity trail.'
-              : 'Use sales and purchase screens to build this item activity trail.',
+              ? l10n.itemInventoryActivityTrail
+              : l10n.itemSalesPurchaseActivityTrail,
         ),
       ],
     );
@@ -639,41 +649,44 @@ IconData _itemIcon(ItemType type) => switch (type) {
   ItemType.payment => Icons.payments_outlined,
 };
 
-String _typeDescription(ItemType type) => switch (type) {
-  ItemType.inventory =>
-    'Tracks quantity on hand and posts to Inventory Asset and COGS.',
-  ItemType.nonInventory =>
-    'Used for goods you buy or sell but do not track as stock.',
-  ItemType.service =>
-    'Used for services you sell, purchase, or charge back to customers.',
-  ItemType.bundle => 'Groups multiple items without posting directly.',
-  ItemType.inventoryAssembly =>
-    'Built from inventory components and tracks quantity on hand.',
-  ItemType.fixedAsset =>
-    'Used for property or equipment you buy and may sell later.',
-  ItemType.otherCharge =>
-    'Used for delivery, setup, service fees, and other charges.',
-  ItemType.subtotal => 'Adds a subtotal line on sales or purchase forms.',
-  ItemType.group => 'Groups several items together without direct posting.',
-  ItemType.discount =>
-    'Subtracts a fixed amount or percentage from a subtotal.',
-  ItemType.payment =>
-    'Records a payment item linked to a deposit or income account.',
+String _typeDescription(ItemType type, AppLocalizations l10n) => switch (type) {
+  ItemType.inventory => l10n.typeHintInventory,
+  ItemType.nonInventory => l10n.typeHintNonInventory,
+  ItemType.service => l10n.typeHintService,
+  ItemType.bundle => l10n.typeHintBundle,
+  ItemType.inventoryAssembly => l10n.typeHintInventoryAssembly,
+  ItemType.fixedAsset => l10n.typeHintFixedAsset,
+  ItemType.otherCharge => l10n.typeHintOtherCharge,
+  ItemType.subtotal => l10n.typeHintSubtotal,
+  ItemType.group => l10n.typeHintGroup,
+  ItemType.discount => l10n.typeHintDiscount,
+  ItemType.payment => l10n.typeHintPayment,
 };
 
-String _missingAccountText(ItemModel item) {
-  if (item.isInventory)
-    return 'Inventory Part requires Income, Inventory Asset, and COGS accounts before it is safe for posting.';
+String _itemTypeLabel(ItemType type, AppLocalizations l10n) => switch (type) {
+  ItemType.inventory => l10n.typeInventoryPart,
+  ItemType.nonInventory => l10n.typeNonInventoryPart,
+  ItemType.service => l10n.typeService,
+  ItemType.bundle => l10n.typeBundle,
+  ItemType.inventoryAssembly => l10n.typeInventoryAssembly,
+  ItemType.fixedAsset => l10n.typeFixedAsset,
+  ItemType.otherCharge => l10n.typeOtherCharge,
+  ItemType.subtotal => l10n.typeSubtotal,
+  ItemType.group => l10n.typeGroup,
+  ItemType.discount => l10n.typeDiscount,
+  ItemType.payment => l10n.typePayment,
+};
+
+String _missingAccountText(ItemModel item, AppLocalizations l10n) {
+  if (item.isInventory) return l10n.missingAccountInventory;
   if (item.isService ||
       item.isNonInventory ||
       item.isOtherCharge ||
-      item.isDiscount)
-    return 'This item needs at least an Income account or Expense/Purchase account before it is safe for posting.';
-  if (item.isFixedAsset)
-    return 'Fixed Asset needs an asset or expense account before it is safe for posting.';
-  if (item.isPayment)
-    return 'Payment needs a deposit or income account before it is safe for posting.';
-  if (item.isBundle || item.isSubtotal)
-    return 'Group and subtotal items should not have direct income posting. Posting should come from component lines.';
-  return 'This item has incomplete posting setup.';
+      item.isDiscount) {
+    return l10n.missingAccountSalesPurchase;
+  }
+  if (item.isFixedAsset) return l10n.missingAccountFixedAsset;
+  if (item.isPayment) return l10n.missingAccountPayment;
+  if (item.isBundle || item.isSubtotal) return l10n.missingAccountComponent;
+  return l10n.missingAccountGeneric;
 }

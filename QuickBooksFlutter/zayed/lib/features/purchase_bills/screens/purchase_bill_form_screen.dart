@@ -305,6 +305,9 @@ class _PurchaseBillFormScreenState
           ref.invalidate(receiveInventoryListProvider);
           if (_selectedReceipt != null) {
             ref.invalidate(
+              inventoryReceiptBillingPlanProvider(_selectedReceipt!.id),
+            );
+            ref.invalidate(
               receiveInventoryDetailsProvider(_selectedReceipt!.id),
             );
           }

@@ -360,6 +360,11 @@ public sealed class ItemsController : ControllerBase
     {
         if (itemType is ItemType.Inventory or ItemType.InventoryAssembly)
         {
+            if (expenseAccountId is not null)
+            {
+                return "Inventory items should not use a purchase expense account. Use Inventory Asset and COGS accounts.";
+            }
+
             if (inventoryAssetAccountId is null)
             {
                 return "Inventory items require an inventory asset account.";
@@ -376,11 +381,29 @@ public sealed class ItemsController : ControllerBase
             }
         }
 
-        if (itemType is ItemType.Service or ItemType.NonInventory or ItemType.OtherCharge or ItemType.Discount)
+        if (itemType is ItemType.Service or ItemType.NonInventory or ItemType.OtherCharge)
         {
+            if (inventoryAssetAccountId is not null || cogsAccountId is not null)
+            {
+                return "Service, non-inventory, and other charge items should not use inventory asset or COGS accounts.";
+            }
+
             if (incomeAccountId is null && expenseAccountId is null)
             {
                 return "This item type requires at least an income account or an expense account.";
+            }
+        }
+
+        if (itemType is ItemType.Discount)
+        {
+            if (incomeAccountId is null)
+            {
+                return "Discount items require one discount account.";
+            }
+
+            if (inventoryAssetAccountId is not null || cogsAccountId is not null || expenseAccountId is not null)
+            {
+                return "Discount items should only use a discount account, not purchase, inventory, or COGS accounts.";
             }
         }
 
@@ -394,9 +417,18 @@ public sealed class ItemsController : ControllerBase
             return "Payment items require a deposit or income account.";
         }
 
-        if ((itemType is ItemType.Bundle or ItemType.Group or ItemType.Subtotal) && incomeAccountId is not null)
+        if (itemType is ItemType.Payment &&
+            (inventoryAssetAccountId is not null || cogsAccountId is not null || expenseAccountId is not null))
         {
-            return "Group and subtotal items should not post directly to an income account. Their component items should control posting.";
+            return "Payment items should only use a deposit or income account.";
+        }
+
+        if (itemType is ItemType.Bundle or ItemType.Group or ItemType.Subtotal)
+        {
+            if (incomeAccountId is not null || inventoryAssetAccountId is not null || cogsAccountId is not null || expenseAccountId is not null)
+            {
+                return "Group, bundle, and subtotal items should not post directly. Their component lines should control posting.";
+            }
         }
 
         return null;

@@ -1,6 +1,8 @@
 // item_card.dart
 
 import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
 import '../data/models/item_model.dart';
 
 class ItemCard extends StatelessWidget {
@@ -21,6 +23,7 @@ class ItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -63,7 +66,7 @@ class ItemCard extends StatelessWidget {
                         ),
                         if (!item.hasRequiredPostingAccounts)
                           Tooltip(
-                            message: 'Missing required posting accounts',
+                            message: l10n.missingAccounts,
                             child: Icon(
                               Icons.warning_amber_outlined,
                               color: cs.error,
@@ -78,7 +81,7 @@ class ItemCard extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         _MiniChip(
-                          label: item.itemType.label,
+                          label: _itemTypeLabel(item.itemType, l10n),
                           icon: _itemIcon(item.itemType),
                         ),
                         if (item.barcode?.isNotEmpty == true)
@@ -88,11 +91,11 @@ class ItemCard extends StatelessWidget {
                           ),
                         if (item.sku?.isNotEmpty == true)
                           _MiniChip(
-                            label: 'Part ${item.sku}',
+                            label: l10n.partNoValue(item.sku!),
                             icon: Icons.tag_outlined,
                           ),
                         _MiniChip(
-                          label: item.isActive ? 'Active' : 'Inactive',
+                          label: item.isActive ? l10n.active : l10n.inactive,
                           icon: item.isActive
                               ? Icons.check_circle_outline
                               : Icons.block_outlined,
@@ -105,26 +108,26 @@ class ItemCard extends StatelessWidget {
                       runSpacing: 8,
                       children: [
                         _Metric(
-                          label: 'Sales',
+                          label: l10n.sales,
                           value: '${item.salesPrice.toStringAsFixed(2)} EGP',
                         ),
                         _Metric(
-                          label: 'Cost',
+                          label: l10n.cost,
                           value: '${item.purchasePrice.toStringAsFixed(2)} EGP',
                         ),
                         _Metric(
-                          label: 'Margin',
+                          label: l10n.grossMargin,
                           value: '${item.grossMargin.toStringAsFixed(2)} EGP',
                         ),
                         if (item.isInventory)
                           _Metric(
-                            label: 'On hand',
+                            label: l10n.onHand,
                             value:
                                 '${item.quantityOnHand.toStringAsFixed(2)} ${item.unit ?? ''}',
                           ),
                         if (item.isInventory)
                           _Metric(
-                            label: 'Value',
+                            label: l10n.inventoryValue,
                             value:
                                 '${item.inventoryValue.toStringAsFixed(2)} EGP',
                           ),
@@ -141,7 +144,7 @@ class ItemCard extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined, size: 19),
                       onPressed: onEdit,
-                      tooltip: 'Edit',
+                      tooltip: l10n.edit,
                     ),
                   if (onToggleActive != null)
                     IconButton(
@@ -152,7 +155,9 @@ class ItemCard extends StatelessWidget {
                         color: item.isActive ? cs.primary : theme.disabledColor,
                       ),
                       onPressed: onToggleActive,
-                      tooltip: item.isActive ? 'Make inactive' : 'Make active',
+                      tooltip: item.isActive
+                          ? l10n.makeInactive
+                          : l10n.makeActive,
                     ),
                 ],
               ),
@@ -175,6 +180,20 @@ class ItemCard extends StatelessWidget {
     ItemType.group => Icons.view_module_outlined,
     ItemType.discount => Icons.percent_outlined,
     ItemType.payment => Icons.payments_outlined,
+  };
+
+  String _itemTypeLabel(ItemType type, AppLocalizations l10n) => switch (type) {
+    ItemType.inventory => l10n.typeInventoryPart,
+    ItemType.nonInventory => l10n.typeNonInventoryPart,
+    ItemType.service => l10n.typeService,
+    ItemType.bundle => l10n.typeBundle,
+    ItemType.inventoryAssembly => l10n.typeInventoryAssembly,
+    ItemType.fixedAsset => l10n.typeFixedAsset,
+    ItemType.otherCharge => l10n.typeOtherCharge,
+    ItemType.subtotal => l10n.typeSubtotal,
+    ItemType.group => l10n.typeGroup,
+    ItemType.discount => l10n.typeDiscount,
+    ItemType.payment => l10n.typePayment,
   };
 }
 

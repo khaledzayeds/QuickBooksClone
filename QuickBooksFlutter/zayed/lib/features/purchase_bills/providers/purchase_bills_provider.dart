@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../data/datasources/purchase_bills_remote_datasource.dart';
 import '../data/repositories/purchase_bills_repository.dart';
+import '../data/models/billing_plan_model.dart';
 import '../data/models/purchase_bill_model.dart';
 import '../../companies/providers/company_registry_provider.dart';
 
@@ -29,6 +30,21 @@ final purchaseBillDetailsProvider =
       final result = await ref
           .read(purchaseBillsRepositoryProvider)
           .getBill(id);
+      return result.when(
+        success: (data) => data,
+        failure: (error) => throw error,
+      );
+    });
+
+final inventoryReceiptBillingPlanProvider =
+    FutureProvider.family<BillingPlanModel, String>((ref, receiptId) async {
+      final activeCompanyScope = ref.watch(activeCompanyScopeProvider);
+      if (activeCompanyScope == null) {
+        throw StateError('No active company selected.');
+      }
+      final result = await ref
+          .read(purchaseBillsRepositoryProvider)
+          .getBillingPlan(receiptId);
       return result.when(
         success: (data) => data,
         failure: (error) => throw error,

@@ -28,12 +28,18 @@ class SidebarMenu extends ConsumerWidget {
             padding: EdgeInsets.symmetric(horizontal: isCollapsed ? 6 : 10),
             alignment: Alignment.center,
             child: Row(
-              mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: isCollapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.spaceBetween,
               children: [
                 if (!isCollapsed)
                   Row(
                     children: const [
-                      Icon(Icons.account_balance, color: Colors.white70, size: 22),
+                      Icon(
+                        Icons.account_balance,
+                        color: Colors.white70,
+                        size: 22,
+                      ),
                       SizedBox(width: 9),
                       Text(
                         'QB',
@@ -47,13 +53,20 @@ class SidebarMenu extends ConsumerWidget {
                   ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: isCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
+                  tooltip: isCollapsed
+                      ? l10n.expandSidebar
+                      : l10n.collapseSidebar,
                   icon: AnimatedRotation(
                     turns: isCollapsed ? 0.5 : 0,
                     duration: const Duration(milliseconds: 220),
-                    child: const Icon(Icons.chevron_left, color: Colors.white54),
+                    child: const Icon(
+                      Icons.chevron_left,
+                      color: Colors.white54,
+                    ),
                   ),
-                  onPressed: () => ref.read(sidebarCollapsedProvider.notifier).state = !isCollapsed,
+                  onPressed: () =>
+                      ref.read(sidebarCollapsedProvider.notifier).state =
+                          !isCollapsed,
                 ),
               ],
             ),
@@ -66,8 +79,15 @@ class SidebarMenu extends ConsumerWidget {
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: InputDecoration(
                   hintText: l10n.searchHelp,
-                  hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
-                  prefixIcon: const Icon(Icons.search, size: 14, color: Colors.white54),
+                  hintStyle: const TextStyle(
+                    color: Colors.white30,
+                    fontSize: 11,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 14,
+                    color: Colors.white54,
+                  ),
                   fillColor: Colors.white.withValues(alpha: 0.1),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -114,7 +134,7 @@ class SidebarMenu extends ConsumerWidget {
                 ),
                 _ShortcutItem(
                   icon: Icons.table_chart_outlined,
-                  label: 'PlutoGrid Demo',
+                  label: l10n.plutoGridDemo,
                   path: AppRoutes.playgroundPluto,
                   current: location,
                   isCollapsed: isCollapsed,
@@ -174,28 +194,28 @@ class SidebarMenu extends ConsumerWidget {
                 ),
                 _ShortcutItem(
                   icon: Icons.assignment_return_outlined,
-                  label: 'Sales Returns',
+                  label: l10n.salesReturns,
                   path: AppRoutes.salesReturns,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
                   icon: Icons.account_balance_wallet_outlined,
-                  label: 'Customer Credits',
+                  label: l10n.customerCredits,
                   path: AppRoutes.customerCredits,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
                   icon: Icons.keyboard_return_outlined,
-                  label: 'Purchase Returns',
+                  label: l10n.purchaseReturns,
                   path: AppRoutes.purchaseReturns,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
                   icon: Icons.account_balance_outlined,
-                  label: 'Vendor Credits',
+                  label: l10n.vendorCredits,
                   path: AppRoutes.vendorCredits,
                   current: location,
                   isCollapsed: isCollapsed,
@@ -206,35 +226,35 @@ class SidebarMenu extends ConsumerWidget {
                 ),
                 _ShortcutItem(
                   icon: Icons.account_balance_outlined,
-                  label: 'Bank Register',
+                  label: l10n.bankRegister,
                   path: AppRoutes.bankingRegister,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
                   icon: Icons.swap_horiz_outlined,
-                  label: 'Bank Transfer',
+                  label: l10n.bankTransfer,
                   path: AppRoutes.bankingTransfers,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
                   icon: Icons.south_west_outlined,
-                  label: 'Make Deposits',
+                  label: l10n.makeDeposits,
                   path: AppRoutes.bankingDeposits,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
                   icon: Icons.edit_note_outlined,
-                  label: 'Write Checks',
+                  label: l10n.writeChecks,
                   path: AppRoutes.bankingChecks,
                   current: location,
                   isCollapsed: isCollapsed,
                 ),
                 _ShortcutItem(
                   icon: Icons.fact_check_outlined,
-                  label: 'Reconcile',
+                  label: l10n.reconcile,
                   path: AppRoutes.bankingReconcile,
                   current: location,
                   isCollapsed: isCollapsed,
@@ -248,7 +268,7 @@ class SidebarMenu extends ConsumerWidget {
                 ),
                 _ShortcutItem(
                   icon: Icons.receipt_long_outlined,
-                  label: 'Transactions',
+                  label: l10n.transactions,
                   path: AppRoutes.transactions,
                   current: location,
                   isCollapsed: isCollapsed,
@@ -312,7 +332,9 @@ class _ShortcutItem extends StatelessWidget {
               vertical: isCollapsed ? 12 : 10,
             ),
             child: Row(
-              mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              mainAxisAlignment: isCollapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
               children: [
                 Icon(
                   icon,

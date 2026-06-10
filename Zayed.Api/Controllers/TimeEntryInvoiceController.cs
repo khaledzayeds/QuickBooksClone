@@ -95,13 +95,13 @@ public sealed class TimeEntryInvoiceController : ControllerBase
             {
                 return BadRequest($"Service item does not exist or is inactive: {entry.ServiceItemId}");
             }
-            if (item.ItemType == ItemType.Bundle)
+            if (ItemTypeBehavior.PostsThroughComponents(item.ItemType))
             {
-                return BadRequest($"Bundle item '{item.Name}' cannot be used for time billing.");
+                return BadRequest($"Group or bundle item '{item.Name}' cannot be used for time billing.");
             }
 
             var description = $"{entry.WorkDate:yyyy-MM-dd} - {entry.PersonName}: {entry.Activity}";
-            var unitPrice = item.SalesPrice;
+            var unitPrice = ItemTypeBehavior.ResolveSalesUnitPrice(item, item.SalesPrice);
             invoice.AddLine(new InvoiceLine(item.Id, description, entry.Hours, unitPrice));
         }
 

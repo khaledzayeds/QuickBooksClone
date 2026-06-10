@@ -22,10 +22,11 @@ class _CustomerSearchBarState extends State<CustomerSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return TextField(
       controller: _ctrl,
       decoration: InputDecoration(
-        hintText: 'بحث بالاسم أو الهاتف...',
+        hintText: ar ? 'بحث بالاسم أو الهاتف...' : 'Search name or phone...',
         prefixIcon: const Icon(Icons.search, size: 20),
         suffixIcon: _ctrl.text.isNotEmpty
             ? IconButton(

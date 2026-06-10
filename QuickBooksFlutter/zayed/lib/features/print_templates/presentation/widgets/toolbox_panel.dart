@@ -18,6 +18,7 @@ class ToolboxPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // BEGIN: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
     final theme = Theme.of(context);
+    final text = _ToolboxText.of(context);
     return Container(
       width: 292,
       color: const Color(0xFFF8FAFC),
@@ -26,35 +27,35 @@ class ToolboxPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Toolbox',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            Text(
+              text.toolbox,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
             Text(
-              'Add elements to the canvas',
+              text.addElementsHint,
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 14),
-            _toolButton('Text', Icons.text_fields, controller.addText),
-            _toolButton('Field', Icons.data_object, controller.addField),
+            _toolButton(text.text, Icons.text_fields, controller.addText),
+            _toolButton(text.field, Icons.data_object, controller.addField),
             _toolButton(
-              'Rectangle',
+              text.rectangle,
               Icons.crop_square,
               controller.addRectangle,
             ),
-            _toolButton('Line', Icons.horizontal_rule, controller.addLine),
+            _toolButton(text.line, Icons.horizontal_rule, controller.addLine),
             _toolButton(
-              'Table',
+              text.table,
               Icons.table_chart_outlined,
               controller.addTable,
             ),
-            _toolButton('QR', Icons.qr_code_2, controller.addQr),
+            _toolButton(text.qr, Icons.qr_code_2, controller.addQr),
             _toolButton(
-              'Barcode',
+              text.barcode,
               Icons.view_week_outlined,
               controller.addBarcode,
             ),
@@ -72,7 +73,7 @@ class ToolboxPanel extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => _showJson(context),
               icon: const Icon(Icons.code),
-              label: const Text('Show JSON'),
+              label: Text(text.showJson),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -147,6 +148,7 @@ class _JsonEditorDialogState extends State<JsonEditorDialog> {
   }
 
   Future<void> _loadFromFile() async {
+    final text = _ToolboxText.of(context);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -169,7 +171,7 @@ class _JsonEditorDialogState extends State<JsonEditorDialog> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading file: $e';
+        _errorMessage = text.errorLoadingFile(e);
       });
     }
   }
@@ -178,7 +180,7 @@ class _JsonEditorDialogState extends State<JsonEditorDialog> {
     Clipboard.setData(ClipboardData(text: _textController.text));
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+    ).showSnackBar(SnackBar(content: Text(_ToolboxText.of(context).copied)));
   }
 
   void _apply() {
@@ -188,27 +190,28 @@ class _JsonEditorDialogState extends State<JsonEditorDialog> {
       Navigator.of(context).pop();
     } catch (e) {
       setState(() {
-        _errorMessage = 'Invalid JSON: $e';
+        _errorMessage = _ToolboxText.of(context).invalidJson(e);
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final text = _ToolboxText.of(context);
     return AlertDialog(
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('JSON Template Editor'),
+          Text(text.jsonTemplateEditor),
           Row(
             children: [
               IconButton(
-                tooltip: 'Load from File',
+                tooltip: text.loadFromFile,
                 icon: const Icon(Icons.file_open_outlined),
                 onPressed: _loadFromFile,
               ),
               IconButton(
-                tooltip: 'Copy to Clipboard',
+                tooltip: text.copyToClipboard,
                 icon: const Icon(Icons.copy_all_outlined),
                 onPressed: _copyToClipboard,
               ),
@@ -274,12 +277,45 @@ class _JsonEditorDialogState extends State<JsonEditorDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(text.cancel),
         ),
-        FilledButton(onPressed: _apply, child: const Text('Apply & Save')),
+        FilledButton(onPressed: _apply, child: Text(text.applySave)),
       ],
     );
   }
+}
+
+class _ToolboxText {
+  const _ToolboxText(this.ar);
+
+  final bool ar;
+
+  static _ToolboxText of(BuildContext context) =>
+      _ToolboxText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get toolbox => ar ? 'الأدوات' : 'Toolbox';
+  String get addElementsHint =>
+      ar ? 'أضف عناصر إلى مساحة التصميم' : 'Add elements to the canvas';
+  String get text => ar ? 'نص' : 'Text';
+  String get field => ar ? 'حقل' : 'Field';
+  String get rectangle => ar ? 'مستطيل' : 'Rectangle';
+  String get line => ar ? 'خط' : 'Line';
+  String get table => ar ? 'جدول' : 'Table';
+  String get qr => ar ? 'QR' : 'QR';
+  String get barcode => ar ? 'باركود' : 'Barcode';
+  String get showJson => ar ? 'عرض JSON' : 'Show JSON';
+  String get copied => ar ? 'تم النسخ إلى الحافظة' : 'Copied to clipboard';
+  String get jsonTemplateEditor =>
+      ar ? 'محرر قالب JSON' : 'JSON Template Editor';
+  String get loadFromFile => ar ? 'تحميل من ملف' : 'Load from File';
+  String get copyToClipboard => ar ? 'نسخ إلى الحافظة' : 'Copy to Clipboard';
+  String get cancel => ar ? 'إلغاء' : 'Cancel';
+  String get applySave => ar ? 'تطبيق وحفظ' : 'Apply & Save';
+
+  String errorLoadingFile(Object error) =>
+      ar ? 'خطأ أثناء تحميل الملف: $error' : 'Error loading file: $error';
+  String invalidJson(Object error) =>
+      ar ? 'JSON غير صالح: $error' : 'Invalid JSON: $error';
 }
 
 // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]

@@ -26,29 +26,31 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
   }
 
   Widget _emptyState() {
-    return const Column(
+    final text = _PanelText.of(context);
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Properties',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          text.properties,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text(
-          'Select an element on the page to edit it.',
-          style: TextStyle(color: Color(0xFF64748B)),
+          text.selectElementHint,
+          style: const TextStyle(color: Color(0xFF64748B)),
         ),
       ],
     );
   }
 
   Widget _editor(PrintElementModel element) {
+    final text = _PanelText.of(context);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Properties',
+            text.properties,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -103,9 +105,9 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
             TextFormField(
               key: ValueKey('value-${element.id}-${element.value}'),
               initialValue: element.value,
-              decoration: const InputDecoration(
-                labelText: 'Text value',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: text.textValue,
+                border: const OutlineInputBorder(),
               ),
               onFieldSubmitted: (value) =>
                   widget.controller.updateSelectedText(value: value),
@@ -114,9 +116,9 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
             TextFormField(
               key: ValueKey('binding-${element.id}-${element.binding}'),
               initialValue: element.binding ?? '',
-              decoration: const InputDecoration(
-                labelText: 'Binding',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: text.binding,
+                border: const OutlineInputBorder(),
               ),
               onFieldSubmitted: (value) =>
                   widget.controller.updateSelectedText(binding: value),
@@ -130,9 +132,9 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
                   )
                   ? element.binding
                   : null,
-              decoration: const InputDecoration(
-                labelText: 'Known fields',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: text.knownFields,
+                border: const OutlineInputBorder(),
               ),
               items: TemplateFieldRegistry.fields
                   .map(
@@ -150,7 +152,7 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
             ),
           ],
           const Divider(height: 28),
-          _numberField('Font size', element.style.fontSize, (value) {
+          _numberField(text.fontSize, element.style.fontSize, (value) {
             widget.controller.updateSelectedStyle(
               element.style.copyWith(fontSize: value),
             );
@@ -158,7 +160,7 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
           const SizedBox(height: 8),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Bold'),
+            title: Text(text.bold),
             value: element.style.bold,
             onChanged: (value) => widget.controller.updateSelectedStyle(
               element.style.copyWith(bold: value),
@@ -168,22 +170,22 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: element.style.align,
-            decoration: const InputDecoration(
-              labelText: 'Alignment',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: text.alignment,
+              border: const OutlineInputBorder(),
             ),
-            items: const [
+            items: [
               DropdownMenuItem(
                 value: 'left',
-                child: Text('Left', overflow: TextOverflow.ellipsis),
+                child: Text(text.left, overflow: TextOverflow.ellipsis),
               ),
               DropdownMenuItem(
                 value: 'center',
-                child: Text('Center', overflow: TextOverflow.ellipsis),
+                child: Text(text.center, overflow: TextOverflow.ellipsis),
               ),
               DropdownMenuItem(
                 value: 'right',
-                child: Text('Right', overflow: TextOverflow.ellipsis),
+                child: Text(text.right, overflow: TextOverflow.ellipsis),
               ),
             ],
             onChanged: (value) {
@@ -211,7 +213,7 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
               widget.controller.deleteElement(element.id);
             },
             icon: const Icon(Icons.delete_outline),
-            label: const Text('Delete Element'),
+            label: Text(text.deleteElement),
           ),
           // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
         ],
@@ -241,4 +243,28 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
       },
     );
   }
+}
+
+class _PanelText {
+  const _PanelText(this.ar);
+
+  final bool ar;
+
+  static _PanelText of(BuildContext context) =>
+      _PanelText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get properties => ar ? 'الخصائص' : 'Properties';
+  String get selectElementHint => ar
+      ? 'اختر عنصرًا من الصفحة لتعديله.'
+      : 'Select an element on the page to edit it.';
+  String get textValue => ar ? 'قيمة النص' : 'Text value';
+  String get binding => ar ? 'الربط' : 'Binding';
+  String get knownFields => ar ? 'الحقول المعروفة' : 'Known fields';
+  String get fontSize => ar ? 'حجم الخط' : 'Font size';
+  String get bold => ar ? 'عريض' : 'Bold';
+  String get alignment => ar ? 'المحاذاة' : 'Alignment';
+  String get left => ar ? 'يسار' : 'Left';
+  String get center => ar ? 'وسط' : 'Center';
+  String get right => ar ? 'يمين' : 'Right';
+  String get deleteElement => ar ? 'حذف العنصر' : 'Delete Element';
 }

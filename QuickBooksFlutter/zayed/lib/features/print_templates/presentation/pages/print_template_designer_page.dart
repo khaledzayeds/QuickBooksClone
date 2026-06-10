@@ -53,6 +53,7 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _DesignerText.of(context);
     final template = _controller.template;
     final isThermal = _isThermalTemplate;
     final paperKind = isThermal ? 'thermal' : 'a4';
@@ -62,7 +63,7 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
         titleSpacing: 0,
         title: Row(
           children: [
-            const Text('Print Template Designer'),
+            Text(text.printTemplateDesigner),
             const SizedBox(width: 14),
             Flexible(
               child: Text(
@@ -80,16 +81,16 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
           TextButton.icon(
             onPressed: _controller.isBusy ? null : _controller.saveTemplate,
             icon: const Icon(Icons.save_outlined),
-            label: const Text('Save'),
+            label: Text(text.save),
           ),
           TextButton.icon(
             onPressed: _controller.isBusy ? null : _controller.previewPrint,
             icon: const Icon(Icons.print_outlined),
-            label: const Text('Preview Print'),
+            label: Text(text.previewPrint),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            tooltip: 'More actions',
+            tooltip: text.moreActions,
             onSelected: (value) {
               switch (value) {
                 case 'load':
@@ -110,44 +111,44 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
               PopupMenuItem(
                 value: 'load',
                 enabled: !_controller.isBusy,
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.cloud_download_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Load Saved'),
+                    const Icon(Icons.cloud_download_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Text(text.loadSaved),
                   ],
                 ),
               ),
               PopupMenuItem(
                 value: 'save_as',
                 enabled: !_controller.isBusy,
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.save_as_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Save As...'),
+                    const Icon(Icons.save_as_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Text(text.saveAs),
                   ],
                 ),
               ),
               PopupMenuItem(
                 value: 'rename',
                 enabled: !_controller.isBusy,
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.drive_file_rename_outline, size: 18),
-                    SizedBox(width: 8),
-                    Text('Rename...'),
+                    const Icon(Icons.drive_file_rename_outline, size: 18),
+                    const SizedBox(width: 8),
+                    Text(text.rename),
                   ],
                 ),
               ),
               PopupMenuItem(
                 value: 'custom_copy',
                 enabled: !_controller.isBusy,
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.copy_all_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Custom Copy'),
+                    const Icon(Icons.copy_all_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Text(text.customCopy),
                   ],
                 ),
               ),
@@ -203,7 +204,7 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'Design canvas',
+                            text.designCanvas,
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
@@ -258,11 +259,9 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
                           if (!tight) ...[
                             const SizedBox(width: 12),
                             if (_controller.isSystemTemplate)
-                              const _StatusBadge(
-                                text: 'Save creates custom copy',
-                              )
+                              _StatusBadge(text: text.saveCreatesCustomCopy)
                             else
-                              const _StatusBadge(text: 'Saved custom template'),
+                              _StatusBadge(text: text.savedCustomTemplate),
                           ],
                           const Spacer(),
                           if (!tight)
@@ -302,7 +301,7 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
   Future<void> _saveAs(BuildContext context) async {
     final name = await _askForName(
       context,
-      title: 'Save template as',
+      title: _DesignerText.of(context).saveTemplateAs,
       initialValue: _controller.template.name,
     );
     if (name != null) await _controller.saveAs(name);
@@ -311,7 +310,7 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
   Future<void> _rename(BuildContext context) async {
     final name = await _askForName(
       context,
-      title: 'Rename template',
+      title: _DesignerText.of(context).renameTemplate,
       initialValue: _controller.template.name,
     );
     if (name != null) await _controller.renameTemplate(name);
@@ -331,9 +330,9 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
           content: TextFormField(
             initialValue: initialValue,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Template name',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: _DesignerText.of(context).templateName,
+              border: const OutlineInputBorder(),
             ),
             onChanged: (next) => value = next,
             onFieldSubmitted: (next) => Navigator.of(context).pop(next),
@@ -341,11 +340,11 @@ class _PrintTemplateDesignerPageState extends State<PrintTemplateDesignerPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(_DesignerText.of(context).cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(value),
-              child: const Text('Save'),
+              child: Text(_DesignerText.of(context).save),
             ),
           ],
         );
@@ -370,6 +369,7 @@ class _TemplateNavigator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _DesignerText.of(context);
     final template = controller.template;
     final visible = controller.visibleTemplates
         .where((item) => item.documentType == template.documentType)
@@ -390,7 +390,7 @@ class _TemplateNavigator extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Template Library',
+            text.templateLibrary,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w900,
             ),
@@ -406,9 +406,9 @@ class _TemplateNavigator extends StatelessWidget {
                 ? template.documentType
                 : printDocumentTypeOptions.first.key,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Document',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: text.document,
+              border: const OutlineInputBorder(),
               isDense: true,
             ),
             items: printDocumentTypeOptions
@@ -416,7 +416,7 @@ class _TemplateNavigator extends StatelessWidget {
                   (item) => DropdownMenuItem(
                     value: item.key,
                     child: Text(
-                      '${item.group} - ${item.label}',
+                      '${text.documentGroupLabel(item.group)} - ${text.documentTypeLabel(item.key)}',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -428,15 +428,15 @@ class _TemplateNavigator extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(
+            segments: [
+              const ButtonSegment(
                 value: 'a4',
                 label: Text('A4'),
                 icon: Icon(Icons.description_outlined),
               ),
               ButtonSegment(
                 value: 'thermal',
-                label: Text('Thermal'),
+                label: Text(text.thermal),
                 icon: Icon(Icons.receipt_long_outlined),
               ),
             ],
@@ -498,7 +498,7 @@ class _TemplateNavigator extends StatelessWidget {
                         ),
                       ),
                       subtitle: Text(
-                        item.backendId == null ? 'Built-in' : 'Saved',
+                        item.backendId == null ? text.builtIn : text.saved,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: selected
@@ -516,7 +516,7 @@ class _TemplateNavigator extends StatelessWidget {
           // END: [USER_REQUEST_REVENUE_TEMPLATES_DESIGN]
           const SizedBox(height: 8),
           Text(
-            'Use Printing Settings to assign saved templates to live documents.',
+            text.usePrintingSettingsHint,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -559,4 +559,59 @@ class _StatusBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DesignerText {
+  const _DesignerText(this.ar);
+
+  final bool ar;
+
+  static _DesignerText of(BuildContext context) =>
+      _DesignerText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get printTemplateDesigner =>
+      ar ? 'مصمم قوالب الطباعة' : 'Print Template Designer';
+  String get save => ar ? 'حفظ' : 'Save';
+  String get cancel => ar ? 'إلغاء' : 'Cancel';
+  String get previewPrint => ar ? 'معاينة الطباعة' : 'Preview Print';
+  String get moreActions => ar ? 'إجراءات إضافية' : 'More actions';
+  String get loadSaved => ar ? 'تحميل المحفوظ' : 'Load Saved';
+  String get saveAs => ar ? 'حفظ باسم...' : 'Save As...';
+  String get rename => ar ? 'إعادة تسمية...' : 'Rename...';
+  String get customCopy => ar ? 'نسخة مخصصة' : 'Custom Copy';
+  String get designCanvas => ar ? 'مساحة التصميم' : 'Design canvas';
+  String get saveCreatesCustomCopy =>
+      ar ? 'الحفظ ينشئ نسخة مخصصة' : 'Save creates custom copy';
+  String get savedCustomTemplate =>
+      ar ? 'قالب مخصص محفوظ' : 'Saved custom template';
+  String get saveTemplateAs => ar ? 'حفظ القالب باسم' : 'Save template as';
+  String get renameTemplate => ar ? 'إعادة تسمية القالب' : 'Rename template';
+  String get templateName => ar ? 'اسم القالب' : 'Template name';
+  String get templateLibrary => ar ? 'مكتبة القوالب' : 'Template Library';
+  String get document => ar ? 'المستند' : 'Document';
+  String get thermal => ar ? 'حراري' : 'Thermal';
+  String get builtIn => ar ? 'مدمج' : 'Built-in';
+  String get saved => ar ? 'محفوظ' : 'Saved';
+  String get usePrintingSettingsHint => ar
+      ? 'استخدم إعدادات الطباعة لتعيين القوالب المحفوظة للمستندات الفعلية.'
+      : 'Use Printing Settings to assign saved templates to live documents.';
+
+  String documentTypeLabel(String key) =>
+      switch (normalizePrintDocumentType(key)) {
+        'invoice' => ar ? 'فاتورة مبيعات' : 'Invoice',
+        'sales-receipt' => ar ? 'إيصال بيع' : 'Sales Receipt',
+        'estimate' => ar ? 'عرض سعر' : 'Estimate',
+        'sales-return' => ar ? 'مرتجع مبيعات' : 'Sales Return',
+        'purchase-order' => ar ? 'أمر شراء' : 'Purchase Order',
+        'receive-inventory' => ar ? 'استلام مخزون' : 'Receive Inventory',
+        'inventory-adjustment' => ar ? 'تسوية مخزون' : 'Inventory Adjustment',
+        _ => key,
+      };
+
+  String documentGroupLabel(String group) => switch (group) {
+    'Sales' => ar ? 'المبيعات' : 'Sales',
+    'Purchasing' => ar ? 'المشتريات' : 'Purchasing',
+    'Inventory' => ar ? 'المخزون' : 'Inventory',
+    _ => group,
+  };
 }

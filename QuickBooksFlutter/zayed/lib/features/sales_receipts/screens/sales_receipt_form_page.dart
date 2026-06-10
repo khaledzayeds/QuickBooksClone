@@ -189,7 +189,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                   ? line.itemName
                   : line.descCtrl.text.trim(),
               quantity: line.qty,
-              unitPrice: line.rate,
+              unitPrice: line.rate.abs(),
             ),
           )
           .toList(),
@@ -263,7 +263,7 @@ class _SalesReceiptFormPageState extends ConsumerState<SalesReceiptFormPage> {
                   ? line.itemName
                   : line.descCtrl.text.trim(),
               quantity: line.qty,
-              unitPrice: line.rate,
+              unitPrice: line.rate.abs(),
             ),
           )
           .toList(),

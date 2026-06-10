@@ -74,7 +74,7 @@ class _SalesReceiptFormScreenState
                   ? line.itemName
                   : line.descCtrl.text.trim(),
               quantity: line.qty,
-              unitPrice: line.rate,
+              unitPrice: line.rate.abs(),
             ),
           )
           .toList(),

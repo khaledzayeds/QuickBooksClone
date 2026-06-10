@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 import '../../../core/localization/locale_provider.dart';
@@ -83,23 +84,29 @@ Future<void> printDocumentUsingSettings({
     case PrintMode.a4:
       await _printDirectOrDialog(
         name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        format: PdfPageFormat.a4,
         printerUrl: settings.a4PrinterName,
         bytesBuilder: () => _buildA4Bytes(data, settings),
       );
     case PrintMode.thermal:
       await _printDirectOrDialog(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        format: _thermalPageFormat(data, settings),
         printerUrl: settings.thermalPrinterName,
         bytesBuilder: () => _buildThermalBytes(data, settings),
       );
     case PrintMode.both:
-      await _printDirectOrDialog(
-        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
-        printerUrl: settings.a4PrinterName,
-        bytesBuilder: () => _buildA4Bytes(data, settings),
-      );
+      if (_shouldPrintA4WhenBoth(settings)) {
+        await _printDirectOrDialog(
+          name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+          format: PdfPageFormat.a4,
+          printerUrl: settings.a4PrinterName,
+          bytesBuilder: () => _buildA4Bytes(data, settings),
+        );
+      }
       await _printDirectOrDialog(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        format: _thermalPageFormat(data, settings),
         printerUrl: settings.thermalPrinterName,
         bytesBuilder: () => _buildThermalBytes(data, settings),
       );
@@ -129,23 +136,29 @@ Future<void> printDocumentDataUsingSettings({
     case PrintMode.a4:
       await _printDirectOrDialog(
         name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        format: PdfPageFormat.a4,
         printerUrl: settings.a4PrinterName,
         bytesBuilder: () => _buildA4Bytes(data, settings),
       );
     case PrintMode.thermal:
       await _printDirectOrDialog(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        format: _thermalPageFormat(data, settings),
         printerUrl: settings.thermalPrinterName,
         bytesBuilder: () => _buildThermalBytes(data, settings),
       );
     case PrintMode.both:
-      await _printDirectOrDialog(
-        name: '${data.documentType}-${data.documentNumber}-A4.pdf',
-        printerUrl: settings.a4PrinterName,
-        bytesBuilder: () => _buildA4Bytes(data, settings),
-      );
+      if (_shouldPrintA4WhenBoth(settings)) {
+        await _printDirectOrDialog(
+          name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+          format: PdfPageFormat.a4,
+          printerUrl: settings.a4PrinterName,
+          bytesBuilder: () => _buildA4Bytes(data, settings),
+        );
+      }
       await _printDirectOrDialog(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        format: _thermalPageFormat(data, settings),
         printerUrl: settings.thermalPrinterName,
         bytesBuilder: () => _buildThermalBytes(data, settings),
       );
@@ -194,6 +207,43 @@ Future<Uint8List> _buildThermalBytes(
   PrintingSettingsModel settings,
 ) => const DocumentPdfService().buildThermal(data, settings);
 
+bool _shouldPrintA4WhenBoth(PrintingSettingsModel settings) {
+  final a4Printer = settings.a4PrinterName?.trim();
+  final thermalPrinter = settings.thermalPrinterName?.trim();
+  if (a4Printer == null || a4Printer.isEmpty) {
+    return thermalPrinter == null || thermalPrinter.isEmpty;
+  }
+  if (thermalPrinter == null || thermalPrinter.isEmpty) {
+    return true;
+  }
+  return a4Printer.toLowerCase() != thermalPrinter.toLowerCase();
+}
+
+PdfPageFormat _thermalPageFormat(
+  DocumentPrintDataModel data,
+  PrintingSettingsModel settings,
+) {
+  final width = settings.thermalWidth.widthMillimeters * PdfPageFormat.mm;
+  final lineHeight = settings.thermalWidth == ThermalWidth.mm58 ? 14.0 : 12.0;
+  final longLineExtra =
+      data.lines
+          .where(
+            (line) =>
+                (line.description.isNotEmpty ? line.description : line.itemName)
+                    .length >
+                (settings.thermalWidth == ThermalWidth.mm58 ? 22 : 32),
+          )
+          .length *
+      5;
+  final notesExtra =
+      ((data.notes ?? '').isNotEmpty ? 12 : 0) +
+      ((settings.receiptFooterMessage ?? '').isNotEmpty ? 10 : 0);
+  final heightMm =
+      150 + (data.lines.length * lineHeight) + longLineExtra + notesExtra + 50;
+  final safeHeightMm = heightMm < 240 ? 240.0 : heightMm;
+  return PdfPageFormat(width, safeHeightMm * PdfPageFormat.mm);
+}
+
 /// Cleans only failed Windows spooler jobs before printing.
 Future<void> _clearStalePrintJobs(String? printerName) async {
   if (!Platform.isWindows) return;
@@ -217,6 +267,7 @@ Future<void> _clearStalePrintJobs(String? printerName) async {
 /// Falls back to the OS print dialog only if no printer URL is configured.
 Future<void> _printDirectOrDialog({
   required String name,
+  required PdfPageFormat format,
   required String? printerUrl,
   required Future<Uint8List> Function() bytesBuilder,
 }) async {
@@ -227,17 +278,29 @@ Future<void> _printDirectOrDialog({
     await Printing.directPrintPdf(
       printer: Printer(url: url),
       name: name,
+      format: format,
+      dynamicLayout: false,
+      usePrinterSettings: false,
+      forceCustomPrintPaper: true,
       onLayout: (_) => bytesBuilder(),
     );
     return;
   }
   // No printer URL → show OS dialog (still no preview).
-  await Printing.layoutPdf(name: name, onLayout: (_) => bytesBuilder());
+  await Printing.layoutPdf(
+    name: name,
+    format: format,
+    dynamicLayout: false,
+    usePrinterSettings: false,
+    forceCustomPrintPaper: true,
+    onLayout: (_) => bytesBuilder(),
+  );
 }
 
 /// Legacy helper kept for use inside _PrintPreviewContent (preview dialog).
 Future<void> _printPdf({
   required String name,
+  required PdfPageFormat format,
   required String? printerName,
   required Future<Uint8List> Function() bytesBuilder,
 }) async {
@@ -247,11 +310,22 @@ Future<void> _printPdf({
     await Printing.directPrintPdf(
       printer: Printer(url: url),
       name: name,
+      format: format,
+      dynamicLayout: false,
+      usePrinterSettings: false,
+      forceCustomPrintPaper: true,
       onLayout: (_) => bytesBuilder(),
     );
     return;
   }
-  await Printing.layoutPdf(name: name, onLayout: (_) => bytesBuilder());
+  await Printing.layoutPdf(
+    name: name,
+    format: format,
+    dynamicLayout: false,
+    usePrinterSettings: false,
+    forceCustomPrintPaper: true,
+    onLayout: (_) => bytesBuilder(),
+  );
 }
 
 class DocumentPrintPreviewDialog extends ConsumerWidget {
@@ -303,14 +377,15 @@ class _LoadingPrintPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(32),
+    final text = _PreviewText.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Loading print preview...'),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(text.loadingPrintPreview),
         ],
       ),
     );
@@ -325,6 +400,7 @@ class _PrintPreviewError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _PreviewText.of(context);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -336,7 +412,7 @@ class _PrintPreviewError extends StatelessWidget {
               Icon(Icons.error_outline, color: cs.error),
               const SizedBox(width: 8),
               Text(
-                'Print preview failed',
+                text.printPreviewFailed,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ],
@@ -348,7 +424,7 @@ class _PrintPreviewError extends StatelessWidget {
             alignment: AlignmentDirectional.centerEnd,
             child: FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(text.close),
             ),
           ),
         ],
@@ -371,9 +447,11 @@ class _PrintPreviewContent extends StatelessWidget {
       settings.printMode == PrintMode.both;
 
   Future<void> _printA4(BuildContext context) async {
+    final text = _PreviewText.of(context, settings: settings);
     try {
       await _printPdf(
         name: '${data.documentType}-${data.documentNumber}-A4.pdf',
+        format: PdfPageFormat.a4,
         printerName: settings.a4PrinterName,
         bytesBuilder: () => _buildA4Bytes(data, settings),
       );
@@ -381,15 +459,17 @@ class _PrintPreviewContent extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('A4 PDF failed: $error')));
+        ).showSnackBar(SnackBar(content: Text(text.a4PdfFailed(error))));
       }
     }
   }
 
   Future<void> _printThermal(BuildContext context) async {
+    final text = _PreviewText.of(context, settings: settings);
     try {
       await _printPdf(
         name: '${data.documentType}-${data.documentNumber}-thermal.pdf',
+        format: _thermalPageFormat(data, settings),
         printerName: settings.thermalPrinterName,
         bytesBuilder: () => _buildThermalBytes(data, settings),
       );
@@ -397,7 +477,7 @@ class _PrintPreviewContent extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Thermal print failed: $error')));
+        ).showSnackBar(SnackBar(content: Text(text.thermalPrintFailed(error))));
       }
     }
   }
@@ -406,6 +486,7 @@ class _PrintPreviewContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _PreviewText.of(context, settings: settings);
     return Column(
       children: [
         Container(
@@ -428,10 +509,7 @@ class _PrintPreviewContent extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    Text(
-                      '${data.partyLabel}: ${data.customer.displayName} • ${_formatDate(data.documentDate)} • ${settings.printMode.label}',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text(':  ·  · ', style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -439,18 +517,18 @@ class _PrintPreviewContent extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: () => _printA4(context),
                   icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: const Text('A4 PDF'),
+                  label: Text(text.a4Pdf),
                 ),
               if (_a4Enabled && _thermalEnabled) const SizedBox(width: 8),
               if (_thermalEnabled)
                 OutlinedButton.icon(
                   onPressed: () => _printThermal(context),
                   icon: const Icon(Icons.receipt_long_outlined),
-                  label: Text('Thermal ${settings.thermalWidth.label}'),
+                  label: Text(text.thermal(settings.thermalWidth)),
                 ),
               const SizedBox(width: 8),
               IconButton(
-                tooltip: 'Close',
+                tooltip: text.close,
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close),
               ),
@@ -494,7 +572,7 @@ class _PrintPreviewContent extends StatelessWidget {
                     ],
                     const SizedBox(height: 18),
                     Text(
-                      'Generated: ${_formatDateTime(data.generatedAt)}',
+                      text.generated(_formatDateTime(data.generatedAt)),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: cs.onSurfaceVariant,
@@ -520,6 +598,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final text = _PreviewText.of(context, settings: settings);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -534,8 +613,8 @@ class _Header extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
-              'LOGO',
+            child: Text(
+              text.logo,
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
             ),
           ),
@@ -556,9 +635,9 @@ class _Header extends StatelessWidget {
               if (settings.showCompanyAddress)
                 Text('${data.company.country} • ${data.company.currency}'),
               if ((data.company.phone ?? '').isNotEmpty)
-                Text('Phone: ${data.company.phone}'),
+                Text(text.phone(data.company.phone!)),
               if ((data.company.email ?? '').isNotEmpty)
-                Text('Email: ${data.company.email}'),
+                Text(text.email(data.company.email!)),
             ],
           ),
         ),
@@ -589,6 +668,7 @@ class _PartyAndMeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = _PreviewText.of(context, settings: settings);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -601,15 +681,19 @@ class _PartyAndMeta extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               if ((data.customer.phone ?? '').isNotEmpty)
-                Text('Phone: ${data.customer.phone}'),
+                Text(text.phone(data.customer.phone!)),
               if ((data.customer.email ?? '').isNotEmpty)
-                Text('Email: ${data.customer.email}'),
+                Text(text.email(data.customer.email!)),
               if (settings.showCustomerBalance && data.isCustomerParty) ...[
                 Text(
-                  'Balance: ${_money(data.customer.openBalance, data.customer.currency)}',
+                  text.balance(
+                    _money(data.customer.openBalance, data.customer.currency),
+                  ),
                 ),
                 Text(
-                  'Credits: ${_money(data.customer.creditBalance, data.customer.currency)}',
+                  text.credits(
+                    _money(data.customer.creditBalance, data.customer.currency),
+                  ),
                 ),
               ],
             ],
@@ -618,18 +702,21 @@ class _PartyAndMeta extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(
           child: _InfoBox(
-            title: 'Document',
+            title: text.document,
             children: [
-              _KeyValue(label: 'Date', value: _formatDate(data.documentDate)),
-              _KeyValue(label: 'Due date', value: _formatDate(data.dueDate)),
+              _KeyValue(
+                label: text.date,
+                value: _formatDate(data.documentDate),
+              ),
+              _KeyValue(label: text.dueDate, value: _formatDate(data.dueDate)),
               if ((data.payment?.paymentMethod ?? '').isNotEmpty)
                 _KeyValue(
-                  label: 'Payment',
+                  label: text.payment,
                   value: data.payment!.paymentMethod!,
                 ),
               if ((data.payment?.depositAccountName ?? '').isNotEmpty)
                 _KeyValue(
-                  label: 'Deposit',
+                  label: text.deposit,
                   value: data.payment!.depositAccountName!,
                 ),
             ],
@@ -649,6 +736,7 @@ class _LinesTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _PreviewText.of(context, settings: settings);
     return Table(
       columnWidths: const {
         0: FixedColumnWidth(44),
@@ -661,11 +749,11 @@ class _LinesTable extends StatelessWidget {
       children: [
         _tableRow([
           '#',
-          settings.showItemSku ? 'Item / SKU' : 'Item',
-          'Qty',
-          'Price',
-          if (settings.showTaxSummary) 'Tax',
-          'Total',
+          settings.showItemSku ? text.itemSku : text.item,
+          text.qty,
+          text.price,
+          if (settings.showTaxSummary) text.tax,
+          text.total,
         ], header: true),
         ...data.lines.map(
           (line) => _tableRow([
@@ -762,10 +850,11 @@ class _Notes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = _PreviewText.of(context, settings: settings);
     return _InfoBox(
-      title: 'Notes / Terms',
+      title: text.notesTerms,
       children: [
-        if ((data.terms ?? '').isNotEmpty) Text('Terms: ${data.terms}'),
+        if ((data.terms ?? '').isNotEmpty) Text(text.terms(data.terms!)),
         if ((data.notes ?? '').isNotEmpty) Text(data.notes!),
         if ((settings.invoiceFooterMessage ?? '').isNotEmpty)
           Text(settings.invoiceFooterMessage!),
@@ -816,6 +905,61 @@ class _KeyValue extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PreviewText {
+  const _PreviewText(this.ar);
+
+  final bool ar;
+
+  static _PreviewText of(
+    BuildContext context, {
+    PrintingSettingsModel? settings,
+  }) {
+    final code =
+        settings?.languageCode ?? Localizations.localeOf(context).languageCode;
+    return _PreviewText(code.toLowerCase().startsWith('ar'));
+  }
+
+  String get loadingPrintPreview =>
+      ar ? 'جاري تحميل معاينة الطباعة...' : 'Loading print preview...';
+  String get printPreviewFailed =>
+      ar ? 'فشلت معاينة الطباعة' : 'Print preview failed';
+  String get close => ar ? 'إغلاق' : 'Close';
+  String get a4Pdf => ar ? 'PDF A4' : 'A4 PDF';
+  String thermal(ThermalWidth width) =>
+      ar ? 'حراري ${width.label}' : 'Thermal ${width.label}';
+  String get logo => ar ? 'الشعار' : 'LOGO';
+  String get document => ar ? 'المستند' : 'Document';
+  String get date => ar ? 'التاريخ' : 'Date';
+  String get dueDate => ar ? 'تاريخ الاستحقاق' : 'Due date';
+  String get payment => ar ? 'الدفع' : 'Payment';
+  String get deposit => ar ? 'الإيداع' : 'Deposit';
+  String get item => ar ? 'الصنف' : 'Item';
+  String get itemSku => ar ? 'الصنف / SKU' : 'Item / SKU';
+  String get qty => ar ? 'الكمية' : 'Qty';
+  String get price => ar ? 'السعر' : 'Price';
+  String get tax => ar ? 'الضريبة' : 'Tax';
+  String get total => ar ? 'الإجمالي' : 'Total';
+  String get notesTerms => ar ? 'ملاحظات / شروط' : 'Notes / Terms';
+
+  String generated(String value) =>
+      ar ? 'تم الإنشاء: $value' : 'Generated: $value';
+  String phone(String value) => ar ? 'الهاتف: $value' : 'Phone: $value';
+  String email(String value) => ar ? 'البريد: $value' : 'Email: $value';
+  String balance(String value) => ar ? 'الرصيد: $value' : 'Balance: $value';
+  String credits(String value) => ar ? 'الائتمان: $value' : 'Credits: $value';
+  String terms(String value) => ar ? 'الشروط: $value' : 'Terms: $value';
+  String a4PdfFailed(Object error) =>
+      ar ? 'فشل PDF A4: $error' : 'A4 PDF failed: $error';
+  String thermalPrintFailed(Object error) =>
+      ar ? 'فشلت الطباعة الحرارية: $error' : 'Thermal print failed: $error';
+
+  String printModeLabel(PrintMode mode) => switch (mode) {
+    PrintMode.a4 => ar ? 'مستندات A4' : 'A4 Documents',
+    PrintMode.thermal => ar ? 'إيصالات حرارية' : 'Thermal Receipts',
+    PrintMode.both => ar ? 'A4 + حراري' : 'A4 + Thermal',
+  };
 }
 
 String _money(double value, String currency) =>

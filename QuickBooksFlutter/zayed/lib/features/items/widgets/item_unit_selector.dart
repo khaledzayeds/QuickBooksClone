@@ -1,7 +1,6 @@
-// item_unit_selector.dart
-// item_unit_selector.dart
-
 import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
 
 class ItemUnitSelector extends StatefulWidget {
   const ItemUnitSelector({super.key, this.initialValue, this.onChanged});
@@ -15,17 +14,17 @@ class ItemUnitSelector extends StatefulWidget {
 
 class _ItemUnitSelectorState extends State<ItemUnitSelector> {
   static const _presets = [
-    'قطعة',
-    'كيلوجرام',
-    'جرام',
-    'لتر',
-    'مللي لتر',
-    'متر',
-    'سنتيمتر',
-    'علبة',
-    'كرتون',
-    'دستة',
-    'زوج',
+    'pcs',
+    'kg',
+    'g',
+    'l',
+    'ml',
+    'm',
+    'cm',
+    'box',
+    'carton',
+    'dozen',
+    'pair',
   ];
 
   final _customCtrl = TextEditingController();
@@ -35,16 +34,15 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
   @override
   void initState() {
     super.initState();
-    final v = widget.initialValue;
-    if (v == null || v.isEmpty) {
+    final value = widget.initialValue;
+    if (value == null || value.isEmpty) {
       _selected = null;
-    } else if (_presets.contains(v)) {
-      _selected = v;
+    } else if (_presets.contains(value)) {
+      _selected = value;
     } else {
-      // قيمة مخصصة من الـ API
       _selected = '__custom__';
       _showCustom = true;
-      _customCtrl.text = v;
+      _customCtrl.text = value;
     }
   }
 
@@ -56,12 +54,13 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final labels = _UnitLabels.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Label ─────────────────────────────────
         Text(
-          'وحدة القياس',
+          l10n.unit,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: Theme.of(
               context,
@@ -69,15 +68,12 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
           ),
         ),
         const SizedBox(height: 6),
-
-        // ── Preset Chips ──────────────────────────
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            // فارغ
             _UnitChip(
-              label: 'بدون',
+              label: labels.none,
               selected: _selected == null && !_showCustom,
               onTap: () {
                 setState(() {
@@ -87,11 +83,9 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
                 widget.onChanged?.call(null);
               },
             ),
-
-            // Presets
             ..._presets.map(
               (unit) => _UnitChip(
-                label: unit,
+                label: labels.unitLabel(unit),
                 selected: _selected == unit,
                 onTap: () {
                   setState(() {
@@ -102,10 +96,8 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
                 },
               ),
             ),
-
-            // مخصص
             _UnitChip(
-              label: 'أخرى...',
+              label: labels.other,
               selected: _selected == '__custom__',
               icon: Icons.edit_outlined,
               onTap: () {
@@ -120,34 +112,32 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
             ),
           ],
         ),
-
-        // ── Custom Input ──────────────────────────
         if (_showCustom) ...[
           const SizedBox(height: 12),
           TextField(
             controller: _customCtrl,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: 'اكتب وحدة القياس...',
+              hintText: labels.customUnitHint,
               isDense: true,
               suffixIcon: _customCtrl.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.check, size: 18),
                       onPressed: () {
-                        final v = _customCtrl.text.trim();
-                        if (v.isNotEmpty) widget.onChanged?.call(v);
+                        final value = _customCtrl.text.trim();
+                        if (value.isNotEmpty) widget.onChanged?.call(value);
                       },
                     )
                   : null,
             ),
-            onChanged: (v) {
+            onChanged: (value) {
               setState(() {});
-              if (v.trim().isNotEmpty) {
-                widget.onChanged?.call(v.trim());
+              if (value.trim().isNotEmpty) {
+                widget.onChanged?.call(value.trim());
               }
             },
-            onSubmitted: (v) {
-              final trimmed = v.trim();
+            onSubmitted: (value) {
+              final trimmed = value.trim();
               if (trimmed.isNotEmpty) {
                 widget.onChanged?.call(trimmed);
               }
@@ -159,7 +149,6 @@ class _ItemUnitSelectorState extends State<ItemUnitSelector> {
   }
 }
 
-// ─── Chip Widget ──────────────────────────────────
 class _UnitChip extends StatelessWidget {
   const _UnitChip({
     required this.label,
@@ -211,5 +200,54 @@ class _UnitChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _UnitLabels {
+  const _UnitLabels(this.ar);
+
+  final bool ar;
+
+  static _UnitLabels of(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
+    return _UnitLabels(locale == 'ar');
+  }
+
+  String get none => ar ? 'بدون' : 'None';
+  String get other => ar ? 'أخرى...' : 'Other...';
+  String get customUnitHint =>
+      ar ? 'اكتب وحدة القياس...' : 'Type a unit of measure...';
+
+  String unitLabel(String unit) {
+    if (!ar) {
+      return switch (unit) {
+        'pcs' => 'Pieces',
+        'kg' => 'Kilogram',
+        'g' => 'Gram',
+        'l' => 'Liter',
+        'ml' => 'Milliliter',
+        'm' => 'Meter',
+        'cm' => 'Centimeter',
+        'box' => 'Box',
+        'carton' => 'Carton',
+        'dozen' => 'Dozen',
+        'pair' => 'Pair',
+        _ => unit,
+      };
+    }
+    return switch (unit) {
+      'pcs' => 'قطعة',
+      'kg' => 'كيلوجرام',
+      'g' => 'جرام',
+      'l' => 'لتر',
+      'ml' => 'ملليلتر',
+      'm' => 'متر',
+      'cm' => 'سنتيمتر',
+      'box' => 'علبة',
+      'carton' => 'كرتونة',
+      'dozen' => 'دستة',
+      'pair' => 'زوج',
+      _ => unit,
+    };
   }
 }

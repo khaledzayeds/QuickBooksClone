@@ -66,7 +66,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 ),
                 const Gap(9),
                 Text(
-                  'Company Home',
+                  l10n.companyHome,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),

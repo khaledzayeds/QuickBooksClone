@@ -79,17 +79,18 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _CustomerFormText.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEdit ? 'Edit Customer' : 'New Customer'),
+        title: Text(widget.isEdit ? text.editCustomer : text.newCustomer),
         actions: [
           TextButton.icon(
             onPressed: _loading
                 ? null
                 : () => context.popOrGo(AppRoutes.customers),
             icon: const Icon(Icons.close),
-            label: const Text('Cancel'),
+            label: Text(text.cancel),
           ),
           const SizedBox(width: 12),
         ],
@@ -123,8 +124,8 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                                   children: [
                                     Text(
                                       widget.isEdit
-                                          ? 'Edit customer profile'
-                                          : 'Create customer profile',
+                                          ? text.editCustomerProfile
+                                          : text.createCustomerProfile,
                                       style: theme.textTheme.titleLarge
                                           ?.copyWith(
                                             fontWeight: FontWeight.w900,
@@ -132,7 +133,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Customer records drive invoices, payments, customer credits, statements, and sales reports.',
+                                      text.customerRecordHint,
                                       style: theme.textTheme.bodyMedium
                                           ?.copyWith(
                                             color: cs.onSurfaceVariant,
@@ -152,21 +153,21 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                             builder: (context, constraints) {
                               final two = constraints.maxWidth >= 760;
                               final name = AppTextField(
-                                label: 'Display Name *',
+                                label: text.displayNameRequired,
                                 controller: _nameCtrl,
-                                hint: 'Customer display name',
+                                hint: text.customerDisplayName,
                                 validator: (value) =>
                                     value == null || value.trim().isEmpty
-                                    ? 'Display name is required'
+                                    ? text.displayNameRequiredMsg
                                     : null,
                               );
                               final company = AppTextField(
-                                label: 'Company Name',
+                                label: text.companyName,
                                 controller: _companyCtrl,
-                                hint: 'Optional company name',
+                                hint: text.optionalCompanyName,
                               );
                               final email = AppTextField(
-                                label: 'Email',
+                                label: text.email,
                                 controller: _emailCtrl,
                                 hint: 'customer@example.com',
                                 keyboardType: TextInputType.emailAddress,
@@ -175,13 +176,13 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                                     return null;
                                   }
                                   if (!value.contains('@')) {
-                                    return 'Invalid email address';
+                                    return text.invalidEmail;
                                   }
                                   return null;
                                 },
                               );
                               final phone = AppTextField(
-                                label: 'Phone',
+                                label: text.phone,
                                 controller: _phoneCtrl,
                                 hint: '01000000000',
                                 keyboardType: TextInputType.phone,
@@ -224,22 +225,22 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                             initialValue: _currency,
-                            decoration: const InputDecoration(
-                              labelText: 'Currency',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: text.currency,
+                              border: const OutlineInputBorder(),
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem<String>(
                                 value: 'EGP',
-                                child: Text('Egyptian Pound (EGP)'),
+                                child: Text(text.egyptianPound),
                               ),
                               DropdownMenuItem<String>(
                                 value: 'USD',
-                                child: Text('US Dollar (USD)'),
+                                child: Text(text.usDollar),
                               ),
                               DropdownMenuItem<String>(
                                 value: 'SAR',
-                                child: Text('Saudi Riyal (SAR)'),
+                                child: Text(text.saudiRiyal),
                               ),
                             ],
                             onChanged: (value) =>
@@ -248,7 +249,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                           if (!widget.isEdit) ...[
                             const SizedBox(height: 16),
                             AppTextField(
-                              label: 'Opening Balance',
+                              label: text.openingBalance,
                               controller: _openBalCtrl,
                               hint: '0.00',
                               keyboardType:
@@ -258,10 +259,10 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                               validator: (value) {
                                 final number = double.tryParse(value ?? '');
                                 if (number == null) {
-                                  return 'Enter a valid number';
+                                  return text.enterValidNumber;
                                 }
                                 if (number < 0) {
-                                  return 'Opening balance cannot be negative';
+                                  return text.openingBalanceCannotBeNegative;
                                 }
                                 return null;
                               },
@@ -269,15 +270,14 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                             const SizedBox(height: 8),
                             _InfoBox(
                               icon: Icons.account_balance_outlined,
-                              text:
-                                  'If this customer already owes money, opening balance will create an opening receivable posting automatically.',
+                              text: text.openingBalanceHint,
                             ),
                           ],
                           const SizedBox(height: 32),
                           AppButton(
                             label: widget.isEdit
-                                ? 'Save Changes'
-                                : 'Create Customer',
+                                ? text.saveChanges
+                                : text.createCustomer,
                             loading: _loading,
                             expanded: true,
                             onPressed: _submit,
@@ -322,8 +322,8 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
           SnackBar(
             content: Text(
               widget.isEdit
-                  ? 'Customer updated successfully'
-                  : 'Customer created successfully',
+                  ? _CustomerFormText.of(context).customerUpdated
+                  : _CustomerFormText.of(context).customerCreated,
             ),
           ),
         );
@@ -343,6 +343,7 @@ class _CustomerStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _CustomerFormText.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -358,11 +359,7 @@ class _CustomerStatusBanner extends StatelessWidget {
             color: customer.isActive ? cs.primary : cs.error,
           ),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Open balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} • Credits: ${customer.creditBalance.toStringAsFixed(2)} ${customer.currency} • Status: ${customer.isActive ? 'Active' : 'Inactive'}',
-            ),
-          ),
+          Expanded(child: Text(text.statusLine(customer))),
         ],
       ),
     );
@@ -395,5 +392,66 @@ class _InfoBox extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _CustomerFormText {
+  const _CustomerFormText(this.ar);
+  final bool ar;
+
+  static _CustomerFormText of(BuildContext context) =>
+      _CustomerFormText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get editCustomer => ar ? 'تعديل عميل' : 'Edit Customer';
+  String get newCustomer => ar ? 'عميل جديد' : 'New Customer';
+  String get cancel => ar ? 'إلغاء' : 'Cancel';
+  String get editCustomerProfile =>
+      ar ? 'تعديل ملف العميل' : 'Edit customer profile';
+  String get createCustomerProfile =>
+      ar ? 'إنشاء ملف عميل' : 'Create customer profile';
+  String get customerRecordHint => ar
+      ? 'سجلات العملاء تدير الفواتير والمدفوعات وأرصدة العملاء وكشوف الحساب وتقارير المبيعات.'
+      : 'Customer records drive invoices, payments, customer credits, statements, and sales reports.';
+  String get displayNameRequired => ar ? 'اسم العرض *' : 'Display Name *';
+  String get customerDisplayName =>
+      ar ? 'اسم عرض العميل' : 'Customer display name';
+  String get displayNameRequiredMsg =>
+      ar ? 'اسم العرض مطلوب' : 'Display name is required';
+  String get companyName => ar ? 'اسم الشركة' : 'Company Name';
+  String get optionalCompanyName =>
+      ar ? 'اسم الشركة اختياري' : 'Optional company name';
+  String get email => ar ? 'البريد' : 'Email';
+  String get phone => ar ? 'الهاتف' : 'Phone';
+  String get invalidEmail =>
+      ar ? 'عنوان البريد غير صحيح' : 'Invalid email address';
+  String get currency => ar ? 'العملة' : 'Currency';
+  String get egyptianPound =>
+      ar ? 'الجنيه المصري (EGP)' : 'Egyptian Pound (EGP)';
+  String get usDollar => ar ? 'الدولار الأمريكي (USD)' : 'US Dollar (USD)';
+  String get saudiRiyal => ar ? 'الريال السعودي (SAR)' : 'Saudi Riyal (SAR)';
+  String get openingBalance => ar ? 'الرصيد الافتتاحي' : 'Opening Balance';
+  String get enterValidNumber =>
+      ar ? 'أدخل رقمًا صحيحًا' : 'Enter a valid number';
+  String get openingBalanceCannotBeNegative => ar
+      ? 'الرصيد الافتتاحي لا يمكن أن يكون سالبًا'
+      : 'Opening balance cannot be negative';
+  String get openingBalanceHint => ar
+      ? 'إذا كان العميل مدينًا بالفعل، سينشئ الرصيد الافتتاحي قيد مديونية افتتاحي تلقائيًا.'
+      : 'If this customer already owes money, opening balance will create an opening receivable posting automatically.';
+  String get saveChanges => ar ? 'حفظ التعديلات' : 'Save Changes';
+  String get createCustomer => ar ? 'إنشاء عميل' : 'Create Customer';
+  String get customerUpdated =>
+      ar ? 'تم تحديث العميل بنجاح' : 'Customer updated successfully';
+  String get customerCreated =>
+      ar ? 'تم إنشاء العميل بنجاح' : 'Customer created successfully';
+
+  String statusLine(CustomerModel customer) {
+    final status = customer.isActive
+        ? (ar ? 'نشط' : 'Active')
+        : (ar ? 'غير نشط' : 'Inactive');
+    if (ar) {
+      return 'الرصيد المفتوح: ${customer.balance.toStringAsFixed(2)} ${customer.currency} · الأرصدة: ${customer.creditBalance.toStringAsFixed(2)} ${customer.currency} · الحالة: $status';
+    }
+    return 'Open balance: ${customer.balance.toStringAsFixed(2)} ${customer.currency} · Credits: ${customer.creditBalance.toStringAsFixed(2)} ${customer.currency} · Status: $status';
   }
 }

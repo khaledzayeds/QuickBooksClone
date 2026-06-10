@@ -26,14 +26,15 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
   Widget build(BuildContext context) {
     final customers = ref.watch(customersProvider);
     final cs = Theme.of(context).colorScheme;
+    final text = _CustomerText.of(context);
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: Column(
         children: [
           _CenterToolbar(
-            title: 'Customer Center',
-            primaryLabel: 'New Customer',
+            title: text.customerCenter,
+            primaryLabel: text.newCustomer,
             primaryIcon: Icons.person_add_outlined,
             onRefresh: () => ref.read(customersProvider.notifier).refresh(),
             onPrimary: () => context.go(AppRoutes.customerNew),
@@ -44,9 +45,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
               loading: () => const SkeletonList(),
               error: (e, _) => EmptyStateWidget(
                 icon: Icons.error_outline,
-                message: 'Could not load customers',
+                message: text.couldNotLoadCustomers,
                 description: e.toString(),
-                actionLabel: 'Retry',
+                actionLabel: text.retry,
                 onAction: () => ref.read(customersProvider.notifier).refresh(),
               ),
               data: (list) => _buildCenter(context, list),
@@ -59,6 +60,7 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
   Widget _buildCenter(BuildContext context, List<CustomerModel> customers) {
     final cs = Theme.of(context).colorScheme;
+    final text = _CustomerText.of(context);
     final active = customers.where((c) => c.isActive).length;
     final openBalance = customers.fold<double>(0, (sum, c) => sum + c.balance);
     final credits = customers.fold<double>(
@@ -87,23 +89,23 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
           chips: [
             _MetricChip(
               Icons.people_outline,
-              'Customers',
+              text.customers,
               '${customers.length}',
             ),
-            _MetricChip(Icons.check_circle_outline, 'Active', '$active'),
+            _MetricChip(Icons.check_circle_outline, text.active, '$active'),
             _MetricChip(
               Icons.receipt_long_outlined,
-              'Open balance',
+              text.openBalance,
               '${openBalance.toStringAsFixed(2)} EGP',
             ),
             _MetricChip(
               Icons.credit_score_outlined,
-              'Credits',
+              text.credits,
               '${credits.toStringAsFixed(2)} EGP',
             ),
             _MetricChip(
               Icons.warning_amber_outlined,
-              'No contact',
+              text.noContact,
               '$missing',
               warn: missing > 0,
             ),
@@ -133,10 +135,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                 child: selected == null
                     ? EmptyStateWidget(
                         icon: Icons.people_outline,
-                        message: 'No customers found',
-                        description:
-                            'Create a customer to start tracking sales and receivables.',
-                        actionLabel: 'New Customer',
+                        message: text.noCustomersFound,
+                        description: text.createCustomerHint,
+                        actionLabel: text.newCustomer,
                         onAction: () => context.go(AppRoutes.customerNew),
                       )
                     : _CustomerDetailPane(
@@ -177,11 +178,15 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
     final confirmed = await showConfirmDialog(
       context: context,
       title: customer.isActive
-          ? 'Make customer inactive'
-          : 'Make customer active',
+          ? _CustomerText.of(context).makeCustomerInactive
+          : _CustomerText.of(context).makeCustomerActive,
       message: customer.isActive
-          ? 'Make "${customer.displayName}" inactive?'
-          : 'Make "${customer.displayName}" active?',
+          ? _CustomerText.of(
+              context,
+            ).confirmCustomerInactive(customer.displayName)
+          : _CustomerText.of(
+              context,
+            ).confirmCustomerActive(customer.displayName),
     );
     if (confirmed != true || !mounted) return;
 
@@ -194,8 +199,8 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
         SnackBar(
           content: Text(
             customer.isActive
-                ? 'Customer made inactive'
-                : 'Customer made active',
+                ? _CustomerText.of(context).customerMadeInactive
+                : _CustomerText.of(context).customerMadeActive,
           ),
         ),
       ),
@@ -226,6 +231,7 @@ class _CustomerListPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _CustomerText.of(context);
     return Column(
       children: [
         Container(
@@ -240,12 +246,12 @@ class _CustomerListPane extends StatelessWidget {
                 height: 30,
                 child: TextField(
                   onChanged: onSearch,
-                  decoration: const InputDecoration(
-                    hintText: 'Search name, phone, email...',
-                    prefixIcon: Icon(Icons.search, size: 16),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: text.searchNamePhoneEmail,
+                    prefixIcon: const Icon(Icons.search, size: 16),
+                    border: const OutlineInputBorder(),
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 6,
                     ),
@@ -257,13 +263,13 @@ class _CustomerListPane extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Active Customers',
+                      text.activeCustomers,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  const Text('Inactive', style: TextStyle(fontSize: 11)),
+                  Text(text.inactive, style: const TextStyle(fontSize: 11)),
                   Transform.scale(
                     scale: 0.65,
                     child: Switch(
@@ -280,10 +286,10 @@ class _CustomerListPane extends StatelessWidget {
           height: 28,
           color: cs.surfaceContainerHighest,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: const Row(
+          child: Row(
             children: [
-              Expanded(flex: 5, child: _Head('Name')),
-              Expanded(flex: 3, child: _Head('Balance', end: true)),
+              Expanded(flex: 5, child: _Head(text.name)),
+              Expanded(flex: 3, child: _Head(text.balance, end: true)),
             ],
           ),
         ),
@@ -383,6 +389,7 @@ class _CustomerDetailPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _CustomerText.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -395,19 +402,19 @@ class _CustomerDetailPane extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Customer Information',
+                  text.customerInformation,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               IconButton(
-                tooltip: 'Open',
+                tooltip: text.open,
                 onPressed: onOpen,
                 icon: const Icon(Icons.open_in_new_outlined),
               ),
               IconButton(
-                tooltip: 'Edit',
+                tooltip: text.edit,
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
               ),
@@ -421,32 +428,32 @@ class _CustomerDetailPane extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoLine('Customer Name', customer.displayName),
-                _InfoLine('Company', customer.companyName ?? '-'),
-                _InfoLine('Phone', customer.phone ?? '-'),
-                _InfoLine('Email', customer.email ?? '-'),
-                _InfoLine('Currency', customer.currency),
+                _InfoLine(text.customerName, customer.displayName),
+                _InfoLine(text.company, customer.companyName ?? '-'),
+                _InfoLine(text.phone, customer.phone ?? '-'),
+                _InfoLine(text.email, customer.email ?? '-'),
+                _InfoLine(text.currency, customer.currency),
                 const SizedBox(height: 18),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   children: [
                     _ValueBox(
-                      'Open balance',
+                      text.openBalance,
                       '${customer.balance.toStringAsFixed(2)} ${customer.currency}',
                     ),
                     _ValueBox(
-                      'Credits',
+                      text.credits,
                       '${customer.creditBalance.toStringAsFixed(2)} ${customer.currency}',
                     ),
                     _ValueBox(
-                      'Net receivable',
+                      text.netReceivable,
                       '${customer.netReceivable.toStringAsFixed(2)} ${customer.currency}',
                       highlight: customer.netReceivable > 0,
                     ),
                     _ValueBox(
-                      'Status',
-                      customer.isActive ? 'Active' : 'Inactive',
+                      text.status,
+                      customer.isActive ? text.active : text.inactive,
                     ),
                   ],
                 ),
@@ -458,19 +465,25 @@ class _CustomerDetailPane extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: onEdit,
                       icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Edit Customer'),
+                      label: Text(text.editCustomer),
                     ),
                     OutlinedButton.icon(
                       onPressed: onToggleActive,
                       icon: const Icon(Icons.toggle_on_outlined, size: 16),
                       label: Text(
-                        customer.isActive ? 'Make Inactive' : 'Make Active',
+                        customer.isActive ? text.makeInactive : text.makeActive,
                       ),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => context.push(
+                        AppRoutes.customerTransactionHistory,
+                        extra: {
+                          'customerId': customer.id,
+                          'customerName': customer.displayName,
+                        },
+                      ),
                       icon: const Icon(Icons.receipt_long_outlined, size: 16),
-                      label: const Text('Statement'),
+                      label: Text(text.statement),
                     ),
                   ],
                 ),
@@ -482,10 +495,10 @@ class _CustomerDetailPane extends StatelessWidget {
         Expanded(
           flex: 2,
           child: _ActivityTable(
-            title: 'Transactions',
+            title: text.transactions,
             rows: [
               _ActivityRow(
-                'Open Balance',
+                text.openBalance,
                 '-',
                 '-',
                 'Accounts Receivable',
@@ -493,10 +506,10 @@ class _CustomerDetailPane extends StatelessWidget {
               ),
               if (customer.creditBalance > 0)
                 _ActivityRow(
-                  'Credit',
+                  text.credit,
                   '-',
                   '-',
-                  'Customer Credits',
+                  text.customerCredits,
                   -customer.creditBalance,
                 ),
             ],
@@ -528,6 +541,7 @@ class _CenterToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _CustomerText.of(context);
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -543,41 +557,41 @@ class _CenterToolbar extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: text.refresh,
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh),
           ),
           PopupMenuButton<String>(
-            tooltip: 'Actions',
+            tooltip: text.actions,
             icon: const Icon(Icons.more_vert),
             onSelected: onAction,
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem(
-                value: 'Import Customers from Excel/CSV',
+                value: text.importCustomers,
                 child: _MenuRow(
                   icon: Icons.upload_file_outlined,
-                  label: 'Import Customers from Excel/CSV',
+                  label: text.importCustomers,
                 ),
               ),
               PopupMenuItem(
-                value: 'Export Customers to Excel/CSV',
+                value: text.exportCustomers,
                 child: _MenuRow(
                   icon: Icons.download_outlined,
-                  label: 'Export Customers to Excel/CSV',
+                  label: text.exportCustomers,
                 ),
               ),
               PopupMenuItem(
-                value: 'Download Import Template',
+                value: text.downloadImportTemplate,
                 child: _MenuRow(
                   icon: Icons.description_outlined,
-                  label: 'Download Import Template',
+                  label: text.downloadImportTemplate,
                 ),
               ),
               PopupMenuItem(
-                value: 'Customer Statement Batch',
+                value: text.customerStatementBatch,
                 child: _MenuRow(
                   icon: Icons.summarize_outlined,
-                  label: 'Customer Statement Batch',
+                  label: text.customerStatementBatch,
                 ),
               ),
             ],
@@ -718,6 +732,7 @@ class _ActivityTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final text = _CustomerText.of(context);
     return Column(
       children: [
         Container(
@@ -733,13 +748,13 @@ class _ActivityTable extends StatelessWidget {
         Container(
           height: 28,
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: const Row(
+          child: Row(
             children: [
-              Expanded(child: _Head('Type')),
-              Expanded(child: _Head('Num')),
-              Expanded(child: _Head('Date')),
-              Expanded(child: _Head('Account')),
-              Expanded(child: _Head('Amount', end: true)),
+              Expanded(child: _Head(text.type)),
+              Expanded(child: _Head(text.num)),
+              Expanded(child: _Head(text.date)),
+              Expanded(child: _Head(text.account)),
+              Expanded(child: _Head(text.amount, end: true)),
             ],
           ),
         ),
@@ -747,7 +762,7 @@ class _ActivityTable extends StatelessWidget {
           child: rows.isEmpty
               ? Center(
                   child: Text(
-                    'No activity to show',
+                    text.noActivityToShow,
                     style: TextStyle(color: cs.onSurfaceVariant),
                   ),
                 )
@@ -835,4 +850,80 @@ class _MenuRow extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [Icon(icon, size: 18), const SizedBox(width: 10), Text(label)],
   );
+}
+
+class _CustomerText {
+  const _CustomerText(this.ar);
+  final bool ar;
+
+  static _CustomerText of(BuildContext context) =>
+      _CustomerText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get customerCenter => ar ? 'مركز العملاء' : 'Customer Center';
+  String get newCustomer => ar ? 'عميل جديد' : 'New Customer';
+  String get couldNotLoadCustomers =>
+      ar ? 'تعذر تحميل العملاء' : 'Could not load customers';
+  String get retry => ar ? 'إعادة المحاولة' : 'Retry';
+  String get customers => ar ? 'العملاء' : 'Customers';
+  String get active => ar ? 'نشط' : 'Active';
+  String get inactive => ar ? 'غير نشط' : 'Inactive';
+  String get openBalance => ar ? 'الرصيد المفتوح' : 'Open balance';
+  String get credits => ar ? 'الأرصدة الدائنة' : 'Credits';
+  String get noContact => ar ? 'بدون بيانات اتصال' : 'No contact';
+  String get noCustomersFound => ar ? 'لا يوجد عملاء' : 'No customers found';
+  String get createCustomerHint => ar
+      ? 'أنشئ عميلًا لبدء متابعة المبيعات والمديونيات.'
+      : 'Create a customer to start tracking sales and receivables.';
+  String get makeCustomerInactive =>
+      ar ? 'جعل العميل غير نشط' : 'Make customer inactive';
+  String get makeCustomerActive =>
+      ar ? 'جعل العميل نشط' : 'Make customer active';
+  String confirmCustomerInactive(String name) =>
+      ar ? 'جعل "$name" غير نشط؟' : 'Make "$name" inactive?';
+  String confirmCustomerActive(String name) =>
+      ar ? 'جعل "$name" نشط؟' : 'Make "$name" active?';
+  String get customerMadeInactive =>
+      ar ? 'تم جعل العميل غير نشط' : 'Customer made inactive';
+  String get customerMadeActive =>
+      ar ? 'تم جعل العميل نشط' : 'Customer made active';
+  String get searchNamePhoneEmail =>
+      ar ? 'بحث بالاسم أو الهاتف أو البريد...' : 'Search name, phone, email...';
+  String get activeCustomers => ar ? 'العملاء النشطون' : 'Active Customers';
+  String get name => ar ? 'الاسم' : 'Name';
+  String get balance => ar ? 'الرصيد' : 'Balance';
+  String get customerInformation =>
+      ar ? 'معلومات العميل' : 'Customer Information';
+  String get open => ar ? 'فتح' : 'Open';
+  String get edit => ar ? 'تعديل' : 'Edit';
+  String get customerName => ar ? 'اسم العميل' : 'Customer Name';
+  String get company => ar ? 'الشركة' : 'Company';
+  String get phone => ar ? 'الهاتف' : 'Phone';
+  String get email => ar ? 'البريد' : 'Email';
+  String get currency => ar ? 'العملة' : 'Currency';
+  String get netReceivable => ar ? 'صافي المستحقات' : 'Net receivable';
+  String get status => ar ? 'الحالة' : 'Status';
+  String get editCustomer => ar ? 'تعديل العميل' : 'Edit Customer';
+  String get makeInactive => ar ? 'جعله غير نشط' : 'Make Inactive';
+  String get makeActive => ar ? 'جعله نشط' : 'Make Active';
+  String get statement => ar ? 'كشف حساب' : 'Statement';
+  String get transactions => ar ? 'المعاملات' : 'Transactions';
+  String get credit => ar ? 'رصيد دائن' : 'Credit';
+  String get customerCredits => ar ? 'أرصدة العملاء' : 'Customer Credits';
+  String get refresh => ar ? 'تحديث' : 'Refresh';
+  String get actions => ar ? 'إجراءات' : 'Actions';
+  String get importCustomers =>
+      ar ? 'استيراد العملاء من Excel/CSV' : 'Import Customers from Excel/CSV';
+  String get exportCustomers =>
+      ar ? 'تصدير العملاء إلى Excel/CSV' : 'Export Customers to Excel/CSV';
+  String get downloadImportTemplate =>
+      ar ? 'تحميل قالب الاستيراد' : 'Download Import Template';
+  String get customerStatementBatch =>
+      ar ? 'طباعة كشوف العملاء دفعة واحدة' : 'Customer Statement Batch';
+  String get type => ar ? 'النوع' : 'Type';
+  String get num => ar ? 'الرقم' : 'Num';
+  String get date => ar ? 'التاريخ' : 'Date';
+  String get account => ar ? 'الحساب' : 'Account';
+  String get amount => ar ? 'المبلغ' : 'Amount';
+  String get noActivityToShow =>
+      ar ? 'لا يوجد نشاط للعرض' : 'No activity to show';
 }

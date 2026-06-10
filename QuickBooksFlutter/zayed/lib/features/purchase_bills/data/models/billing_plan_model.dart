@@ -11,6 +11,8 @@ class BillingPlanModel {
     required this.vendorName,
     required this.purchaseOrderId,
     required this.purchaseOrderNumber,
+    required this.canBill,
+    required this.isFullyBilled,
     required this.totalRemainingQuantity,
     required this.lines,
   });
@@ -21,6 +23,8 @@ class BillingPlanModel {
   final String? vendorName;
   final String? purchaseOrderId;
   final String? purchaseOrderNumber;
+  final bool canBill;
+  final bool isFullyBilled;
   final double totalRemainingQuantity;
   final List<BillingPlanLineModel> lines;
 
@@ -32,6 +36,8 @@ class BillingPlanModel {
         vendorName: JsonUtils.asString(json['vendorName']),
         purchaseOrderId: JsonUtils.asString(json['purchaseOrderId']),
         purchaseOrderNumber: JsonUtils.asString(json['purchaseOrderNumber']),
+        canBill: JsonUtils.asBool(json['canBill']),
+        isFullyBilled: JsonUtils.asBool(json['isFullyBilled']),
         totalRemainingQuantity: JsonUtils.asDouble(
           json['totalRemainingQuantity'],
         ),

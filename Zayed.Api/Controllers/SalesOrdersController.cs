@@ -113,12 +113,19 @@ public sealed class SalesOrdersController : ControllerBase
                 return BadRequest($"Cannot use inactive item on a sales order: {item.Name}");
             }
 
-            var unitPrice = line.UnitPrice > 0 ? line.UnitPrice : item.SalesPrice;
+            if (ItemTypeBehavior.PostsThroughComponents(item.ItemType))
+            {
+                return BadRequest($"Group or bundle item '{item.Name}' cannot be used until component posting is implemented.");
+            }
+
+            var unitPrice = ItemTypeBehavior.ResolveSalesUnitPrice(item, line.UnitPrice);
             var description = string.IsNullOrWhiteSpace(line.Description) ? item.Name : line.Description;
             TaxLineCalculation tax;
             try
             {
-                tax = await ResolveSalesTaxAsync(line.TaxCodeId, taxSettings, unitPrice, line.Quantity, cancellationToken);
+                tax = ItemTypeBehavior.CanApplySalesTax(item.ItemType)
+                    ? await ResolveSalesTaxAsync(line.TaxCodeId, taxSettings, unitPrice, line.Quantity, cancellationToken)
+                    : new TaxLineCalculation(null, 0, 0, unitPrice);
             }
             catch (InvalidOperationException exception)
             {

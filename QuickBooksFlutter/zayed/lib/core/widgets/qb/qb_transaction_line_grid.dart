@@ -147,8 +147,15 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
   double _rateForItem(ItemModel item) {
     return switch (widget.priceMode) {
       TransactionLinePriceMode.purchase => item.purchasePrice,
-      TransactionLinePriceMode.sales => item.salesPrice,
+      TransactionLinePriceMode.sales => item.itemType.resolveSalesRate(
+        item.salesPrice,
+        item.salesPrice,
+      ),
     };
+  }
+
+  double _editableRateForItem(ItemModel item) {
+    return _rateForItem(item).abs();
   }
 
   void _pickItem(int index, ItemModel item) {
@@ -156,9 +163,12 @@ class _QbTransactionLineGridState extends ConsumerState<QbTransactionLineGrid> {
     setState(() {
       _selectedIndex = index;
       final line = widget.lines[index];
-      final rate = _rateForItem(item);
+      final rate = _editableRateForItem(item);
       line.itemId = item.id;
       line.itemName = item.name;
+      line.itemType = widget.priceMode == TransactionLinePriceMode.sales
+          ? item.itemType
+          : null;
       line.rate = rate;
       line.rateCtrl.text = rate.toStringAsFixed(2);
       if (line.descCtrl.text.trim().isEmpty) line.descCtrl.text = item.name;

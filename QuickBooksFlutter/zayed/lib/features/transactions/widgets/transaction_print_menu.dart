@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'transaction_models.dart';
 
 class TransactionPrintMenu extends StatelessWidget {
@@ -9,43 +10,45 @@ class TransactionPrintMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return PopupMenuButton<TransactionPrintAction>(
-      tooltip: 'Preview and print',
+      tooltip: l10n.previewAndPrint,
       onSelected: onSelected,
-      itemBuilder: (context) => const [
+      itemBuilder: (context) => [
         PopupMenuItem(
           value: TransactionPrintAction.preview,
           child: _PrintMenuRow(
             icon: Icons.visibility_outlined,
-            label: 'Preview A4',
+            label: l10n.previewA4,
           ),
         ),
         PopupMenuItem(
           value: TransactionPrintAction.printA4,
-          child: _PrintMenuRow(icon: Icons.print_outlined, label: 'Print A4'),
+          child: _PrintMenuRow(icon: Icons.print_outlined, label: l10n.printA4),
         ),
         PopupMenuItem(
           value: TransactionPrintAction.printThermal,
           child: _PrintMenuRow(
             icon: Icons.receipt_long_outlined,
-            label: 'Print Thermal',
+            label: l10n.printThermal,
           ),
         ),
         PopupMenuItem(
           value: TransactionPrintAction.emailOrShare,
           child: _PrintMenuRow(
             icon: Icons.share_outlined,
-            label: 'Email / Share',
+            label: l10n.emailShare,
           ),
         ),
       ],
-      child: const _PrintMenuButton(),
+      child: _PrintMenuButton(label: l10n.print),
     );
   }
 }
 
 class _PrintMenuButton extends StatelessWidget {
-  const _PrintMenuButton();
+  const _PrintMenuButton({required this.label});
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -57,14 +60,14 @@ class _PrintMenuButton extends StatelessWidget {
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.print_outlined, size: 18),
-          SizedBox(width: 8),
-          Text('Print'),
-          SizedBox(width: 4),
-          Icon(Icons.arrow_drop_down, size: 18),
+          const Icon(Icons.print_outlined, size: 18),
+          const SizedBox(width: 8),
+          Text(label),
+          const SizedBox(width: 4),
+          const Icon(Icons.arrow_drop_down, size: 18),
         ],
       ),
     );

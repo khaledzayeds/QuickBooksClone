@@ -21,6 +21,7 @@ class CustomerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final text = _CustomerCardText.of(context);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -63,7 +64,7 @@ class CustomerCard extends StatelessWidget {
                         ),
                         if (customer.needsAttention)
                           Tooltip(
-                            message: 'Customer has open balance',
+                            message: text.openBalanceWarning,
                             child: Icon(
                               Icons.warning_amber_outlined,
                               color: cs.error,
@@ -87,7 +88,9 @@ class CustomerCard extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         _MiniChip(
-                          label: customer.isActive ? 'Active' : 'Inactive',
+                          label: customer.isActive
+                              ? text.active
+                              : text.inactive,
                           icon: customer.isActive
                               ? Icons.check_circle_outline
                               : Icons.block_outlined,
@@ -114,17 +117,17 @@ class CustomerCard extends StatelessWidget {
                       runSpacing: 8,
                       children: [
                         _Metric(
-                          label: 'Open balance',
+                          label: text.openBalance,
                           value:
                               '${customer.balance.toStringAsFixed(2)} ${customer.currency}',
                         ),
                         _Metric(
-                          label: 'Credit balance',
+                          label: text.creditBalance,
                           value:
                               '${customer.creditBalance.toStringAsFixed(2)} ${customer.currency}',
                         ),
                         _Metric(
-                          label: 'Net receivable',
+                          label: text.netReceivable,
                           value:
                               '${customer.netReceivable.toStringAsFixed(2)} ${customer.currency}',
                         ),
@@ -141,7 +144,7 @@ class CustomerCard extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined, size: 19),
                       onPressed: onEdit,
-                      tooltip: 'Edit',
+                      tooltip: text.edit,
                     ),
                   if (onToggleActive != null)
                     IconButton(
@@ -155,8 +158,8 @@ class CustomerCard extends StatelessWidget {
                       ),
                       onPressed: onToggleActive,
                       tooltip: customer.isActive
-                          ? 'Make inactive'
-                          : 'Make active',
+                          ? text.makeInactive
+                          : text.makeActive,
                     ),
                 ],
               ),
@@ -166,6 +169,26 @@ class CustomerCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CustomerCardText {
+  const _CustomerCardText(this.ar);
+
+  final bool ar;
+
+  static _CustomerCardText of(BuildContext context) =>
+      _CustomerCardText(Localizations.localeOf(context).languageCode == 'ar');
+
+  String get openBalanceWarning =>
+      ar ? 'العميل لديه رصيد مفتوح' : 'Customer has open balance';
+  String get active => ar ? 'نشط' : 'Active';
+  String get inactive => ar ? 'غير نشط' : 'Inactive';
+  String get openBalance => ar ? 'الرصيد المفتوح' : 'Open balance';
+  String get creditBalance => ar ? 'رصيد الائتمان' : 'Credit balance';
+  String get netReceivable => ar ? 'صافي المستحق' : 'Net receivable';
+  String get edit => ar ? 'تعديل' : 'Edit';
+  String get makeInactive => ar ? 'تعطيل' : 'Make inactive';
+  String get makeActive => ar ? 'تفعيل' : 'Make active';
 }
 
 class _MiniChip extends StatelessWidget {
