@@ -17,7 +17,7 @@ final activeCompanyScopeProvider = Provider<String?>((ref) {
     companyRegistryProvider.select((state) => state.value?.activeCompany),
   );
   if (activeCompany == null) return null;
-  return '${activeCompany.id}|${activeCompany.databasePath}';
+  return '${activeCompany.id}|${activeCompany.databasePath}|${activeCompany.businessType.value}';
 });
 
 class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
@@ -58,6 +58,7 @@ class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
   Future<void> registerCompany({
     required String name,
     required String databasePath,
+    CompanyBusinessType? businessType,
     String? displayPath,
     bool makeActive = true,
   }) async {
@@ -68,6 +69,7 @@ class CompanyRegistryNotifier extends AsyncNotifier<CompanyRegistry> {
           .registerCompany(
             name: name,
             databasePath: databasePath,
+            businessType: businessType,
             displayPath: displayPath,
             makeActive: makeActive,
           ),

@@ -6,6 +6,7 @@ using Zayed.Core.Accounting;
 using Zayed.Core.Companies;
 using Zayed.Core.Customers;
 using Zayed.Core.Items;
+using Zayed.Core.Modules;
 using Zayed.Core.Security;
 using Zayed.Core.Settings;
 using Zayed.Core.Taxes;
@@ -64,7 +65,7 @@ public static class ZayedPersistence
         var dbContext = scope.ServiceProvider.GetRequiredService<ZayedDbContext>();
         await AdoptExistingSqliteSchemaAsync(dbContext);
         await dbContext.Database.MigrateAsync();
-        await SeedDefaultsAsync(dbContext, seedDemoData);
+        await SeedDefaultsAsync(dbContext, runtime.CompanyId, runtime.BusinessType, seedDemoData);
     }
 
     public static async Task ApplyCurrentCompanyDatabaseAsync(this IServiceProvider services, bool seedDefaults = true, CancellationToken cancellationToken = default)
@@ -90,7 +91,7 @@ public static class ZayedPersistence
             await createdDbContext.Database.EnsureCreatedAsync(cancellationToken);
             if (seedDefaults)
             {
-                await SeedDefaultsAsync(createdDbContext, seedDemoData);
+                await SeedDefaultsAsync(createdDbContext, runtime.CompanyId, runtime.BusinessType, seedDemoData);
             }
             return;
         }
@@ -107,7 +108,7 @@ public static class ZayedPersistence
             await repairedDbContext.Database.EnsureCreatedAsync(cancellationToken);
             if (seedDefaults)
             {
-                await SeedDefaultsAsync(repairedDbContext, seedDemoData);
+                await SeedDefaultsAsync(repairedDbContext, runtime.CompanyId, runtime.BusinessType, seedDemoData);
             }
             return;
         }
@@ -117,7 +118,7 @@ public static class ZayedPersistence
         await dbContext.Database.MigrateAsync(cancellationToken);
         if (seedDefaults)
         {
-            await SeedDefaultsAsync(dbContext, seedDemoData);
+            await SeedDefaultsAsync(dbContext, runtime.CompanyId, runtime.BusinessType, seedDemoData);
         }
     }
 
@@ -339,7 +340,7 @@ public static class ZayedPersistence
         await command.ExecuteNonQueryAsync();
     }
 
-    private static async Task SeedDefaultsAsync(ZayedDbContext dbContext, bool seedDemoData)
+    private static async Task SeedDefaultsAsync(ZayedDbContext dbContext, Guid? companyId, string businessType, bool seedDemoData)
     {
         var cashAccountId = Guid.Parse("10000000-0000-0000-0000-000000000001");
         var arAccountId = Guid.Parse("10000000-0000-0000-0000-000000000002");
@@ -359,6 +360,8 @@ public static class ZayedPersistence
         {
             dbContext.DeviceSettings.Add(new DeviceSettings("DEV01", Environment.MachineName));
         }
+
+        await SeedModulesAsync(dbContext, companyId, businessType);
 
         if (!await dbContext.Accounts.AnyAsync())
         {
@@ -439,6 +442,58 @@ public static class ZayedPersistence
         await SeedSecurityAsync(dbContext, seedDemoData);
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task SeedModulesAsync(ZayedDbContext dbContext, Guid? companyId, string businessType)
+    {
+        foreach (var module in ModuleSeedCatalog.Modules)
+        {
+            if (!await dbContext.Modules.AnyAsync(current => current.Code == module.Code))
+            {
+                dbContext.Modules.Add(module);
+            }
+        }
+
+        foreach (var defaults in ModuleSeedCatalog.DefaultsByBusinessType)
+        {
+            foreach (var moduleCode in defaults.Value)
+            {
+                var module = ModuleSeedCatalog.Modules.First(current => current.Code == moduleCode);
+                if (!await dbContext.BusinessTypeModuleDefaults.AnyAsync(current =>
+                    current.BusinessType == defaults.Key && current.ModuleId == module.Id))
+                {
+                    dbContext.BusinessTypeModuleDefaults.Add(new BusinessTypeModuleDefault(defaults.Key, module.Id, isEnabledByDefault: true));
+                }
+            }
+        }
+
+        foreach (var menuItem in ModuleSeedCatalog.MenuItems)
+        {
+            if (!await dbContext.MenuItems.AnyAsync(current => current.Id == menuItem.Id))
+            {
+                dbContext.MenuItems.Add(menuItem);
+            }
+        }
+
+        if (companyId is not Guid activeCompanyId || activeCompanyId == Guid.Empty)
+        {
+            return;
+        }
+
+        if (await dbContext.CompanyModules.AnyAsync(current => current.CompanyId == activeCompanyId))
+        {
+            return;
+        }
+
+        var normalizedBusinessType = BusinessTypes.NormalizeOrDefault(businessType);
+        var enabledModuleCodes = ModuleSeedCatalog.DefaultsByBusinessType.TryGetValue(normalizedBusinessType, out var configuredDefaults)
+            ? configuredDefaults
+            : ModuleSeedCatalog.DefaultsByBusinessType[BusinessTypes.Retail];
+
+        foreach (var module in ModuleSeedCatalog.Modules.Where(current => enabledModuleCodes.Contains(current.Code)))
+        {
+            dbContext.CompanyModules.Add(new CompanyModule(activeCompanyId, module.Id, isEnabled: true));
+        }
     }
 
     private static async Task SeedSecurityAsync(ZayedDbContext dbContext, bool seedDemoData)

@@ -305,13 +305,13 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
   String? _errorMessage;
 
   Future<void> _createDefaultCompany() async {
-    final companyName = await _askCompanyName();
-    if (!mounted || companyName == null) return;
+    final draft = await _askCompanyDetails();
+    if (!mounted || draft == null) return;
 
     final databasePath = await FilePicker.platform.saveFile(
       dialogTitle: _companyTexts(context).createCompanyFile,
       fileName:
-          '${_safeFileName(companyName)}${AppConstants.companyFileExtension}',
+          '${_safeFileName(draft.name)}${AppConstants.companyFileExtension}',
       type: FileType.custom,
       allowedExtensions: ['zayed'],
     );
@@ -327,8 +327,9 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
       await ref
           .read(companyRegistryProvider.notifier)
           .registerCompany(
-            name: companyName,
+            name: draft.name,
             databasePath: _ensureCompanyExtension(databasePath),
+            businessType: draft.businessType,
             displayPath: _ensureCompanyExtension(databasePath),
             makeActive: true,
           );
@@ -378,36 +379,78 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
     }
   }
 
-  Future<String?> _askCompanyName() async {
+  Future<_CreateCompanyDraft?> _askCompanyDetails() async {
     final controller = TextEditingController(text: 'Zayed Company');
-    final result = await showDialog<String>(
+    var selectedType = CompanyBusinessType.retail;
+    final result = await showDialog<_CreateCompanyDraft>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_companyTexts(context).companyName),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: _companyTexts(context).companyName,
-            border: const OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(_companyTexts(context).companyName),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: _companyTexts(context).companyName,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) {
+                    final name = controller.text.trim();
+                    Navigator.of(context).pop(
+                      name.isEmpty
+                          ? null
+                          : _CreateCompanyDraft(name, selectedType),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<CompanyBusinessType>(
+                  initialValue: selectedType,
+                  decoration: const InputDecoration(
+                    labelText: 'Business Type / نوع النشاط',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: CompanyBusinessType.values
+                      .map(
+                        (type) => DropdownMenuItem(
+                          value: type,
+                          child: Text('${type.labelEn} / ${type.labelAr}'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setDialogState(() => selectedType = value);
+                  },
+                ),
+              ],
+            ),
           ),
-          onSubmitted: (_) => Navigator.of(context).pop(controller.text.trim()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(_companyTexts(context).cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                Navigator.of(context).pop(
+                  name.isEmpty ? null : _CreateCompanyDraft(name, selectedType),
+                );
+              },
+              child: Text(_companyTexts(context).continueText),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(_companyTexts(context).cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(_companyTexts(context).continueText),
-          ),
-        ],
       ),
     );
     controller.dispose();
-    final trimmed = result?.trim();
-    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+    return result;
   }
 
   String _ensureCompanyExtension(String path) {
@@ -501,6 +544,13 @@ class _ActionsCardState extends ConsumerState<_ActionsCard> {
       ],
     );
   }
+}
+
+class _CreateCompanyDraft {
+  const _CreateCompanyDraft(this.name, this.businessType);
+
+  final String name;
+  final CompanyBusinessType businessType;
 }
 
 class _RecentCompaniesCard extends ConsumerWidget {

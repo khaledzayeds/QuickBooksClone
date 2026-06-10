@@ -3,6 +3,7 @@ namespace Zayed.Api.Contracts.Companies;
 public sealed record ActiveCompanyRuntimeResponse(
     Guid? CompanyId,
     string? CompanyName,
+    string BusinessType,
     string DatabasePath,
     bool IsActive,
     DateTimeOffset? OpenedAtUtc,
@@ -11,4 +12,5 @@ public sealed record ActiveCompanyRuntimeResponse(
 public sealed record OpenCompanyRequest(
     Guid CompanyId,
     string CompanyName,
-    string DatabasePath);
+    string DatabasePath,
+    string? BusinessType = null);

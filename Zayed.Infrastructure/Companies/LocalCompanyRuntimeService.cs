@@ -40,6 +40,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
         Guid companyId,
         string companyName,
         string databasePath,
+        string? businessType = null,
         CancellationToken cancellationToken = default)
     {
         if (companyId == Guid.Empty)
@@ -62,6 +63,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
             _active = new ActiveCompanyRuntime(
                 companyId,
                 companyName.Trim(),
+                BusinessTypes.NormalizeOrDefault(businessType),
                 NormalizeDatabasePath(databasePath),
                 IsActive: true,
                 OpenedAtUtc: DateTimeOffset.UtcNow,
@@ -109,6 +111,7 @@ public sealed class LocalCompanyRuntimeService : ICompanyRuntimeService
         return _active ?? new ActiveCompanyRuntime(
             CompanyId: null,
             CompanyName: null,
+            BusinessType: BusinessTypes.Retail,
             DatabasePath: NormalizeDatabasePath(_fallbackDatabasePath),
             IsActive: false,
             OpenedAtUtc: null,

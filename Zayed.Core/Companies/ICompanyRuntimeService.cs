@@ -10,6 +10,7 @@ public interface ICompanyRuntimeService
         Guid companyId,
         string companyName,
         string databasePath,
+        string? businessType = null,
         CancellationToken cancellationToken = default);
 
     Task<ActiveCompanyRuntime> CloseAsync(CancellationToken cancellationToken = default);

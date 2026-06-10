@@ -1,10 +1,33 @@
 import 'dart:convert';
 
+enum CompanyBusinessType {
+  retail('retail', 'Retail', 'محلات ومنتجات'),
+  hotelTourism('hotel_tourism', 'Hotel & Tourism', 'فنادق وسياحة'),
+  services('services', 'Services', 'خدمات'),
+  mixed('mixed', 'Mixed', 'نشاط مختلط');
+
+  const CompanyBusinessType(this.value, this.labelEn, this.labelAr);
+
+  final String value;
+  final String labelEn;
+  final String labelAr;
+
+  static CompanyBusinessType fromValue(Object? value) {
+    final raw = value?.toString().trim();
+    if (raw == null || raw.isEmpty) return CompanyBusinessType.retail;
+    for (final type in CompanyBusinessType.values) {
+      if (type.value == raw) return type;
+    }
+    return CompanyBusinessType.retail;
+  }
+}
+
 class LocalCompanyInfo {
   const LocalCompanyInfo({
     required this.id,
     required this.name,
     required this.databasePath,
+    required this.businessType,
     required this.createdAt,
     required this.lastOpenedAt,
     this.displayPath,
@@ -13,6 +36,7 @@ class LocalCompanyInfo {
   final String id;
   final String name;
   final String databasePath;
+  final CompanyBusinessType businessType;
   final String? displayPath;
   final DateTime createdAt;
   final DateTime lastOpenedAt;
@@ -21,6 +45,7 @@ class LocalCompanyInfo {
     String? id,
     String? name,
     String? databasePath,
+    CompanyBusinessType? businessType,
     String? displayPath,
     DateTime? createdAt,
     DateTime? lastOpenedAt,
@@ -29,6 +54,7 @@ class LocalCompanyInfo {
       id: id ?? this.id,
       name: name ?? this.name,
       databasePath: databasePath ?? this.databasePath,
+      businessType: businessType ?? this.businessType,
       displayPath: displayPath ?? this.displayPath,
       createdAt: createdAt ?? this.createdAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
@@ -39,6 +65,7 @@ class LocalCompanyInfo {
     'id': id,
     'name': name,
     'databasePath': databasePath,
+    'businessType': businessType.value,
     'displayPath': displayPath,
     'createdAt': createdAt.toIso8601String(),
     'lastOpenedAt': lastOpenedAt.toIso8601String(),
@@ -49,6 +76,7 @@ class LocalCompanyInfo {
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       databasePath: json['databasePath']?.toString() ?? '',
+      businessType: CompanyBusinessType.fromValue(json['businessType']),
       displayPath: json['displayPath']?.toString(),
       createdAt:
           DateTime.tryParse(json['createdAt']?.toString() ?? '') ??

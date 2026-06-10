@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zayed/l10n/app_localizations.dart';
 import '../../app/router.dart';
+import '../../features/navigation/models/navigation_models.dart';
+import '../../features/navigation/providers/navigation_provider.dart';
 import '../providers/sidebar_provider.dart';
 import '../theme/app_colors.dart';
 
@@ -18,6 +20,13 @@ class SidebarMenu extends ConsumerWidget {
     final location = GoRouterState.of(context).uri.toString();
     final l10n = AppLocalizations.of(context)!;
     final isCollapsed = collapsed;
+    final apiMenu = ref.watch(navigationMenuProvider).asData?.value;
+    final dynamicShortcuts = _dynamicShortcuts(
+      context: context,
+      items: apiMenu,
+      location: location,
+      isCollapsed: isCollapsed,
+    );
 
     return Container(
       color: AppColors.sidebarBg,
@@ -124,176 +133,235 @@ class SidebarMenu extends ConsumerWidget {
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
-              children: [
-                _ShortcutItem(
-                  icon: Icons.home_outlined,
-                  label: l10n.home,
-                  path: AppRoutes.dashboard,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.table_chart_outlined,
-                  label: l10n.plutoGridDemo,
-                  path: AppRoutes.playgroundPluto,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.business_outlined,
-                  label: l10n.myCompany,
-                  path: AppRoutes.companySettings,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: l10n.cashFlowHub,
-                  path: AppRoutes.cashFlowHub,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.trending_up_outlined,
-                  label: l10n.incomeTracker,
-                  path: AppRoutes.invoices,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.receipt_outlined,
-                  label: l10n.billTracker,
-                  path: AppRoutes.purchaseBills,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.calendar_today_outlined,
-                  label: l10n.calendar,
-                  path: AppRoutes.calendar,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.camera_alt_outlined,
-                  label: l10n.snapshots,
-                  path: AppRoutes.snapshots,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Divider(color: Colors.white12, height: 1),
-                ),
-                _ShortcutItem(
-                  icon: Icons.point_of_sale_outlined,
-                  label: l10n.salesReceipts,
-                  path: AppRoutes.salesReceipts,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.assignment_return_outlined,
-                  label: l10n.salesReturns,
-                  path: AppRoutes.salesReturns,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: l10n.customerCredits,
-                  path: AppRoutes.customerCredits,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.keyboard_return_outlined,
-                  label: l10n.purchaseReturns,
-                  path: AppRoutes.purchaseReturns,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.account_balance_outlined,
-                  label: l10n.vendorCredits,
-                  path: AppRoutes.vendorCredits,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Divider(color: Colors.white12, height: 1),
-                ),
-                _ShortcutItem(
-                  icon: Icons.account_balance_outlined,
-                  label: l10n.bankRegister,
-                  path: AppRoutes.bankingRegister,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.swap_horiz_outlined,
-                  label: l10n.bankTransfer,
-                  path: AppRoutes.bankingTransfers,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.south_west_outlined,
-                  label: l10n.makeDeposits,
-                  path: AppRoutes.bankingDeposits,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.edit_note_outlined,
-                  label: l10n.writeChecks,
-                  path: AppRoutes.bankingChecks,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.fact_check_outlined,
-                  label: l10n.reconcile,
-                  path: AppRoutes.bankingReconcile,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.list_alt_outlined,
-                  label: l10n.viewBalances,
-                  path: AppRoutes.chartOfAccounts,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.receipt_long_outlined,
-                  label: l10n.transactions,
-                  path: AppRoutes.transactions,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.description_outlined,
-                  label: l10n.runFavoriteReports,
-                  path: AppRoutes.reports,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-                _ShortcutItem(
-                  icon: Icons.window_outlined,
-                  label: l10n.openWindows,
-                  path: AppRoutes.openWindows,
-                  current: location,
-                  isCollapsed: isCollapsed,
-                ),
-              ],
+              children:
+                  dynamicShortcuts ??
+                  [
+                    _ShortcutItem(
+                      icon: Icons.home_outlined,
+                      label: l10n.home,
+                      path: AppRoutes.dashboard,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.table_chart_outlined,
+                      label: l10n.plutoGridDemo,
+                      path: AppRoutes.playgroundPluto,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.business_outlined,
+                      label: l10n.myCompany,
+                      path: AppRoutes.companySettings,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: l10n.cashFlowHub,
+                      path: AppRoutes.cashFlowHub,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.trending_up_outlined,
+                      label: l10n.incomeTracker,
+                      path: AppRoutes.invoices,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.receipt_outlined,
+                      label: l10n.billTracker,
+                      path: AppRoutes.purchaseBills,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.calendar_today_outlined,
+                      label: l10n.calendar,
+                      path: AppRoutes.calendar,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.camera_alt_outlined,
+                      label: l10n.snapshots,
+                      path: AppRoutes.snapshots,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(color: Colors.white12, height: 1),
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.point_of_sale_outlined,
+                      label: l10n.salesReceipts,
+                      path: AppRoutes.salesReceipts,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.assignment_return_outlined,
+                      label: l10n.salesReturns,
+                      path: AppRoutes.salesReturns,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: l10n.customerCredits,
+                      path: AppRoutes.customerCredits,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.keyboard_return_outlined,
+                      label: l10n.purchaseReturns,
+                      path: AppRoutes.purchaseReturns,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.account_balance_outlined,
+                      label: l10n.vendorCredits,
+                      path: AppRoutes.vendorCredits,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(color: Colors.white12, height: 1),
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.account_balance_outlined,
+                      label: l10n.bankRegister,
+                      path: AppRoutes.bankingRegister,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.swap_horiz_outlined,
+                      label: l10n.bankTransfer,
+                      path: AppRoutes.bankingTransfers,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.south_west_outlined,
+                      label: l10n.makeDeposits,
+                      path: AppRoutes.bankingDeposits,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.edit_note_outlined,
+                      label: l10n.writeChecks,
+                      path: AppRoutes.bankingChecks,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.fact_check_outlined,
+                      label: l10n.reconcile,
+                      path: AppRoutes.bankingReconcile,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.list_alt_outlined,
+                      label: l10n.viewBalances,
+                      path: AppRoutes.chartOfAccounts,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.receipt_long_outlined,
+                      label: l10n.transactions,
+                      path: AppRoutes.transactions,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.description_outlined,
+                      label: l10n.runFavoriteReports,
+                      path: AppRoutes.reports,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                    _ShortcutItem(
+                      icon: Icons.window_outlined,
+                      label: l10n.openWindows,
+                      path: AppRoutes.openWindows,
+                      current: location,
+                      isCollapsed: isCollapsed,
+                    ),
+                  ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+List<Widget>? _dynamicShortcuts({
+  required BuildContext context,
+  required List<NavigationMenuItem>? items,
+  required String location,
+  required bool isCollapsed,
+}) {
+  if (items == null || items.isEmpty) return null;
+
+  final languageCode = Localizations.localeOf(context).languageCode;
+  final shortcuts = _flattenNavigationMenu(items)
+      .where((item) => item.route != null && item.route!.trim().isNotEmpty)
+      .map(
+        (item) => _ShortcutItem(
+          icon: _iconFor(item.icon),
+          label: item.titleFor(languageCode),
+          path: item.route!,
+          current: location,
+          isCollapsed: isCollapsed,
+        ),
+      )
+      .toList();
+
+  if (shortcuts.isEmpty) return null;
+  return shortcuts;
+}
+
+Iterable<NavigationMenuItem> _flattenNavigationMenu(
+  Iterable<NavigationMenuItem> items,
+) sync* {
+  for (final item in items) {
+    yield item;
+    yield* _flattenNavigationMenu(item.children);
+  }
+}
+
+IconData _iconFor(String icon) {
+  return switch (icon.toLowerCase()) {
+    'accounts' || 'bank' => Icons.account_balance_outlined,
+    'agent' || 'customers' => Icons.groups_outlined,
+    'availability' || 'calendar' => Icons.calendar_today_outlined,
+    'business' => Icons.business_outlined,
+    'contract' || 'order' => Icons.assignment_outlined,
+    'departures' => Icons.logout_outlined,
+    'edit' => Icons.edit_note_outlined,
+    'hotel' => Icons.hotel_outlined,
+    'inventory' => Icons.inventory_2_outlined,
+    'invoice' || 'receipt' => Icons.receipt_long_outlined,
+    'pos' => Icons.point_of_sale_outlined,
+    'reports' => Icons.description_outlined,
+    'return' => Icons.keyboard_return_outlined,
+    'rooms' => Icons.meeting_room_outlined,
+    'vendors' => Icons.storefront_outlined,
+    'wallet' => Icons.account_balance_wallet_outlined,
+    _ => Icons.circle_outlined,
+  };
 }
 
 class _ShortcutItem extends StatelessWidget {

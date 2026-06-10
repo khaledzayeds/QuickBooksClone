@@ -9,6 +9,7 @@ using Zayed.Core.InventoryAdjustments;
 using Zayed.Core.Invoices;
 using Zayed.Core.Items;
 using Zayed.Core.JournalEntries;
+using Zayed.Core.Modules;
 using Zayed.Core.Payments;
 using Zayed.Core.PurchaseBills;
 using Zayed.Core.PurchaseOrders;
@@ -65,6 +66,10 @@ public sealed class ZayedDbContext : DbContext
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<VendorCreditActivity> VendorCreditActivities => Set<VendorCreditActivity>();
     public DbSet<VendorPayment> VendorPayments => Set<VendorPayment>();
+    public DbSet<ModuleDefinition> Modules => Set<ModuleDefinition>();
+    public DbSet<CompanyModule> CompanyModules => Set<CompanyModule>();
+    public DbSet<BusinessTypeModuleDefault> BusinessTypeModuleDefaults => Set<BusinessTypeModuleDefault>();
+    public DbSet<MenuItemDefinition> MenuItems => Set<MenuItemDefinition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -94,6 +99,7 @@ public sealed class ZayedDbContext : DbContext
         ConfigureVendors(modelBuilder);
         ConfigureVendorCredits(modelBuilder);
         ConfigureVendorPayments(modelBuilder);
+        ConfigureModules(modelBuilder);
     }
 
     private static void ConfigureAccounts(ModelBuilder modelBuilder)
@@ -886,6 +892,58 @@ public sealed class ZayedDbContext : DbContext
             entity.Property(payment => payment.Status).HasConversion<int>().IsRequired();
             ConfigureMoney(entity.Property(payment => payment.Amount));
             entity.HasIndex(payment => payment.PaymentNumber).IsUnique();
+        });
+    }
+
+    private static void ConfigureModules(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ModuleDefinition>(entity =>
+        {
+            entity.ToTable("modules");
+            ConfigureEntityBase(entity);
+            entity.Property(module => module.Code).HasMaxLength(80).IsRequired();
+            entity.Property(module => module.Name).HasMaxLength(150).IsRequired();
+            entity.Property(module => module.Description).HasMaxLength(500);
+            entity.Property(module => module.IsActive).IsRequired();
+            entity.HasIndex(module => module.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<CompanyModule>(entity =>
+        {
+            entity.ToTable("company_modules");
+            ConfigureEntityBase(entity);
+            entity.Property(module => module.CompanyId).IsRequired();
+            entity.Property(module => module.ModuleId).IsRequired();
+            entity.Property(module => module.IsEnabled).IsRequired();
+            entity.HasIndex(module => module.CompanyId);
+            entity.HasIndex(module => new { module.CompanyId, module.ModuleId }).IsUnique();
+        });
+
+        modelBuilder.Entity<BusinessTypeModuleDefault>(entity =>
+        {
+            entity.ToTable("business_type_module_defaults");
+            ConfigureEntityBase(entity);
+            entity.Property(module => module.BusinessType).HasMaxLength(50).IsRequired();
+            entity.Property(module => module.ModuleId).IsRequired();
+            entity.Property(module => module.IsEnabledByDefault).IsRequired();
+            entity.HasIndex(module => new { module.BusinessType, module.ModuleId }).IsUnique();
+        });
+
+        modelBuilder.Entity<MenuItemDefinition>(entity =>
+        {
+            entity.ToTable("menu_items");
+            ConfigureEntityBase(entity);
+            entity.Property(menuItem => menuItem.ModuleCode).HasMaxLength(80).IsRequired();
+            entity.Property(menuItem => menuItem.ParentId);
+            entity.Property(menuItem => menuItem.TitleAr).HasMaxLength(150).IsRequired();
+            entity.Property(menuItem => menuItem.TitleEn).HasMaxLength(150).IsRequired();
+            entity.Property(menuItem => menuItem.Route).HasMaxLength(250);
+            entity.Property(menuItem => menuItem.Icon).HasMaxLength(80).IsRequired();
+            entity.Property(menuItem => menuItem.SortOrder).IsRequired();
+            entity.Property(menuItem => menuItem.IsActive).IsRequired();
+            entity.HasIndex(menuItem => menuItem.ModuleCode);
+            entity.HasIndex(menuItem => menuItem.ParentId);
+            entity.HasIndex(menuItem => menuItem.Route);
         });
     }
 

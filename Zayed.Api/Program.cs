@@ -12,6 +12,7 @@ using Zayed.Core.InventoryAdjustments;
 using Zayed.Core.Items;
 using Zayed.Core.JournalEntries;
 using Zayed.Core.Licensing;
+using Zayed.Core.Modules;
 using Zayed.Core.OpeningBalances;
 using Zayed.Core.Payments;
 using Zayed.Core.PrintTemplates;
@@ -41,6 +42,7 @@ using Zayed.Infrastructure.InventoryAdjustments;
 using Zayed.Infrastructure.Items;
 using Zayed.Infrastructure.JournalEntries;
 using Zayed.Infrastructure.Licensing;
+using Zayed.Infrastructure.Modules;
 using Zayed.Infrastructure.OpeningBalances;
 using Zayed.Infrastructure.Persistence;
 using Zayed.Infrastructure.Payments;
@@ -123,6 +125,7 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ILicenseFeatureAccessService, ConfigurationLicenseFeatureAccessService>();
 builder.Services.AddScoped<ILicenseActivationService, ConfigurationLicenseActivationService>();
+builder.Services.AddScoped<ICompanyModuleAccessService, CompanyModuleAccessService>();
 builder.Services.AddSingleton<ILicensePackageSigningService>(_ =>
 {
     var privateKey = builder.Configuration["Licensing:PrivateKey"]

@@ -30,6 +30,7 @@ class CompanyRegistryRepository {
   Future<CompanyRegistry> registerCompany({
     required String name,
     required String databasePath,
+    CompanyBusinessType? businessType,
     String? displayPath,
     bool makeActive = true,
   }) async {
@@ -56,6 +57,7 @@ class CompanyRegistryRepository {
     if (existingIndex >= 0) {
       company = companies[existingIndex].copyWith(
         name: normalizedName,
+        businessType: businessType,
         displayPath: displayPath,
         lastOpenedAt: now,
       );
@@ -65,6 +67,7 @@ class CompanyRegistryRepository {
         id: _uuid.v4(),
         name: normalizedName,
         databasePath: normalizedPath,
+        businessType: businessType ?? CompanyBusinessType.retail,
         displayPath: displayPath,
         createdAt: now,
         lastOpenedAt: now,
@@ -168,6 +171,7 @@ class CompanyRegistryRepository {
         companyId: company.id,
         companyName: company.name,
         databasePath: company.databasePath,
+        businessType: company.businessType.value,
       ),
     );
 

@@ -33,6 +33,7 @@ import '../features/estimates/screens/estimate_list_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_details_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_form_screen.dart';
 import '../features/inventory_adjustments/screens/inventory_adjustment_list_screen.dart';
+import '../features/hotels/screens/hotel_placeholder_screen.dart';
 import '../features/invoices/screens/invoice_form_page_shell.dart';
 import '../features/invoices/screens/invoices_list_page.dart';
 import '../features/items/screens/item_bulk_edit_screen.dart';
@@ -196,6 +197,21 @@ class AppRoutes {
   static const cashFlowHub = '/company/cash-flow-hub';
   static const myCompany = '/company/profile';
   static const openWindows = '/company/open-windows';
+  static const hotels = '/hotels';
+  static const hotelContracts = '/hotels/contracts';
+  static const hotelAllotmentHotel = '/hotels/allotment/hotel';
+  static const hotelAllotmentAgent = '/hotels/allotment/agent';
+  static const hotelOverAllotmentHotel = '/hotels/over-allotment/hotel';
+  static const hotelOverAllotmentAgent = '/hotels/over-allotment/agent';
+  static const hotelReservationIndividual = '/hotels/reservations/individual';
+  static const hotelReservationEdit = '/hotels/reservations/edit';
+  static const hotelAvailabilityReport = '/hotels/reports/availability';
+  static const hotelOperationsArrivals = '/hotels/reports/operations/arrivals';
+  static const hotelOperationsDepartures =
+      '/hotels/reports/operations/departures';
+  static const hotelOperationsInHouse = '/hotels/reports/operations/in-house';
+  static const hotelOperationsArrivalInHouse =
+      '/hotels/reports/operations/arrival-in-house';
 
   // Design Playground
   static const playgroundTable = '/playground/table';
@@ -284,6 +300,108 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.dashboard,
             builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.hotels,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: 'Hotels',
+              moduleCode: 'hotels',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelContracts,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: 'Hotel Contracts',
+              moduleCode: 'hotel_contracts',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelAllotmentHotel,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '300 - Hotel Allotment',
+              code: '300',
+              moduleCode: 'hotel_allotment',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelAllotmentAgent,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '301 - Agent Allotment',
+              code: '301',
+              moduleCode: 'hotel_allotment',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelOverAllotmentHotel,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '302 - Hotel Over Allotment',
+              code: '302',
+              moduleCode: 'hotel_allotment',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelOverAllotmentAgent,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '303 - Agent Over Allotment',
+              code: '303',
+              moduleCode: 'hotel_allotment',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelReservationIndividual,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '400 - Individual Reservation',
+              code: '400',
+              moduleCode: 'hotel_reservations',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelReservationEdit,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '403 - Edit Reservations',
+              code: '403',
+              moduleCode: 'hotel_reservations',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelAvailabilityReport,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '700 - Availability',
+              code: '700',
+              moduleCode: 'hotel_availability',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelOperationsArrivals,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '7011 - Arrivals during period',
+              code: '7011',
+              moduleCode: 'hotel_operations_reports',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelOperationsDepartures,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '7012 - Departures during period',
+              code: '7012',
+              moduleCode: 'hotel_operations_reports',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelOperationsInHouse,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '7013 - In House During Period',
+              code: '7013',
+              moduleCode: 'hotel_operations_reports',
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.hotelOperationsArrivalInHouse,
+            builder: (context, state) => const HotelPlaceholderScreen(
+              title: '7014 - Arrival + In House',
+              code: '7014',
+              moduleCode: 'hotel_operations_reports',
+            ),
           ),
           GoRoute(
             path: AppRoutes.items,

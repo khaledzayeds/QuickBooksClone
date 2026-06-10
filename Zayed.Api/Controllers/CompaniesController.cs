@@ -54,11 +54,22 @@ public sealed class CompaniesController : ControllerBase
                 return BadRequest("Database path is required.");
             }
 
+            string businessType;
+            try
+            {
+                businessType = BusinessTypes.NormalizeOrDefault(request.BusinessType);
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest("Unsupported business type.");
+            }
+
             _logger.LogInformation("Open company {CompanyId}: before runtime open. DatabasePath={DatabasePath}", request.CompanyId, request.DatabasePath);
             var runtime = await _runtime.OpenAsync(
                 request.CompanyId,
                 request.CompanyName,
                 request.DatabasePath,
+                businessType,
                 openCancellationToken);
             _logger.LogInformation("Open company {CompanyId}: runtime open completed.", request.CompanyId);
 
@@ -103,6 +114,7 @@ public sealed class CompaniesController : ControllerBase
         return new ActiveCompanyRuntimeResponse(
             runtime.CompanyId,
             runtime.CompanyName,
+            runtime.BusinessType,
             runtime.DatabasePath,
             runtime.IsActive,
             runtime.OpenedAtUtc,
