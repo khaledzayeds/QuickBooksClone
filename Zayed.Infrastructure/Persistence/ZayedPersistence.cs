@@ -359,6 +359,22 @@ public static class ZayedPersistence
         var incomeAccountId = Guid.Parse("10000000-0000-0000-0000-000000000006");
         var cogsAccountId = Guid.Parse("10000000-0000-0000-0000-000000000007");
         var expenseAccountId = Guid.Parse("10000000-0000-0000-0000-000000000008");
+        var hotelRoomRevenueAccountId = Guid.Parse("10000000-0000-0000-0000-000000000020");
+        var hotelMealRevenueAccountId = Guid.Parse("10000000-0000-0000-0000-000000000021");
+        var hotelServiceRevenueAccountId = Guid.Parse("10000000-0000-0000-0000-000000000022");
+        var tourismPackageRevenueAccountId = Guid.Parse("10000000-0000-0000-0000-000000000023");
+        var hotelCancellationFeesRevenueAccountId = Guid.Parse("10000000-0000-0000-0000-000000000024");
+        var hotelRoomCostAccountId = Guid.Parse("10000000-0000-0000-0000-000000000025");
+        var hotelMealCostAccountId = Guid.Parse("10000000-0000-0000-0000-000000000026");
+        var hotelContractCostAccountId = Guid.Parse("10000000-0000-0000-0000-000000000027");
+        var tourismPackageCostAccountId = Guid.Parse("10000000-0000-0000-0000-000000000028");
+        var hotelAgentsReceivableAccountId = Guid.Parse("10000000-0000-0000-0000-000000000029");
+        var hotelGuestReceivableAccountId = Guid.Parse("10000000-0000-0000-0000-000000000030");
+        var hotelSuppliersPayableAccountId = Guid.Parse("10000000-0000-0000-0000-000000000031");
+        var hotelAccruedPayablesAccountId = Guid.Parse("10000000-0000-0000-0000-000000000032");
+        var customerAdvanceDepositsAccountId = Guid.Parse("10000000-0000-0000-0000-000000000033");
+        var hotelAdvancePaymentsAccountId = Guid.Parse("10000000-0000-0000-0000-000000000034");
+        var deferredHotelRevenueAccountId = Guid.Parse("10000000-0000-0000-0000-000000000035");
 
         if (!await dbContext.DeviceSettings.AnyAsync())
         {
@@ -387,6 +403,26 @@ public static class ZayedPersistence
             await EnsureAccountAsync(dbContext, grniAccountId, "2050", "Inventory Received Not Billed", AccountType.OtherCurrentLiability);
             await EnsureAccountAsync(dbContext, salesTaxPayableAccountId, "2100", "Sales Tax Payable", AccountType.OtherCurrentLiability);
             await EnsureAccountAsync(dbContext, purchaseTaxReceivableAccountId, "1300", "Input VAT Receivable", AccountType.OtherCurrentAsset);
+        }
+
+        if (ShouldSeedHotelAccounts(businessType))
+        {
+            await EnsureAccountAsync(dbContext, hotelAgentsReceivableAccountId, "1110", "Hotel Agents Receivable", AccountType.AccountsReceivable);
+            await EnsureAccountAsync(dbContext, hotelGuestReceivableAccountId, "1120", "Hotel Guest Receivable", AccountType.AccountsReceivable);
+            await EnsureAccountAsync(dbContext, hotelAdvancePaymentsAccountId, "1310", "Hotel Advance Payments", AccountType.OtherCurrentAsset);
+            await EnsureAccountAsync(dbContext, hotelSuppliersPayableAccountId, "2010", "Hotel Suppliers Payable", AccountType.AccountsPayable);
+            await EnsureAccountAsync(dbContext, hotelAccruedPayablesAccountId, "2060", "Hotel Accrued Payables", AccountType.OtherCurrentLiability);
+            await EnsureAccountAsync(dbContext, customerAdvanceDepositsAccountId, "2200", "Customer Advance Deposits", AccountType.OtherCurrentLiability);
+            await EnsureAccountAsync(dbContext, deferredHotelRevenueAccountId, "2300", "Deferred Hotel Revenue", AccountType.OtherCurrentLiability);
+            await EnsureAccountAsync(dbContext, hotelRoomRevenueAccountId, "4100", "Hotel Room Revenue", AccountType.Income);
+            await EnsureAccountAsync(dbContext, hotelMealRevenueAccountId, "4110", "Hotel Meal Revenue", AccountType.Income);
+            await EnsureAccountAsync(dbContext, hotelServiceRevenueAccountId, "4120", "Hotel Service Revenue", AccountType.Income);
+            await EnsureAccountAsync(dbContext, tourismPackageRevenueAccountId, "4130", "Tourism Package Revenue", AccountType.Income);
+            await EnsureAccountAsync(dbContext, hotelCancellationFeesRevenueAccountId, "4140", "Cancellation Fees Revenue", AccountType.OtherIncome);
+            await EnsureAccountAsync(dbContext, hotelRoomCostAccountId, "5100", "Hotel Room Cost", AccountType.CostOfGoodsSold);
+            await EnsureAccountAsync(dbContext, hotelMealCostAccountId, "5110", "Hotel Meal Cost", AccountType.CostOfGoodsSold);
+            await EnsureAccountAsync(dbContext, hotelContractCostAccountId, "5120", "Hotel Contract Cost", AccountType.CostOfGoodsSold);
+            await EnsureAccountAsync(dbContext, tourismPackageCostAccountId, "5130", "Tourism Package Cost", AccountType.CostOfGoodsSold);
         }
 
         if (!await dbContext.TaxCodes.AnyAsync())
@@ -446,6 +482,12 @@ public static class ZayedPersistence
         await SeedSecurityAsync(dbContext, seedDemoData);
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private static bool ShouldSeedHotelAccounts(string businessType)
+    {
+        var normalized = BusinessTypes.NormalizeOrDefault(businessType);
+        return normalized is BusinessTypes.HotelTourism or BusinessTypes.Mixed;
     }
 
     private static async Task SeedModulesAsync(ZayedDbContext dbContext, Guid? companyId, string businessType)
