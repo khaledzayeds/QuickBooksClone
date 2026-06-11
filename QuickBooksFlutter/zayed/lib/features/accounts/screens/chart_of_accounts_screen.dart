@@ -10,7 +10,6 @@ import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../settings/providers/setup_provider.dart';
 import '../data/models/account_model.dart';
 import '../providers/accounts_provider.dart';
 import '../widgets/account_card.dart';
@@ -37,20 +36,9 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
   @override
   Widget build(BuildContext context) {
     final accounts = ref.watch(accountsProvider);
-    final setupState = ref.watch(setupProvider);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
-
-    ref.listen(setupProvider, (previous, next) {
-      if (next.successMessage != null &&
-          previous?.successMessage != next.successMessage) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.successMessage!)));
-        ref.read(accountsProvider.notifier).refresh();
-      }
-    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFE8EDF0),
@@ -78,13 +66,9 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                     onTap: () => ref.read(accountsProvider.notifier).refresh(),
                   ),
                   _Tool(
-                    icon: setupState.submitting
-                        ? Icons.hourglass_empty
-                        : Icons.account_tree_outlined,
+                    icon: Icons.account_tree_outlined,
                     label: l10n.seedDefaults,
-                    onTap: setupState.submitting
-                        ? null
-                        : ref.read(setupProvider.notifier).seedDefaultAccounts,
+                    onTap: () => ref.read(accountsProvider.notifier).refresh(),
                   ),
                   const Spacer(),
                   _Tool(
@@ -273,17 +257,6 @@ class _ChartOfAccountsScreenState extends ConsumerState<ChartOfAccountsScreen> {
                           value:
                               '${creditBalance.toStringAsFixed(2)} ${l10n.egp}',
                         ),
-                        if (setupState.defaultAccountsSeed != null) ...[
-                          _vDivider(),
-                          Text(
-                            l10n.seedCreated(
-                              setupState.defaultAccountsSeed!.createdCount,
-                            ),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: cs.primary,
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
