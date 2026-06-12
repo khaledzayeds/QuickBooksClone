@@ -1,6 +1,5 @@
 // document_print_preview_dialog.dart
 
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -14,6 +13,7 @@ import '../../settings/data/models/printing_settings_model.dart';
 import '../data/models/print_data_contracts.dart';
 import '../providers/printing_provider.dart';
 import '../services/document_pdf_service.dart';
+import '../services/windows_print_spooler_cleanup_service.dart';
 
 Future<void> showDocumentPrintPreviewDialog({
   required BuildContext context,
@@ -244,24 +244,7 @@ PdfPageFormat _thermalPageFormat(
   return PdfPageFormat(width, safeHeightMm * PdfPageFormat.mm);
 }
 
-/// Cleans only failed Windows spooler jobs before printing.
-Future<void> _clearStalePrintJobs(String? printerName) async {
-  if (!Platform.isWindows) return;
-  final name = printerName?.trim();
-  if (name == null || name.isEmpty) return;
-  try {
-    await Process.run('powershell', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-Command',
-      'Get-PrintJob -PrinterName "$name" -ErrorAction SilentlyContinue | '
-          r'Where-Object { $_.JobState -match "Error" -or $_.JobState -match "Paused" -or $_.JobState -match "Offline" } | '
-          'Remove-PrintJob -ErrorAction SilentlyContinue',
-    ]);
-  } catch (_) {
-    // Ignore failures; some printer drivers do not expose queue state.
-  }
-}
+const _spoolerCleanup = WindowsPrintSpoolerCleanupService();
 
 /// Prints directly to the stored printer URL with no system dialog.
 /// Falls back to the OS print dialog only if no printer URL is configured.
@@ -274,7 +257,7 @@ Future<void> _printDirectOrDialog({
   final url = printerUrl?.trim();
   if (url != null && url.isNotEmpty) {
     // Clear stale/error jobs BEFORE printing to avoid queue backlog.
-    await _clearStalePrintJobs(url);
+    await _spoolerCleanup.clearProblemJobs(url);
     await Printing.directPrintPdf(
       printer: Printer(url: url),
       name: name,
@@ -283,6 +266,10 @@ Future<void> _printDirectOrDialog({
       usePrinterSettings: false,
       forceCustomPrintPaper: true,
       onLayout: (_) => bytesBuilder(),
+    );
+    await _spoolerCleanup.scheduleDelayedCleanup(
+      printerName: url,
+      documentName: name,
     );
     return;
   }
@@ -306,7 +293,7 @@ Future<void> _printPdf({
 }) async {
   final url = printerName?.trim();
   if (url != null && url.isNotEmpty) {
-    await _clearStalePrintJobs(url);
+    await _spoolerCleanup.clearProblemJobs(url);
     await Printing.directPrintPdf(
       printer: Printer(url: url),
       name: name,
@@ -315,6 +302,10 @@ Future<void> _printPdf({
       usePrinterSettings: false,
       forceCustomPrintPaper: true,
       onLayout: (_) => bytesBuilder(),
+    );
+    await _spoolerCleanup.scheduleDelayedCleanup(
+      printerName: url,
+      documentName: name,
     );
     return;
   }

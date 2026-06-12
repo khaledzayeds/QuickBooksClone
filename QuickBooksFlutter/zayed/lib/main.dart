@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'core/api/api_client.dart';
 import 'core/api/local_backend_bootstrap.dart';
+import 'features/printing/services/windows_print_spooler_cleanup_service.dart';
+import 'features/settings/data/printing_settings_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +34,19 @@ class _StartupGateState extends State<StartupGate> {
   Future<void> _start() async {
     await LocalBackendBootstrap.ensureStarted();
     ApiClient.instance.init();
+    await _clearStartupPrintQueueIssues();
+  }
+
+  Future<void> _clearStartupPrintQueueIssues() async {
+    try {
+      final settings = await PrintingSettingsRepository().load();
+      await const WindowsPrintSpoolerCleanupService().clearStartupProblemJobs([
+        settings.a4PrinterName,
+        settings.thermalPrinterName,
+      ]);
+    } catch (_) {
+      // Startup must not fail because a printer driver cannot report queue state.
+    }
   }
 
   void _retry() {
