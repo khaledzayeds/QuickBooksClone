@@ -34,6 +34,7 @@ class _ItemBarcodeCenterScreenState
   bool _showPrice = true;
   bool _showCompanyName = false;
   bool _printing = false;
+  bool _generatingBarcodes = false;
 
   @override
   void dispose() {
@@ -44,6 +45,10 @@ class _ItemBarcodeCenterScreenState
   @override
   Widget build(BuildContext context) {
     final itemsState = ref.watch(itemsProvider);
+    final loadedItems = itemsState.maybeWhen(
+      data: (items) => items,
+      orElse: () => null,
+    );
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
@@ -51,7 +56,7 @@ class _ItemBarcodeCenterScreenState
       backgroundColor: cs.surface,
       body: Column(
         children: [
-          _toolStrip(context, l10n),
+          _toolStrip(context, l10n, loadedItems),
           Expanded(
             child: itemsState.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -85,8 +90,19 @@ class _ItemBarcodeCenterScreenState
     );
   }
 
-  Widget _toolStrip(BuildContext context, AppLocalizations l10n) {
+  Widget _toolStrip(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<ItemModel>? items,
+  ) {
     final cs = Theme.of(context).colorScheme;
+    final missingCount =
+        items
+            ?.where(
+              (item) => item.isActive && (item.barcode ?? '').trim().isEmpty,
+            )
+            .length ??
+        0;
     return Container(
       height: 42,
       decoration: BoxDecoration(
@@ -111,6 +127,16 @@ class _ItemBarcodeCenterScreenState
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const Spacer(),
+          _ToolButton(
+            icon: _generatingBarcodes
+                ? Icons.hourglass_empty
+                : Icons.qr_code_scanner_outlined,
+            label: l10n.generateMissingBarcodesCount(missingCount),
+            onTap: missingCount == 0 || _generatingBarcodes
+                ? null
+                : () => _confirmGenerateMissingBarcodes(missingCount),
+          ),
+          const SizedBox(width: 8),
           _ToolButton(
             icon: Icons.refresh,
             label: l10n.refresh,
@@ -578,6 +604,56 @@ class _ItemBarcodeCenterScreenState
     }
   }
 
+  Future<void> _confirmGenerateMissingBarcodes(int missingCount) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.generateMissingBarcodes),
+        content: Text(l10n.generateMissingBarcodesConfirm(missingCount)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.qr_code_scanner_outlined),
+            label: Text(l10n.generate),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _generateMissingBarcodes();
+    }
+  }
+
+  Future<void> _generateMissingBarcodes() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _generatingBarcodes = true);
+    final result = await ref
+        .read(itemsProvider.notifier)
+        .generateMissingBarcodes();
+    if (!mounted) return;
+    setState(() {
+      _generatingBarcodes = false;
+      _filter = _BarcodeFilter.all;
+    });
+    result.when(
+      success: (updatedCount) {
+        _snack(l10n.generatedMissingBarcodes(updatedCount));
+      },
+      failure: (error) {
+        _snack(
+          l10n.generateMissingBarcodesFailed(error.toString()),
+          isError: true,
+        );
+      },
+    );
+  }
+
   void _snack(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -607,7 +683,7 @@ class _ToolButton extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

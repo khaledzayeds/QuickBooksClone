@@ -68,6 +68,37 @@ public sealed class InMemoryItemRepository : IItemRepository
         return Task.FromResult(item);
     }
 
+    public Task<int> GenerateMissingBarcodesAsync(CancellationToken cancellationToken = default)
+    {
+        var used = _items.Values
+            .Select(item => item.Barcode?.Trim())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var updated = 0;
+
+        foreach (var item in _items.Values.Where(item => item.IsActive && string.IsNullOrWhiteSpace(item.Barcode)).OrderBy(item => item.Name))
+        {
+            var barcode = GenerateInternalBarcode(used);
+            used.Add(barcode);
+            item.Update(
+                item.Name,
+                item.ItemType,
+                item.Sku,
+                barcode,
+                item.SalesPrice,
+                item.PurchasePrice,
+                item.Unit,
+                item.IncomeAccountId,
+                item.InventoryAssetAccountId,
+                item.CogsAccountId,
+                item.ExpenseAccountId);
+            updated++;
+        }
+
+        return Task.FromResult(updated);
+    }
+
     public Task<Item?> UpdateAsync(
         Guid id,
         string name,
@@ -149,6 +180,31 @@ public sealed class InMemoryItemRepository : IItemRepository
     private static bool Same(string? left, string right)
     {
         return string.Equals(left?.Trim(), right.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GenerateInternalBarcode(HashSet<string> used)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var baseDigits = $"200{Random.Shared.Next(0, 1_000_000_000):D9}";
+            var barcode = WithEan13CheckDigit(baseDigits);
+            if (!used.Contains(barcode)) return barcode;
+        }
+
+        return WithEan13CheckDigit($"200{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000_000:D9}");
+    }
+
+    private static string WithEan13CheckDigit(string first12Digits)
+    {
+        var sum = 0;
+        for (var i = 0; i < first12Digits.Length; i++)
+        {
+            var digit = first12Digits[i] - '0';
+            sum += i % 2 == 0 ? digit : digit * 3;
+        }
+
+        var checkDigit = (10 - (sum % 10)) % 10;
+        return $"{first12Digits}{checkDigit}";
     }
 
     private void Seed(Item item)

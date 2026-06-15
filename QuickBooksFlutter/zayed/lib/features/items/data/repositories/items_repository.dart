@@ -47,6 +47,9 @@ class ItemsRepository {
     value: value,
   );
 
+  Future<ApiResult<int>> generateMissingBarcodes() =>
+      _datasource.generateMissingBarcodes();
+
   Future<ApiResult<String>> exportCsv() => _datasource.exportCsv();
 
   Future<ApiResult<List<Map<String, dynamic>>>> exportItemsJson() =>

@@ -890,6 +890,12 @@ abstract class AppLocalizations {
   /// **'مركز الباركود'**
   String get barcodeCenter;
 
+  /// No description provided for @generate.
+  ///
+  /// In ar, this message translates to:
+  /// **'توليد'**
+  String get generate;
+
   /// No description provided for @generateBarcode.
   ///
   /// In ar, this message translates to:
@@ -1897,6 +1903,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'باركود مفقود'**
   String get missingBarcode;
+
+  /// No description provided for @generateMissingBarcodes.
+  ///
+  /// In ar, this message translates to:
+  /// **'توليد الباركود الناقص'**
+  String get generateMissingBarcodes;
+
+  /// No description provided for @generateMissingBarcodesCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'توليد الناقص ({count})'**
+  String generateMissingBarcodesCount(int count);
+
+  /// No description provided for @generateMissingBarcodesConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيتم توليد باركود داخلي لعدد {count} صنف نشط لا يحتوي على باركود. هل تريد المتابعة؟'**
+  String generateMissingBarcodesConfirm(int count);
+
+  /// No description provided for @generatedMissingBarcodes.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم توليد باركود لعدد {count} صنف.'**
+  String generatedMissingBarcodes(int count);
+
+  /// No description provided for @generateMissingBarcodesFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذر توليد الباركود الناقص: {error}'**
+  String generateMissingBarcodesFailed(String error);
 
   /// No description provided for @internal200.
   ///

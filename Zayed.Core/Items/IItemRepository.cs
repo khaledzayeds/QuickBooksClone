@@ -8,6 +8,7 @@ public interface IItemRepository
     Task<bool> SkuExistsAsync(string sku, Guid? excludingId = null, CancellationToken cancellationToken = default);
     Task<bool> BarcodeExistsAsync(string barcode, Guid? excludingId = null, CancellationToken cancellationToken = default);
     Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default);
+    Task<int> GenerateMissingBarcodesAsync(CancellationToken cancellationToken = default);
     Task<Item?> UpdateAsync(
         Guid id,
         string name,

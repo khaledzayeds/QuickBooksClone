@@ -196,12 +196,80 @@ public sealed class EfItemRepository : IItemRepository
     public Task<bool> SkuExistsAsync(string sku, Guid? excludingId = null, CancellationToken cancellationToken = default) => _db.Items.AnyAsync(item => item.Id != excludingId && item.Sku == sku.Trim(), cancellationToken);
     public Task<bool> BarcodeExistsAsync(string barcode, Guid? excludingId = null, CancellationToken cancellationToken = default) => _db.Items.AnyAsync(item => item.Id != excludingId && item.Barcode == barcode.Trim(), cancellationToken);
     public async Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default) { _db.Items.Add(item); await _db.SaveChangesAsync(cancellationToken); return item; }
+    public async Task<int> GenerateMissingBarcodesAsync(CancellationToken cancellationToken = default)
+    {
+        var items = await _db.Items
+            .Where(item => item.IsActive && (item.Barcode == null || item.Barcode == ""))
+            .OrderBy(item => item.Name)
+            .ToListAsync(cancellationToken);
+
+        if (items.Count == 0) return 0;
+
+        var existing = await _db.Items
+            .Where(item => item.Barcode != null && item.Barcode != "")
+            .Select(item => item.Barcode!)
+            .ToListAsync(cancellationToken);
+        var used = existing.Select(value => value.Trim()).Where(value => value.Length > 0).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in items)
+        {
+            var barcode = GenerateInternalBarcode(used);
+            used.Add(barcode);
+            item.Update(
+                item.Name,
+                item.ItemType,
+                item.Sku,
+                barcode,
+                item.SalesPrice,
+                item.PurchasePrice,
+                item.Unit,
+                item.IncomeAccountId,
+                item.InventoryAssetAccountId,
+                item.CogsAccountId,
+                item.ExpenseAccountId);
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return items.Count;
+    }
     public async Task<Item?> UpdateAsync(Guid id, string name, ItemType itemType, string? sku, string? barcode, decimal salesPrice, decimal purchasePrice, string unit, Guid? incomeAccountId, Guid? inventoryAssetAccountId, Guid? cogsAccountId, Guid? expenseAccountId, CancellationToken cancellationToken = default) { var item = await GetByIdAsync(id, cancellationToken); if (item is null) return null; item.Update(name, itemType, sku, barcode, salesPrice, purchasePrice, unit, incomeAccountId, inventoryAssetAccountId, cogsAccountId, expenseAccountId); await _db.SaveChangesAsync(cancellationToken); return item; }
     public Task<bool> SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken = default) => MutateAsync(id, item => item.SetActive(isActive), cancellationToken);
     public Task<bool> AdjustQuantityAsync(Guid id, decimal quantityOnHand, CancellationToken cancellationToken = default) => MutateAsync(id, item => item.AdjustQuantity(quantityOnHand), cancellationToken);
     public Task<bool> DecreaseQuantityAsync(Guid id, decimal quantity, CancellationToken cancellationToken = default) => MutateAsync(id, item => item.DecreaseQuantity(quantity), cancellationToken);
     public Task<bool> IncreaseQuantityAsync(Guid id, decimal quantity, CancellationToken cancellationToken = default) => MutateAsync(id, item => item.IncreaseQuantity(quantity), cancellationToken);
     private async Task<bool> MutateAsync(Guid id, Action<Item> mutation, CancellationToken cancellationToken) { var item = await GetByIdAsync(id, cancellationToken); if (item is null) return false; mutation(item); await _db.SaveChangesAsync(cancellationToken); return true; }
+
+    private static string GenerateInternalBarcode(HashSet<string> used)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var baseDigits = $"200{Random.Shared.Next(0, 1_000_000_000):D9}";
+            var barcode = WithEan13CheckDigit(baseDigits);
+            if (!used.Contains(barcode)) return barcode;
+        }
+
+        var fallback = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        var fallbackBase = "200" + fallback.PadLeft(9, '0')[..9];
+        return WithEan13CheckDigit(fallbackBase);
+    }
+
+    private static string WithEan13CheckDigit(string first12Digits)
+    {
+        if (first12Digits.Length != 12 || first12Digits.Any(ch => ch < '0' || ch > '9'))
+        {
+            throw new ArgumentException("EAN-13 barcode base must contain exactly 12 digits.", nameof(first12Digits));
+        }
+
+        var sum = 0;
+        for (var i = 0; i < first12Digits.Length; i++)
+        {
+            var digit = first12Digits[i] - '0';
+            sum += i % 2 == 0 ? digit : digit * 3;
+        }
+
+        var checkDigit = (10 - (sum % 10)) % 10;
+        return $"{first12Digits}{checkDigit}";
+    }
 }
 
 public abstract class EfDocumentRepository<TDocument, TResult, TSearch>

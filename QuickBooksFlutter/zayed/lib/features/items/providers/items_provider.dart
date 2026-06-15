@@ -106,6 +106,14 @@ class ItemsNotifier extends AsyncNotifier<List<ItemModel>> {
     return result;
   }
 
+  Future<ApiResult<int>> generateMissingBarcodes() async {
+    final result = await ref
+        .read(itemsRepositoryProvider)
+        .generateMissingBarcodes();
+    if (result.isSuccess) await refresh();
+    return result;
+  }
+
   Future<ApiResult<String>> exportCsv() =>
       ref.read(itemsRepositoryProvider).exportCsv();
 

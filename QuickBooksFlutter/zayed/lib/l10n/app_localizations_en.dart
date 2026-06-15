@@ -408,6 +408,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get barcodeCenter => 'Barcode Center';
 
   @override
+  String get generate => 'Generate';
+
+  @override
   String get generateBarcode => 'Generate barcode';
 
   @override
@@ -976,6 +979,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get missingBarcode => 'Missing barcode';
+
+  @override
+  String get generateMissingBarcodes => 'Generate missing barcodes';
+
+  @override
+  String generateMissingBarcodesCount(int count) {
+    return 'Generate missing ($count)';
+  }
+
+  @override
+  String generateMissingBarcodesConfirm(int count) {
+    return 'Generate internal barcodes for $count active items that do not have a barcode?';
+  }
+
+  @override
+  String generatedMissingBarcodes(int count) {
+    return 'Generated barcodes for $count items.';
+  }
+
+  @override
+  String generateMissingBarcodesFailed(String error) {
+    return 'Could not generate missing barcodes: $error';
+  }
 
   @override
   String get internal200 => 'Internal 200';

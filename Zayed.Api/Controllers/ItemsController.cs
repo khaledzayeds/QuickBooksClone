@@ -237,10 +237,10 @@ public sealed class ItemsController : ControllerBase
             var item = await _items.GetByIdAsync(id, cancellationToken);
             if (item is null) { errors.Add($"Item {id} not found."); continue; }
 
-            var newSales    = Compute(item.SalesPrice,    request.Mode, request.Value);
+            var newSales = Compute(item.SalesPrice, request.Mode, request.Value);
             var newPurchase = Compute(item.PurchasePrice, request.Mode, request.Value);
 
-            decimal targetSales    = request.Target is PriceChangeTarget.SalesPrice or PriceChangeTarget.Both    ? newSales    : item.SalesPrice;
+            decimal targetSales = request.Target is PriceChangeTarget.SalesPrice or PriceChangeTarget.Both ? newSales : item.SalesPrice;
             decimal targetPurchase = request.Target is PriceChangeTarget.PurchasePrice or PriceChangeTarget.Both ? newPurchase : item.PurchasePrice;
 
             await _items.UpdateAsync(
@@ -264,14 +264,22 @@ public sealed class ItemsController : ControllerBase
         return Ok(new BulkPriceChangeResponse(updated, errors));
     }
 
+    [HttpPost("generate-missing-barcodes")]
+    [ProducesResponseType(typeof(GenerateMissingBarcodesResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<GenerateMissingBarcodesResponse>> GenerateMissingBarcodes(CancellationToken cancellationToken = default)
+    {
+        var updated = await _items.GenerateMissingBarcodesAsync(cancellationToken);
+        return Ok(new GenerateMissingBarcodesResponse(updated));
+    }
+
     private static decimal Compute(decimal current, PriceChangeMode mode, decimal value) => mode switch
     {
-        PriceChangeMode.SetFixed           => value,
-        PriceChangeMode.IncreaseByAmount   => current + value,
-        PriceChangeMode.IncreaseByPercent  => Math.Round(current * (1 + value / 100), 2),
-        PriceChangeMode.DecreaseByAmount   => Math.Max(0, current - value),
-        PriceChangeMode.DecreaseByPercent  => Math.Round(current * (1 - value / 100), 2),
-        _                                  => current,
+        PriceChangeMode.SetFixed => value,
+        PriceChangeMode.IncreaseByAmount => current + value,
+        PriceChangeMode.IncreaseByPercent => Math.Round(current * (1 + value / 100), 2),
+        PriceChangeMode.DecreaseByAmount => Math.Max(0, current - value),
+        PriceChangeMode.DecreaseByPercent => Math.Round(current * (1 - value / 100), 2),
+        _ => current,
     };
 
     // ── Bulk Toggle Active ────────────────────────────────────────────────────

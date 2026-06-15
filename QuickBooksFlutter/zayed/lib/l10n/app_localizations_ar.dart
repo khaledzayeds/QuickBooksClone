@@ -405,6 +405,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get barcodeCenter => 'مركز الباركود';
 
   @override
+  String get generate => 'توليد';
+
+  @override
   String get generateBarcode => 'توليد باركود';
 
   @override
@@ -960,6 +963,29 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get missingBarcode => 'باركود مفقود';
+
+  @override
+  String get generateMissingBarcodes => 'توليد الباركود الناقص';
+
+  @override
+  String generateMissingBarcodesCount(int count) {
+    return 'توليد الناقص ($count)';
+  }
+
+  @override
+  String generateMissingBarcodesConfirm(int count) {
+    return 'سيتم توليد باركود داخلي لعدد $count صنف نشط لا يحتوي على باركود. هل تريد المتابعة؟';
+  }
+
+  @override
+  String generatedMissingBarcodes(int count) {
+    return 'تم توليد باركود لعدد $count صنف.';
+  }
+
+  @override
+  String generateMissingBarcodesFailed(String error) {
+    return 'تعذر توليد الباركود الناقص: $error';
+  }
 
   @override
   String get internal200 => 'داخلي 200';

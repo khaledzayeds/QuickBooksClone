@@ -113,6 +113,18 @@ class ItemsRemoteDatasource {
     }
   }
 
+  Future<ApiResult<int>> generateMissingBarcodes() async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/api/items/generate-missing-barcodes',
+      );
+      final updated = (response.data?['updatedCount'] as num?)?.toInt() ?? 0;
+      return Success(updated);
+    } on DioException catch (e) {
+      return Failure(parseError(e));
+    }
+  }
+
   /// Export items as CSV string built client-side.
   Future<ApiResult<String>> exportCsv() async {
     try {
