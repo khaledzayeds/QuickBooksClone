@@ -1329,11 +1329,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get customerStatementSubtitle =>
-      'كشف حساب تفصيلي للعميل مع فلاتر العميل والفترة والنوع وطباعة PDF بحجم A4.';
+      'كشف حساب تفصيلي للعميل مع فلاتر العميل والفترة والنوع وطباعة A4/حراري.';
 
   @override
   String get vendorStatementSubtitle =>
-      'كشف حساب تفصيلي للمورد مع فلاتر المورد والفترة والنوع وطباعة PDF بحجم A4.';
+      'كشف حساب تفصيلي للمورد مع فلاتر المورد والفترة والنوع وطباعة A4/حراري.';
 
   @override
   String get customerDropdown => 'قائمة العملاء';

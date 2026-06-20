@@ -6,6 +6,9 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../../settings/data/models/printing_settings_model.dart';
+import 'statement_print_dispatcher.dart';
+
 class VendorStatementPrintLine {
   const VendorStatementPrintLine({
     required this.type,
@@ -41,13 +44,19 @@ class VendorStatementPrintModel {
 }
 
 class VendorStatementPrintService {
-  const VendorStatementPrintService();
+  const VendorStatementPrintService({
+    this.dispatcher = const StatementPrintDispatcher(),
+  });
+
+  final StatementPrintDispatcher dispatcher;
 
   Future<void> printStatement(VendorStatementPrintModel model) async {
-    final bytes = await buildPdf(model);
-    await Printing.layoutPdf(
-      name: 'Vendor-Statement-${model.vendorName}.pdf',
-      onLayout: (_) async => bytes,
+    await dispatcher.print(
+      documentType: 'vendor-statement',
+      baseName: 'Vendor-Statement-${_safeName(model.vendorName)}',
+      thermalFormat: (settings) => _thermalPageFormat(model, settings),
+      buildA4: (_) => buildPdf(model),
+      buildThermal: (settings) => buildThermalPdf(model, settings),
     );
   }
 
@@ -205,6 +214,158 @@ class VendorStatementPrintService {
     return doc.save();
   }
 
+  Future<Uint8List> buildThermalPdf(
+    VendorStatementPrintModel model,
+    PrintingSettingsModel settings,
+  ) async {
+    final font = await _loadPdfFont();
+    final boldFont = await _loadPdfBoldFont();
+    final doc = pw.Document(
+      theme: font == null
+          ? null
+          : pw.ThemeData.withFont(
+              base: font,
+              bold: boldFont ?? font,
+              fontFallback: [font],
+            ),
+    );
+
+    final dateFmt = DateFormat('dd/MM/yyyy');
+    final moneyFmt = NumberFormat('#,##0.00');
+    final rtl = _isArabicStatement(model);
+    final labels = _StatementLabels.forDirection(rtl);
+    final total = model.lines.fold<double>(0, (sum, line) => sum + line.amount);
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: _thermalPageFormat(model, settings),
+        textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+        build: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            pw.Center(
+              child: pw.Text(
+                labels.title,
+                style: pw.TextStyle(
+                  fontSize: 13,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Center(
+              child: pw.Text(
+                model.vendorName,
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 4),
+            _thermalLine(),
+            _thermalKv(
+              labels.dateRange,
+              model.fromDate == null || model.toDate == null
+                  ? labels.allDates
+                  : '${dateFmt.format(model.fromDate!)} - ${dateFmt.format(model.toDate!)}',
+            ),
+            _thermalKv(labels.type, model.type),
+            _thermalKv(labels.transactions, model.lines.length.toString()),
+            _thermalKv(
+              labels.netAmount,
+              '${moneyFmt.format(total)} ${model.currency}',
+              bold: true,
+            ),
+            _thermalLine(),
+            ...model.lines.map(
+              (line) => _thermalTxn(line, dateFmt, moneyFmt, model.currency),
+            ),
+            _thermalLine(),
+            pw.Center(
+              child: pw.Text(
+                dateFmt.format(DateTime.now()),
+                style: const pw.TextStyle(fontSize: 8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return doc.save();
+  }
+
+  PdfPageFormat _thermalPageFormat(
+    VendorStatementPrintModel model,
+    PrintingSettingsModel settings,
+  ) {
+    final width = settings.thermalWidth.widthMillimeters * PdfPageFormat.mm;
+    final heightMm = 120 + (model.lines.length * 18);
+    return PdfPageFormat(
+      width,
+      (heightMm < 180 ? 180 : heightMm).toDouble() * PdfPageFormat.mm,
+      marginAll: 4 * PdfPageFormat.mm,
+    );
+  }
+
+  pw.Widget _thermalTxn(
+    VendorStatementPrintLine line,
+    DateFormat dateFmt,
+    NumberFormat moneyFmt,
+    String currency,
+  ) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 3),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          pw.Text(
+            '${dateFmt.format(line.date)}  ${line.type}',
+            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(
+            '${line.number}  ${line.status}',
+            style: const pw.TextStyle(fontSize: 7),
+          ),
+          pw.Text(
+            '${moneyFmt.format(line.amount)} $currency',
+            textAlign: pw.TextAlign.left,
+            style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _thermalKv(String label, String value, {bool bold = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(value, style: const pw.TextStyle(fontSize: 8)),
+          pw.Text(
+            '$label:',
+            style: pw.TextStyle(
+              fontSize: 8,
+              fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _thermalLine() => pw.Padding(
+    padding: const pw.EdgeInsets.symmetric(vertical: 4),
+    child: pw.Text(
+      '- - - - - - - - - - - - - - - - - -',
+      textAlign: pw.TextAlign.center,
+      style: const pw.TextStyle(fontSize: 7),
+    ),
+  );
+
   pw.Widget _kv(String label, String value) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -287,6 +448,9 @@ class VendorStatementPrintService {
 
   bool _containsArabic(String text) =>
       RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+
+  String _safeName(String value) =>
+      value.trim().replaceAll(RegExp(r'[\\/:*?"<>|]+'), '-');
 }
 
 class _StatementLabels {

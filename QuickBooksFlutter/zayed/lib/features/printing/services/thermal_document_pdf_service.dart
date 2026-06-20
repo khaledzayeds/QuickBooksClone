@@ -20,7 +20,7 @@ class ThermalDocumentPdfService {
     DocumentPrintDataModel data,
     PrintingSettingsModel settings,
   ) async {
-    final logo = await assetLoader.loadLogo(settings);
+    final logo = await assetLoader.loadLogo(settings, thermalOptimized: true);
     final arabicFont = await assetLoader.loadArabicFont(settings);
     final theme = arabicFont == null
         ? null

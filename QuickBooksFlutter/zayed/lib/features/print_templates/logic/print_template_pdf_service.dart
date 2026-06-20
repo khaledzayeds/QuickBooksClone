@@ -50,7 +50,10 @@ class PrintTemplatePdfService {
 
     pw.ImageProvider? logoImage;
     if (settings != null) {
-      logoImage = await const PrintingAssetLoader().loadLogo(settings);
+      logoImage = await const PrintingAssetLoader().loadLogo(
+        settings,
+        thermalOptimized: _isThermalTemplate(template),
+      );
     }
 
     final showQr = settings?.showQrCode ?? true;
@@ -139,6 +142,13 @@ class PrintTemplatePdfService {
     return id.contains('logo') ||
         value.contains('logo') ||
         binding.contains('logo');
+  }
+
+  bool _isThermalTemplate(PrintTemplateModel template) {
+    final size = template.pageSize.toLowerCase();
+    return size.contains('receipt') ||
+        size.contains('thermal') ||
+        template.page.widthMm <= 90;
   }
 
   pw.Widget _element(

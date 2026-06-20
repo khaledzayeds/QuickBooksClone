@@ -1347,11 +1347,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customerStatementSubtitle =>
-      'Detailed customer statement with customer, date range, type filters, and A4 PDF printing.';
+      'Detailed customer statement with customer, date range, type filters, and A4/thermal printing.';
 
   @override
   String get vendorStatementSubtitle =>
-      'Detailed vendor statement with vendor, date range, type filters, and A4 PDF printing.';
+      'Detailed vendor statement with vendor, date range, type filters, and A4/thermal printing.';
 
   @override
   String get customerDropdown => 'Customer dropdown';

@@ -1543,6 +1543,8 @@ class _PrintSettingsText {
         'purchase-order' => ar ? 'أمر شراء' : 'Purchase Order',
         'receive-inventory' => ar ? 'استلام مخزون' : 'Receive Inventory',
         'inventory-adjustment' => ar ? 'تسوية مخزون' : 'Inventory Adjustment',
+        'customer-statement' => ar ? 'كشف حساب عميل' : 'Customer Statement',
+        'vendor-statement' => ar ? 'كشف حساب مورد' : 'Vendor Statement',
         _ => key,
       };
 
@@ -1550,6 +1552,7 @@ class _PrintSettingsText {
     'Sales' => ar ? 'المبيعات' : 'Sales',
     'Purchasing' => ar ? 'المشتريات' : 'Purchasing',
     'Inventory' => ar ? 'المخزون' : 'Inventory',
+    'Reports' => ar ? 'التقارير' : 'Reports',
     _ => group,
   };
 }

@@ -2537,13 +2537,13 @@ abstract class AppLocalizations {
   /// No description provided for @customerStatementSubtitle.
   ///
   /// In ar, this message translates to:
-  /// **'كشف حساب تفصيلي للعميل مع فلاتر العميل والفترة والنوع وطباعة PDF بحجم A4.'**
+  /// **'كشف حساب تفصيلي للعميل مع فلاتر العميل والفترة والنوع وطباعة A4/حراري.'**
   String get customerStatementSubtitle;
 
   /// No description provided for @vendorStatementSubtitle.
   ///
   /// In ar, this message translates to:
-  /// **'كشف حساب تفصيلي للمورد مع فلاتر المورد والفترة والنوع وطباعة PDF بحجم A4.'**
+  /// **'كشف حساب تفصيلي للمورد مع فلاتر المورد والفترة والنوع وطباعة A4/حراري.'**
   String get vendorStatementSubtitle;
 
   /// No description provided for @customerDropdown.

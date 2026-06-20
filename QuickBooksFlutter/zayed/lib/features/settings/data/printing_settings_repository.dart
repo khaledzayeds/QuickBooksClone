@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'models/printing_settings_model.dart';
 
 class PrintingSettingsRepository {
+  const PrintingSettingsRepository();
+
   static const _prefix = 'printing.';
 
   Future<PrintingSettingsModel> load() async {

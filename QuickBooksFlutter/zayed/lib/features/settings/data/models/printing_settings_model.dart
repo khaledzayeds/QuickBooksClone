@@ -142,9 +142,18 @@ const printDocumentTypeOptions = <PrintDocumentTypeOption>[
     label: 'Inventory Adjustment',
     group: 'Inventory',
   ),
+  PrintDocumentTypeOption(
+    key: 'customer-statement',
+    label: 'Customer Statement',
+    group: 'Reports',
+  ),
+  PrintDocumentTypeOption(
+    key: 'vendor-statement',
+    label: 'Vendor Statement',
+    group: 'Reports',
+  ),
   // TODO(printing): enable these once /api/printing supports their print data contracts.
-  // Bank deposits and checks currently use draft/local print data, while statements
-  // still need backend endpoints before they can safely appear in per-screen settings.
+  // Bank deposits and checks currently use draft/local print data.
 ];
 
 const unsupportedPrintDocumentTypeOptions = <PrintDocumentTypeOption>[
@@ -158,16 +167,6 @@ const unsupportedPrintDocumentTypeOptions = <PrintDocumentTypeOption>[
     key: 'journal-entry',
     label: 'Journal Entry',
     group: 'Company',
-  ),
-  PrintDocumentTypeOption(
-    key: 'customer-statement',
-    label: 'Customer Statement',
-    group: 'Reports',
-  ),
-  PrintDocumentTypeOption(
-    key: 'vendor-statement',
-    label: 'Vendor Statement',
-    group: 'Reports',
   ),
 ];
 
